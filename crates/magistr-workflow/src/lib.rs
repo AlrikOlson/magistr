@@ -26,7 +26,7 @@
 //!   with dependencies, statuses and priorities. It claims a second prefix,
 //!   `tracker_*`, for mirroring that plan into an issue tracker through a
 //!   provider-agnostic port — the same family, a different namespace.
-//! - `signal_*` — what stakeholders raised: questions, ideas, concerns, bugs.
+//! - `request_*` — what stakeholders raised: questions, ideas, concerns, bugs.
 //!
 //! They are not four separate logs. A reasoning step can point at the task it
 //! motivated, a task can point back at the reasoning behind it, and both
@@ -46,9 +46,9 @@
 //! it exposes is decided once at startup by [`mcp::unified::FamilySelection`].
 //! Each family is also usable on its own — [`decision::DecisionService`],
 //! [`run::RunService`], [`plan::PlanService`],
-//! [`signal::SignalService`] — and each wraps a plain engine you can drive
+//! [`request::RequestService`] — and each wraps a plain engine you can drive
 //! without any MCP wire at all, such as [`plan::PlanEngine`] and
-//! [`signal::SignalEngine`].
+//! [`request::RequestEngine`].
 //!
 //! State is off by default and opt-in with `MAGISTR_WORKFLOW_PERSIST=true`; see
 //! [`infra::PersistenceConfig`].
@@ -68,8 +68,8 @@ pub mod otel_live;
 pub mod otel_logs;
 pub mod otlp_config;
 pub mod plan;
+pub mod request;
 pub mod run;
-pub mod signal;
 pub mod telemetry;
 pub mod trace_context;
 pub mod tracker;

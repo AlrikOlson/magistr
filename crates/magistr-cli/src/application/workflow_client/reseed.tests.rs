@@ -4,7 +4,7 @@ use magistr_cockpit::{cockpit::Msg, engine::EngineEvent};
 #[cfg(unix)]
 use magistr_engine::ReadState;
 use magistr_engine::{
-    NativeConfig, NativeEngines, NativeSnapshot, ProjectAuthority, SignalKind, TaskStatus,
+    NativeConfig, NativeEngines, NativeSnapshot, ProjectAuthority, RequestKind, TaskStatus,
     WriterRole,
 };
 #[cfg(unix)]
@@ -147,7 +147,7 @@ async fn timer_retries_failure_and_unchanged_stamp_repair_while_feed_stays_attac
 }
 
 #[tokio::test]
-async fn scoped_run_only_and_signal_changes_reach_the_snapshot() {
+async fn scoped_run_only_and_request_changes_reach_the_snapshot() {
     let tmp = tempfile::tempdir().unwrap();
     let root = engines(&tmp);
     let engines = root
@@ -177,11 +177,11 @@ async fn scoped_run_only_and_signal_changes_reach_the_snapshot() {
         "Only this execution"
     );
     let captured = engines
-        .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
+        .request_capture(RequestKind::Suggestion, "alice".into(), "faster".into())
         .unwrap();
     let seed = next_seed(&mut rx, Duration::from_secs(5)).await.unwrap();
     assert_eq!(
-        seed.signals.current().unwrap().value[0].id,
+        seed.requests.current().unwrap().value[0].id,
         captured.value.id
     );
     task.abort();

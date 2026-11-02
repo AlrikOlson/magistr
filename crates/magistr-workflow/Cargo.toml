@@ -7,7 +7,7 @@ edition = "2024"
 # 1.89 for std::fs::File advisory locking (lock/unlock) — the dependency-free
 # cross-process guard in decision/persistence.rs (decision-log-durability).
 rust-version = "1.89"
-description = "Magistr's workflow families (decision, run, plan, signal): the repository-local fork of magistr, see subsystems/workflow/PROVENANCE.md"
+description = "Magistr's workflow families (decision, run, plan, request): the repository-local fork of magistr, see subsystems/workflow/PROVENANCE.md"
 license = "MIT"
 
 [lib]

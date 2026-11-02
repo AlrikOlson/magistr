@@ -58,7 +58,7 @@ pub enum EngineEvent {
 
 impl EngineEvent {
     /// An event this process's own writer answered with — the port's
-    /// task or signal, the loop driver's gate bytes — which has no
+    /// task or request, the loop driver's gate bytes — which has no
     /// publisher and nothing to sequence.
     #[must_use]
     pub const fn local(event: NativeEvent) -> Self {

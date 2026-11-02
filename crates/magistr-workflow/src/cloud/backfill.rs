@@ -3,7 +3,7 @@
 //! Cloud sync is write-through on *mutation* only, so an
 //! agent that connects after it already has local history shows nothing in the
 //! cloud until it next mutates each record. `magistr sync push` closes
-//! that gap: it walks the persisted decision/run/plan/signal stores, builds the
+//! that gap: it walks the persisted decision/run/plan/request stores, builds the
 //! same envelopes the write-through path builds (via [`crate::cloud::build`]),
 //! and `PUT`s each to `/v1/records`.
 //!
@@ -13,7 +13,7 @@
 //! landed records collapse to dedups.
 //!
 //! Scope mirrors the write-through path **exactly**: decision notes, run *progress*,
-//! plan tasks, signals. Run goals/checks/steps are not pushed by
+//! plan tasks, requests. Run goals/checks/steps are not pushed by
 //! write-through (no stable wire id) and stay deferred to `saas-cloud-sync-all`
 //! — this back-fill does not silently widen that scope.
 
@@ -22,9 +22,9 @@ use crate::cloud::client::{CloudClient, PushOutcome};
 use crate::cloud::envelope::{Family, UnifiedRecordEnvelope};
 use crate::decision::domain::note::Note;
 use crate::plan::domain::Plan;
+use crate::request::domain::Request;
 use crate::run::domain::goal::Goal;
 use crate::run::domain::step::Step;
-use crate::signal::domain::Signal;
 
 /// Per-family record counts in a collected back-fill (the dry-run report).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -32,14 +32,14 @@ pub struct BackfillCounts {
     pub decision: usize,
     pub run: usize,
     pub plan: usize,
-    pub signal: usize,
+    pub request: usize,
 }
 
 impl BackfillCounts {
     /// Total records across all four families.
     #[must_use]
     pub fn total(&self) -> usize {
-        self.decision + self.run + self.plan + self.signal
+        self.decision + self.run + self.plan + self.request
     }
 
     /// Derive the per-family breakdown from a built envelope list.
@@ -51,7 +51,7 @@ impl BackfillCounts {
                 Family::Decision => c.decision += 1,
                 Family::Run => c.run += 1,
                 Family::Plan => c.plan += 1,
-                Family::Signal => c.signal += 1,
+                Family::Request => c.request += 1,
             }
         }
         c
@@ -60,13 +60,13 @@ impl BackfillCounts {
 
 /// Build the cloud envelopes for every local record across the four families,
 /// reusing the write-through builders. Pure and network-free — the unit-test
-/// seam for the whole back-fill. Order is stable: decision, run, plan, signal.
+/// seam for the whole back-fill. Order is stable: decision, run, plan, request.
 pub fn collect_envelopes<'a>(
     tenant: &str,
     notes: impl Iterator<Item = &'a Note>,
     run: Option<(&Goal, &[Step])>,
     plan: &Plan,
-    signals: &[Signal],
+    requests: &[Request],
 ) -> Result<Vec<UnifiedRecordEnvelope>, magistr_workflow_contracts::ReadError> {
     let mut out = Vec::new();
     out.extend(
@@ -112,7 +112,7 @@ pub fn collect_envelopes<'a>(
             .collect();
         build::from_task(tenant, c, &links, &opt_ins)
     }));
-    out.extend(signals.iter().map(|s| build::from_signal(tenant, s)));
+    out.extend(requests.iter().map(|s| build::from_request(tenant, s)));
     if out.iter().any(|envelope| envelope.id.trim().is_empty()) {
         return Err(magistr_workflow_contracts::ReadError::new(
             magistr_workflow_contracts::ReadErrorKind::Identity,
@@ -131,7 +131,7 @@ pub struct PushSummary {
     /// Records the cloud refused because its copy is further along the
     /// lifecycle than ours (`409 illegal_transition` on an unreachable
     /// target). That refusal is the no-clobber guard HOLDING — the cloud
-    /// carries a fresher truth, e.g. a signal a human dismissed in the
+    /// carries a fresher truth, e.g. a request a human dismissed in the
     /// webapp while the local store still says `new` — so it is reported
     /// here, not in [`Self::failed`], and does not fail the run.
     pub kept: Vec<(String, String)>,

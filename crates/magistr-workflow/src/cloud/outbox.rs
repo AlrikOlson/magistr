@@ -258,7 +258,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("outbox.json");
         let outbox = Outbox::new(Some(path.clone()));
-        outbox.enqueue("signal/signal/s1".into(), json!({"id": "s1"}));
+        outbox.enqueue("request/request/s1".into(), json!({"id": "s1"}));
         let entry = outbox.snapshot()[0].clone();
         outbox.remove(&entry);
         assert!(outbox.is_empty());
@@ -273,7 +273,7 @@ mod tests {
         assert_eq!(entry_keys(&reloaded), vec!["decision/step/2"]);
 
         // A NEWER envelope for the same record queues normally (digest differs).
-        reloaded.enqueue("signal/signal/s1".into(), json!({"id": "s1", "v": 2}));
+        reloaded.enqueue("request/request/s1".into(), json!({"id": "s1", "v": 2}));
         assert_eq!(reloaded.len(), 2);
     }
 

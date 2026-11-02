@@ -177,13 +177,19 @@ impl ProjectAuthority {
     pub fn open(self) -> NativeEngines {
         let mut config = self.config.clone();
         config.owner_generation = self.generation().get();
-        let (decision, run, plan, signal) =
+        let (decision, run, plan, request) =
             open_engines(&config, self.project_id.clone(), self.feed().cloned());
         let services =
-            FamilyServices::compose(decision, run, plan, signal, self.config.evidence.clone());
-        let (decision, run, plan, signal) = services.engines();
-        let reader =
-            NativeReader::from_shared(self.project_id.clone(), config, decision, run, plan, signal);
+            FamilyServices::compose(decision, run, plan, request, self.config.evidence.clone());
+        let (decision, run, plan, request) = services.engines();
+        let reader = NativeReader::from_shared(
+            self.project_id.clone(),
+            config,
+            decision,
+            run,
+            plan,
+            request,
+        );
         NativeEngines::admitted(reader, Arc::new(self), services)
     }
 

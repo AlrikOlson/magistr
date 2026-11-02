@@ -343,7 +343,7 @@ impl ReasoningServer {
             ("outcome", note.outcome.as_str()),
             ("rationale", note.rationale.as_str()),
         ];
-        // Pattern-A signal: bare-tag markup still present in a surviving
+        // Pattern-A request: bare-tag markup still present in a surviving
         // field, OR recovery already extracted bare-tag content earlier
         // this call (the post-recovery truncate cleans the markup, so we
         // lean on `recovered_fields` as the after-the-fact signature).

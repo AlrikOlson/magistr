@@ -342,7 +342,7 @@ mod tests {
         for tool in [
             "decision_record",
             "plan_status",
-            "signal_capture",
+            "request_capture",
             "tracker_setup",
             "run_finish",
         ] {

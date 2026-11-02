@@ -328,7 +328,7 @@ impl LinearTracker {
                 .collect::<Vec<_>>()
                 .join("; ");
 
-            // Linear signals throttling in the error body, not only by status.
+            // Linear requests throttling in the error body, not only by status.
             // Misreading it as a contract error would drop the write instead of
             // queueing it.
             if code.contains("RATELIMIT") || code.contains("RATE_LIMIT") {

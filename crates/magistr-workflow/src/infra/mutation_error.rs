@@ -15,10 +15,10 @@ impl From<crate::plan::application::PlanError> for WorkflowMutationError {
     }
 }
 
-impl From<crate::signal::application::SignalError> for WorkflowMutationError {
-    fn from(error: crate::signal::application::SignalError) -> Self {
+impl From<crate::request::application::RequestError> for WorkflowMutationError {
+    fn from(error: crate::request::application::RequestError) -> Self {
         let committed_record = match &error {
-            crate::signal::application::SignalError::PartialPromotion {
+            crate::request::application::RequestError::PartialPromotion {
                 task_id,
                 committed_source,
                 ..

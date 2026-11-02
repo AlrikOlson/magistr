@@ -143,25 +143,25 @@ fn native_blocker_commands_validate_and_clear_through_the_same_patch() {
 }
 
 #[test]
-fn native_queries_include_shared_signals_and_keep_lane_isolation() {
+fn native_queries_include_shared_requests_and_keep_lane_isolation() {
     let app = application();
     app.add_task(draft()).unwrap();
-    let signals = crate::signal::application::SignalUseCases::new(Arc::new(Mutex::new(
-        SignalEngine::new("project".into()),
+    let requests = crate::request::application::RequestUseCases::new(Arc::new(Mutex::new(
+        RequestEngine::new("project".into()),
     )));
-    let signal = signals
+    let request = requests
         .capture(
-            crate::signal::domain::SignalKind::Idea,
+            crate::request::domain::RequestKind::Suggestion,
             "user".into(),
             "Relevant idea".into(),
             None,
         )
         .unwrap();
-    signals
-        .research(&signal.value.id, "Evidence".into(), 0.9, vec![], None)
+    requests
+        .research(&request.value.id, "Evidence".into(), 0.9, vec![], None)
         .unwrap();
-    let app = app.with_signal(signals.engine());
-    assert_eq!(app.status().unwrap()["pending_signals"], 1);
+    let app = app.with_request(requests.engine());
+    assert_eq!(app.status().unwrap()["ready_requests"], 1);
     app.focus_set("lane-a", "Delivery", FocusMode::Build)
         .unwrap();
     assert!(

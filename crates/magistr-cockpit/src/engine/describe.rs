@@ -18,8 +18,8 @@ pub fn describe(cmd: &EngineCmd) -> String {
             kind.label()
         ),
         EngineCmd::ClearBlocker { task } => format!("clear the blocker on {task}"),
-        EngineCmd::PromoteSignal { id } => format!("promote {id}"),
-        EngineCmd::IgnoreSignal { id } => format!("ignore {id}"),
-        EngineCmd::SnoozeSignal { id, .. } => format!("snooze {id}"),
+        EngineCmd::PromoteRequest { id } => format!("promote {id}"),
+        EngineCmd::DismissRequest { id } => format!("ignore {id}"),
+        EngineCmd::SnoozeRequest { id, .. } => format!("snooze {id}"),
     }
 }

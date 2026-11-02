@@ -32,13 +32,13 @@ def check(root):
     # These are source inputs, not installed copies or files in an author's home.
     for relative in (
         "LICENSE", "PROVENANCE.md", ".githooks/commit-msg", "contract/unified-record-envelope.schema.json",
-        "contract/signal-envelope.schema.json", "shared/name-derivation.cases.json",
+        "contract/request-envelope.schema.json", "shared/name-derivation.cases.json",
         "shared/region-unplaced.json", "docs/HARNESSES.md", "docs/CLI.md",
     ):
         required_file(SUBSYSTEM / relative)
     for relative in (
         "Cargo.toml", "src/lib.rs",
-        "src/decision/mod.rs", "src/run/mod.rs", "src/plan/mod.rs", "src/signal/mod.rs",
+        "src/decision/mod.rs", "src/run/mod.rs", "src/plan/mod.rs", "src/request/mod.rs",
         "src/tracker/host/mod.rs",
         "tests/family_stores_durability.rs", "tests/workflow_e2e.rs",
         "tests/unified_service.rs",

@@ -13,7 +13,7 @@ use super::writer_role::WriterRole;
 /// belongs to an older owner that still writes the older layout; a store-words
 /// move refuses while one runs. A later move of a family store moves this
 /// directory with it.
-pub(crate) const OWNER_LEASES: &str = "owners/decision-words";
+pub(crate) const OWNER_LEASES: &str = "owners/request-words";
 
 /// The lock file `role` contends on for `project_id` on the store `tas`
 /// names — under the persistent store, or the project's `.magistr/` when

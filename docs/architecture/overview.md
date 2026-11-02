@@ -52,7 +52,7 @@ floor that keeps each topology safe.
 
 The CLI's MCP service embeds the repository-local
 [workflow source](../../subsystems/workflow/PROVENANCE.md). Its plan,
-reasoning, execution, and signal tools share native project state. The
+reasoning, execution, and request tools share native project state. The
 workspace tools are served by the same binary's native workspace bridge
 (`magistr mcp --dir`), every client of a workspace reaching its
 one admitted owner. The
@@ -68,7 +68,7 @@ workflow and workspace services Magistr-owned code. It defines
 workflow and workspace ownership, source certification and operation contracts. The accepted target is one Rust-native Magistr product. Workflow
 source and the adopted `magistr-workspace` engine belong to the root Cargo
 workspace. Typed
-reasoning, run, plan, and signal use cases now own native behavior beneath
+reasoning, run, plan, and request use cases now own native behavior beneath
 MCP and local owner adapters; command execution and tracker probes are explicit
 async effects. The complete Workspace reference source, contracts and tests are
 retained with pinned provenance under `subsystems/workspace/reference`; Bun and

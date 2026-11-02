@@ -383,7 +383,7 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_run() {
         "check_step",
         "plan_next",
         "plan_status",
-        "signal_capture",
+        "request_capture",
         "tracker_status",
     ] {
         assert!(

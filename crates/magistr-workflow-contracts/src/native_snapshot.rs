@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::decision::Log;
 use crate::plan::{Task, WorkstreamCatalog, workstream_catalog};
+use crate::request::Request;
 use crate::run::{Goal, Step, StepStatus};
-use crate::signal::Signal;
 use crate::{PlanProgress, ReadError, ReadState};
 
 /// Plan records and progress derived from the same validated observation.
@@ -80,7 +80,7 @@ impl DecisionData {
 pub struct NativeSnapshot {
     pub plan: ReadState<PlanData>,
     pub run: ReadState<RunData>,
-    pub signals: ReadState<Vec<Signal>>,
+    pub requests: ReadState<Vec<Request>>,
     pub decisions: ReadState<DecisionData>,
 }
 
@@ -95,7 +95,7 @@ impl NativeSnapshot {
     pub fn needs_retry(&self) -> bool {
         self.plan.needs_retry()
             || self.run.needs_retry()
-            || self.signals.needs_retry()
+            || self.requests.needs_retry()
             || self.decisions.needs_retry()
     }
 
@@ -105,7 +105,7 @@ impl NativeSnapshot {
     pub fn failed(mut self, error: ReadError) -> Self {
         self.plan.record(Err(error.clone()));
         self.run.record(Err(error.clone()));
-        self.signals.record(Err(error.clone()));
+        self.requests.record(Err(error.clone()));
         self.decisions.record(Err(error));
         self
     }

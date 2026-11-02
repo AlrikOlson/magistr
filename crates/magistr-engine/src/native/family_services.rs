@@ -8,12 +8,12 @@ use magistr_workflow::decision::engine::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::application::PlanUseCases;
 use magistr_workflow::plan::{PlanEngine, PlanService};
+use magistr_workflow::request::application::RequestUseCases;
+use magistr_workflow::request::{RequestEngine, RequestService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::application::EvidencePort;
 use magistr_workflow::run::application::RunUseCases;
 use magistr_workflow::run::engine::RunEngine;
-use magistr_workflow::signal::application::SignalUseCases;
-use magistr_workflow::signal::{SignalEngine, SignalService};
 
 /// An engine as its service holds it: shared, locked per call.
 type Shared<T> = Arc<Mutex<T>>;
@@ -25,12 +25,12 @@ pub(crate) struct FamilyServices {
     pub(crate) decision: DecisionUseCases,
     pub(crate) run: RunUseCases,
     pub(crate) plan: PlanUseCases,
-    pub(crate) signal: SignalUseCases,
+    pub(crate) request: RequestUseCases,
 }
 
 impl FamilyServices {
     /// Wrap freshly opened engines in their services and wire the
-    /// reciprocal handles: plan ↔ signal, and run as the plan's
+    /// reciprocal handles: plan ↔ request, and run as the plan's
     /// completion authority, so a task completes only on the run's
     /// current receipts whichever adapter asks. The host's evidence
     /// capability, when composed, is what lets those receipts certify a
@@ -39,7 +39,7 @@ impl FamilyServices {
         decision: ReasoningServer,
         run: RunEngine,
         plan: PlanEngine,
-        signal: SignalEngine,
+        request: RequestEngine,
         evidence: Option<Arc<dyn EvidencePort>>,
     ) -> Self {
         let decision = DecisionUseCases::new(Arc::new(Mutex::new(decision)));
@@ -48,13 +48,13 @@ impl FamilyServices {
             run = run.with_evidence(evidence);
         }
         let plan = PlanUseCases::new(Arc::new(Mutex::new(plan)), run.clone());
-        let signal = SignalUseCases::new(Arc::new(Mutex::new(signal))).with_plan(plan.engine());
-        let plan = plan.with_signal(signal.engine());
+        let request = RequestUseCases::new(Arc::new(Mutex::new(request))).with_plan(plan.engine());
+        let plan = plan.with_request(request.engine());
         Self {
             decision,
             run,
             plan,
-            signal,
+            request,
         }
     }
 
@@ -68,12 +68,12 @@ impl FamilyServices {
             run = run.with_evidence(evidence);
         }
         let plan =
-            PlanUseCases::new(self.plan.engine(), run.clone()).with_signal(self.signal.engine());
+            PlanUseCases::new(self.plan.engine(), run.clone()).with_request(self.request.engine());
         Self {
             decision: self.decision.clone(),
             run,
             plan,
-            signal: self.signal.clone(),
+            request: self.request.clone(),
         }
     }
 
@@ -82,7 +82,7 @@ impl FamilyServices {
         feed: &magistr_workflow::infra::Broadcaster,
         execution_key: &str,
     ) -> std::io::Result<()> {
-        let (decision, run, plan, signal) = self.engines();
+        let (decision, run, plan, request) = self.engines();
         decision
             .lock()
             .map_err(|_| std::io::Error::other("The reasoning publisher could not be attached."))?
@@ -99,11 +99,11 @@ impl FamilyServices {
             .set_broadcaster(magistr_workflow::plan::broadcast::Broadcaster::from_engine(
                 feed.clone(),
             ));
-        signal
+        request
             .lock()
-            .map_err(|_| std::io::Error::other("The signal publisher could not be attached."))?
+            .map_err(|_| std::io::Error::other("The request publisher could not be attached."))?
             .set_broadcaster(
-                magistr_workflow::signal::broadcast::Broadcaster::from_engine(feed.clone()),
+                magistr_workflow::request::broadcast::Broadcaster::from_engine(feed.clone()),
             );
         Ok(())
     }
@@ -114,7 +114,7 @@ impl FamilyServices {
             DecisionService::from_use_cases(self.decision.clone()),
             RunService::from_use_cases(self.run.clone()),
             PlanService::from_use_cases(self.plan.clone()),
-            SignalService::from_use_cases(self.signal.clone()),
+            RequestService::from_use_cases(self.request.clone()),
         )
     }
 
@@ -126,13 +126,13 @@ impl FamilyServices {
         Shared<ReasoningServer>,
         Shared<RunEngine>,
         Shared<PlanEngine>,
-        Shared<SignalEngine>,
+        Shared<RequestEngine>,
     ) {
         (
             self.decision.engine(),
             self.run.engine(),
             self.plan.engine(),
-            self.signal.engine(),
+            self.request.engine(),
         )
     }
 }

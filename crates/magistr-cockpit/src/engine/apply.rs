@@ -1,7 +1,7 @@
 //! Carrying an engine command out on a port.
 
-use magistr_workflow_contracts::{NativeEvent, PlanFrame, SignalFrame};
-use magistr_workflow_contracts::{Observed, Signal, Task, WorkflowMutationError};
+use magistr_workflow_contracts::{NativeEvent, PlanFrame, RequestFrame};
+use magistr_workflow_contracts::{Observed, Request, Task, WorkflowMutationError};
 
 use super::describe::describe;
 use super::event::EngineEvent;
@@ -15,7 +15,7 @@ use crate::cockpit::EngineCmd;
 /// was asked. A review report is rendered to lines here, so the
 /// cockpit never sees JSON.
 ///
-/// A mutation's answer — the updated task or signal — comes back as a
+/// A mutation's answer — the updated task or request — comes back as a
 /// local [`EngineEvent::Event`] carrying the typed frame the engines
 /// would have announced for it, so the rail, the dock and the Plan
 /// tab fold it through the one path they already have; the in-process
@@ -46,16 +46,16 @@ pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
         EngineCmd::ClearBlocker { task } => task_event(port.clear_blocker(task), |task| {
             PlanFrame::TaskChanged { task }
         }),
-        EngineCmd::PromoteSignal { id } => signal_event(
-            port.promote_signal(id).map(|promotion| promotion.signal),
-            |signal| SignalFrame::SignalChanged { signal },
+        EngineCmd::PromoteRequest { id } => request_event(
+            port.promote_request(id).map(|promotion| promotion.request),
+            |request| RequestFrame::RequestChanged { request },
         ),
-        EngineCmd::IgnoreSignal { id } => signal_event(port.ignore_signal(id), |signal| {
-            SignalFrame::SignalDismissed { signal }
+        EngineCmd::DismissRequest { id } => request_event(port.dismiss_request(id), |request| {
+            RequestFrame::RequestDismissed { request }
         }),
-        EngineCmd::SnoozeSignal { id, minutes } => {
-            signal_event(port.snooze_signal(id, *minutes), |signal| {
-                SignalFrame::SignalChanged { signal }
+        EngineCmd::SnoozeRequest { id, minutes } => {
+            request_event(port.snooze_request(id, *minutes), |request| {
+                RequestFrame::RequestChanged { request }
             })
         }
     };
@@ -74,12 +74,12 @@ fn task_event(
     answer.map(|task| EngineEvent::local(NativeEvent::Plan(frame(task.value))))
 }
 
-/// A port's signal answer as the signal event the engines would announce.
-fn signal_event(
-    answer: Result<Observed<Signal>, WorkflowMutationError>,
-    frame: impl FnOnce(Signal) -> SignalFrame,
+/// A port's request answer as the request event the engines would announce.
+fn request_event(
+    answer: Result<Observed<Request>, WorkflowMutationError>,
+    frame: impl FnOnce(Request) -> RequestFrame,
 ) -> Result<EngineEvent, WorkflowMutationError> {
-    answer.map(|signal| EngineEvent::local(NativeEvent::Signal(frame(signal.value))))
+    answer.map(|request| EngineEvent::local(NativeEvent::Request(frame(request.value))))
 }
 
 /// The report as readable lines: pretty-printed, since its shape is the

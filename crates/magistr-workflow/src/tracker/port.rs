@@ -376,7 +376,7 @@ mod tests {
             .await
             .expect_err("the default must refuse");
         assert!(matches!(err, TrackerError::Unsupported(_)));
-        // A refusal is a degradation signal, not something to queue and retry.
+        // A refusal is a degradation request, not something to queue and retry.
         assert!(!err.retryable());
     }
 }

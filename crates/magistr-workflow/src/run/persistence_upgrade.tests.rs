@@ -14,7 +14,7 @@ fn version_one_work_keeps_content_and_gets_stable_execution_identities() {
     let bytes = Persistence::upgrade_document(OLD, "saved-project").unwrap();
     let old: Value = serde_json::from_slice(OLD).unwrap();
     let new: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(new["schema_version"], 5);
+    assert_eq!(new["schema_version"], 6);
     assert_eq!(new["project_id"], old["project_id"]);
     assert_eq!(new["goal"], old["objective"]);
     assert_eq!(new["next_progress_id"], old["next_action_id"]);
@@ -46,7 +46,7 @@ fn version_two_work_takes_the_run_words_once() {
     let bytes = Persistence::upgrade_document(V2, "magistr-5a5bc6").unwrap();
     let old: Value = serde_json::from_slice(V2).unwrap();
     let new: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(new["schema_version"], 5);
+    assert_eq!(new["schema_version"], 6);
     for retired in ["objective", "tasks", "next_action_id"] {
         assert!(new.get(retired).is_none(), "{retired}");
     }
@@ -207,7 +207,7 @@ fn version_three_work_names_plan_tasks_with_the_task_prefix_once() {
     let upgraded =
         Persistence::upgrade_document(&serde_json::to_vec(&v3).unwrap(), "magistr-5a5bc6").unwrap();
     let new: Value = serde_json::from_slice(&upgraded).unwrap();
-    assert_eq!(new["schema_version"], 5);
+    assert_eq!(new["schema_version"], 6);
     assert_eq!(new["goal"]["scope"], "task:saved-chunk");
     assert_eq!(
         Persistence::upgrade_document(&upgraded, "magistr-5a5bc6").unwrap(),
@@ -249,7 +249,7 @@ fn version_four_progress_points_at_its_decision_note_once() {
     let upgraded =
         Persistence::upgrade_document(&serde_json::to_vec(&v4).unwrap(), "magistr-5a5bc6").unwrap();
     let after: Value = serde_json::from_slice(&upgraded).unwrap();
-    assert_eq!(after["schema_version"], 5);
+    assert_eq!(after["schema_version"], 6);
     assert_eq!(after["goal"]["scope"], "task:saved-task");
     assert_eq!(after["steps"][0]["progress"][0]["result"], "decision:15");
     assert!(
@@ -264,6 +264,28 @@ fn version_four_progress_points_at_its_decision_note_once() {
             .collect::<Vec<_>>(),
         [1315, 1316]
     );
+    assert_eq!(
+        Persistence::upgrade_document(&upgraded, "magistr-5a5bc6").unwrap(),
+        upgraded,
+        "a current document is unchanged"
+    );
+}
+
+#[test]
+fn version_five_work_names_requests_with_the_request_prefix_once() {
+    let current = Persistence::upgrade_document(V2, "magistr-5a5bc6").unwrap();
+    let mut v5: Value = serde_json::from_slice(&current).unwrap();
+    v5["schema_version"] = json!(5);
+    v5["goal"]["scope"] = json!("signal:f1c9a4e2");
+    let upgraded =
+        Persistence::upgrade_document(&serde_json::to_vec(&v5).unwrap(), "magistr-5a5bc6").unwrap();
+    let new: Value = serde_json::from_slice(&upgraded).unwrap();
+    assert_eq!(new["schema_version"], 6);
+    assert_eq!(new["goal"]["scope"], "request:f1c9a4e2");
+    let mut unchanged = new.clone();
+    unchanged["goal"]["scope"] = v5["goal"]["scope"].clone();
+    v5["schema_version"] = json!(6);
+    assert_eq!(unchanged, v5, "only the request prefix changes");
     assert_eq!(
         Persistence::upgrade_document(&upgraded, "magistr-5a5bc6").unwrap(),
         upgraded,

@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::plan::domain::{Task, TaskStatus};
 use crate::plan::engine::PlanEngine;
+use crate::request::engine::RequestEngine;
 use crate::run::RunUseCases;
-use crate::signal::engine::SignalEngine;
 
 use super::{PlanError, TaskDraft};
 
@@ -19,7 +19,7 @@ use super::{PlanError, TaskDraft};
 #[derive(Clone)]
 pub struct PlanUseCases {
     pub(super) engine: Arc<Mutex<PlanEngine>>,
-    pub(super) signal: Option<Arc<Mutex<SignalEngine>>>,
+    pub(super) request: Option<Arc<Mutex<RequestEngine>>>,
     pub(super) workspace_root: Option<std::path::PathBuf>,
     pub(super) completion: RunUseCases,
 }
@@ -34,14 +34,14 @@ impl PlanUseCases {
     pub fn new(engine: Arc<Mutex<PlanEngine>>, completion: RunUseCases) -> Self {
         Self {
             engine,
-            signal: None,
+            request: None,
             workspace_root: None,
             completion,
         }
     }
 
-    pub fn with_signal(mut self, signal: Arc<Mutex<SignalEngine>>) -> Self {
-        self.signal = Some(signal);
+    pub fn with_request(mut self, request: Arc<Mutex<RequestEngine>>) -> Self {
+        self.request = Some(request);
         self
     }
 

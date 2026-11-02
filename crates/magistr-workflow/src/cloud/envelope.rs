@@ -25,7 +25,7 @@ pub enum Family {
     Decision,
     Run,
     Plan,
-    Signal,
+    Request,
 }
 
 impl Family {
@@ -36,7 +36,7 @@ impl Family {
             Self::Decision => "decision",
             Self::Run => "run",
             Self::Plan => "plan",
-            Self::Signal => "signal",
+            Self::Request => "request",
         }
     }
 }
@@ -53,7 +53,7 @@ pub enum Kind {
     Check,
     Approval,
     Task,
-    Signal,
+    Request,
 }
 
 impl Kind {
@@ -68,7 +68,7 @@ impl Kind {
             Self::Check => "check",
             Self::Approval => "approval",
             Self::Task => "task",
-            Self::Signal => "signal",
+            Self::Request => "request",
         }
     }
 }
@@ -95,7 +95,7 @@ impl Edge {
 }
 
 /// Build edges from a record's `refs[]` (already `prefix:value` strings,
-/// as plan tasks and signals store them).
+/// as plan tasks and requests store them).
 #[must_use]
 pub fn edges_from_refs(refs: &[String]) -> Vec<Edge> {
     refs.iter().map(|r| Edge::to(r.clone())).collect()
@@ -120,11 +120,11 @@ pub fn owner_idempotency_key(tenant: &str, family: Family, kind: Kind, id: &str)
     ))
 }
 
-/// The idempotency key for an ingested signal — the 30a rule:
+/// The idempotency key for an ingested request — the 30a rule:
 /// `sha256(tenant ␟ adapter ␟ external_id)` when there's a stable upstream id,
 /// else `sha256(tenant ␟ kind ␟ from ␟ body ␟ created)`.
 #[must_use]
-pub fn signal_idempotency_key(
+pub fn request_idempotency_key(
     tenant: &str,
     adapter_external: Option<(&str, &str)>,
     content: (&str, &str, &str, &str),
@@ -271,7 +271,7 @@ mod tests {
             "saas-cloud-envelope",
             "2026-06-08T00:00:00Z",
             json!({ "id": "saas-cloud-envelope", "status": "in_progress" }),
-            edges_from_refs(&["decision:9".into(), "signal:abc".into()]),
+            edges_from_refs(&["decision:9".into(), "request:abc".into()]),
         );
         assert_valid(&env);
     }
@@ -341,11 +341,11 @@ mod tests {
     }
 
     #[test]
-    fn signal_envelope_validates() {
+    fn request_envelope_validates() {
         let env = UnifiedRecordEnvelope::owner(
             "magistr-676f38",
-            Family::Signal,
-            Kind::Signal,
+            Family::Request,
+            Kind::Request,
             "sig-1",
             "2026-06-08T00:00:00Z",
             json!({ "id": "sig-1", "kind": "bug", "from": "dana", "body": "x", "status": "new" }),
@@ -385,10 +385,10 @@ mod tests {
     }
 
     #[test]
-    fn signal_idempotency_uses_adapter_external_when_present() {
+    fn request_idempotency_uses_adapter_external_when_present() {
         let with_ext =
-            signal_idempotency_key("t", Some(("github_issue", "I_1")), ("bug", "d", "b", "c"));
-        let content = signal_idempotency_key("t", None, ("bug", "d", "b", "c"));
+            request_idempotency_key("t", Some(("github_issue", "I_1")), ("bug", "d", "b", "c"));
+        let content = request_idempotency_key("t", None, ("bug", "d", "b", "c"));
         assert_ne!(with_ext, content);
         assert_eq!(with_ext.len(), 64);
     }

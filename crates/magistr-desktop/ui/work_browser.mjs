@@ -121,7 +121,7 @@ export class WorkBrowser {
     this.routing=true;
     if(target.kind==="task"){this.tabs.select("plan");this.item.open(this.frame.address,target.id,this.revision);}
     if(target.kind==="decision"){this.reasoning.query="";this.$("work-browser-reasoning-search").value="";this.reasoning.choice=target.session;this.reasoning.stepId=target.id;this.reasoning.trail=[];this.reasoning.branches.reset();this.tabs.select("reasoning");}
-    if(target.kind==="signal"){this.feedback.id=target.id;this.tabs.select("feedback");}
+    if(target.kind==="request"){this.feedback.id=target.id;this.tabs.select("feedback");}
     this.routing=false;this.$("work-browser-return").hidden=false;
     this.$("work-browser-content").scrollTop=0;(this.$("work-browser-inspector").hidden?this.$("work-browser-content"):this.$("work-browser-inspector")).querySelector("h3")?.focus({preventScroll:true});
   }
@@ -178,7 +178,7 @@ export class WorkBrowser {
     }
     if(this.area==="plan"){this.renderPlan();return;}
     if(this.area==="feedback"){
-      const observed=readState(this.snapshot.signals,"feedback");
+      const observed=readState(this.snapshot.requests,"feedback");
       this.$("work-browser-state").textContent=observed.message;this.$("work-browser-state").dataset.current=String(observed.current);
       retainReading(content,()=>content.replaceChildren(observed.value?this.feedback.render(observed.value):element("p","Feedback is unavailable. Use Refresh to try again.")));return;
     }

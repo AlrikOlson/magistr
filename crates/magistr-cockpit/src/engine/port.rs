@@ -1,13 +1,13 @@
 //! What the cockpit asks of the native workflow engines.
 
-use magistr_workflow_contracts::signal::SignalPromotion;
-use magistr_workflow_contracts::{Observed, Signal, Task, WorkflowMutationError};
+use magistr_workflow_contracts::request::RequestPromotion;
+use magistr_workflow_contracts::{Observed, Request, Task, WorkflowMutationError};
 
 use crate::cockpit::ProposalKind;
 
 /// The engines the cockpit acts through without the agent: the decision
 /// log's \[Pin\] and \[Review\], and the Plan tab's task,
-/// proposal and signal actions. The in-process engines broadcast
+/// proposal and request actions. The in-process engines broadcast
 /// nothing, so the consumer answers the cockpit itself with an
 /// [`EngineEvent`](super::EngineEvent) built from the port's return —
 /// mutations come back as the updated record, which
@@ -65,25 +65,25 @@ pub trait EnginePort: Send + Sync {
     /// a no-op.
     fn clear_blocker(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError>;
 
-    /// Promote the signal to the plan; the updated signal comes back.
+    /// Promote the request to the plan; the updated request comes back.
     ///
     /// # Errors
-    /// The engine's reason — a signal not yet researched included.
-    fn promote_signal(&mut self, id: &str) -> Result<SignalPromotion, WorkflowMutationError>;
+    /// The engine's reason — a request not yet researched included.
+    fn promote_request(&mut self, id: &str) -> Result<RequestPromotion, WorkflowMutationError>;
 
-    /// Dismiss the signal; the updated signal comes back.
+    /// Dismiss the request; the updated request comes back.
     ///
     /// # Errors
-    /// The engine's reason — an unknown id or a terminal signal.
-    fn ignore_signal(&mut self, id: &str) -> Result<Observed<Signal>, WorkflowMutationError>;
+    /// The engine's reason — an unknown id or a terminal request.
+    fn dismiss_request(&mut self, id: &str) -> Result<Observed<Request>, WorkflowMutationError>;
 
-    /// Snooze the signal for `minutes`; the updated signal comes back.
+    /// Snooze the request for `minutes`; the updated request comes back.
     ///
     /// # Errors
     /// The engine's reason — an unknown id.
-    fn snooze_signal(
+    fn snooze_request(
         &mut self,
         id: &str,
         minutes: u32,
-    ) -> Result<Observed<Signal>, WorkflowMutationError>;
+    ) -> Result<Observed<Request>, WorkflowMutationError>;
 }

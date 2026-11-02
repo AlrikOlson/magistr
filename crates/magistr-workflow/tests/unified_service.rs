@@ -1,6 +1,6 @@
 //! End-to-end smoke test for the UnifiedService: all four families register
 //! together and expose the full 56-tool surface (decision 13, run 14, plan 17,
-//! tracker 2, signal 10 — all canonical).
+//! tracker 2, request 10 — all canonical).
 
 use std::collections::BTreeSet;
 
@@ -9,9 +9,9 @@ use magistr_workflow::decision::config::DecisionConfig;
 use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::{PlanEngine, PlanService};
+use magistr_workflow::request::{RequestEngine, RequestService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
-use magistr_workflow::signal::{SignalEngine, SignalService};
 
 fn build_unified() -> UnifiedService {
     let mut cfg = DecisionConfig::default();
@@ -19,8 +19,8 @@ fn build_unified() -> UnifiedService {
     let decision = DecisionService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new("test-abc123".into()));
     let plan = PlanService::new(PlanEngine::new("test-abc123".into()), run.use_cases());
-    let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
-    UnifiedService::new(decision, run, plan, signal)
+    let request = RequestService::new(RequestEngine::new("test-abc123".into()));
+    UnifiedService::new(decision, run, plan, request)
 }
 
 #[test]
@@ -30,7 +30,7 @@ fn lists_56_canonical_tools_across_four_families() {
     assert_eq!(
         tools.len(),
         56,
-        "expected 13 decision_* + 14 run (run_*, approval_*, step verbs) + 17 plan_* + 2 tracker_* + 10 signal_*, got {}",
+        "expected 13 decision_* + 14 run (run_*, approval_*, step verbs) + 17 plan_* + 2 tracker_* + 10 request_*, got {}",
         tools.len()
     );
 
@@ -47,7 +47,7 @@ fn lists_56_canonical_tools_across_four_families() {
         assert!(names.contains(verb), "the step verb {verb} is served");
     }
     assert_eq!(count("plan_"), 17, "17 plan_* tools");
-    assert_eq!(count("signal_"), 10, "10 signal_* tools");
+    assert_eq!(count("request_"), 10, "10 request_* tools");
 }
 
 /// Serialized size of the whole `tools/list` payload, in bytes — what the
@@ -116,10 +116,10 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 ///
 /// 100,000 -> 140,000, and the reasoning belongs here rather than in a commit
 /// message nobody will re-read. An outputSchema audit found 15 of 48
-/// tools shipping no `outputSchema` — all ten `signal_*` among them — which
+/// tools shipping no `outputSchema` — all ten `request_*` among them — which
 /// left clients with nothing to validate `structuredContent` against for a
 /// whole family. Writing those schemas costs 38,325 B, because seven
-/// `signal_*` tools return a bare `Signal` and MCP cannot `$ref` a schema
+/// `request_*` tools return a bare `Request` and MCP cannot `$ref` a schema
 /// across tools, so its 3,576 B is paid seven times.
 ///
 /// The gate did its job: it refused the increment and sent the question to a
@@ -127,7 +127,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 /// grounds. First, the client this server actually runs against defers schemas
 /// behind ToolSearch and never loads them (the option-D reasoning above still
 /// holds). Second — and this is the fact that did not exist when the line was
-/// first drawn — `FamilySelection` now lets an operator drop `signal_*`
+/// first drawn — `FamilySelection` now lets an operator drop `request_*`
 /// entirely, so all-families is no longer the only payload on offer: a
 /// decision-only deployment stays at ~42 KB.
 ///
@@ -236,7 +236,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 ///
 /// THE CHEAPER SURFACE THAT WAS NOT TAKEN, recorded so it is not rediscovered:
 /// `outputSchema` is 86,349 B, **56% of the payload**, and much of it is
-/// duplicated — five `signal_*` tools each carry a byte-identical 3,457 B
+/// duplicated — five `request_*` tools each carry a byte-identical 3,457 B
 /// schema. MCP has no cross-tool `$ref`, so reclaiming it means reshaping the
 /// schemas, which is its own task
 /// (`chunk-output-schema-is-a-partial-projection`). Doing that work would buy
@@ -589,7 +589,10 @@ fn a_narrowed_deployment_lists_only_its_families() {
         || n.starts_with("plan_")
         || n.starts_with("tracker_")));
     assert_eq!(names.iter().filter(|n| n.starts_with("run_")).count(), 0);
-    assert_eq!(names.iter().filter(|n| n.starts_with("signal_")).count(), 0);
+    assert_eq!(
+        names.iter().filter(|n| n.starts_with("request_")).count(),
+        0
+    );
     // 13 reasoning tools plus 17 plan and 2 tracker tools.
     assert_eq!(names.len(), 32);
 }
@@ -691,7 +694,7 @@ fn an_empty_selection_is_refused() {
 fn selection_parsing_is_forgiving_about_shape_but_not_about_names() {
     let sel = FamilySelection::parse(" Decision , RUN, ").expect("shape noise is tolerated");
     assert!(sel.contains(Family::Decision) && sel.contains(Family::Run));
-    assert!(!sel.contains(Family::Plan) && !sel.contains(Family::Signal));
+    assert!(!sel.contains(Family::Plan) && !sel.contains(Family::Request));
     assert_eq!(sel.summary(), "decision_*, run_*");
 }
 
@@ -710,10 +713,10 @@ fn every_listed_tool_routes_to_an_exposed_family() {
     for spec in [
         "decision",
         "run",
-        "signal",
+        "request",
         "plan",
-        "decision,signal",
-        "decision,run,plan,signal",
+        "decision,request",
+        "decision,run,plan,request",
     ] {
         let sel = FamilySelection::parse(spec).expect("valid selection");
         let svc = build_with(sel);
@@ -749,11 +752,11 @@ fn every_listed_tool_routes_to_an_exposed_family() {
 /// as a property rather than a comment.
 #[test]
 fn the_surface_does_not_vary_between_views() {
-    let svc = build_with(FamilySelection::parse("decision,signal").expect("valid"));
+    let svc = build_with(FamilySelection::parse("decision,request").expect("valid"));
     assert_eq!(tools_list_bytes(&svc), tools_list_bytes(&svc));
     assert_eq!(
         svc.families(),
-        FamilySelection::parse("signal,decision").expect("valid")
+        FamilySelection::parse("request,decision").expect("valid")
     );
 }
 

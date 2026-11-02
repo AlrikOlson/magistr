@@ -37,7 +37,7 @@
 //!   echo     is an inbound item our own write coming back? (pure)
 //!   ownership who wins when both sides edited the same field (a table, not branches)
 //!   sweep    the backstop: what changed since we last looked? (reports, never applies)
-//!   concern  divergence becomes a signal a human will actually see (caller opts in)
+//!   concern  divergence becomes a request a human will actually see (caller opts in)
 //!   fake     an in-memory implementation, the only one this seam ships
 //!   adf      Jira's body language: our Markdown body as an ADF tree (pure)
 //!   projects_v2  GitHub Projects v2's board transport: GraphQL-only, owner-scoped
@@ -54,7 +54,7 @@
 //!
 //! The BRIDGE layer is deliberately not one-way, and this comment used to claim
 //! otherwise. `project`, `sweep` and `echo` read plan state, and `concern`
-//! additionally writes signals — that is their job, and pretending the whole
+//! additionally writes requests — that is their job, and pretending the whole
 //! module is provider-only made the rule sound stronger than it is. The rule
 //! that actually holds: nothing an adapter can see knows about the plan.
 //!

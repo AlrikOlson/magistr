@@ -144,3 +144,27 @@ fn inconsistent_histories_are_refused_instead_of_silently_renumbered() {
         assert!(owner().upgrade_documents(&documents).is_err(), "{change}");
     }
 }
+
+#[test]
+fn a_document_saved_before_the_request_words_takes_them_once() {
+    let project = "magistr-5a5bc6";
+    let current = Persistence::upgrade_document(BEFORE_DECISION_WORDS, project).unwrap();
+    let mut v5: Value = serde_json::from_slice(&current).unwrap();
+    v5["schema_version"] = json!(5);
+    v5["logs"][project]["notes"][0]["run_ref"] = json!("signal:f1c9a4e2");
+    let bytes = Persistence::upgrade_document(&serde_json::to_vec(&v5).unwrap(), project).unwrap();
+    let new: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(new["schema_version"], SCHEMA_VERSION);
+    assert_eq!(
+        new["logs"][project]["notes"][0]["run_ref"],
+        "request:f1c9a4e2"
+    );
+    let mut unchanged = new.clone();
+    unchanged["logs"][project]["notes"][0]["run_ref"] = json!("signal:f1c9a4e2");
+    v5["schema_version"] = json!(SCHEMA_VERSION);
+    assert_eq!(unchanged, v5, "only the request prefix changes");
+    assert_eq!(
+        Persistence::upgrade_document(&bytes, project).unwrap(),
+        bytes
+    );
+}

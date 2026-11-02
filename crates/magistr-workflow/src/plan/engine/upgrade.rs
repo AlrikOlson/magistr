@@ -10,7 +10,8 @@ impl PlanEngine {
     /// waiting, retired, `task:` references) together with the run words its
     /// references may still spell. Version 2 was written before the decision
     /// words: refresh records point at their decision `notes` and notes are
-    /// referenced as `decision:`. Omitted item origins are filled from the
+    /// referenced as `decision:`. Version 3 was written before the request
+    /// words: requests are referenced as `request:`. Omitted item origins are filled from the
     /// enclosing project's identity; explicitly different identities remain
     /// conflicts. A current document is returned unchanged, so the conversion
     /// is idempotent; the version, never the references, decides what is old.
@@ -27,6 +28,11 @@ impl PlanEngine {
             Some(2) => {
                 rename_decision_words(&mut value)?;
                 CrossRef::upgrade_stored_refs(&mut value, StoredRefWords::BeforeDecisionWords);
+                value["schema_version"] = json!(PLAN_SCHEMA_VERSION);
+                true
+            }
+            Some(3) => {
+                CrossRef::upgrade_stored_refs(&mut value, StoredRefWords::BeforeRequestWords);
                 value["schema_version"] = json!(PLAN_SCHEMA_VERSION);
                 true
             }

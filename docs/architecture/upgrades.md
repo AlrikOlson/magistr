@@ -36,7 +36,7 @@ writer assigned, preserving receipt references. Project-wide work and receipts
 move into the primary working copy's default execution. Version-1 reasoning
 histories consolidate into one project document, retaining session names, step
 numbers and existing identities. Missing step identities are derived deterministically;
-conflicting identities or numbers are refused. Plan and signal owners fill
+conflicting identities or numbers are refused. Plan and request owners fill
 omitted item origins from the validated enclosing project, preserving all authored
 fields and rejecting explicit foreign origins. Current readers remain strict.
 Conversion is deterministic, so an interrupted copy can resume without minting
@@ -44,23 +44,28 @@ new identities or replacing newer work. The older files remain byte-for-byte int
 
 The vocabulary cutover renames the family stores once, at admission and before
 any engine opens: `ship/` becomes `run/`, then `roadmap/` becomes `plan/`,
-then `think/` becomes `decisions/`.
+then `think/` becomes `decisions/`, then `signal/` becomes `requests/`.
 `StoreWordsUpgrade` owns where saved work lives and the order of the moves;
 each family's codec converts its own documents and decides what is old from
 the document's saved version, never from its references, because `task:`
 named a run step before the run words and names a plan task after the plan
-words. Plan and signal documents gain a leading `schema_version` and move to
-version 3, decision documents to version 5 and run documents to version 5; the
-last step of each renames `think:` references to `decision:` and the decision
-fields (`think_step` to `note`, steps and branches to notes and threads). A
-move stages
+words. Plan and request documents gain a leading `schema_version`. The
+decision words move plan and request documents to version 3 and decision and
+run documents to version 5, renaming `think:` references to `decision:` and
+the decision fields (`think_step` to `note`, steps and branches to notes and
+threads). The request words move each family one version further (plan and
+request 4, decision and run 6), renaming `signal:` references to `request:`;
+request documents also rename their list to `requests`, kind `idea` to
+`suggestion`, status `surfaced` to `raised` and its `surfaced_at` stamp to
+`raised_at`. A move stages
 converted records beside the old directory, keeps exact staged records when an
 interrupted attempt resumes, publishes them next to the caller's own lock
 files, and keeps the original directory under `backups/`. It waits while an
 older owner still holds a lock where older owners held them (the old plan
 directory before the plan words, the plan directory until the decision
-words). Current owners hold their project lease under
-`owners/decision-words/`, so a lease anywhere older always belongs to an older
+words, `owners/decision-words/` until the request words). Current owners hold
+their project lease under `owners/request-words/`, so a lease anywhere older
+always belongs to an older
 owner; a later move of a family store moves that directory too. Readers refuse a
 document that is positively older than its family's current version; an
 unreadable document is reported by the family's reader instead.

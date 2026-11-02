@@ -70,7 +70,7 @@ impl NativeFrame {
             Family::Decision => NativeEvent::Decision(serde_json::from_value(self.payload).ok()?),
             Family::Run => NativeEvent::Run(serde_json::from_value(self.payload).ok()?),
             Family::Plan => NativeEvent::Plan(serde_json::from_value(self.payload).ok()?),
-            Family::Signal => NativeEvent::Signal(serde_json::from_value(self.payload).ok()?),
+            Family::Request => NativeEvent::Request(serde_json::from_value(self.payload).ok()?),
             Family::Magistr => NativeEvent::Magistr(serde_json::from_value(self.payload).ok()?),
         };
         Some((event, cursor))

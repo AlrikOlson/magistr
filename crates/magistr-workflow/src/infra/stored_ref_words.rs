@@ -8,12 +8,15 @@
 pub enum StoredRefWords {
     /// Before the run words: `step:<n>` was a reasoning step, `task:<id>` a
     /// run step, `action:<n>` a progress record, `chunk:<id>` a plan task and
-    /// `think:<n>` a decision note.
+    /// `think:<n>` a decision note and `signal:<id>` a request.
     BeforeRunWords,
-    /// After the run words, before the plan words: `chunk:<id>` and
-    /// `think:<n>` are old.
+    /// After the run words, before the plan words: `chunk:<id>`,
+    /// `think:<n>` and `signal:<id>` are old.
     BeforePlanWords,
-    /// After the plan words, before the decision words: only `think:<n>` is
-    /// old.
+    /// After the plan words, before the decision words: `think:<n>` and
+    /// `signal:<id>` are old.
     BeforeDecisionWords,
+    /// After the decision words, before the request words: only
+    /// `signal:<id>` is old.
+    BeforeRequestWords,
 }

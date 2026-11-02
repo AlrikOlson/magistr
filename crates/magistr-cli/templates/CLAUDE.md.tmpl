@@ -20,7 +20,7 @@ Check commands are stored in `.magistr/project.json`. An empty command means tha
 
 Use `context` to begin. Use `discover` and `execute` with `magistr.call(name, args)` for advanced workflow operations.
 
-Every change follows this strict loop. No exceptions. The plan, the plan and the gates live in magistr (the `plan_*` / `run_*` / `decision_*` / `signal_*` tools on the `magistr` MCP server). Plan exports follow project policy; never generate `PLAN.md` or `PLAN.json` when `plan_exports` is false.
+Every change follows this strict loop. No exceptions. The plan, the plan and the gates live in magistr (the `plan_*` / `run_*` / `decision_*` / `request_*` tools on the `magistr` MCP server). Plan exports follow project policy; never generate `PLAN.md` or `PLAN.json` when `plan_exports` is false.
 
 1. **PLAN** — Read `plan_status` and `run_status`; resume authorized in-progress work before selecting pending work with `plan_next`. Follow the selected task and next's recovery contract: keep its matching unfinished goal, plan, completed tasks, actions, and checks. Select the authorized scope with `run_open` when another scope is selected, then re-read `run_status`; scope selection saves unrelated unfinished work and restores a saved goal and plan unchanged. Resume a matching scope without repeating setup and use `arrange_steps` only for missing work; never reset or finalize unrelated work to make room. Re-read the code and record material findings with `decision_record`.
 2. **EXECUTE** — Implement with TDD (red-green-refactor). Follow `.claude/rules/conventions.md`. Record findings and changed conclusions as evidence arrives, using the reasoning guidance in `.claude/skills/craft/references/runtime.md`.
@@ -45,7 +45,7 @@ Every change follows this strict loop. No exceptions. The plan, the plan and the
 | `/validate` | Run quality gates |
 | `/roadmap` | Advance the plan one task at a time under the full decision/run contract |
 | `/roadmap-refresh` | Research-driven refresh of the plan itself (no implementation) |
-| `/signals` | Triage stakeholder signals and promote validated ones to tasks |
+| `/signals` | Triage stakeholder requests and promote validated ones to tasks |
 | `/craft` | The operating doctrine behind the plan skills |
 | `/init` | Re-run project interview to update config |
 

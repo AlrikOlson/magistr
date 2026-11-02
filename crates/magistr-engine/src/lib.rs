@@ -57,8 +57,8 @@ pub use native::{
     McpAcceptor, NativeConfig, NativeEngines, NativeEvent, NativeFrame, NativePlanSnapshot,
     NativeReader, NativeSnapshot, Observed, OwnerClient, OwnerCommand, OwnerEndpoint,
     OwnerGeneration, OwnerReply, PlanBackend, PlanCommand, PlanData, PlanFrame, ProjectAuthority,
-    ReadError, ReadErrorKind, ReadSource, ReadState, Run, RunCommand, RunData, RunFrame,
-    SignalCommand, SignalFrame, StoreStamp, WriterRole,
+    ReadError, ReadErrorKind, ReadSource, ReadState, RequestCommand, RequestFrame, Run, RunCommand,
+    RunData, RunFrame, StoreStamp, WriterRole,
 };
 pub use plan::{PlanEvent, PlanManager, PlanProgress};
 pub use policy::{
@@ -76,10 +76,10 @@ pub use spec::SpecSummary;
 // magistr directly.
 pub use magistr_workflow::decision::domain::Note;
 pub use magistr_workflow::plan::domain::TaskStatus;
+pub use magistr_workflow::request::domain::RequestKind;
 pub use magistr_workflow::run::domain::check::CheckType;
 pub use magistr_workflow::run::domain::progress::ProgressType;
 pub use magistr_workflow::run::domain::step::StepType;
-pub use magistr_workflow::signal::domain::SignalKind;
 pub use workflow::{
     HookAction, HookDispatcher, HookError, HookExecutionReport, HookExecutor, HookOutput,
     HookResolver, IterationState, IterationStatus, LifecycleEvent, LifecycleHook,

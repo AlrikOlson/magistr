@@ -13,7 +13,7 @@ use crate::infra::{PersistenceConfig, read_json};
 #[path = "persistence_upgrade.rs"]
 mod upgrade;
 
-const SCHEMA_VERSION: u32 = 5;
+const SCHEMA_VERSION: u32 = 6;
 
 /// The complete transaction boundary. Selected logs are projections of it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

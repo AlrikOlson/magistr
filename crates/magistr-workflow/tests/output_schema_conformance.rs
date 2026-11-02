@@ -9,9 +9,9 @@ use magistr_workflow::decision::{
 };
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::{PlanService, engine::PlanEngine};
+use magistr_workflow::request::{RequestService, engine::RequestEngine};
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::run::mcp::RunService;
-use magistr_workflow::signal::{SignalService, engine::SignalEngine};
 use rmcp::model::{CallToolRequestParams, CallToolResult, Tool};
 use rmcp::{ClientHandler, RoleClient, ServiceExt};
 use serde_json::{Value, json};
@@ -31,8 +31,8 @@ async fn session() -> Session {
         PlanEngine::new("schema-conformance".into()),
         run.use_cases(),
     );
-    let signal = SignalService::new(SignalEngine::new("schema-conformance".into()));
-    let server = UnifiedService::new(decision, run, plan, signal);
+    let request = RequestService::new(RequestEngine::new("schema-conformance".into()));
+    let server = UnifiedService::new(decision, run, plan, request);
     let (server_io, client_io) = tokio::io::duplex(1 << 16);
     tokio::spawn(async move {
         let running = server.serve(server_io).await.expect("server.serve");

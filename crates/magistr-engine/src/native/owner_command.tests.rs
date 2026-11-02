@@ -26,7 +26,7 @@ fn every_family_survives_the_wire() {
             step_type: StepType::Implement,
             estimate: None,
         }),
-        OwnerCommand::Signal(SignalCommand::Snooze {
+        OwnerCommand::Request(RequestCommand::Snooze {
             id: "s".into(),
             minutes: 5,
         }),

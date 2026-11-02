@@ -15,7 +15,7 @@ pub type StepId = String;
 pub type ProgressId = u32;
 pub type CheckName = String;
 pub type TaskId = String;
-pub type SignalId = String;
+pub type RequestId = String;
 /// A tracker provider key, e.g. `"github"`, `"linear"`, `"jira"`. Normalized to
 /// lowercase — provider keys are ours to name, so they may be case-folded.
 pub type ProviderId = String;
@@ -37,10 +37,10 @@ pub enum CrossRef {
     /// A plan task: the long-horizon item a run goal
     /// realizes and a decision note shapes. Wire form `task:<slug>`.
     PlanTask(TaskId),
-    /// A stakeholder signal: the opportunity a plan task was
-    /// promoted from. Wire form `signal:<id>`. Promotion writes this onto the
-    /// task and the reciprocal `task:<slug>` onto the signal.
-    SignalRef(SignalId),
+    /// A stakeholder request: the opportunity a plan task was
+    /// promoted from. Wire form `request:<id>`. Promotion writes this onto the
+    /// task and the reciprocal `task:<slug>` onto the request.
+    RequestRef(RequestId),
     /// A work item in an EXTERNAL tracker — the twin a plan task was
     /// projected onto (tracker-port-seam). Wire form
     /// `ext:<provider>/<external_id>`, e.g. `ext:github/1234`,
@@ -77,7 +77,7 @@ impl fmt::Display for ParseError {
             Self::MissingDelimiter => write!(f, "cross-ref string must contain ':'"),
             Self::UnknownPrefix(p) => write!(
                 f,
-                "unknown cross-ref prefix '{p}' (expected decision|step|progress|check|task|signal|ext)"
+                "unknown cross-ref prefix '{p}' (expected decision|step|progress|check|task|request|ext)"
             ),
             Self::InvalidNumber(s) => write!(f, "expected integer, got '{s}'"),
             Self::EmptyValue => write!(f, "cross-ref value is empty"),
@@ -113,7 +113,7 @@ impl CrossRef {
             Self::RunProgress(n) => format!("progress:{n}"),
             Self::RunCheck(name) => format!("check:{name}"),
             Self::PlanTask(id) => format!("task:{id}"),
-            Self::SignalRef(id) => format!("signal:{id}"),
+            Self::RequestRef(id) => format!("request:{id}"),
             Self::External {
                 provider,
                 external_id,
@@ -141,7 +141,7 @@ impl CrossRef {
                 .map_err(|_| ParseError::InvalidNumber(value.to_string())),
             "check" => Ok(Self::RunCheck(value.to_string())),
             "task" => Ok(Self::PlanTask(value.to_string())),
-            "signal" => Ok(Self::SignalRef(value.to_string())),
+            "request" => Ok(Self::RequestRef(value.to_string())),
             // Split on the FIRST separator only: everything after it is the
             // external id, so `ext:github/owner/repo#12` keeps its slashes and a
             // base64 GraphQL node id survives intact.
@@ -202,6 +202,8 @@ impl CrossRef {
         }
         let numeric = rest.chars().all(|c| c.is_ascii_digit());
         match (words, prefix) {
+            (_, "signal") => Some(format!("request:{rest}")),
+            (StoredRefWords::BeforeRequestWords, _) => None,
             (StoredRefWords::BeforeDecisionWords, "chunk") => None,
             (_, "chunk") => Some(format!("task:{rest}")),
             (_, "think") if numeric => Some(format!("decision:{rest}")),
@@ -270,19 +272,19 @@ mod tests {
     }
 
     #[test]
-    fn round_trip_signal_ref() {
-        round_trip(CrossRef::SignalRef("f1c9a4e2".to_string()));
+    fn round_trip_request_ref() {
+        round_trip(CrossRef::RequestRef("f1c9a4e2".to_string()));
     }
 
     #[test]
-    fn signal_wire_form() {
+    fn request_wire_form() {
         assert_eq!(
-            CrossRef::SignalRef("abc123".to_string()).to_wire(),
-            "signal:abc123"
+            CrossRef::RequestRef("abc123".to_string()).to_wire(),
+            "request:abc123"
         );
         assert_eq!(
-            CrossRef::from_wire("signal:abc123").unwrap(),
-            CrossRef::SignalRef("abc123".to_string())
+            CrossRef::from_wire("request:abc123").unwrap(),
+            CrossRef::RequestRef("abc123".to_string())
         );
     }
 
@@ -400,7 +402,7 @@ mod tests {
             ("progress:5", CrossRef::RunProgress(5)),
             ("check:cargo-test", CrossRef::RunCheck("cargo-test".into())),
             ("task:phase-1", CrossRef::PlanTask("phase-1".into())),
-            ("signal:abc", CrossRef::SignalRef("abc".into())),
+            ("request:abc", CrossRef::RequestRef("abc".into())),
         ] {
             assert_eq!(CrossRef::from_wire(wire).unwrap(), expected);
             assert_eq!(expected.to_wire(), wire);
@@ -447,7 +449,7 @@ mod tests {
     #[test]
     fn references_saved_before_the_run_words_take_every_new_word_in_one_pass() {
         let mut stored = serde_json::json!({
-            "cross_refs": ["task:auth", "action:4", "step:9", "think:2", "chunk:x", "check:lint"],
+            "cross_refs": ["task:auth", "action:4", "step:9", "think:2", "chunk:x", "check:lint", "signal:s1"],
             "execution_ref": "task:verify",
             "context": "task: read the notes first",
             "nested": [{"ref": "action:12"}],
@@ -459,7 +461,7 @@ mod tests {
         assert_eq!(
             stored,
             serde_json::json!({
-                "cross_refs": ["step:auth", "progress:4", "decision:9", "decision:2", "task:x", "check:lint"],
+                "cross_refs": ["step:auth", "progress:4", "decision:9", "decision:2", "task:x", "check:lint", "request:s1"],
                 "execution_ref": "step:verify",
                 "context": "task: read the notes first",
                 "nested": [{"ref": "progress:12"}],
@@ -513,6 +515,37 @@ mod tests {
             &mut stored,
             StoredRefWords::BeforeDecisionWords
         ));
+    }
+
+    #[test]
+    fn references_saved_with_the_decision_words_only_rename_requests() {
+        let mut stored = serde_json::json!({
+            "refs": ["decision:9", "task:y", "chunk:kept", "think:kept", "signal:s1"],
+            "context": "signal: a prose label",
+        });
+        assert!(CrossRef::upgrade_stored_refs(
+            &mut stored,
+            StoredRefWords::BeforeRequestWords
+        ));
+        assert_eq!(
+            stored,
+            serde_json::json!({
+                "refs": ["decision:9", "task:y", "chunk:kept", "think:kept", "request:s1"],
+                "context": "signal: a prose label",
+            })
+        );
+        assert!(!CrossRef::upgrade_stored_refs(
+            &mut stored,
+            StoredRefWords::BeforeRequestWords
+        ));
+    }
+
+    #[test]
+    fn the_retired_request_prefix_is_refused_like_any_unknown_prefix() {
+        assert_eq!(
+            CrossRef::from_wire("signal:s1"),
+            Err(ParseError::UnknownPrefix("signal".into()))
+        );
     }
 
     #[test]

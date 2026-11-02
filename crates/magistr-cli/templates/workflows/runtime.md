@@ -7,7 +7,7 @@ Use the single **magistr** MCP connection. Common tasks have direct typed tools:
 Find every other operation with `discover`, then request its exact schema with
 `discover({"operation":"name"})`. Execute it with
 `execute({"source":"return magistr.call('name', { /* schema arguments */ });"})`.
-This includes `plan_*`, `decision_*`, `signal_*`, `tracker_*`, the remaining
+This includes `plan_*`, `decision_*`, `request_*`, `tracker_*`, the remaining
 `run_*` and `magistr_*` operations, and workspace `map`, `files`, `command`,
 `undo`, `script` and health. Names in the instructions below refer to catalog
 operations; use direct tools where advertised and `execute` for the rest.

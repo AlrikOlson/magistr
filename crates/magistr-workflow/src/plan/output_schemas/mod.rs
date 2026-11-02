@@ -33,7 +33,7 @@ use serde_json::Value;
 // So the shapes are documented in the tool descriptions, which is where a model
 // reads them anyway (`outputSchema` is dropped by clients bridging to the
 // Messages API before the model sees it — see `model_facing_bytes`). This entry
-// becomes payable the moment the duplicated `signal_*` schemas are reclaimed.
+// becomes payable the moment the duplicated `request_*` schemas are reclaimed.
 
 #[derive(Serialize, JsonSchema)]
 pub struct ReprioritizeProposalOutput {

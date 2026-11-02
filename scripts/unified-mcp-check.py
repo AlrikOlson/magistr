@@ -129,7 +129,7 @@ class UnifiedMcp(unittest.TestCase):
         self.clients.append(c)
         result = c.execute("""magistr.call('read', {file:'hello.txt'});
 magistr.call('write', {path:'forbidden.txt',content:'no'});
-magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
+magistr.call('request_capture', {kind:'feedback',body:'must not run'});""")
         self.assertFalse(result["ok"])
         self.assertEqual(len(result["receipts"]),1)
         self.assertIn("not allowed",result["failure"]["message"])
@@ -155,7 +155,7 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
             if page["nextOffset"] is None: break
             offset = page["nextOffset"]
         for name in ["map","files","command","undo","script","workspace_status","plan_add_task",
-                     "decision_record","run_open","run_finish","signal_capture"]:
+                     "decision_record","run_open","run_finish","request_capture"]:
             self.assertIn(name, operations)
         for name, tool in tools.items():
             if name in ("discover","execute"): continue

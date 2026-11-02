@@ -204,9 +204,9 @@ fn older_root(current: &Path) -> Option<PathBuf> {
 }
 
 /// Family directories in the current store and in the older standalone store,
-/// whose run family was still named `ship`, plan family `roadmap` and
-/// decision family `think`.
-const CURRENT_FAMILIES: [&str; 4] = ["decisions", "run", "plan", "signal"];
+/// whose run family was still named `ship`, plan family `roadmap`, decision
+/// family `think` and request family `signal`.
+const CURRENT_FAMILIES: [&str; 4] = ["decisions", "run", "plan", "requests"];
 const OLDER_FAMILIES: [&str; 4] = ["think", "ship", "roadmap", "signal"];
 
 fn records(root: &Path, id: &str, families: [&str; 4]) -> io::Result<Vec<PathBuf>> {
@@ -260,7 +260,7 @@ fn converted_records(
     id: &str,
     records: Vec<(PathBuf, Vec<u8>)>,
 ) -> io::Result<Vec<(PathBuf, Vec<u8>)>> {
-    use magistr_workflow::{decision, plan::PlanEngine, run, signal::SignalEngine};
+    use magistr_workflow::{decision, plan::PlanEngine, request::RequestEngine, run};
     use std::collections::BTreeMap;
     let execution = super::ExecutionContext::new(&config.workflow_root(), "default")?;
     let execution_root = Path::new("run/executions").join(execution.key());
@@ -321,8 +321,14 @@ fn converted_records(
             // The older store names the decision family `think`.
             target = Path::new("decisions").join(rest);
             bytes
-        } else if relative == Path::new("signal/sessions").join(format!("{id}.json")) {
-            SignalEngine::upgrade_document(&bytes, id).map_err(io::Error::other)?
+        } else if let Ok(rest) = relative.strip_prefix("signal") {
+            // The older store names the request family `signal`.
+            target = Path::new("requests").join(rest);
+            if rest == Path::new("sessions").join(format!("{id}.json")) {
+                RequestEngine::upgrade_document(&bytes, id).map_err(io::Error::other)?
+            } else {
+                bytes
+            }
         } else {
             bytes
         };

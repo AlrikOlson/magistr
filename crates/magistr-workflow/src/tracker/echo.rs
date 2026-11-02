@@ -33,7 +33,7 @@
 //!
 //! - **The version is the provider's own assertion** that its record has not
 //!   moved since our write. It assumes nothing about our code. Strongest
-//!   signal available.
+//!   request available.
 //! - **The hash is our opinion** about content, and it quietly assumes the
 //!   adapter's inbound parse exactly inverts its outbound build. That
 //!   assumption is doing real work and is easy to get wrong: a provider that

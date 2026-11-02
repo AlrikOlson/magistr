@@ -27,9 +27,9 @@ use magistr_workflow::decision::config::DecisionConfig;
 use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::{PlanEngine, PlanService};
+use magistr_workflow::request::{RequestEngine, RequestService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
-use magistr_workflow::signal::{SignalEngine, SignalService};
 use rmcp::ServiceExt;
 
 /// The revision under test. Both fields are optional before it and required
@@ -49,7 +49,7 @@ fn build_unified() -> UnifiedService {
         DecisionService::new(ReasoningServer::new(cfg)),
         run,
         plan,
-        SignalService::new(SignalEngine::new("test-wire".into())),
+        RequestService::new(RequestEngine::new("test-wire".into())),
     )
 }
 

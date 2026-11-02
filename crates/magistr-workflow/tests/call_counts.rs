@@ -27,9 +27,9 @@ use magistr_workflow::infra::{Domain, Persistence, PersistenceConfig};
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::unified::{Family, FamilySelection};
 use magistr_workflow::plan::{PlanEngine, PlanService};
+use magistr_workflow::request::{RequestEngine, RequestService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
-use magistr_workflow::signal::{SignalEngine, SignalService};
 use magistr_workflow::usage::{CallCounter, CallCounts, UNRECOGNIZED, Verdict};
 use rmcp::{
     ClientHandler, ServiceExt,
@@ -62,11 +62,11 @@ fn build_unified(cfg: &PersistenceConfig, families: FamilySelection) -> UnifiedS
     let decision = DecisionService::new(ReasoningServer::new(dcfg));
     let run = RunService::new(RunEngine::new("test-abc123".into()));
     let plan = PlanService::new(PlanEngine::new("test-abc123".into()), run.use_cases());
-    let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
+    let request = RequestService::new(RequestEngine::new("test-abc123".into()));
 
     // Every registered name, taken the same way the service does — so the
     // counter under test knows exactly the names a real deployment knows.
-    let svc = UnifiedService::new(decision, run, plan, signal);
+    let svc = UnifiedService::new(decision, run, plan, request);
     let known: Vec<String> = svc
         .list_tools_view()
         .into_iter()
@@ -189,23 +189,24 @@ async fn errors_count() {
 async fn refused_families_still_count() {
     let cfg = scratch("refused");
     let only_plan = FamilySelection::parse("plan").expect("plan is a family");
-    assert!(!only_plan.contains(Family::Signal));
+    assert!(!only_plan.contains(Family::Request));
     let (client, server) = pair(build_unified(&cfg, only_plan)).await;
 
     let err = client
         .peer()
-        .call_tool(CallToolRequestParams::new("signal_status"))
+        .call_tool(CallToolRequestParams::new("request_status"))
         .await
         .expect_err("a deselected family must be refused");
     let refusal = format!("{err:?}");
     assert!(
-        refusal.contains("signal") || refusal.contains(&format!("{:?}", ErrorCode::INVALID_PARAMS)),
+        refusal.contains("request")
+            || refusal.contains(&format!("{:?}", ErrorCode::INVALID_PARAMS)),
         "the refusal should name the family: {refusal}"
     );
 
     let got = read_as_the_cli_would(&cfg);
     assert_eq!(
-        got.counts.get("signal_status"),
+        got.counts.get("request_status"),
         Some(&1),
         "a refused call is still a call: {:?}",
         got.counts
@@ -288,7 +289,7 @@ async fn a_days_traffic_is_not_a_soak_and_licenses_no_retirement() {
 
     // The verb the parent task actually wants an answer about. It reads zero
     // here, and zero is not yet an answer.
-    match got.verdict("signal_research") {
+    match got.verdict("request_research") {
         Verdict::SoakTooShort(_) => {}
         other => panic!(
             "a day-one zero must be unreadable as evidence, got {other:?} \

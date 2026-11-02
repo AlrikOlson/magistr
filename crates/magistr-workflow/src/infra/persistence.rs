@@ -20,7 +20,7 @@ pub enum Domain {
     Decision,
     Run,
     Plan,
-    Signal,
+    Request,
     /// Adopted W3C Trace Context (SEP-414). Not a tool family — the one
     /// partition written by the MCP server and read by the `trace export`
     /// CLI in a later process.
@@ -39,7 +39,7 @@ impl Domain {
             Self::Decision => "decisions",
             Self::Run => "run",
             Self::Plan => "plan",
-            Self::Signal => "signal",
+            Self::Request => "requests",
             Self::Otel => "otel",
             Self::Usage => "usage",
         }

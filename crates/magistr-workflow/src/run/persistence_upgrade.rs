@@ -6,27 +6,30 @@ impl Persistence {
     /// Convert a saved run document once: version 1 gains its execution
     /// identities, versions 1 and 2 take the run vocabulary (goal, steps,
     /// progress, waiting, done, finished), versions 1 to 3 name plan tasks
-    /// `task:` instead of `chunk:`, and versions 1 to 4 point progress at its
-    /// decision `note` and name notes `decision:`. Current readers stay strict and
+    /// `task:` instead of `chunk:`, versions 1 to 4 point progress at its
+    /// decision `note` and name notes `decision:`, and versions 1 to 5 name
+    /// requests `request:` instead of `signal:`. Current readers stay strict and
     /// never invent identities. The caller holds the owner/document locks and
     /// retains the original bytes.
     pub fn upgrade_document(bytes: &[u8], project_id: &str) -> Result<Vec<u8>, ReadError> {
         let mut value: Value = serde_json::from_slice(bytes).map_err(schema)?;
         let version = value["schema_version"].as_u64();
         match version {
-            Some(1..=4) => {
+            Some(1..=5) => {
                 // Run documents never stored run references as strings, so only
-                // the plan task and note prefixes change here.
-                let words = if version == Some(4) {
-                    crate::infra::StoredRefWords::BeforeDecisionWords
-                } else {
-                    crate::infra::StoredRefWords::BeforePlanWords
+                // the plan task, note and request prefixes change here.
+                let words = match version {
+                    Some(5) => crate::infra::StoredRefWords::BeforeRequestWords,
+                    Some(4) => crate::infra::StoredRefWords::BeforeDecisionWords,
+                    _ => crate::infra::StoredRefWords::BeforePlanWords,
                 };
                 crate::infra::CrossRef::upgrade_stored_refs(&mut value, words);
                 if matches!(version, Some(1 | 2)) {
                     rename_document_words(&mut value)?;
                 }
-                for_each_cycle(&mut value, rename_note_words)?;
+                if version != Some(5) {
+                    for_each_cycle(&mut value, rename_note_words)?;
+                }
                 if version == Some(1) {
                     upgrade_cycle(&mut value, project_id)?;
                     let object = value

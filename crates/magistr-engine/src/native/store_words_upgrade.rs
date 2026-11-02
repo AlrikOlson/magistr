@@ -3,8 +3,9 @@
 //! Each family whose words changed moves its store directory once, in a fixed
 //! order: the run store from `ship/` to `run/` (its check results from
 //! `receipts/` to `check_results/`), then the plan store from `roadmap/` to
-//! `plan/`, then the decision store from `think/` to `decisions/`. Each
-//! project's plan, decision and signal documents then convert through their
+//! `plan/`, then the decision store from `think/` to `decisions/`, then the
+//! request store from `signal/` to `requests/`. Each project's plan,
+//! decision and request documents then convert through their
 //! own codecs, which decide what is old from the document's version, never
 //! from its references: after the plan words `task:` names a plan task, while
 //! before the run words it named a run step. This module
@@ -27,10 +28,10 @@ const LOCK: &str = "store-words-upgrade.lock";
 
 /// The current schema versions of the per-project documents whose saved
 /// references changed words. Older documents are refused until converted.
-const DECISION_VERSION: u64 = 5;
-const RUN_VERSION: u64 = 5;
-const PLAN_VERSION: u64 = 3;
-const SIGNALS_VERSION: u64 = 3;
+const DECISION_VERSION: u64 = 6;
+const RUN_VERSION: u64 = 6;
+const PLAN_VERSION: u64 = 4;
+const REQUESTS_VERSION: u64 = 4;
 
 /// One family store directory that moves to its new name.
 #[derive(Clone, Copy)]
@@ -42,9 +43,9 @@ struct Move {
 }
 
 /// The order is the glossary's: the run store has finished before the plan
-/// store converts its references, and the plan store before the decision
-/// store.
-const MOVES: [Move; 3] = [
+/// store converts its references, the plan store before the decision store,
+/// and the decision store before the request store.
+const MOVES: [Move; 4] = [
     Move {
         old: "ship",
         new: "run",
@@ -63,19 +64,27 @@ const MOVES: [Move; 3] = [
         words: "decision-words",
         codec: Codec::Decision,
     },
+    Move {
+        old: "signal",
+        new: "requests",
+        words: "request-words",
+        codec: Codec::Request,
+    },
 ];
 
 /// Where older owners hold their project locks: before the plan words in the
-/// old plan directory, and until the decision words in the plan directory.
+/// old plan directory, until the decision words in the plan directory, and
+/// until the request words under the decision words' lease directory.
 /// Current owners lock under [`super::owner_lease::OWNER_LEASES`], so every
 /// held lock in these is an older owner's.
-const OLDER_OWNER_LOCKS: [&str; 2] = ["roadmap/sessions", "plan/sessions"];
+const OLDER_OWNER_LOCKS: [&str; 3] = ["roadmap/sessions", "plan/sessions", "owners/decision-words"];
 
 #[derive(Clone, Copy)]
 enum Codec {
     Run,
     Plan,
     Decision,
+    Request,
 }
 
 impl StoreWordsUpgrade {
@@ -145,7 +154,7 @@ impl StoreWordsUpgrade {
 
 /// What a saved document's first bytes say about its format. Every writer
 /// serializes `schema_version` first; writers older than the plan words wrote
-/// plan and signal documents with no version, opening with `project_id`.
+/// plan and request documents with no version, opening with `project_id`.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Head {
     Version(u64),
@@ -190,7 +199,7 @@ fn document_head(path: &Path) -> Head {
 enum Family {
     Plan,
     Decision,
-    Signal,
+    Request,
     Run,
 }
 
@@ -200,7 +209,7 @@ impl Family {
     fn is_older(self, path: &Path) -> bool {
         match document_head(path) {
             Head::Version(version) => version < self.current_version(),
-            Head::Unversioned => matches!(self, Self::Plan | Self::Signal),
+            Head::Unversioned => matches!(self, Self::Plan | Self::Request),
             Head::Unknown => false,
         }
     }
@@ -209,26 +218,26 @@ impl Family {
         match self {
             Self::Plan => PLAN_VERSION,
             Self::Decision => DECISION_VERSION,
-            Self::Signal => SIGNALS_VERSION,
+            Self::Request => REQUESTS_VERSION,
             Self::Run => RUN_VERSION,
         }
     }
 }
 
-/// This project's one plan, decision, signal and project-wide run document.
+/// This project's one plan, decision, request and project-wide run document.
 fn family_documents(root: &Path, project_id: &str) -> Vec<(PathBuf, Family)> {
     let file = format!("{project_id}.json");
     let document = |family: &str| root.join(family).join("sessions").join(&file);
     vec![
         (document("plan"), Family::Plan),
         (document("decisions"), Family::Decision),
-        (document("signal"), Family::Signal),
+        (document("requests"), Family::Request),
         (document("run"), Family::Run),
     ]
 }
 
 /// This project's documents in every family whose saved references changed
-/// words: one plan, decision and signal document, and one run document per
+/// words: one plan, decision and request document, and one run document per
 /// working copy's execution.
 fn project_documents(root: &Path, project_id: &str) -> Vec<(PathBuf, Family)> {
     let file = format!("{project_id}.json");
@@ -415,6 +424,10 @@ fn convert_tree(source: &Path, target: &Path, relative: &Path, codec: Codec) -> 
                     )
                     .map_err(|error| invalid(&path, error))?
                 }
+                Codec::Request if in_sessions => {
+                    magistr_workflow::request::RequestEngine::upgrade_document(&bytes, project_id)
+                        .map_err(|error| invalid(&path, error))?
+                }
                 _ => bytes,
             }
         };
@@ -487,7 +500,7 @@ fn files(directory: &Path) -> io::Result<Vec<PathBuf>> {
     Ok(found)
 }
 
-/// Rewrite this project's plan, decision, signal and run documents through their
+/// Rewrite this project's plan, decision, request and run documents through their
 /// own codecs, each under its document lock, keeping the original beside the
 /// backups first.
 fn convert_project(config: &NativeConfig, project_id: &str) -> io::Result<()> {
@@ -511,8 +524,8 @@ fn convert_project(config: &NativeConfig, project_id: &str) -> io::Result<()> {
                 magistr_workflow::plan::PlanEngine::upgrade_document(&bytes, project_id)
                     .map_err(|error| invalid(&path, error))?
             }
-            Family::Signal => {
-                magistr_workflow::signal::SignalEngine::upgrade_document(&bytes, project_id)
+            Family::Request => {
+                magistr_workflow::request::RequestEngine::upgrade_document(&bytes, project_id)
                     .map_err(|error| invalid(&path, error))?
             }
             Family::Run => magistr_workflow::run::persistence::Persistence::upgrade_document(
@@ -540,7 +553,7 @@ fn convert_project(config: &NativeConfig, project_id: &str) -> io::Result<()> {
             .and_then(|sessions| sessions.strip_prefix(root).ok())
             .unwrap_or_else(|| Path::new("workflow"));
         let backup = root
-            .join("backups/before-decision-words")
+            .join("backups/before-request-words")
             .join(place)
             .join(name);
         if !backup.exists() {

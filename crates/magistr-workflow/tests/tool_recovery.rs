@@ -292,8 +292,8 @@ fn every_advertised_required_field_has_actionable_admission() {
     use magistr_workflow::infra::tool_input::ToolInput;
     use magistr_workflow::{
         plan::{PlanEngine, PlanService},
+        request::{RequestEngine, RequestService},
         run::{RunService, engine::RunEngine},
-        signal::{SignalEngine, SignalService},
     };
     let mut config = DecisionConfig::default();
     config.display.color_output = false;
@@ -311,7 +311,7 @@ fn every_advertised_required_field_has_actionable_admission() {
         )
         .list_tools_view(),
     )
-    .chain(SignalService::new(SignalEngine::new("schema-contract".into())).list_tools_view());
+    .chain(RequestService::new(RequestEngine::new("schema-contract".into())).list_tools_view());
     let mut checked = 0;
     for tool in tools {
         let Some(required) = tool.input_schema.get("required").and_then(Value::as_array) else {

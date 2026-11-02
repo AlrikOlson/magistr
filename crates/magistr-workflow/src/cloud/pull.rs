@@ -9,8 +9,8 @@ use crate::decision::domain::Note;
 use crate::decision::engine::core::ReasoningServer;
 use crate::plan::PlanEngine;
 use crate::plan::domain::{Task, TrackerLink, TrackerOptIn};
-use crate::signal::SignalEngine;
-use crate::signal::domain::Signal;
+use crate::request::RequestEngine;
+use crate::request::domain::Request;
 
 /// Fetch the tenant's record envelopes for one family (`GET /v1/records?family=`).
 /// Pure transport — no engine access, safe to await without holding any lock.
@@ -125,19 +125,19 @@ pub fn apply_plan_records(
     Ok(saved)
 }
 
-/// Commit signal changes, preserving a failure after any earlier saved records.
-pub fn apply_signal_records(
-    engine: &mut SignalEngine,
+/// Commit request changes, preserving a failure after any earlier saved records.
+pub fn apply_request_records(
+    engine: &mut RequestEngine,
     envelopes: &[serde_json::Value],
 ) -> Result<usize, CloudError> {
-    let records = local_records::<Signal>(envelopes, engine.project_id())?;
+    let records = local_records::<Request>(envelopes, engine.project_id())?;
     let mut saved = 0;
-    for (signal, _) in records {
-        let observed = engine.upsert_signal(signal).map_err(|error| {
+    for (request, _) in records {
+        let observed = engine.upsert_request(request).map_err(|error| {
             let message = error.to_string();
             let store = match error {
-                crate::signal::engine::SignalMutationError::Store(error) => Some(error),
-                crate::signal::engine::SignalMutationError::Rejected(_) => None,
+                crate::request::engine::RequestMutationError::Store(error) => Some(error),
+                crate::request::engine::RequestMutationError::Rejected(_) => None,
             };
             CloudError::Local {
                 saved,
@@ -182,7 +182,7 @@ pub async fn reconcile_all(
     client: &CloudClient,
     decision: &Arc<Mutex<ReasoningServer>>,
     plan: &Arc<Mutex<PlanEngine>>,
-    signal: &Arc<Mutex<SignalEngine>>,
+    request: &Arc<Mutex<RequestEngine>>,
 ) -> (
     Result<usize, CloudError>,
     Result<usize, CloudError>,
@@ -202,14 +202,14 @@ pub async fn reconcile_all(
             .and_then(|mut engine| apply_plan_records(&mut engine, &envelopes)),
         Err(error) => Err(error),
     };
-    let signal_result = match fetch_family(client, "signal").await {
-        Ok(envelopes) => signal
+    let request_result = match fetch_family(client, "request").await {
+        Ok(envelopes) => request
             .lock()
             .map_err(invalid_record)
-            .and_then(|mut engine| apply_signal_records(&mut engine, &envelopes)),
+            .and_then(|mut engine| apply_request_records(&mut engine, &envelopes)),
         Err(error) => Err(error),
     };
-    (decision_result, plan_result, signal_result)
+    (decision_result, plan_result, request_result)
 }
 
 pub async fn reconcile_plan(
@@ -220,12 +220,12 @@ pub async fn reconcile_plan(
     apply_plan_records(engine, &envelopes)
 }
 
-pub async fn reconcile_signals(
+pub async fn reconcile_requests(
     client: &CloudClient,
-    engine: &mut SignalEngine,
+    engine: &mut RequestEngine,
 ) -> Result<usize, CloudError> {
-    let envelopes = fetch_family(client, "signal").await?;
-    apply_signal_records(engine, &envelopes)
+    let envelopes = fetch_family(client, "request").await?;
+    apply_request_records(engine, &envelopes)
 }
 
 #[cfg(test)]

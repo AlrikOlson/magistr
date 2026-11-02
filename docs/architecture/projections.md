@@ -47,7 +47,7 @@ The full-record read remains available for those IDs.
 | --- | --- | --- |
 | Plan | `PlanData`: tasks and progress from the same read | `PlanEngine` |
 | Execution | `RunData`: selected and retained runs from the same read | `RunEngine` |
-| Signals | `Vec<Signal>` | `SignalEngine` |
+| Requests | `Vec<Request>` | `RequestEngine` |
 | Reasoning | `DecisionData`: complete saved logs, notes and threads | `ReasoningServer` |
 
 Each observation preserves both its value and its provenance:
@@ -153,7 +153,7 @@ consumers preserve that source rather than pair a value with a later read.
 uncertain result after replacement. The first two report `effect: none`;
 uncertainty reports `effect: unknown` and requires reading saved records before
 retry. `WorkflowMutationError` preserves this distinction across owner IPC.
-A partial signal promotion carries the committed plan identity and source;
+A partial request promotion carries the committed plan identity and source;
 retry resumes the same reciprocal link instead of creating another work item.
 
 Reasoning stores all project histories in one schema-2 document. That owner

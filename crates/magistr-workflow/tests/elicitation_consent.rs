@@ -48,9 +48,9 @@ use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::elicit::{AskOutcome, Unanswered, ask_propose_consent};
 use magistr_workflow::plan::{PlanEngine, PlanService};
+use magistr_workflow::request::{RequestEngine, RequestService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
-use magistr_workflow::signal::{SignalEngine, SignalService};
 use magistr_workflow::tracker::propose_consent::{ProposeConsent, ProposeConsentSource};
 use rmcp::{
     ClientHandler, RoleClient, ServiceExt,
@@ -144,8 +144,8 @@ fn build_unified(project: &str) -> UnifiedService {
     let decision = DecisionService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new(project.into()));
     let plan = PlanService::new(PlanEngine::new(project.into()), run.use_cases());
-    let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(decision, run, plan, signal)
+    let request = RequestService::new(RequestEngine::new(project.into()));
+    UnifiedService::new(decision, run, plan, request)
 }
 
 struct Session {

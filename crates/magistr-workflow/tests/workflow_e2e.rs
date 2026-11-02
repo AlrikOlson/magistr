@@ -15,12 +15,12 @@ use magistr_workflow::decision::config::DecisionConfig;
 use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::{PlanEngine, PlanService};
+use magistr_workflow::request::{RequestEngine, RequestService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::application::{
     EvidencePort, GateContract, SourceFreshness, SourceObservation, SourceWitness,
 };
 use magistr_workflow::run::engine::RunEngine;
-use magistr_workflow::signal::{SignalEngine, SignalService};
 use rmcp::{
     ClientHandler, ServiceExt,
     model::{CallToolRequestParams, ListToolsResult},
@@ -85,8 +85,8 @@ fn build_unified() -> UnifiedService {
             ))),
     );
     let plan = PlanService::new(PlanEngine::new("test-abc123".into()), run.use_cases());
-    let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
-    UnifiedService::new(decision, run, plan, signal)
+    let request = RequestService::new(RequestEngine::new("test-abc123".into()));
+    UnifiedService::new(decision, run, plan, request)
 }
 
 async fn pair() -> (
@@ -127,7 +127,7 @@ async fn tools_list_serves_unique_typed_operations_for_every_workflow_family() {
         "plan_add_task",
         "plan_start_task",
         "plan_complete_task",
-        "signal_capture",
+        "request_capture",
     ] {
         assert!(names.contains(required), "missing {required}");
     }

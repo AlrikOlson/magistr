@@ -20,6 +20,6 @@ fn planning_checks_each_effect_and_cannot_start_or_execute_source() {
     assert!(Access::Planning.permits("plan_add_task", &json!({"title":"Plan"})));
     assert!(!Access::Planning.permits("plan_add_task", &json!({"status":"done"})));
     assert!(!Access::Planning.permits("plan_update_task", &json!({"status":"in_progress"})));
-    assert!(!Access::ReadOnly.permits("signal_capture", &json!({})));
+    assert!(!Access::ReadOnly.permits("request_capture", &json!({})));
     assert!(Access::ReadOnly.permits("context", &json!({})));
 }

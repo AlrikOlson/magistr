@@ -376,7 +376,7 @@ fn old_work_and_reasoning_are_converted_into_the_records_current_readers_use() {
         Some("saved-project")
     );
     assert_eq!(
-        reader.signal_list().unwrap()[0].project_id.as_deref(),
+        reader.request_list().unwrap()[0].project_id.as_deref(),
         Some("saved-project")
     );
     assert!(

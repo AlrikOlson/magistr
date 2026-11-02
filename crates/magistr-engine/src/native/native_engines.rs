@@ -7,6 +7,8 @@ use magistr_workflow::decision::domain::{Note, NoteError, RecordedNote};
 use magistr_workflow::plan::application::PlanError;
 use magistr_workflow::plan::application::{TaskDraft, TaskPatch, WaitingDraft};
 use magistr_workflow::plan::domain::{Task, TaskStatus, WaitingReason};
+use magistr_workflow::request::application::{RequestError, RequestPromotion};
+use magistr_workflow::request::domain::{Request, RequestKind};
 use magistr_workflow::run::application::RunError;
 use magistr_workflow::run::application::{
     CheckAdmission, CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, RunReport,
@@ -15,8 +17,6 @@ use magistr_workflow::run::domain::artifact::Artifact;
 use magistr_workflow::run::domain::check::Check;
 use magistr_workflow::run::domain::progress::{Progress, ProgressType};
 use magistr_workflow::run::domain::step::{Step, StepType};
-use magistr_workflow::signal::application::{SignalError, SignalPromotion};
-use magistr_workflow::signal::domain::{Signal, SignalKind};
 use magistr_workflow_contracts::Observed;
 use serde_json::Value;
 
@@ -162,14 +162,14 @@ impl NativeEngines {
             executions.insert(key, Arc::downgrade(&services));
             services
         };
-        let (decision, run, plan, signal) = services.engines();
+        let (decision, run, plan, request) = services.engines();
         let reader = NativeReader::from_shared(
             self.authority.project_id().to_owned(),
             config,
             decision,
             run,
             plan,
-            signal,
+            request,
         );
         Ok(Self {
             reader,
@@ -648,53 +648,57 @@ impl NativeEngines {
         self.services.run.finalize(artifacts, summary)
     }
 
-    // ── Signal ─────────────────────────────────────────────────────────
+    // ── Request ─────────────────────────────────────────────────────────
 
-    /// Capture a stakeholder signal (the `signal_capture` verb). An empty
+    /// Capture a stakeholder request (the `request_capture` verb). An empty
     /// body is refused, as the verb refuses it.
-    pub fn signal_capture(
+    pub fn request_capture(
         &self,
-        kind: SignalKind,
+        kind: RequestKind,
         from: String,
         body: String,
-    ) -> Result<Observed<Signal>, SignalError> {
-        self.services.signal.capture(kind, from, body, None)
+    ) -> Result<Observed<Request>, RequestError> {
+        self.services.request.capture(kind, from, body, None)
     }
 
-    /// Record research on a signal (the `signal_research` verb): a summary,
+    /// Record research on a request (the `request_research` verb): a summary,
     /// a confidence clamped to `[0, 1]`, sources, and the reasoning step
-    /// that motivated it. Moves a new signal to `Researched`.
-    pub fn signal_research(
+    /// that motivated it. Moves a new request to `Researched`.
+    pub fn request_research(
         &self,
         id: &str,
         summary: String,
         confidence: f64,
         sources: Vec<String>,
         note: Option<u32>,
-    ) -> Result<Observed<Signal>, SignalError> {
+    ) -> Result<Observed<Request>, RequestError> {
         self.services
-            .signal
+            .request
             .research(id, summary, confidence, sources, note)
     }
 
-    /// Promote a researched or surfaced signal to the plan (the
-    /// `signal_promote` verb): the idea task `signal-<id>` is created
-    /// and the two are cross-linked — `signal:<id>` on the task,
-    /// `task:<id>` on the signal — idempotently. Answers the signal as it
+    /// Promote a researched or raised request to the plan (the
+    /// `request_promote` verb): the idea task `request-<id>` is created
+    /// and the two are cross-linked — `request:<id>` on the task,
+    /// `task:<id>` on the request — idempotently. Answers the request as it
     /// stands after.
-    pub fn signal_promote(&self, id: &str) -> Result<SignalPromotion, SignalError> {
-        self.services.signal.promote(id)
+    pub fn request_promote(&self, id: &str) -> Result<RequestPromotion, RequestError> {
+        self.services.request.promote(id)
     }
 
-    /// Dismiss a signal (the `signal_ignore` verb; terminal).
-    pub fn signal_ignore(&self, id: &str) -> Result<Observed<Signal>, SignalError> {
-        self.services.signal.ignore(id)
+    /// Dismiss a request (the `request_dismiss` verb; terminal).
+    pub fn request_dismiss(&self, id: &str) -> Result<Observed<Request>, RequestError> {
+        self.services.request.dismiss(id)
     }
 
-    /// Suppress a signal from surfacing for `minutes` (the `signal_snooze`
+    /// Suppress a request from raising for `minutes` (the `request_snooze`
     /// verb); status unchanged.
-    pub fn signal_snooze(&self, id: &str, minutes: i64) -> Result<Observed<Signal>, SignalError> {
-        self.services.signal.snooze(id, Some(minutes))
+    pub fn request_snooze(
+        &self,
+        id: &str,
+        minutes: i64,
+    ) -> Result<Observed<Request>, RequestError> {
+        self.services.request.snooze(id, Some(minutes))
     }
 }
 

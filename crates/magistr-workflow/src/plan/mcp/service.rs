@@ -83,18 +83,21 @@ impl PlanService {
         Ok(self)
     }
 
-    /// Wire the signal engine so `plan_status` includes a pending-signal
+    /// Wire the request engine so `plan_status` includes a ready-request
     /// count. Called by the host's composition root with the same handle
-    /// the `SignalService` holds.
-    pub fn with_signal(mut self, signal: Arc<Mutex<crate::signal::engine::SignalEngine>>) -> Self {
-        self.application = self.application.with_signal(signal);
+    /// the `RequestService` holds.
+    pub fn with_request(
+        mut self,
+        request: Arc<Mutex<crate::request::engine::RequestEngine>>,
+    ) -> Self {
+        self.application = self.application.with_request(request);
         self
     }
 
     /// Hand out a clone of the shared engine handle so a sibling family (the
-    /// `signal_*` family's promote path) can create plan tasks
+    /// `request_*` family's promote path) can create plan tasks
     /// without reaching into the plan *engine* type directly. The coupling
-    /// lives at the service/wire layer; signal depends on plan (acyclic).
+    /// lives at the service/wire layer; request depends on plan (acyclic).
     pub fn engine(&self) -> Arc<Mutex<PlanEngine>> {
         self.application.engine()
     }

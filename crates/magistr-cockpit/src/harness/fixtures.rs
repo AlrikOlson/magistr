@@ -1,6 +1,6 @@
 //! Typed store records for scenes and tests, and the wire line they ride.
 //!
-//! A scene or a test needs a task, a signal, a step, a goal,
+//! A scene or a test needs a task, a request, a step, a goal,
 //! a progress record or a check without saying every field the store
 //! records; these constructors say the rest. [`frame`] is the wire-shaped
 //! way in — a family, a kind and the payload a socket line would carry —
@@ -11,8 +11,8 @@
 //! wire's: a live line missing a field is dropped by that same decoder.
 
 use magistr_workflow_contracts::{
-    Check, CheckType, Goal, GoalStatus, NativeFrame, Note, Progress, ProgressType, Signal,
-    SignalKind, SignalStatus, Step, StepStatus, StepType, Task, TaskStatus, VerificationMode,
+    Check, CheckType, Goal, GoalStatus, NativeFrame, Note, Progress, ProgressType, Request,
+    RequestKind, RequestStatus, Step, StepStatus, StepType, Task, TaskStatus, VerificationMode,
 };
 use magistr_workflow_contracts::{NativeEvent, NativeSnapshot};
 use serde_json::{Value, json};
@@ -49,20 +49,20 @@ pub fn task(id: &str) -> Task {
     }
 }
 
-/// A new idea signal with nothing but its id.
+/// A new idea request with nothing but its id.
 #[must_use]
-pub fn signal(id: &str) -> Signal {
-    Signal {
+pub fn request(id: &str) -> Request {
+    Request {
         id: id.to_owned(),
-        kind: SignalKind::Idea,
+        kind: RequestKind::Suggestion,
         from: String::new(),
         body: String::new(),
         content: None,
         created: String::new(),
-        status: SignalStatus::New,
+        status: RequestStatus::New,
         enrichment: Vec::new(),
         refs: Vec::new(),
-        surfaced_at: None,
+        raised_at: None,
         snooze_until: None,
         project_id: None,
     }
@@ -172,10 +172,10 @@ pub fn check(name: &str, passed: bool) -> Check {
     }
 }
 
-/// A snapshot holding `tasks` and `signals` and nothing else — what a
+/// A snapshot holding `tasks` and `requests` and nothing else — what a
 /// plan scene seeds from.
 #[must_use]
-pub fn snapshot(tasks: Vec<Task>, signals: Vec<Signal>) -> NativeSnapshot {
+pub fn snapshot(tasks: Vec<Task>, requests: Vec<Request>) -> NativeSnapshot {
     use magistr_workflow_contracts::{Observed, PlanData, ReadSource, ReadState};
     NativeSnapshot {
         plan: ReadState::Current(Observed {
@@ -185,8 +185,8 @@ pub fn snapshot(tasks: Vec<Task>, signals: Vec<Signal>) -> NativeSnapshot {
             },
             source: ReadSource::Memory,
         }),
-        signals: ReadState::Current(Observed {
-            value: signals,
+        requests: ReadState::Current(Observed {
+            value: requests,
             source: ReadSource::Memory,
         }),
         ..NativeSnapshot::default()
@@ -210,11 +210,11 @@ pub fn tasks_from(partials: Vec<Value>) -> Vec<Task> {
     partials.into_iter().map(task_from).collect()
 }
 
-/// The signals a list of partial records describes — [`signal_from`]
+/// The requests a list of partial records describes — [`request_from`]
 /// over each.
 #[must_use]
-pub fn signals_from(partials: Vec<Value>) -> Vec<Signal> {
-    partials.into_iter().map(signal_from).collect()
+pub fn requests_from(partials: Vec<Value>) -> Vec<Request> {
+    partials.into_iter().map(request_from).collect()
 }
 
 /// The steps a list of partial records describes — [`step_from`] over
@@ -261,8 +261,8 @@ pub fn frame(family: &str, kind: &str, payload: Value) -> NativeEvent {
             }
             fill_task(&default, partial)
         });
-        fill_record(object, "signal", |partial| {
-            fill_signal(&signal(id_of(partial, "id")), partial)
+        fill_record(object, "request", |partial| {
+            fill_request(&request(id_of(partial, "id")), partial)
         });
         fill_record(object, "step", |partial| {
             let number = partial["note"].as_u64().unwrap_or(0);
@@ -298,12 +298,12 @@ pub fn task_from(partial: Value) -> Task {
     serde_json::from_value(filled).expect("a filled task decodes")
 }
 
-/// The signal a partial record describes, the rest filled in from
-/// [`signal`].
+/// The request a partial record describes, the rest filled in from
+/// [`request`].
 #[must_use]
-pub fn signal_from(partial: Value) -> Signal {
-    let filled = fill_signal(&signal(id_of(&partial, "id")), &partial);
-    serde_json::from_value(filled).expect("a filled signal decodes")
+pub fn request_from(partial: Value) -> Request {
+    let filled = fill_request(&request(id_of(&partial, "id")), &partial);
+    serde_json::from_value(filled).expect("a filled request decodes")
 }
 
 /// The step a partial record describes, the rest filled in from [`step`].
@@ -367,7 +367,7 @@ macro_rules! to_value_via_serde {
     };
 }
 
-to_value_via_serde!(Task, Signal, Note, Goal, Step, Progress, Check);
+to_value_via_serde!(Task, Request, Note, Goal, Step, Progress, Check);
 
 fn id_of<'a>(partial: &'a Value, key: &str) -> &'a str {
     partial[key].as_str().unwrap_or_default()
@@ -421,7 +421,7 @@ fn fill_task(default: &Task, partial: &Value) -> Value {
     value
 }
 
-fn fill_signal(default: &Signal, partial: &Value) -> Value {
+fn fill_request(default: &Request, partial: &Value) -> Value {
     let mut value = fill(default, partial);
     if let Some(trail) = value["enrichment"].as_array_mut() {
         for entry in trail.iter_mut() {

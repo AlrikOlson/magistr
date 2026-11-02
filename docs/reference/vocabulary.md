@@ -442,7 +442,16 @@ run in this order:
    `owners/decision-words/` and the move waits while an older lease is held.
    The cloud record kind for a note is `note`, and the family id is
    `decision`.
-5. `vocab-request-family`: signal.
+5. `vocab-request-family`: signal. The request store moves from `signal/` to
+   `requests/` after the decision store has moved; every store rewrites
+   `signal:` to `request:`, and request documents rename their list to
+   `requests`, kind `idea` to `suggestion`, status `surfaced` to `raised` and
+   its stamp `surfaced_at` to `raised_at`. Every family's codec moves one
+   version for it. Owners older than these words lock under
+   `owners/decision-words/`, so current owners hold their project lease under
+   `owners/request-words/` and the move waits while an older lease is held.
+   The cloud family id is `request`, and a promoted request's new task is
+   `request-<id>`.
 6. `vocab-teams-checks`: lane, workstream and gate.
 7. `vocab-copy-gate`: desktop, website and docs copy, plus a check that fails
    on a word from [Words the interface never shows](#words-the-interface-never-shows).
@@ -491,6 +500,15 @@ These keep their spelling on purpose:
 - The skill names `roadmap` and `roadmap-refresh` and their template files stay
   until `vocabulary-cutover` ships the staged `plan` skill; their text already
   uses the plan tools.
+- `signal` in its other senses keeps its spelling: operating-system signals
+  (`SIGINT`, `tokio::signal`, process groups), the workspace's search ranking
+  signals and their plugin interface, OpenTelemetry signals (traces and logs),
+  and plain English such as "a liveness signal".
+- The skill name `signals`, its template `templates/workflows/signals.md` and
+  the `/signals` and `$signals` invocations stay until `vocabulary-cutover`
+  ships the staged `requests` skill; the skill's text already uses the request
+  tools. Task ids minted by earlier promotions (`signal-<id>`) keep their
+  spelling.
 - The plan importer reads people's own documents, so it still recognizes their
   words (`pending`, `backlog`, `blocked`, `obsoleted`) as input. External
   tracker vocabularies (Linear's `backlog` state type, GitHub Projects column

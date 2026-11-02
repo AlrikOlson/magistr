@@ -1,9 +1,9 @@
-use magistr_workflow_contracts::{Delivery, NativeEvent, PlanFrame, SignalFrame};
-use magistr_workflow_contracts::{Signal, SignalStatus, Task, TaskStatus};
+use magistr_workflow_contracts::{Delivery, NativeEvent, PlanFrame, RequestFrame};
+use magistr_workflow_contracts::{Request, RequestStatus, Task, TaskStatus};
 use serde_json::json;
 
 use super::*;
-use magistr_workflow_contracts::{ReadSource, signal::SignalPromotion};
+use magistr_workflow_contracts::{ReadSource, request::RequestPromotion};
 
 fn observed<T>(value: T) -> Observed<T> {
     Observed {
@@ -24,10 +24,10 @@ fn task(id: &str, status: TaskStatus) -> Task {
     task
 }
 
-fn signal(id: &str, status: SignalStatus) -> Signal {
-    let mut signal = fixtures::signal(id);
-    signal.status = status;
-    signal
+fn request(id: &str, status: RequestStatus) -> Request {
+    let mut request = fixtures::request(id);
+    request.status = status;
+    request
 }
 
 impl EnginePort for Port {
@@ -85,37 +85,37 @@ impl EnginePort for Port {
         Ok(observed(task(id, TaskStatus::ToDo)))
     }
 
-    fn promote_signal(&mut self, id: &str) -> Result<SignalPromotion, WorkflowMutationError> {
+    fn promote_request(&mut self, id: &str) -> Result<RequestPromotion, WorkflowMutationError> {
         if self.fail {
             return Err(WorkflowMutationError::rejected("not researched"));
         }
-        Ok(SignalPromotion {
-            signal_id: id.into(),
+        Ok(RequestPromotion {
+            request_id: id.into(),
             task_id: "new".into(),
             created: true,
-            signal: observed(signal(id, SignalStatus::Promoted)),
+            request: observed(request(id, RequestStatus::Promoted)),
             task: observed(task("new", TaskStatus::Idea)),
         })
     }
 
-    fn ignore_signal(&mut self, id: &str) -> Result<Observed<Signal>, WorkflowMutationError> {
+    fn dismiss_request(&mut self, id: &str) -> Result<Observed<Request>, WorkflowMutationError> {
         if self.fail {
-            return Err(WorkflowMutationError::rejected("no such signal"));
+            return Err(WorkflowMutationError::rejected("no such request"));
         }
-        Ok(observed(signal(id, SignalStatus::Dismissed)))
+        Ok(observed(request(id, RequestStatus::Dismissed)))
     }
 
-    fn snooze_signal(
+    fn snooze_request(
         &mut self,
         id: &str,
         _minutes: u32,
-    ) -> Result<Observed<Signal>, WorkflowMutationError> {
+    ) -> Result<Observed<Request>, WorkflowMutationError> {
         if self.fail {
-            return Err(WorkflowMutationError::rejected("no such signal"));
+            return Err(WorkflowMutationError::rejected("no such request"));
         }
-        let mut signal = signal(id, SignalStatus::Researched);
-        signal.snooze_until = Some("soon".to_owned());
-        Ok(observed(signal))
+        let mut request = request(id, RequestStatus::Researched);
+        request.snooze_until = Some("soon".to_owned());
+        Ok(observed(request))
     }
 }
 
@@ -132,7 +132,7 @@ fn event_of(port: &mut Port, cmd: &EngineCmd) -> NativeEvent {
 }
 
 #[test]
-fn task_and_signal_acts_answer_as_the_typed_events_the_engines_would_announce() {
+fn task_and_request_acts_answer_as_the_typed_events_the_engines_would_announce() {
     let mut port = Port {
         pins: Vec::new(),
         fail: false,
@@ -162,35 +162,35 @@ fn task_and_signal_acts_answer_as_the_typed_events_the_engines_would_announce() 
     assert_eq!(
         event_of(
             &mut port,
-            &EngineCmd::IgnoreSignal {
+            &EngineCmd::DismissRequest {
                 id: "s1".to_owned(),
             },
         ),
-        NativeEvent::Signal(SignalFrame::SignalDismissed {
-            signal: signal("s1", SignalStatus::Dismissed),
+        NativeEvent::Request(RequestFrame::RequestDismissed {
+            request: request("s1", RequestStatus::Dismissed),
         })
     );
     assert_eq!(
         event_of(
             &mut port,
-            &EngineCmd::PromoteSignal {
+            &EngineCmd::PromoteRequest {
                 id: "s2".to_owned(),
             },
         ),
-        NativeEvent::Signal(SignalFrame::SignalChanged {
-            signal: signal("s2", SignalStatus::Promoted),
+        NativeEvent::Request(RequestFrame::RequestChanged {
+            request: request("s2", RequestStatus::Promoted),
         })
     );
     assert!(matches!(
         event_of(
             &mut port,
-            &EngineCmd::SnoozeSignal {
+            &EngineCmd::SnoozeRequest {
                 id: "s3".to_owned(),
                 minutes: 5,
             },
         ),
-        NativeEvent::Signal(SignalFrame::SignalChanged { signal })
-            if signal.snooze_until.as_deref() == Some("soon")
+        NativeEvent::Request(RequestFrame::RequestChanged { request })
+            if request.snooze_until.as_deref() == Some("soon")
     ));
 }
 
@@ -336,7 +336,7 @@ fn a_blocker_the_engine_will_not_clear_names_the_task() {
 }
 
 #[test]
-fn task_and_signal_refusals_carry_the_originating_command() {
+fn task_and_request_refusals_carry_the_originating_command() {
     let mut port = Port {
         pins: Vec::new(),
         fail: true,
@@ -357,26 +357,26 @@ fn task_and_signal_refusals_carry_the_originating_command() {
             "no such task",
         ),
         (
-            EngineCmd::PromoteSignal {
+            EngineCmd::PromoteRequest {
                 id: "s1".to_owned(),
             },
             "promote s1",
             "not researched",
         ),
         (
-            EngineCmd::IgnoreSignal {
+            EngineCmd::DismissRequest {
                 id: "s2".to_owned(),
             },
             "ignore s2",
-            "no such signal",
+            "no such request",
         ),
         (
-            EngineCmd::SnoozeSignal {
+            EngineCmd::SnoozeRequest {
                 id: "s3".to_owned(),
                 minutes: 15,
             },
             "snooze s3",
-            "no such signal",
+            "no such request",
         ),
     ] {
         assert_eq!(

@@ -8,11 +8,11 @@ use tempfile::TempDir;
 use magistr_workflow::infra::{Domain, Persistence, PersistenceConfig};
 use magistr_workflow::plan::PlanEngine;
 use magistr_workflow::plan::domain::TaskStatus;
+use magistr_workflow::request::RequestEngine;
+use magistr_workflow::request::domain::{RequestKind, RequestStatus};
 use magistr_workflow::run::domain::step::StepType;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::run::persistence as run_persistence;
-use magistr_workflow::signal::SignalEngine;
-use magistr_workflow::signal::domain::{SignalKind, SignalStatus};
 
 fn infra_cfg(tmp: &TempDir) -> PersistenceConfig {
     PersistenceConfig::from_env()
@@ -24,9 +24,9 @@ fn plan_engine(tmp: &TempDir) -> PlanEngine {
     PlanEngine::new("proj".into()).with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Plan))
 }
 
-fn signal_engine(tmp: &TempDir) -> SignalEngine {
-    SignalEngine::new("proj".into())
-        .with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Signal))
+fn request_engine(tmp: &TempDir) -> RequestEngine {
+    RequestEngine::new("proj".into())
+        .with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Request))
 }
 
 fn run_engine(tmp: &TempDir) -> RunEngine {
@@ -136,17 +136,17 @@ fn plan_changes_apply_to_fresh_state_without_overwriting_other_fields() {
 }
 
 #[test]
-fn a_conflicting_signal_write_resolves_by_lifecycle_rank_not_by_who_wrote_last() {
+fn a_conflicting_request_write_resolves_by_lifecycle_rank_not_by_who_wrote_last() {
     let tmp = TempDir::new().unwrap();
-    let mut a = signal_engine(&tmp);
+    let mut a = request_engine(&tmp);
     let id = a
-        .capture(SignalKind::Idea, "alice".into(), "rank".into())
+        .capture(RequestKind::Suggestion, "alice".into(), "rank".into())
         .as_ref()
         .unwrap()
         .value
         .id
         .clone();
-    let mut b = signal_engine(&tmp);
+    let mut b = request_engine(&tmp);
     assert_eq!(b.refresh_if_stale(), Ok(false));
 
     // A researches; B, from its pre-research copy, snoozes — a write that
@@ -158,11 +158,11 @@ fn a_conflicting_signal_write_resolves_by_lifecycle_rank_not_by_who_wrote_last()
     // Declared outcome: the further lifecycle rank wins the record, so the
     // research survives B's later write, and B holds the merged record.
     let seen = b.get(&id).unwrap();
-    assert_eq!(seen.status, SignalStatus::Researched);
+    assert_eq!(seen.status, RequestStatus::Researched);
     assert_eq!(seen.enrichment.len(), 1);
     assert_eq!(b.refresh_if_stale(), Ok(false));
     assert_eq!(a.refresh_if_stale(), Ok(true));
-    assert_eq!(a.get(&id).unwrap().status, SignalStatus::Researched);
+    assert_eq!(a.get(&id).unwrap().status, RequestStatus::Researched);
 }
 
 #[test]
@@ -191,10 +191,10 @@ fn a_run_refresh_validates_the_store_and_reports_changes() {
 #[test]
 fn engines_without_persistence_never_refresh() {
     let mut plan = PlanEngine::new("proj".into());
-    let mut signal = SignalEngine::new("proj".into());
+    let mut request = RequestEngine::new("proj".into());
     let mut run = RunEngine::new("proj".into());
     assert_eq!(plan.refresh_if_stale(), Ok(false));
-    assert_eq!(signal.refresh_if_stale(), Ok(false));
+    assert_eq!(request.refresh_if_stale(), Ok(false));
     assert_eq!(run.refresh_if_stale(), Ok(false));
 }
 
@@ -234,16 +234,16 @@ fn each_family_retries_refused_reads_and_observes_deletion() {
     let tmp = TempDir::new().unwrap();
     let mut plan = plan_engine(&tmp);
     add_task(&mut plan, "kept");
-    let mut signal = signal_engine(&tmp);
-    signal
-        .capture(SignalKind::Idea, "author".into(), "kept".into())
+    let mut request = request_engine(&tmp);
+    request
+        .capture(RequestKind::Suggestion, "author".into(), "kept".into())
         .unwrap();
     let mut run = run_engine(&tmp);
     run.set_goal("kept".into(), vec![], vec![], "task:kept".into())
         .unwrap();
     let paths = [
         Persistence::new(&infra_cfg(&tmp), Domain::Plan).path_for("proj"),
-        Persistence::new(&infra_cfg(&tmp), Domain::Signal).path_for("proj"),
+        Persistence::new(&infra_cfg(&tmp), Domain::Request).path_for("proj"),
         run_persistence::Persistence::new(&run_persistence::PersistenceConfig {
             enabled: true,
             data_dir: tmp.path().to_owned(),
@@ -259,28 +259,28 @@ fn each_family_retries_refused_reads_and_observes_deletion() {
     }
     for _ in 0..2 {
         assert_eq!(plan.observe().unwrap_err().kind, ReadErrorKind::Decode);
-        assert_eq!(signal.observe().unwrap_err().kind, ReadErrorKind::Decode);
+        assert_eq!(request.observe().unwrap_err().kind, ReadErrorKind::Decode);
         assert_eq!(run.observe().unwrap_err().kind, ReadErrorKind::Decode);
         assert!(plan.refresh_if_stale().is_err());
-        assert!(signal.refresh_if_stale().is_err());
+        assert!(request.refresh_if_stale().is_err());
         assert!(run.refresh_if_stale().is_err());
     }
     assert_eq!(plan.plan().tasks.len(), 1);
-    assert_eq!(signal.signals().signals.len(), 1);
+    assert_eq!(request.requests().requests.len(), 1);
     assert!(run.goal.is_some());
     for (path, bytes) in paths.iter().zip(good) {
         std::fs::write(path, bytes).unwrap();
     }
     assert_eq!(plan.observe().unwrap().value.tasks.len(), 1);
-    assert_eq!(signal.observe().unwrap().value.signals.len(), 1);
+    assert_eq!(request.observe().unwrap().value.requests.len(), 1);
     assert!(run.observe().unwrap().value.goal().is_some());
     for path in &paths {
         std::fs::remove_file(path).unwrap();
     }
     assert_eq!(plan.observe().unwrap().source, ReadSource::Missing);
     assert!(plan.observe().unwrap().value.tasks.is_empty());
-    assert_eq!(signal.observe().unwrap().source, ReadSource::Missing);
-    assert!(signal.observe().unwrap().value.signals.is_empty());
+    assert_eq!(request.observe().unwrap().source, ReadSource::Missing);
+    assert!(request.observe().unwrap().value.requests.is_empty());
     assert_eq!(run.observe().unwrap().source, ReadSource::Missing);
     assert!(run.observe().unwrap().value.goal().is_none());
 }
@@ -339,27 +339,27 @@ fn run_observes_the_opened_execution_and_refuses_an_unsavable_mutation() {
 }
 
 #[test]
-fn signal_failure_keeps_the_last_committed_memory_and_observation() {
+fn request_failure_keeps_the_last_committed_memory_and_observation() {
     let tmp = TempDir::new().unwrap();
-    let mut signal = signal_engine(&tmp);
-    signal
-        .capture(SignalKind::Idea, "author".into(), "saved".into())
+    let mut request = request_engine(&tmp);
+    request
+        .capture(RequestKind::Suggestion, "author".into(), "saved".into())
         .unwrap();
-    let path = Persistence::new(&infra_cfg(&tmp), Domain::Signal).path_for("proj");
+    let path = Persistence::new(&infra_cfg(&tmp), Domain::Request).path_for("proj");
     let lock = path.with_extension("json.lock");
     std::fs::remove_file(&lock).unwrap();
     std::fs::create_dir(&lock).unwrap();
-    let refused = signal
-        .capture(SignalKind::Idea, "author".into(), "unsaved".into())
+    let refused = request
+        .capture(RequestKind::Suggestion, "author".into(), "unsaved".into())
         .unwrap_err();
     assert!(
-        matches!(refused, magistr_workflow::signal::engine::SignalMutationError::Store(ref error) if error.effect() == "none")
+        matches!(refused, magistr_workflow::request::engine::RequestMutationError::Store(ref error) if error.effect() == "none")
     );
-    assert_eq!(signal.signals().signals.len(), 1);
-    let read = signal.observe().unwrap();
-    assert_eq!(read.value.signals.len(), 1);
-    assert_eq!(read.value.signals[0].body, "saved");
-    assert_eq!(signal.signals().signals.len(), 1);
+    assert_eq!(request.requests().requests.len(), 1);
+    let read = request.observe().unwrap();
+    assert_eq!(read.value.requests.len(), 1);
+    assert_eq!(read.value.requests[0].body, "saved");
+    assert_eq!(request.requests().requests.len(), 1);
 }
 
 #[test]

@@ -2534,7 +2534,7 @@ fn xml_injection_bare_tag_recovers_dependencies_and_thread_fields() {
 // (Coverage of the pattern-A diagnostic is already provided by
 // `partial_xml_injection_recovery_errors_only_on_still_missing_fields`
 // — when ANY recovery extraction fired and fields remain missing, the
-// signal-driven diagnostic activates. An additional test for the
+// request-driven diagnostic activates. An additional test for the
 // "markup-present-but-nothing-extractable" edge case used to live here;
 // removed because the looser extractor introduced in 0.2.1 makes that
 // case empirically unreachable — markup almost always produces at least

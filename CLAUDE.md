@@ -26,7 +26,7 @@ The `magistr` MCP connection (`magistr mcp --dir .`) provides source tools and t
 | **decision_*** | Decision log: record notes, open threads for hypotheses, pin conclusions | `decision_record`, `decision_pin`, `decision_review` |
 | **run_*** | Run history: goals, steps, progress, checks and approvals | `run_open`, `arrange_steps`, `start_step`, `record_progress`, `check_step`, `run_finish` |
 | **plan_*** | The long-horizon plan-of-plans driving both | `plan_status`, `plan_next`, `plan_start_task`, `plan_complete_task` |
-| **signal_*** | Stakeholder signals: capture, research, surface, promote to the plan | `signal_capture`, `signal_pending`, `signal_research`, `signal_promote` |
+| **request_*** | Stakeholder requests: capture, research, raise, promote to the plan | `request_capture`, `request_ready`, `request_research`, `request_promote` |
 
 ## Cross-referencing
 

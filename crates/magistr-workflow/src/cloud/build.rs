@@ -5,11 +5,11 @@
 use crate::cloud::envelope::{Edge, Family, Kind, UnifiedRecordEnvelope, edges_from_refs};
 use crate::decision::domain::note::Note;
 use crate::plan::domain::{Task, TrackerLink, TrackerOptIn};
+use crate::request::domain::Request;
 use crate::run::domain::check::Check;
 use crate::run::domain::goal::Goal;
 use crate::run::domain::progress::Progress;
 use crate::run::domain::step::Step;
-use crate::signal::domain::Signal;
 
 /// The cycle key — the stable wire identity of one run cycle, derived from
 /// the goal's `created_at` (the same identity the disk merge uses). All
@@ -231,7 +231,7 @@ pub fn from_task(
 /// Send an UNPROVABLE origin across the wire as unprovable, instead of letting
 /// the pusher's identity fill the gap.
 ///
-/// `Task::project_id` and `Signal::project_id` are `Option`, and both carry
+/// `Task::project_id` and `Request::project_id` are `Option`, and both carry
 /// `skip_serializing_if = "Option::is_none"`, so a record with no origin reaches
 /// [`UnifiedRecordEnvelope::owner`] with the key ABSENT — where
 /// `.entry().or_insert_with(tenant)` helpfully supplies the pushing project.
@@ -261,21 +261,21 @@ fn mark_unprovable_origin(record: &mut serde_json::Value, origin: Option<&String
     }
 }
 
-/// Build the cloud envelope for a signal — the signal as `record`, its
-/// `refs[]` as graph edges. (The local-only `surfaced_at`/`snooze_until`
+/// Build the cloud envelope for a request — the request as `record`, its
+/// `refs[]` as graph edges. (The local-only `raised_at`/`snooze_until`
 /// fields are omitted when unset and ignored by the backend.)
 #[must_use]
-pub fn from_signal(tenant: &str, signal: &Signal) -> UnifiedRecordEnvelope {
-    let mut record = serde_json::to_value(signal).unwrap_or(serde_json::Value::Null);
-    mark_unprovable_origin(&mut record, signal.project_id.as_ref());
+pub fn from_request(tenant: &str, request: &Request) -> UnifiedRecordEnvelope {
+    let mut record = serde_json::to_value(request).unwrap_or(serde_json::Value::Null);
+    mark_unprovable_origin(&mut record, request.project_id.as_ref());
     UnifiedRecordEnvelope::owner(
         tenant,
-        Family::Signal,
-        Kind::Signal,
-        signal.id.clone(),
-        signal.created.clone(),
+        Family::Request,
+        Kind::Request,
+        request.id.clone(),
+        request.created.clone(),
         record,
-        edges_from_refs(&signal.refs),
+        edges_from_refs(&request.refs),
     )
 }
 
@@ -373,7 +373,7 @@ mod tests {
             notes: String::new(),
             acceptance: vec![],
             deps: vec!["saas-cloud-client".into()],
-            refs: vec!["decision:3".into(), "signal:abc".into()],
+            refs: vec!["decision:3".into(), "request:abc".into()],
             shared: false,
             reprioritize: None,
             status_proposal: None,
@@ -495,26 +495,26 @@ mod tests {
     }
 
     #[test]
-    fn from_signal_builds_a_schema_valid_envelope_with_edges() {
-        use crate::signal::domain::{SignalKind, SignalStatus};
-        let signal = Signal {
+    fn from_request_builds_a_schema_valid_envelope_with_edges() {
+        use crate::request::domain::{RequestKind, RequestStatus};
+        let request = Request {
             id: "b3e1c0de-0000-4000-8000-000000000000".into(),
-            kind: SignalKind::Bug,
+            kind: RequestKind::Bug,
             from: "dana".into(),
             body: "it crashes on save".into(),
             content: None,
             created: "2026-06-08T00:00:00Z".into(),
-            status: SignalStatus::New,
+            status: RequestStatus::New,
             enrichment: vec![],
-            refs: vec!["task:saas-cloud-sync-signal".into(), "decision:5".into()],
-            surfaced_at: None,
+            refs: vec!["task:saas-cloud-sync-request".into(), "decision:5".into()],
+            raised_at: None,
             snooze_until: None,
             project_id: None,
         };
-        let envelope = from_signal("magistr-676f38", &signal);
+        let envelope = from_request("magistr-676f38", &request);
         assert_eq!(envelope.edges.len(), 2);
-        assert_eq!(envelope.edges[0].target, "task:saas-cloud-sync-signal");
-        assert_eq!(envelope.id, signal.id);
+        assert_eq!(envelope.edges[0].target, "task:saas-cloud-sync-request");
+        assert_eq!(envelope.id, request.id);
         assert_schema_valid(&envelope);
     }
 
@@ -562,27 +562,27 @@ mod tests {
     #[test]
     fn every_family_stamps_the_source_project_on_the_record() {
         use crate::decision::domain::note::Note;
+        use crate::request::domain::{RequestKind, RequestStatus};
         use crate::run::domain::check::{Check, CheckType};
         use crate::run::domain::goal::{Goal, GoalStatus, VerificationMode};
         use crate::run::domain::progress::{Progress, ProgressType};
         use crate::run::domain::step::{Step, StepStatus, StepType};
-        use crate::signal::domain::{SignalKind, SignalStatus};
         use serde_json::json;
 
         const US: &str = "magistr-676f38";
         let cycle = "obj-2026-06-08T00:00:00Z";
 
-        let signal = Signal {
+        let request = Request {
             id: "b3e1c0de-0000-4000-8000-000000000000".into(),
-            kind: SignalKind::Bug,
+            kind: RequestKind::Bug,
             from: "dana".into(),
             body: "it crashes on save".into(),
             content: None,
             created: "2026-06-08T00:00:00Z".into(),
-            status: SignalStatus::New,
+            status: RequestStatus::New,
             enrichment: vec![],
             refs: vec![],
-            surfaced_at: None,
+            raised_at: None,
             snooze_until: None,
             project_id: None,
         };
@@ -643,14 +643,14 @@ mod tests {
             project_id: Some(US.into()),
             ..task()
         };
-        let owned_signal = Signal {
+        let owned_request = Request {
             project_id: Some(US.into()),
-            ..signal.clone()
+            ..request.clone()
         };
 
         let built: Vec<(&str, UnifiedRecordEnvelope)> = vec![
             ("plan task", from_task(US, &owned_task, &[], &[])),
-            ("signal", from_signal(US, &owned_signal)),
+            ("request", from_request(US, &owned_request)),
             ("decision note", from_note(US, &step).unwrap()),
             ("run progress", from_progress(US, cycle, &progress)),
             (
@@ -701,7 +701,7 @@ mod tests {
         // it must refuse to claim on it too.
         for (family, envelope) in [
             ("plan task", from_task(US, &task(), &[], &[])),
-            ("signal", from_signal(US, &signal)),
+            ("request", from_request(US, &request)),
         ] {
             assert_eq!(
                 envelope.record.get("project_id"),

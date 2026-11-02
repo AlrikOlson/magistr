@@ -9,7 +9,7 @@
 //! - the four families end the iteration cross-referenced:
 //!   `task:X` → `step:X` (plan ↔ run), `decision:N` → `step:X`
 //!   (decision ↔ run) and `task:X` → `decision:N` (plan ↔ decision), plus a
-//!   signal record, all persisted under the temp data dir.
+//!   request record, all persisted under the temp data dir.
 
 use std::path::Path;
 
@@ -237,7 +237,7 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
         "{rows:?}"
     );
 
-    // ── Close: task, task (with proof of run), goal, signal, decision ──
+    // ── Close: task, task (with proof of run), goal, request, decision ──
     ok(&client, "finish_step", json!({"step_id": STEP})).await;
     let done = ok(
         &client,
@@ -257,8 +257,8 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
     );
     ok(
         &client,
-        "signal_capture",
-        json!({"kind": "idea", "from": "e2e", "body": "discovered while shipping"}),
+        "request_capture",
+        json!({"kind": "suggestion", "from": "e2e", "body": "discovered while shipping"}),
     )
     .await;
     ok(
@@ -315,11 +315,11 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
     let decision = ok(&client, "decision_get", json!({"note": step})).await;
     assert_eq!(decision["run_ref"], format!("step:{STEP}"), "{decision}");
 
-    let signals = ok(&client, "signal_status", json!({})).await;
-    assert_ne!(signals, Value::Null);
+    let requests = ok(&client, "request_status", json!({})).await;
+    assert_ne!(requests, Value::Null);
 
     // ── Persisted under the temp store, one file per family ────────────
-    for family in ["plan", "decisions", "signal"] {
+    for family in ["plan", "decisions", "requests"] {
         assert!(
             has_session_file(&data_dir, family),
             "{family} session file missing"

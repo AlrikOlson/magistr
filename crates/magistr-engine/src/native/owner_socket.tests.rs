@@ -12,12 +12,12 @@ fn the_socket_sits_beside_the_lock_when_the_path_is_short() {
     let host = owner_socket_path(&cfg, "lease", WriterRole::Host);
     assert_eq!(
         host,
-        PathBuf::from("/d/owners/decision-words/lease.project-owner.lock.sock")
+        PathBuf::from("/d/owners/request-words/lease.project-owner.lock.sock")
     );
     let service = owner_socket_path(&cfg, "lease", WriterRole::Service);
     assert_eq!(
         service,
-        PathBuf::from("/d/owners/decision-words/lease.project-owner.lock.sock")
+        PathBuf::from("/d/owners/request-words/lease.project-owner.lock.sock")
     );
     // A stateless store keys the endpoint under the project root.
     let stateless = cfg.persist(false);

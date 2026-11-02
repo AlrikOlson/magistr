@@ -1,13 +1,13 @@
 import {desktopMeta,openRelease,visible} from "./desktop.mjs";
 export default {...desktopMeta,title:"Feedback"};
 export const Overview={parameters:{desktop:{
- caption:"Feedback list with a researched concern and an idea added to the plan",task:"Scan feedback by kind, title and status.",
+ caption:"Feedback list with a researched concern and a suggestion added to the plan",task:"Scan feedback by kind, title and status.",
  arrange:async context=>{await openRelease(context);await context.userEvent.click(context.ui.getByRole("tab",{name:"Feedback",exact:true}));},
  verify:({doc,expect})=>{expect(visible(doc,".feedback-list")).toBe(true);expect(doc.querySelectorAll(".feedback-row").length).toBe(2);},
 }}};
 export const DenseList={parameters:{desktop:{
  caption:"Feedback list with eight records across several review states",task:"Compare several feedback records without oversized rows.",
- seed:seed=>{const records=seed.workflow.signals.data.value,base=records[0];for(const [index,title] of ["Make it easier to find the conversation I used yesterday","Show which project has work waiting for my answer","Keep keyboard focus in the conversation after closing settings","Explain why an installation check failed and how to read its complete output","Let me copy the source reference from a research note","Keep the text readable when I reduce the window size"].entries())records.push({...structuredClone(base),id:"feedback-extra-"+index,kind:index%2?"idea":"concern",status:["new","triaged","researched"][index%3],content:{...base.content,summary:title}});},
+ seed:seed=>{const records=seed.workflow.requests.data.value,base=records[0];for(const [index,title] of ["Make it easier to find the conversation I used yesterday","Show which project has work waiting for my answer","Keep keyboard focus in the conversation after closing settings","Explain why an installation check failed and how to read its complete output","Let me copy the source reference from a research note","Keep the text readable when I reduce the window size"].entries())records.push({...structuredClone(base),id:"feedback-extra-"+index,kind:index%2?"idea":"concern",status:["new","triaged","researched"][index%3],content:{...base.content,summary:title}});},
  arrange:Overview.parameters.desktop.arrange,
  verify:({doc,expect})=>{expect(doc.querySelectorAll(".feedback-row").length).toBe(8);expect(visible(doc,".feedback-list")).toBe(true);},
 }}};

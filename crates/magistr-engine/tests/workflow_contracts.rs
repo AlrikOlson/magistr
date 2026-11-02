@@ -9,7 +9,7 @@ fn same_type<A: 'static, B: 'static>() {
 #[test]
 fn producers_and_surfaces_share_the_same_record_definitions() {
     same_type::<contracts::Task, magistr_workflow::plan::domain::Task>();
-    same_type::<contracts::Signal, magistr_workflow::signal::domain::Signal>();
+    same_type::<contracts::Request, magistr_workflow::request::domain::Request>();
     same_type::<contracts::Note, magistr_workflow::decision::domain::Note>();
     same_type::<contracts::decision::Thread, magistr_workflow::decision::domain::Thread>();
     same_type::<contracts::Goal, magistr_workflow::run::domain::goal::Goal>();
@@ -37,6 +37,6 @@ fn projections_observations_and_broadcasts_share_canonical_type_identity() {
     same_type::<contracts::DecisionFrame, magistr_workflow::decision::broadcast::BroadcastFrame>();
     same_type::<contracts::RunFrame, magistr_workflow::run::broadcast::BroadcastFrame>();
     same_type::<contracts::PlanFrame, magistr_workflow::plan::broadcast::PlanFrame>();
-    same_type::<contracts::SignalFrame, magistr_workflow::signal::broadcast::SignalFrame>();
+    same_type::<contracts::RequestFrame, magistr_workflow::request::broadcast::RequestFrame>();
     same_type::<magistr_domain::workflow::CheckpointReason, magistr_engine::CheckpointReason>();
 }

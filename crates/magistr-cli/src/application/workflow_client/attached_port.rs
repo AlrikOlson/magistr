@@ -3,10 +3,10 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use magistr_engine::Observed;
-use magistr_engine::native::{Signal, SignalPromotion, Task, WorkflowMutationError};
+use magistr_engine::native::{Request, RequestPromotion, Task, WorkflowMutationError};
 use magistr_engine::{
     DecisionCommand, OwnerClient, OwnerCommand, OwnerGeneration, OwnerReply, PlanCommand,
-    SignalCommand,
+    RequestCommand,
 };
 
 use magistr_cockpit::cockpit::ProposalKind;
@@ -83,12 +83,12 @@ impl AttachedEnginePort {
         }
     }
 
-    fn signal(
+    fn request(
         &mut self,
-        command: SignalCommand,
-    ) -> Result<Observed<Signal>, WorkflowMutationError> {
-        match self.run(OwnerCommand::Signal(command))? {
-            OwnerReply::Signal(signal) => Ok(signal),
+        command: RequestCommand,
+    ) -> Result<Observed<Request>, WorkflowMutationError> {
+        match self.run(OwnerCommand::Request(command))? {
+            OwnerReply::Request(request) => Ok(request),
             other => Err(WorkflowMutationError::uncertain(format!(
                 "The result could not be confirmed: {other:?}"
             ))),
@@ -152,8 +152,8 @@ impl EnginePort for AttachedEnginePort {
         self.task(PlanCommand::ClearWaitingOn { id: id.to_owned() })
     }
 
-    fn promote_signal(&mut self, id: &str) -> Result<SignalPromotion, WorkflowMutationError> {
-        match self.run(OwnerCommand::Signal(SignalCommand::Promote {
+    fn promote_request(&mut self, id: &str) -> Result<RequestPromotion, WorkflowMutationError> {
+        match self.run(OwnerCommand::Request(RequestCommand::Promote {
             id: id.to_owned(),
         }))? {
             OwnerReply::Promotion(promotion) => Ok(*promotion),
@@ -163,16 +163,16 @@ impl EnginePort for AttachedEnginePort {
         }
     }
 
-    fn ignore_signal(&mut self, id: &str) -> Result<Observed<Signal>, WorkflowMutationError> {
-        self.signal(SignalCommand::Ignore { id: id.to_owned() })
+    fn dismiss_request(&mut self, id: &str) -> Result<Observed<Request>, WorkflowMutationError> {
+        self.request(RequestCommand::Dismiss { id: id.to_owned() })
     }
 
-    fn snooze_signal(
+    fn snooze_request(
         &mut self,
         id: &str,
         minutes: u32,
-    ) -> Result<Observed<Signal>, WorkflowMutationError> {
-        self.signal(SignalCommand::Snooze {
+    ) -> Result<Observed<Request>, WorkflowMutationError> {
+        self.request(RequestCommand::Snooze {
             id: id.to_owned(),
             minutes: i64::from(minutes),
         })

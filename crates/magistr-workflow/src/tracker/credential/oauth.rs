@@ -122,7 +122,7 @@ impl OAuthClient {
         if !(200..300).contains(&status) {
             let body = resp.text().await.unwrap_or_default();
             // A 400 from a token endpoint is the canonical "refresh token is
-            // dead" signal. Naming it beats surfacing a bare status.
+            // dead" request. Naming it beats surfacing a bare status.
             return Err(CredentialError::Invalid(format!(
                 "refresh for '{}' rejected with {status}: {body} — the refresh token may have been \
                  rotated away or revoked; reconnect the provider",

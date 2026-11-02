@@ -5,10 +5,10 @@ use crate::native::{
 };
 use magistr_workflow::decision::domain::Note;
 use magistr_workflow::plan::domain::{TaskStatus, WaitingReason};
+use magistr_workflow::request::domain::RequestKind;
 use magistr_workflow::run::domain::check::{Check, CheckType};
 use magistr_workflow::run::domain::progress::ProgressType;
 use magistr_workflow::run::domain::step::StepType;
-use magistr_workflow::signal::domain::SignalKind;
 
 /// A source that never moves and a project that configures no gates: the
 /// evidence capability every writer here is admitted with, so a recorded
@@ -364,7 +364,11 @@ fn round_trip_through_a_temp_store() {
         engines.finish_step("t1", vec![]).expect("complete");
 
         let sig = engines
-            .signal_capture(SignalKind::Idea, "alice".into(), "make it faster".into())
+            .request_capture(
+                RequestKind::Suggestion,
+                "alice".into(),
+                "make it faster".into(),
+            )
             .expect("capture");
         assert_eq!(sig.value.body, "make it faster");
         let done = engines
@@ -401,10 +405,10 @@ fn round_trip_through_a_temp_store() {
         reopened.run_goal().unwrap().unwrap().status,
         crate::native::GoalStatus::Finished
     );
-    assert_eq!(reopened.signal_status().unwrap()["counts"]["new"], 1);
+    assert_eq!(reopened.request_status().unwrap()["counts"]["new"], 1);
 
     // Every family wrote under its own partition of the one data dir.
-    for family in ["plan", "decisions", "run", "signal"] {
+    for family in ["plan", "decisions", "run", "requests"] {
         let base = tmp.path().join("data").join(family);
         let base = if family == "run" {
             base.join("executions").join(cfg.execution_context().key())
@@ -654,64 +658,64 @@ fn reasoning_observation_uses_live_memory_when_persistence_is_disabled() {
 }
 
 #[test]
-fn signal_triage_wrappers_round_trip() {
-    use magistr_workflow::signal::domain::SignalStatus;
+fn request_triage_wrappers_round_trip() {
+    use magistr_workflow::request::domain::RequestStatus;
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
     let engines = host(&cfg, "triage");
 
     let a = engines
-        .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
+        .request_capture(RequestKind::Suggestion, "alice".into(), "faster".into())
         .expect("capture");
     let b = engines
-        .signal_capture(SignalKind::Bug, "bob".into(), "broken".into())
+        .request_capture(RequestKind::Bug, "bob".into(), "broken".into())
         .expect("capture");
     let c = engines
-        .signal_capture(SignalKind::Question, "cara".into(), "why".into())
+        .request_capture(RequestKind::Question, "cara".into(), "why".into())
         .expect("capture");
     let ids: Vec<String> = engines
-        .signal_list()
+        .request_list()
         .unwrap()
         .into_iter()
         .map(|s| s.id)
         .collect();
     assert!(ids.contains(&a.value.id) && ids.contains(&b.value.id) && ids.contains(&c.value.id));
 
-    // Promote needs a researched signal; a fresh one is refused with a reason.
-    assert!(engines.signal_promote(&a.value.id).is_err());
+    // Promote needs a researched request; a fresh one is refused with a reason.
+    assert!(engines.request_promote(&a.value.id).is_err());
     let researched = engines
-        .signal_research(&a.value.id, "validated".into(), 0.9, vec![], None)
+        .request_research(&a.value.id, "validated".into(), 0.9, vec![], None)
         .expect("research");
-    assert_eq!(researched.value.status, SignalStatus::Researched);
+    assert_eq!(researched.value.status, RequestStatus::Researched);
     assert!(
         engines
-            .signal_research("missing", "x".into(), 0.5, vec![], None)
+            .request_research("missing", "x".into(), 0.5, vec![], None)
             .is_err()
     );
-    let promoted = engines.signal_promote(&a.value.id).expect("promote");
-    assert_eq!(promoted.signal.value.status, SignalStatus::Promoted);
+    let promoted = engines.request_promote(&a.value.id).expect("promote");
+    assert_eq!(promoted.request.value.status, RequestStatus::Promoted);
     // The reciprocal half the MCP verb has always done: promotion creates
     // the idea task and links the two both ways.
-    let task_id = format!("signal-{}", a.value.id);
+    let task_id = format!("request-{}", a.value.id);
     assert!(
         promoted
-            .signal
+            .request
             .value
             .refs
             .contains(&format!("task:{task_id}")),
         "{:?}",
-        promoted.signal.value.refs
+        promoted.request.value.refs
     );
     let task = engines
         .plan_task(&task_id)
         .unwrap()
         .expect("promotion created the idea task");
     assert_eq!(task.status, TaskStatus::Idea);
-    assert_eq!(task.title, "[idea] faster");
-    assert!(task.refs.contains(&format!("signal:{}", a.value.id)));
+    assert_eq!(task.title, "[suggestion] faster");
+    assert!(task.refs.contains(&format!("request:{}", a.value.id)));
     // Promoting again is idempotent: the same task, still one of it.
-    let again = engines.signal_promote(&a.value.id).expect("promote again");
-    assert_eq!(again.signal.value.status, SignalStatus::Promoted);
+    let again = engines.request_promote(&a.value.id).expect("promote again");
+    assert_eq!(again.request.value.status, RequestStatus::Promoted);
     assert_eq!(
         engines
             .plan_tasks()
@@ -722,18 +726,18 @@ fn signal_triage_wrappers_round_trip() {
         1
     );
 
-    let dismissed = engines.signal_ignore(&b.value.id).expect("ignore");
-    assert_eq!(dismissed.value.status, SignalStatus::Dismissed);
+    let dismissed = engines.request_dismiss(&b.value.id).expect("ignore");
+    assert_eq!(dismissed.value.status, RequestStatus::Dismissed);
 
-    let snoozed = engines.signal_snooze(&c.value.id, 30).expect("snooze");
+    let snoozed = engines.request_snooze(&c.value.id, 30).expect("snooze");
     assert!(snoozed.value.snooze_until.is_some(), "snooze stamped");
     assert_eq!(
         snoozed.value.status,
-        SignalStatus::New,
+        RequestStatus::New,
         "snooze keeps status"
     );
 
-    assert!(engines.signal_promote("missing").is_err());
+    assert!(engines.request_promote("missing").is_err());
 }
 
 #[test]
@@ -904,7 +908,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
         crate::native::ReadSource::Missing
     );
     assert_eq!(
-        empty.signals.current().unwrap().source,
+        empty.requests.current().unwrap().source,
         crate::native::ReadSource::Missing
     );
     assert_eq!(
@@ -954,8 +958,8 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
         )
         .expect("gate");
     engines
-        .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
-        .expect("signal");
+        .request_capture(RequestKind::Suggestion, "alice".into(), "faster".into())
+        .expect("request");
     assert!(engines.decision_record(note(1, "open")).is_ok());
 
     let snapshot = engines.snapshot();
@@ -969,7 +973,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
         crate::native::ReadSource::File(_)
     ));
     assert!(matches!(
-        snapshot.signals.current().unwrap().source,
+        snapshot.requests.current().unwrap().source,
         crate::native::ReadSource::File(_)
     ));
     assert!(matches!(
@@ -1025,7 +1029,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
         snapshot.plan.current().unwrap().value.progress.total_tasks,
         2
     );
-    assert_eq!(snapshot.signals.current().unwrap().value.len(), 1);
+    assert_eq!(snapshot.requests.current().unwrap().value.len(), 1);
     assert_eq!(
         snapshot
             .decisions
@@ -1148,29 +1152,29 @@ fn a_blocker_is_set_through_the_wrapper_the_way_the_verb_sets_it() {
 }
 
 #[test]
-fn signal_queries_observe_another_writers_capture() {
+fn request_queries_observe_another_writers_capture() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
-    let host = reader(&cfg, "reload-signal");
-    let server = service(&cfg, "reload-signal");
+    let host = reader(&cfg, "reload-request");
+    let server = service(&cfg, "reload-request");
 
     // The agent's `magistr mcp` captures while the host is open.
     let captured = server
-        .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
+        .request_capture(RequestKind::Suggestion, "alice".into(), "faster".into())
         .expect("capture");
 
     // The host's in-memory copy predates it; its queries read through.
-    assert_eq!(host.signal_list().unwrap().len(), 1);
-    assert_eq!(host.signal_status().unwrap()["counts"]["total"], 1);
+    assert_eq!(host.request_list().unwrap().len(), 1);
+    assert_eq!(host.request_status().unwrap()["counts"]["total"], 1);
 
     let ids: Vec<String> = host
-        .signal_list()
+        .request_list()
         .unwrap()
         .into_iter()
         .map(|s| s.id)
         .collect();
     assert_eq!(ids, vec![captured.value.id]);
-    assert_eq!(host.signal_status().unwrap()["counts"]["total"], 1);
+    assert_eq!(host.request_status().unwrap()["counts"]["total"], 1);
 }
 
 /// A run trace with one active step, ready to take a gate record.
@@ -1353,15 +1357,15 @@ fn the_handlers_refusals_are_the_writers_refusals() {
     let engines = host(&cfg, "refusals");
 
     let empty = engines
-        .signal_capture(SignalKind::Idea, "alice".into(), "   ".into())
+        .request_capture(RequestKind::Suggestion, "alice".into(), "   ".into())
         .expect_err("an empty body is refused as the verb refuses it");
-    assert_eq!(empty.to_string(), "signal body is empty");
+    assert_eq!(empty.to_string(), "request body is empty");
 
     let captured = engines
-        .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
+        .request_capture(RequestKind::Suggestion, "alice".into(), "faster".into())
         .expect("capture");
     let blank = engines
-        .signal_research(&captured.value.id, "  ".into(), 0.5, vec![], None)
+        .request_research(&captured.value.id, "  ".into(), 0.5, vec![], None)
         .expect_err("a blank summary is refused");
     assert_eq!(blank.to_string(), "research summary is empty");
 

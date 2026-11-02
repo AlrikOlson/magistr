@@ -44,9 +44,9 @@ use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::progress::tick_message;
 use magistr_workflow::plan::{PlanEngine, PlanService};
+use magistr_workflow::request::{RequestEngine, RequestService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
-use magistr_workflow::signal::{SignalEngine, SignalService};
 use rmcp::{
     ClientHandler, RoleClient, ServiceExt,
     model::{
@@ -102,8 +102,8 @@ fn build_unified(project: &str) -> UnifiedService {
     let decision = DecisionService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new(project.into()));
     let plan = PlanService::new(PlanEngine::new(project.into()), run.use_cases());
-    let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(decision, run, plan, signal)
+    let request = RequestService::new(RequestEngine::new(project.into()));
+    UnifiedService::new(decision, run, plan, request)
 }
 
 type Client = rmcp::service::RunningService<RoleClient, TaskClient>;

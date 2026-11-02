@@ -6,8 +6,8 @@ use super::native_engines::NativeEngines;
 use super::owner_command::OwnerCommand;
 use super::owner_reply::OwnerReply;
 use super::plan_command::PlanCommand;
+use super::request_command::RequestCommand;
 use super::run_command::RunCommand;
-use super::signal_command::SignalCommand;
 
 impl NativeEngines {
     /// Carry `command` out on this writer: the one place an attached
@@ -21,7 +21,7 @@ impl NativeEngines {
             OwnerCommand::Plan(command) => self.apply_plan(command),
             OwnerCommand::Decision(command) => self.apply_decision(command),
             OwnerCommand::Run(command) => self.apply_run(command),
-            OwnerCommand::Signal(command) => self.apply_signal(command),
+            OwnerCommand::Request(command) => self.apply_request(command),
         }
     }
 
@@ -194,22 +194,22 @@ impl NativeEngines {
         })
     }
 
-    fn apply_signal(&self, command: SignalCommand) -> Result<OwnerReply, WorkflowMutationError> {
-        let signal = match command {
-            SignalCommand::Capture { kind, from, body } => self.signal_capture(kind, from, body),
-            SignalCommand::Research {
+    fn apply_request(&self, command: RequestCommand) -> Result<OwnerReply, WorkflowMutationError> {
+        let request = match command {
+            RequestCommand::Capture { kind, from, body } => self.request_capture(kind, from, body),
+            RequestCommand::Research {
                 id,
                 summary,
                 confidence,
                 sources,
                 note,
-            } => self.signal_research(&id, summary, confidence, sources, note),
-            SignalCommand::Promote { id } => {
-                return Ok(OwnerReply::Promotion(Box::new(self.signal_promote(&id)?)));
+            } => self.request_research(&id, summary, confidence, sources, note),
+            RequestCommand::Promote { id } => {
+                return Ok(OwnerReply::Promotion(Box::new(self.request_promote(&id)?)));
             }
-            SignalCommand::Ignore { id } => self.signal_ignore(&id),
-            SignalCommand::Snooze { id, minutes } => self.signal_snooze(&id, minutes),
+            RequestCommand::Dismiss { id } => self.request_dismiss(&id),
+            RequestCommand::Snooze { id, minutes } => self.request_snooze(&id, minutes),
         }?;
-        Ok(OwnerReply::Signal(signal))
+        Ok(OwnerReply::Request(request))
     }
 }

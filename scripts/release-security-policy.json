@@ -154,7 +154,7 @@
     },
     {
       "commit": "4826328d3fa02055ecf4082e5b063bae48d69de5",
-      "file": "subsystems/workflow/contract/signal-envelope.schema.json",
+      "file": "subsystems/workflow/contract/request-envelope.schema.json",
       "rule": "generic-api-key",
       "line": 175,
       "contextVerified": true,

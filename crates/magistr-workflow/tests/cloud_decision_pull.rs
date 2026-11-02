@@ -9,7 +9,7 @@ use magistr_workflow::decision::config::DecisionConfig;
 use magistr_workflow::decision::domain::{NextAction, Note};
 use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::plan::PlanEngine;
-use magistr_workflow::signal::SignalEngine;
+use magistr_workflow::request::RequestEngine;
 use serde_json::{Value, json};
 use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -164,7 +164,7 @@ async fn reconcile_decision_pulls_cloud_notes_into_the_local_engine() {
 }
 
 /// The startup hydrate: one call converges all three pull-able families, and
-/// a failing family (signal here: 500) never blocks the others.
+/// a failing family (request here: 500) never blocks the others.
 #[tokio::test]
 async fn reconcile_all_hydrates_every_family_and_tolerates_one_failing() {
     let server = MockServer::start().await;
@@ -193,7 +193,7 @@ async fn reconcile_all_hydrates_every_family_and_tolerates_one_failing() {
         .await;
     Mock::given(method("GET"))
         .and(path("/v1/records"))
-        .and(query_param("family", "signal"))
+        .and(query_param("family", "request"))
         .respond_with(ResponseTemplate::new(500))
         .mount(&server)
         .await;
@@ -201,9 +201,9 @@ async fn reconcile_all_hydrates_every_family_and_tolerates_one_failing() {
     let client = CloudClient::new(server.uri(), "tok");
     let decision = Arc::new(Mutex::new(quiet_server()));
     let plan = Arc::new(Mutex::new(PlanEngine::new("t".into())));
-    let signal = Arc::new(Mutex::new(SignalEngine::new("t".into())));
+    let request = Arc::new(Mutex::new(RequestEngine::new("t".into())));
 
-    let (t, r, s) = reconcile_all(&client, &decision, &plan, &signal).await;
+    let (t, r, s) = reconcile_all(&client, &decision, &plan, &request).await;
     assert_eq!((t.unwrap(), r.unwrap()), (1, 1));
     assert!(s.is_err());
     assert_eq!(decision.lock().unwrap().history().notes.len(), 1);

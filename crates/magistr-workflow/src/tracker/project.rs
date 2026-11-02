@@ -100,7 +100,7 @@ pub struct ProjectionReport {
     pub relations_degraded: Vec<String>,
     /// `(task_id, divergence)` — fields where the two sides disagreed and the
     /// disagreement mattered. Reported rather than resolved silently; the
-    /// concern module turns these into concern signals.
+    /// concern module turns these into concern requests.
     pub divergences: Vec<(String, crate::tracker::ownership::Divergence)>,
     /// Containers ensured this run, in name order.
     pub features_ensured: Vec<String>,
@@ -714,7 +714,7 @@ pub async fn project_all_with_policy(
         // reconciliation's own invariant: a caller that forgot this call would
         // silently reintroduce the one-round concession. Idempotent in the
         // engine, so a re-projection of the same disagreement does not restamp.
-        // The concern signal (caller-side, emit_divergence_concerns) stays the
+        // The concern request (caller-side, emit_divergence_concerns) stays the
         // NOTIFICATION; this is the state a human resolves.
         for d in reconciled.divergences() {
             if d.field == crate::tracker::ownership::Field::Title

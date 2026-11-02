@@ -3,8 +3,8 @@ import {pageControls} from "./work_search.mjs";
 import {filterFeedback} from "./work_feedback_search.mjs";
 import {feedbackResearch} from "./work_feedback_research.mjs";
 import {prose} from "./work_prose.mjs";
-export const feedbackStatus={new:"New",triaged:"Reviewed",researched:"Researched",surfaced:"Raised for review",promoted:"Added to plan",dismissed:"Dismissed"};
-export const feedbackKind={question:"Question",idea:"Idea",concern:"Concern",bug:"Bug",feedback:"Feedback"};
+export const feedbackStatus={new:"New",triaged:"Reviewed",researched:"Researched",raised:"Raised for review",promoted:"Added to plan",dismissed:"Dismissed"};
+export const feedbackKind={question:"Question",suggestion:"Suggestion",concern:"Concern",bug:"Bug",feedback:"Feedback"};
 export const feedbackTitle=record=>record.content?.summary||(record.body.length>180?record.body.slice(0,180)+"…":record.body);
 export function feedbackDetail(record,actions){
   const {copy}=actions;
@@ -13,7 +13,7 @@ export function feedbackDetail(record,actions){
   if(bodyIsTitle){title.dataset.reading=record.id+":body";const button=element("button","Copy");button.setAttribute("aria-label","Copy feedback");button.onclick=()=>copy(record.body);header.append(button);}
   article.append(element("p",feedbackKind[record.kind]+" · "+feedbackStatus[record.status],"work-record-status"));
   const metadata=[["From",record.from]];
-  for(const [label,value] of [["Received",record.created],["Raised for review",record.surfaced_at],["Reminder set for",record.snooze_until]])if(value)metadata.push([label,new Date(value).toLocaleString()]);
+  for(const [label,value] of [["Received",record.created],["Raised for review",record.raised_at],["Reminder set for",record.snooze_until]])if(value)metadata.push([label,new Date(value).toLocaleString()]);
   article.append(inlineFacts(metadata));
   if(!bodyIsTitle)article.append(prose("Feedback",record.body,record.id+":body",copy));
   if(record.content){

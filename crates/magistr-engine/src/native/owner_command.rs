@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use super::decision_command::DecisionCommand;
 use super::plan_command::PlanCommand;
+use super::request_command::RequestCommand;
 use super::run_command::RunCommand;
-use super::signal_command::SignalCommand;
 
 /// One typed mutation, carried out by the owner's own
 /// [`NativeEngines`](super::NativeEngines) through
@@ -23,8 +23,8 @@ pub enum OwnerCommand {
     Decision(DecisionCommand),
     /// An execution-trace mutation.
     Run(RunCommand),
-    /// A signal-inbox mutation.
-    Signal(SignalCommand),
+    /// A request-inbox mutation.
+    Request(RequestCommand),
 }
 
 #[cfg(test)]

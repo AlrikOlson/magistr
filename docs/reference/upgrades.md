@@ -21,7 +21,8 @@ other MCP servers, environment settings and agent preferences are preserved.
 | The run store `ship/` in the workflow data directory | `run/`, with check results under `check_results/` and records in the run words |
 | The plan store `roadmap/` in the workflow data directory | `plan/`, with records in the plan words: tasks, features, waiting reasons and retired tasks |
 | The decision store `think/` in the workflow data directory | `decisions/`, with records in the decision words: logs, notes and threads, and open threads stored as `open` |
-| Stored references `task:`, `action:`, `chunk:` and `think:` in plan, decision, signal and run records | `step:`, `progress:`, `task:` and `decision:`, chosen from each record's saved version |
+| The request store `signal/` in the workflow data directory | `requests/`, with records in the request words: kind `suggestion` for `idea`, status `raised` for `surfaced`, and `raised_at` for `surfaced_at` |
+| Stored references `task:`, `action:`, `chunk:`, `think:` and `signal:` in plan, decision, request and run records | `step:`, `progress:`, `task:`, `decision:` and `request:`, chosen from each record's saved version |
 | A progress record's or a request enrichment's `think_step`, and a plan refresh's `think_steps` | `note` and `notes` |
 | Saved `magistr mcp-launch magistr …` registration | `magistr mcp --dir …`, preserving the directory and extra connection settings |
 | An older declared project identity, when the current settings do not declare one | `project.id` in `.magistr/project.json` |
@@ -37,11 +38,12 @@ current history.
 ## Recovery copies
 
 Original settings and the original YAML plan are saved under
-`.magistr/upgrades/configuration/`. The original `ship/`, `roadmap/` and
-`think/` stores are kept under the workflow data directory's `backups/`, and
-each project's documents converted in place keep their originals under
-`backups/before-decision-words/` (`backups/before-plan-words/` for an
-installation upgraded before the decision words). An interrupted store move
+`.magistr/upgrades/configuration/`. The original `ship/`, `roadmap/`,
+`think/` and `signal/` stores are kept under the workflow data directory's
+`backups/`, and each project's documents converted in place keep their
+originals under `backups/before-request-words/` (`before-decision-words/` or
+`before-plan-words/` for an installation upgraded before the request or the
+decision words). An interrupted store move
 resumes where it stopped; readers wait until it has finished.
 The retired workspace configuration is archived under
 `.magistr/upgrades/workspace-config/`. The original `.workbench` journal and

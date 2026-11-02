@@ -2,7 +2,7 @@
 
 use magistr_engine::NativeEngines;
 use magistr_engine::Observed;
-use magistr_engine::native::{Signal, SignalPromotion, Task, WorkflowMutationError};
+use magistr_engine::native::{Request, RequestPromotion, Task, WorkflowMutationError};
 
 use magistr_cockpit::cockpit::ProposalKind;
 use magistr_cockpit::engine::EnginePort;
@@ -68,21 +68,21 @@ impl EnginePort for NativeEnginePort {
         self.engines.plan_clear_waiting_on(id).map_err(Into::into)
     }
 
-    fn promote_signal(&mut self, id: &str) -> Result<SignalPromotion, WorkflowMutationError> {
-        self.engines.signal_promote(id).map_err(Into::into)
+    fn promote_request(&mut self, id: &str) -> Result<RequestPromotion, WorkflowMutationError> {
+        self.engines.request_promote(id).map_err(Into::into)
     }
 
-    fn ignore_signal(&mut self, id: &str) -> Result<Observed<Signal>, WorkflowMutationError> {
-        self.engines.signal_ignore(id).map_err(Into::into)
+    fn dismiss_request(&mut self, id: &str) -> Result<Observed<Request>, WorkflowMutationError> {
+        self.engines.request_dismiss(id).map_err(Into::into)
     }
 
-    fn snooze_signal(
+    fn snooze_request(
         &mut self,
         id: &str,
         minutes: u32,
-    ) -> Result<Observed<Signal>, WorkflowMutationError> {
+    ) -> Result<Observed<Request>, WorkflowMutationError> {
         self.engines
-            .signal_snooze(id, i64::from(minutes))
+            .request_snooze(id, i64::from(minutes))
             .map_err(Into::into)
     }
 }

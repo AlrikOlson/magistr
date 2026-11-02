@@ -37,7 +37,7 @@ parallel writer, catalog or provider registry.
 
 ## Workflow consistency model
 
-One project writer owns the shared plan, reasoning and signals. Its registry
+One project writer owns the shared plan, reasoning and requests. Its registry
 owns run engines per canonical working-copy root and execution id. Identical
 live contexts share handles; different contexts retain their own selected
 goal, tasks, checks and receipts. Persistence reopens the same context
@@ -91,7 +91,7 @@ receipt's revision stay three facts (see the
 
 The audit is of Magistr's current binaries. A direct edit of a store file or a
 deleted lock file is outside admission. Read-through is per family: there is no
-transaction across plan, execution, signal and reasoning owners. Each owning
+transaction across plan, execution, request and reasoning owners. Each owning
 mutation locks and validates current data before applying its change, then
 acknowledges its committed source. Cross-family promotion explicitly reports a
 partial commit and resumes by the existing record identity. [Projections](projections.md)

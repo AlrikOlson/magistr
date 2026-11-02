@@ -298,7 +298,7 @@ fn examples(name: &str) -> Vec<Value> {
         "run_open" => {
             json!({"description":"Investigate the requested change","scope":"investigation","verification":"focused"})
         }
-        "signal_capture" => {
+        "request_capture" => {
             json!({"kind":"bug","body":"Steps to reproduce and observed behavior."})
         }
         _ => return Vec::new(),

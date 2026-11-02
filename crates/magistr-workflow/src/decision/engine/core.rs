@@ -164,7 +164,7 @@ impl ReasoningServer {
 
     /// Construct the engine with an explicit project identity. The default
     /// history persists to `<project_id>.json` (decision-log-durability), so
-    /// the caller should pass the same id it gives the run/plan/signal
+    /// the caller should pass the same id it gives the run/plan/request
     /// engines — `new` resolves it from the environment for convenience.
     pub fn new_for_project(config: DecisionConfig, project_id: String) -> Self {
         let persistence = Persistence::for_project(&config.persistence, &project_id);

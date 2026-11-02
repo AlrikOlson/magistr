@@ -8,19 +8,19 @@ impl PlanUseCases {
     }
 
     /// Preserve the extensible query projection; no transport response is
-    /// decoded back into domain state. Optional signal counts share ownership.
+    /// decoded back into domain state. Optional request counts share ownership.
     pub fn status(&self) -> Result<serde_json::Value, PlanError> {
         let mut status = self.lock()?.status();
-        // Never hold the plan lock while acquiring the signal lock. The
+        // Never hold the plan lock while acquiring the request lock. The
         // inbox is observed before it is counted, like the plan above.
-        if let Some(signal) = &self.signal
-            && let Ok(mut signal) = signal.lock()
+        if let Some(request) = &self.request
+            && let Ok(mut request) = request.lock()
             && let Some(object) = status.as_object_mut()
         {
-            if let Err(error) = signal.refresh_if_stale() {
-                tracing::warn!("magistr: signal store not observed: {error}");
+            if let Err(error) = request.refresh_if_stale() {
+                tracing::warn!("magistr: request store not observed: {error}");
             }
-            object.insert("pending_signals".into(), signal.pending_count(0.6).into());
+            object.insert("ready_requests".into(), request.ready_count(0.6).into());
         }
         Ok(status)
     }

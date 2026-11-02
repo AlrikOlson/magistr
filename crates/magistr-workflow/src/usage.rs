@@ -3,7 +3,7 @@
 //! # The gap this closes
 //!
 //! Nothing in this system recorded that a tool was *invoked*. `corpus` records
-//! artifacts (tasks, decision notes, signals); the plan records plan state;
+//! artifacts (tasks, decision notes, requests); the plan records plan state;
 //! the run trace records what an agent said it did. None of them answer "which
 //! verbs are actually hot?" — a question the tool-surface work needs before it
 //! can retire anything.
@@ -98,7 +98,7 @@
 //! - [`SOAK_MIN_ACTIVE_DAYS`] = 14. Under this project's actual rhythm, 14
 //!   active days spans several calendar weeks, which is where the Azure
 //!   30-day convention lands once it is re-expressed in days that count.
-//!   Weekly-cadence workflows — signal churn, plan refresh, the business
+//!   Weekly-cadence workflows — request churn, plan refresh, the business
 //!   review — cannot be reached by a window of one to three days at all.
 //!
 //! Both are required because each catches a different lie. Volume alone is
@@ -109,7 +109,7 @@
 //! ## The family qualifier — the hole the two numbers do not close
 //!
 //! A soak can be long, broad, and still blind: fourteen active days of nothing
-//! but `/plan` is no evidence at all about `signal_*`. So a per-verb reading
+//! but `/plan` is no evidence at all about `request_*`. So a per-verb reading
 //! is qualified by its family. If a verb reads 0 and **its whole family reads
 //! 0**, the honest verdict is not "cold" but *"that workflow was never run"* —
 //! see [`CallCounts::verdict`], which returns that distinction as a value rather
@@ -195,7 +195,7 @@ pub enum Verdict {
     /// Zero, and every other verb in its family is zero too — so the workflow
     /// that would use it was never run. Not evidence about this verb.
     FamilyUnexercised {
-        /// The family prefix (`signal`, `plan`, …) that read zero.
+        /// The family prefix (`request`, `plan`, …) that read zero.
         family: String,
     },
 }
@@ -220,7 +220,7 @@ impl CallCounts {
         self.counts.values().sum()
     }
 
-    /// The family prefix of a tool name — `signal_research` → `signal`.
+    /// The family prefix of a tool name — `request_research` → `request`.
     /// Unrecognized names have no family.
     #[must_use]
     fn family_of(tool: &str) -> Option<&str> {
@@ -546,13 +546,13 @@ mod tests {
     #[test]
     fn concurrent_servers_both_count() {
         let cfg = scratch("concurrent");
-        let a = counter(&cfg, &["signal_capture"]);
-        let b = counter(&cfg, &["signal_capture"]);
-        a.record("signal_capture", "2026-07-28T00:00:00Z");
-        b.record("signal_capture", "2026-07-28T00:00:01Z");
-        a.record("signal_capture", "2026-07-28T00:00:02Z");
+        let a = counter(&cfg, &["request_capture"]);
+        let b = counter(&cfg, &["request_capture"]);
+        a.record("request_capture", "2026-07-28T00:00:00Z");
+        b.record("request_capture", "2026-07-28T00:00:01Z");
+        a.record("request_capture", "2026-07-28T00:00:02Z");
         assert_eq!(
-            b.snapshot().counts.get("signal_capture"),
+            b.snapshot().counts.get("request_capture"),
             Some(&3),
             "a stale writer must not erase the other server's increments"
         );
@@ -595,7 +595,7 @@ mod tests {
     #[test]
     fn day_one_zero_is_never_cold() {
         let counts = soaked("decision_record", 12, 1);
-        match counts.verdict("signal_research") {
+        match counts.verdict("request_research") {
             Verdict::SoakTooShort(soak) => {
                 assert!(!soak.met);
                 assert_eq!(
@@ -628,15 +628,15 @@ mod tests {
     }
 
     /// The hole the two numbers do not close: a met soak made entirely of
-    /// `/plan` says nothing about `signal_*`.
+    /// `/plan` says nothing about `request_*`.
     #[test]
     fn a_met_soak_still_refuses_a_verb_whose_family_never_ran() {
         let counts = soaked("plan_status", SOAK_MIN_CALLS, SOAK_MIN_ACTIVE_DAYS);
         assert!(counts.soak().met, "precondition: the window itself is met");
         assert_eq!(
-            counts.verdict("signal_research"),
+            counts.verdict("request_research"),
             Verdict::FamilyUnexercised {
-                family: "signal".to_string()
+                family: "request".to_string()
             },
             "an unexercised family is not evidence about its verbs"
         );
@@ -646,21 +646,21 @@ mod tests {
     /// family exercised by a sibling, this verb still zero.
     #[test]
     fn cold_requires_a_met_soak_and_an_exercised_family() {
-        let mut counts = soaked("signal_capture", SOAK_MIN_CALLS, SOAK_MIN_ACTIVE_DAYS);
-        assert_eq!(counts.verdict("signal_research"), Verdict::Cold);
+        let mut counts = soaked("request_capture", SOAK_MIN_CALLS, SOAK_MIN_ACTIVE_DAYS);
+        assert_eq!(counts.verdict("request_research"), Verdict::Cold);
         assert_eq!(
-            counts.verdict("signal_capture"),
+            counts.verdict("request_capture"),
             Verdict::Used(SOAK_MIN_CALLS),
             "a non-zero count needs no window at all"
         );
 
         // Deliberate breakage: drop the family's traffic and Cold must become unreachable.
-        counts.counts.insert("signal_capture".to_string(), 0);
+        counts.counts.insert("request_capture".to_string(), 0);
         counts
             .counts
             .insert("plan_status".to_string(), SOAK_MIN_CALLS);
         assert_ne!(
-            counts.verdict("signal_research"),
+            counts.verdict("request_research"),
             Verdict::Cold,
             "Cold must not survive the family going quiet"
         );

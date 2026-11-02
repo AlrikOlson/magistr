@@ -37,21 +37,25 @@ impl Persistence {
             let value: Value = serde_json::from_slice(bytes).map_err(schema)?;
             match value["schema_version"].as_u64() {
                 Some(1) => legacy.push((session, value)),
-                Some(version @ (2..=5)) if session == &self.project_id => {
+                Some(version @ (2..=6)) if session == &self.project_id => {
                     // Version 2 still spells run references `task:` and
                     // `action:`; versions 2 and 3 spell plan tasks `chunk:`;
                     // versions 2 to 4 spell notes `think:` and keep the
-                    // decision log's older keys.
+                    // decision log's older keys; versions 2 to 5 spell
+                    // requests `signal:`.
                     let mut value = value;
                     let words = match version {
                         2 => Some(StoredRefWords::BeforeRunWords),
                         3 => Some(StoredRefWords::BeforePlanWords),
                         4 => Some(StoredRefWords::BeforeDecisionWords),
+                        5 => Some(StoredRefWords::BeforeRequestWords),
                         _ => None,
                     };
                     if let Some(words) = words {
                         crate::infra::CrossRef::upgrade_stored_refs(&mut value, words);
-                        rename_project_words(&mut value);
+                        if version < 5 {
+                            rename_project_words(&mut value);
+                        }
                         value["schema_version"] = json!(SCHEMA_VERSION);
                     }
                     let saved: PersistedProject =

@@ -8,10 +8,10 @@ use magistr_workflow::decision::mcp::service::DecisionService;
 use magistr_workflow::mcp::unified::UnifiedService;
 use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::plan::mcp::PlanService;
+use magistr_workflow::request::engine::RequestEngine;
+use magistr_workflow::request::mcp::RequestService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::run::mcp::RunService;
-use magistr_workflow::signal::engine::SignalEngine;
-use magistr_workflow::signal::mcp::SignalService;
 use serde_json::Value;
 
 const STANDARD_FORMATS: &[&str] = &[
@@ -41,8 +41,8 @@ fn build_unified() -> UnifiedService {
     let decision = DecisionService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new("test-schema".into()));
     let plan = PlanService::new(PlanEngine::new("test-schema".into()), run.use_cases());
-    let signal = SignalService::new(SignalEngine::new("test-schema".into()));
-    UnifiedService::new(decision, run, plan, signal)
+    let request = RequestService::new(RequestEngine::new("test-schema".into()));
+    UnifiedService::new(decision, run, plan, request)
 }
 
 /// Collect every `format` string in a schema, with a JSON-pointer-ish path.

@@ -20,6 +20,11 @@ const SIGNALS: &[u8] = include_bytes!("fixtures/before-plan-words-signal.json");
 /// words, trimmed: steps with `think:` and tagged dependencies, an open and a
 /// merged branch.
 const DECISION_WORDS: &[u8] = include_bytes!("fixtures/before-decision-words-decision.json");
+/// A real request document saved after the decision words, before the
+/// request words (version 3), trimmed: kinds `idea` and `bug`, statuses
+/// `surfaced`, `researched`, `dismissed` and `new`, and a `surfaced_at`
+/// stamp. Its free text is replaced because it came from another project.
+const REQUEST_WORDS: &[u8] = include_bytes!("fixtures/before-request-words-signal.json");
 const PROJECT: &str = "magistr-5a5bc6";
 const EXECUTION: &str = "execution-key";
 
@@ -86,7 +91,7 @@ fn the_run_store_moves_once_and_keeps_its_original() {
     let run = read(data.join(format!(
         "run/executions/{EXECUTION}/sessions/{PROJECT}.json"
     )));
-    assert_eq!(run["schema_version"], 5);
+    assert_eq!(run["schema_version"], 6);
     assert_eq!(run["goal"]["status"], "finished");
     assert!(run.get("objective").is_none() && run.get("tasks").is_none());
     assert_eq!(run["steps"][0]["status"], "done");
@@ -149,7 +154,7 @@ fn plan_and_decision_references_saved_before_the_run_words_take_both_vocabularie
 
     assert!(!data.join("roadmap").exists());
     let plan = read(data.join(format!("plan/sessions/{PROJECT}.json")));
-    assert_eq!(plan["schema_version"], 3);
+    assert_eq!(plan["schema_version"], 4);
     let refs: Vec<&str> = plan["tasks"]
         .as_array()
         .unwrap()
@@ -168,7 +173,7 @@ fn plan_and_decision_references_saved_before_the_run_words_take_both_vocabularie
 
     assert!(!data.join("think").exists());
     let decisions = read(data.join(format!("decisions/sessions/{PROJECT}.json")));
-    assert_eq!(decisions["schema_version"], 5);
+    assert_eq!(decisions["schema_version"], 6);
     let run_refs: Vec<&str> = decisions["logs"][PROJECT]["notes"]
         .as_array()
         .unwrap()
@@ -209,7 +214,7 @@ fn the_plan_store_moves_once_and_takes_the_plan_words() {
 
     let plan = read(data.join(format!("plan/sessions/{PROJECT}.json")));
     let original = json(PLAN_WORDS);
-    assert_eq!(plan["schema_version"], 3);
+    assert_eq!(plan["schema_version"], 4);
     assert!(plan.get("chunks").is_none());
     let tasks = plan["tasks"].as_array().unwrap();
     assert_eq!(tasks.len(), original["chunks"].as_array().unwrap().len());
@@ -253,10 +258,10 @@ fn the_plan_store_moves_once_and_takes_the_plan_words() {
         original["focuses"][0]["group"]
     );
 
-    let signals = read(data.join(format!("signal/sessions/{PROJECT}.json")));
-    assert_eq!(signals["schema_version"], 3);
+    let requests = read(data.join(format!("requests/sessions/{PROJECT}.json")));
+    assert_eq!(requests["schema_version"], 4);
     assert_eq!(
-        signals["signals"][0]["refs"],
+        requests["requests"][0]["refs"],
         serde_json::json!([
             "task:net-prediction",
             "decision:56",
@@ -264,11 +269,10 @@ fn the_plan_store_moves_once_and_takes_the_plan_words() {
             "decision:58"
         ])
     );
+    assert!(!data.join("signal").exists());
+    let moved = backup_of(&data, "signal-before-request-words-");
     assert_eq!(
-        fs::read(data.join(format!(
-            "backups/before-decision-words/signal/sessions/{PROJECT}.json"
-        )))
-        .unwrap(),
+        fs::read(moved.join(format!("sessions/{PROJECT}.json"))).unwrap(),
         SIGNALS
     );
 
@@ -319,7 +323,7 @@ fn the_decision_store_moves_once_and_takes_the_decision_words() {
     assert!(!data.join("think").exists());
     let path = data.join(format!("decisions/sessions/{PROJECT}.json"));
     let decisions = read(path.clone());
-    assert_eq!(decisions["schema_version"], 5);
+    assert_eq!(decisions["schema_version"], 6);
     assert!(decisions.get("histories").is_none());
     let log = &decisions["logs"][PROJECT];
     assert!(log.get("steps").is_none() && log.get("branches").is_none());
@@ -400,6 +404,118 @@ fn an_owner_from_before_the_decision_words_holds_the_decision_move_back() {
     drop(owner);
 }
 
+/// A store as the decision words left it: every other family has moved, and
+/// the request store still sits in `signal/`.
+fn store_before_request_words() -> (tempfile::TempDir, NativeConfig) {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("project");
+    fs::create_dir_all(root.join(".magistr")).unwrap();
+    fs::write(
+        root.join(".magistr/project.json"),
+        format!(r#"{{"project":{{"id":"{PROJECT}"}}}}"#),
+    )
+    .unwrap();
+    let config =
+        NativeConfig::from_lookup(&root, |_| None).with_data_dir(dir.path().join("data/workflow"));
+    let path = config
+        .data_dir()
+        .join(format!("signal/sessions/{PROJECT}.json"));
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(path, REQUEST_WORDS).unwrap();
+    (dir, config)
+}
+
+#[test]
+fn the_request_store_moves_once_and_takes_the_request_words() {
+    let (_dir, config) = store_before_request_words();
+    let data = config.data_dir().to_path_buf();
+    let refused = StoreWordsUpgrade::ready(&config, PROJECT).unwrap_err();
+    assert!(
+        refused.to_string().contains("one-time upgrade"),
+        "{refused}"
+    );
+    StoreWordsUpgrade::apply(&config, PROJECT).unwrap();
+    StoreWordsUpgrade::ready(&config, PROJECT).unwrap();
+
+    assert!(!data.join("signal").exists());
+    let path = data.join(format!("requests/sessions/{PROJECT}.json"));
+    let requests = read(path.clone());
+    assert_eq!(requests["schema_version"], 4);
+    assert!(requests.get("signals").is_none());
+    let original = json(REQUEST_WORDS);
+    let (old, new) = (
+        original["signals"].as_array().unwrap(),
+        requests["requests"].as_array().unwrap(),
+    );
+    assert_eq!(old.len(), new.len());
+    let kinds: Vec<&str> = new.iter().map(|r| r["kind"].as_str().unwrap()).collect();
+    let statuses: Vec<&str> = new.iter().map(|r| r["status"].as_str().unwrap()).collect();
+    assert!(
+        kinds.contains(&"suggestion") && !kinds.contains(&"idea"),
+        "{kinds:?}"
+    );
+    assert!(
+        statuses.contains(&"raised") && !statuses.contains(&"surfaced"),
+        "{statuses:?}"
+    );
+    let text = String::from_utf8(fs::read(&path).unwrap()).unwrap();
+    assert!(
+        !text.contains("\"surfaced_at\""),
+        "the stamp takes its new name"
+    );
+    assert!(text.contains("\"raised_at\""));
+
+    let moved = backup_of(&data, "signal-before-request-words-");
+    assert_eq!(
+        fs::read(moved.join(format!("sessions/{PROJECT}.json"))).unwrap(),
+        REQUEST_WORDS,
+        "the original is recoverable byte for byte"
+    );
+    let after = fs::read(&path).unwrap();
+    StoreWordsUpgrade::apply(&config, PROJECT).unwrap();
+    assert_eq!(
+        fs::read(&path).unwrap(),
+        after,
+        "a second pass changes nothing"
+    );
+
+    let reader = NativeReader::open(&config);
+    assert_eq!(reader.request_list().unwrap().len(), new.len());
+}
+
+#[test]
+fn an_owner_from_before_the_request_words_holds_the_request_move_back() {
+    // Owners between the decision words and the request words lock under the
+    // decision words' lease directory; current owners lock elsewhere.
+    let (_dir, config) = store_before_request_words();
+    let data = config.data_dir().to_path_buf();
+    let lock = data.join("owners/decision-words/other-project.project-owner.lock");
+    fs::create_dir_all(lock.parent().unwrap()).unwrap();
+    let held = fs::File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&lock)
+        .unwrap();
+    held.lock().unwrap();
+    let refused = StoreWordsUpgrade::apply(&config, PROJECT).unwrap_err();
+    assert_eq!(refused.kind(), std::io::ErrorKind::WouldBlock);
+    assert!(refused.to_string().contains("other-project"), "{refused}");
+    assert!(data.join("signal").exists() && !data.join("requests").exists());
+
+    drop(held);
+    let owner = ProjectAuthority::admit(&config, WriterRole::Host).unwrap();
+    assert!(!data.join("signal").exists());
+    assert!(
+        data.join(crate::native::owner_lease::OWNER_LEASES)
+            .join(format!("{PROJECT}.project-owner.lock"))
+            .exists(),
+        "a current owner holds its lease outside every older place"
+    );
+    drop(owner);
+}
+
 fn backup_of(data: &Path, prefix: &str) -> PathBuf {
     let backups: Vec<_> = fs::read_dir(data.join("backups"))
         .unwrap()
@@ -443,7 +559,7 @@ fn an_interrupted_move_keeps_exact_staged_records_and_rebuilds_the_rest() {
     assert!(!data.join("run/sessions/.staging-abc123").exists());
     assert_eq!(
         read(data.join(format!("run/sessions/{PROJECT}.json")))["schema_version"],
-        5
+        6
     );
 }
 

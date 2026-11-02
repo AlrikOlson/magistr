@@ -120,7 +120,7 @@ fn selection_refuses_an_unreadable_store_and_recovers_without_cached_success() {
 
 #[test]
 fn family_failures_retain_exact_records_across_clones_and_recover_independently() {
-    use crate::native::{SignalKind, StepType};
+    use crate::native::{RequestKind, StepType};
     use magistr_workflow::infra::{Domain, Persistence};
 
     let (_temp, config, writer) = fixture();
@@ -137,7 +137,11 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
         )
         .unwrap();
     writer
-        .signal_capture(SignalKind::Idea, "reader".into(), "Keep this signal".into())
+        .request_capture(
+            RequestKind::Suggestion,
+            "reader".into(),
+            "Keep this request".into(),
+        )
         .unwrap();
     let step = serde_json::from_value(serde_json::json!({
         "note": 1,
@@ -170,8 +174,8 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
                 .join("workstream-read.json"),
         ),
         (
-            "signals",
-            Persistence::new(&persistence, Domain::Signal).path_for("workstream-read"),
+            "requests",
+            Persistence::new(&persistence, Domain::Request).path_for("workstream-read"),
         ),
         (
             "decisions",
@@ -194,7 +198,7 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
                 failed[family]["data"]["last"], good[family]["data"],
                 "{family}"
             );
-            for other in ["plan", "run", "signals", "decision"] {
+            for other in ["plan", "run", "requests", "decision"] {
                 if other != family {
                     assert_eq!(
                         failed[other], good[other],
@@ -219,16 +223,16 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
 
 #[test]
 fn observed_deletion_is_current_empty_and_does_not_clear_other_families() {
-    use crate::native::{ReadSource, SignalKind};
+    use crate::native::{ReadSource, RequestKind};
     use magistr_workflow::infra::{Domain, Persistence};
 
     let (_temp, config, writer) = fixture();
     add(&writer, "work", 1, None);
     writer
-        .signal_capture(
-            SignalKind::Idea,
+        .request_capture(
+            RequestKind::Suggestion,
             "reader".into(),
-            "Retain the signal".into(),
+            "Retain the request".into(),
         )
         .unwrap();
     let observer = NativeReader::open_for_project(&config, "workstream-read".into());
@@ -239,7 +243,7 @@ fn observed_deletion_is_current_empty_and_does_not_clear_other_families() {
     let empty = observer.snapshot();
     assert_eq!(empty.plan.current().unwrap().source, ReadSource::Missing);
     assert!(empty.plan.current().unwrap().value.tasks.is_empty());
-    assert_eq!(empty.signals, before.signals);
+    assert_eq!(empty.requests, before.requests);
     assert_eq!(observer.plan_next().unwrap(), None);
 }
 

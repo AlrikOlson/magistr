@@ -6,18 +6,18 @@
 //! anything, and that separation is deliberate: a detector that also writes is
 //! a detector nobody can reason about, and the same line was held for the
 //! reconcile sweep in `tracker::sweep`. So the projector reports, the CALLER
-//! decides whether those reports become signals, and this module is what the
+//! decides whether those reports become requests, and this module is what the
 //! caller uses when it decides yes.
 //!
-//! The practical consequence: `project_all` still takes no [`SignalEngine`],
+//! The practical consequence: `project_all` still takes no [`RequestEngine`],
 //! and a caller that only wants to know what diverged — a dry run, a test, a
 //! read-only audit — gets that without anything being written anywhere.
 //!
-//! # Why a signal rather than a log line
+//! # Why a request rather than a log line
 //!
 //! Before this, a divergence reached `tracing::warn`. That means it reached a
 //! human only if one happened to be watching stderr during a push, which is
-//! nobody, most of the time. The signal family already solves this problem:
+//! nobody, most of the time. The request family already solves this problem:
 //! capture, research, surface under earned-interruption discipline, promote to
 //! a plan task. Reusing it means a conflict arrives through machinery this
 //! project already built and already trusts, instead of a bespoke channel that
@@ -31,8 +31,8 @@
 //! the concern findable only by someone who already knew where to look.
 
 use crate::plan::engine::PlanEngine;
-use crate::signal::SignalEngine;
-use crate::signal::domain::SignalKind;
+use crate::request::RequestEngine;
+use crate::request::domain::RequestKind;
 use crate::tracker::TrackerError;
 use crate::tracker::project::ProjectionReport;
 
@@ -41,19 +41,19 @@ use crate::tracker::project::ProjectionReport;
 /// observation.
 const AUTHOR: &str = "tracker-projection";
 
-/// Turn a projection's divergences into concern signals.
+/// Turn a projection's divergences into concern requests.
 ///
-/// Returns the ids of the signals actually captured, which is fewer than the
+/// Returns the ids of the requests actually captured, which is fewer than the
 /// divergences whenever one was already raised.
 ///
 /// IDEMPOTENT by body and refs: re-projecting an unchanged conflict does not
-/// mint a second signal. That matters more than it looks — a projection runs on
+/// mint a second request. That matters more than it looks — a projection runs on
 /// every push, so a duplicating version would turn one disagreement into a
 /// stream of identical concerns and the inbox would be abandoned within a day.
 /// A conflict whose VALUES changed produces a different body and therefore a
-/// new signal, which is correct: it is a different disagreement.
+/// new request, which is correct: it is a different disagreement.
 pub fn emit_divergence_concerns(
-    signal: &mut SignalEngine,
+    request: &mut RequestEngine,
     plan: &PlanEngine,
     provider: &str,
     report: &ProjectionReport,
@@ -77,13 +77,13 @@ pub fn emit_divergence_concerns(
         let external_ref = format!("ext:{provider}/{}", link.external_id);
         let body = divergence.summary();
 
-        if already_raised(signal, &body, &task_ref, &external_ref) {
+        if already_raised(request, &body, &task_ref, &external_ref) {
             continue;
         }
 
-        let result = signal
+        let result = request
             .capture_linked(
-                SignalKind::Concern,
+                RequestKind::Concern,
                 AUTHOR.to_string(),
                 body,
                 vec![task_ref, external_ref],
@@ -94,8 +94,8 @@ pub fn emit_divergence_concerns(
                     captured.len()
                 );
                 let store = match error {
-                    crate::signal::engine::SignalMutationError::Store(error) => Some(error),
-                    crate::signal::engine::SignalMutationError::Rejected(_) => None,
+                    crate::request::engine::RequestMutationError::Store(error) => Some(error),
+                    crate::request::engine::RequestMutationError::Rejected(_) => None,
                 };
                 TrackerError::Local { message, store }
             })?;
@@ -109,8 +109,8 @@ pub fn emit_divergence_concerns(
 ///
 /// Matches on the body AND both refs rather than the body alone: the same
 /// sentence about two different tasks is two different problems.
-fn already_raised(signal: &SignalEngine, body: &str, task_ref: &str, external_ref: &str) -> bool {
-    signal.signals().signals.iter().any(|s| {
+fn already_raised(request: &RequestEngine, body: &str, task_ref: &str, external_ref: &str) -> bool {
+    request.requests().requests.iter().any(|s| {
         s.body == body
             && s.refs.iter().any(|r| r == task_ref)
             && s.refs.iter().any(|r| r == external_ref)

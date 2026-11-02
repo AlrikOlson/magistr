@@ -14,7 +14,7 @@ use magistr_engine::{
     NativeConfig, NativeEngines, NativeReader, OwnerEndpoint, ProjectAuthority, StepType,
     TaskStatus, WriterRole,
 };
-use magistr_workflow::signal::domain::SignalKind;
+use magistr_workflow::request::domain::RequestKind;
 use magistr_workspace::service::WorkspaceOpenOptions;
 
 const PROJECT: &str = "consistency";
@@ -267,33 +267,37 @@ fn shared_run_capabilities_and_observers_retain_a_recorded_gate() {
 }
 
 #[test]
-fn shared_signal_capabilities_promote_once_and_observers_refresh() {
+fn shared_request_capabilities_promote_once_and_observers_refresh() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let host = writer(&cfg, WriterRole::Host);
     let service = host.clone();
     let observer = reader(&cfg);
-    assert!(host.signal_list().unwrap().is_empty() && observer.signal_list().unwrap().is_empty());
+    assert!(host.request_list().unwrap().is_empty() && observer.request_list().unwrap().is_empty());
 
     let captured = service
-        .signal_capture(SignalKind::Idea, "alice".into(), "read through".into())
+        .request_capture(
+            RequestKind::Suggestion,
+            "alice".into(),
+            "read through".into(),
+        )
         .expect("capture");
     assert_eq!(
-        host.signal(&captured.value.id)
+        host.request(&captured.value.id)
             .unwrap()
             .map(|s| s.body)
             .as_deref(),
         Some("read through"),
         "the host's query observes the service's capture"
     );
-    assert_eq!(observer.signal_status().unwrap()["counts"]["total"], 1);
+    assert_eq!(observer.request_status().unwrap()["counts"]["total"], 1);
 
     // A decision through the host capability is visible to the service view.
-    host.signal_research(&captured.value.id, "worth it".into(), 0.9, vec![], None)
+    host.request_research(&captured.value.id, "worth it".into(), 0.9, vec![], None)
         .expect("research");
-    let promoted = host.signal_promote(&captured.value.id).expect("promote");
+    let promoted = host.request_promote(&captured.value.id).expect("promote");
     let task_id = promoted
-        .signal
+        .request
         .value
         .refs
         .iter()
@@ -304,12 +308,12 @@ fn shared_signal_capabilities_promote_once_and_observers_refresh() {
         service.plan_task(&task_id).unwrap().is_some(),
         "the promoted task is current on the shared capability"
     );
-    // The service's own promote of the same signal is the same promotion:
+    // The service's own promote of the same request is the same promotion:
     // it observes the promoted record and creates nothing.
     let again = service
-        .signal_promote(&captured.value.id)
+        .request_promote(&captured.value.id)
         .expect("idempotent");
-    assert_eq!(again.signal.value.refs, promoted.signal.value.refs);
+    assert_eq!(again.request.value.refs, promoted.request.value.refs);
     assert_eq!(observer.plan_tasks().unwrap().len(), 1);
 }
 

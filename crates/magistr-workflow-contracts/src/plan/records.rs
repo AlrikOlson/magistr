@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Exactly three, and closed on purpose. A mode decides which BOUNDARY applies
 /// — `Shape` may not touch implementation source, `Build` may not complete over
-/// a red gate, `Listen` may not process a second signal — so an open vocabulary
+/// a red gate, `Listen` may not process a second request — so an open vocabulary
 /// would be a vocabulary of unenforceable boundaries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -21,7 +21,7 @@ pub enum FocusMode {
     Shape,
     /// Complete one ready plan task.
     Build,
-    /// Process one stakeholder signal.
+    /// Process one stakeholder request.
     Listen,
 }
 
@@ -785,7 +785,7 @@ pub struct Plan {
 
 /// The saved plan format: version 2 spells the plan words (tasks, features,
 /// waiting, retired, `task:` references).
-pub const PLAN_SCHEMA_VERSION: u32 = 3;
+pub const PLAN_SCHEMA_VERSION: u32 = 4;
 
 impl Default for Plan {
     fn default() -> Self {

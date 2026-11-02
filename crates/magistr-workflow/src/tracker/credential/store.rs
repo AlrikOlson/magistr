@@ -711,7 +711,7 @@ impl KeychainCredentialStore {
     /// The store for this platform, or `None` where there is no CLI to drive.
     ///
     /// `None` is not an error and callers must not treat it as one — it is the
-    /// documented Windows answer, and the signal to use the file store.
+    /// documented Windows answer, and the request to use the file store.
     #[must_use]
     pub fn for_this_platform(service: &str) -> Option<Self> {
         Some(Self::with_runner(

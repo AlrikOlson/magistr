@@ -44,19 +44,19 @@ pub enum EngineCmd {
         /// The blocked task.
         task: String,
     },
-    /// \[Promote\] on a signal: it becomes a plan concern.
-    PromoteSignal {
-        /// The signal to promote.
+    /// \[Promote\] on a request: it becomes a plan concern.
+    PromoteRequest {
+        /// The request to promote.
         id: String,
     },
-    /// \[Ignore\] on a signal: dismissed for good.
-    IgnoreSignal {
-        /// The signal to dismiss.
+    /// \[Ignore\] on a request: dismissed for good.
+    DismissRequest {
+        /// The request to dismiss.
         id: String,
     },
-    /// \[Snooze\] on a signal: quiet for a while.
-    SnoozeSignal {
-        /// The signal to snooze.
+    /// \[Snooze\] on a request: quiet for a while.
+    SnoozeRequest {
+        /// The request to snooze.
         id: String,
         /// How long it stays quiet.
         minutes: u32,

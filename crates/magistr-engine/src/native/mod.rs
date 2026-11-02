@@ -1,7 +1,7 @@
 //! Magistr's native workflow store and owner protocol.
 //!
 //! Magistr links its `magistr_workflow` library and runs its four engines —
-//! plan, decision (decision log), run (run history) and signal — in
+//! plan, decision (decision log), run (run history) and request — in
 //! this process. State lives under the resolved Magistr workflow data root,
 //! keyed by `project.id` in `.magistr/project.json`.
 //! Agent tools and native views use Magistr's admitted owners; no standalone
@@ -45,7 +45,7 @@ pub mod gate_output;
 mod local_stream;
 pub mod magistr_frame;
 pub mod mcp_acceptor;
-pub use magistr_workflow_contracts::{WorkflowMutationError, signal::SignalPromotion};
+pub use magistr_workflow_contracts::{WorkflowMutationError, request::RequestPromotion};
 pub mod native_config;
 pub mod native_engines;
 pub mod native_event;
@@ -82,8 +82,8 @@ pub mod decision_command;
 pub mod decision_thread;
 pub mod plan_backend;
 pub mod plan_command;
+pub mod request_command;
 pub mod run_command;
-pub mod signal_command;
 pub mod snapshot;
 #[cfg(windows)]
 mod user_sid;
@@ -134,8 +134,8 @@ pub use plan_command::PlanCommand;
 pub use progress::progress_from_tasks;
 pub use project_authority::ProjectAuthority;
 pub use project_location::ProjectLocation;
+pub use request_command::RequestCommand;
 pub use run_command::RunCommand;
-pub use signal_command::SignalCommand;
 pub use snapshot::NativePlanSnapshot;
 pub use workspace_socket_path::workspace_socket_path;
 pub use writer_role::WriterRole;
@@ -161,6 +161,8 @@ pub use magistr_workflow::plan::domain::{
     WorkstreamFrontier, WorkstreamHistory, WorkstreamResolution, assess_readiness, next_ready,
     workstream_catalog, workstream_frontier,
 };
+pub use magistr_workflow::request::broadcast::RequestFrame;
+pub use magistr_workflow::request::domain::{Enrichment, Request, RequestKind, RequestStatus};
 pub use magistr_workflow::run::application::{
     CheckAdmission, CheckBudget, CheckExecution, CheckOptions, CheckOutcome, CheckRequest,
     CheckSettlement, CompletionEvidence, CompletionRefusal, EvidencePort, ExecutionBinding,
@@ -177,5 +179,3 @@ pub use magistr_workflow::run::domain::goal::{Goal, GoalStatus, VerificationMode
 pub use magistr_workflow::run::domain::progress::{Progress, ProgressType};
 pub use magistr_workflow::run::domain::step::{Step, StepStatus, StepType};
 pub use magistr_workflow::run::report::{ReportRecord, TestResults};
-pub use magistr_workflow::signal::broadcast::SignalFrame;
-pub use magistr_workflow::signal::domain::{Enrichment, Signal, SignalKind, SignalStatus};

@@ -19,7 +19,7 @@ mod controller_harness;
 use controller_harness::{Actions, ControlHarness, notes, run_observed, stage_text};
 use magistr_engine::native::WaitingReason;
 use magistr_engine::{
-    NativeConfig, NativeEngines, ProjectAuthority, SignalKind, TaskStatus, WriterRole,
+    NativeConfig, NativeEngines, ProjectAuthority, RequestKind, TaskStatus, WriterRole,
 };
 
 use super::*;
@@ -1384,7 +1384,7 @@ async fn a_native_iteration_requests_a_coordinated_workflow_read() {
     let dir = project("true", "true", "true");
     let config = NativeConfig::from_lookup(dir.path().to_path_buf(), |_| None)
         .with_data_dir(dir.path().join("workflow-data"));
-    let engines = host(&config, "loop-signal");
+    let engines = host(&config, "loop-request");
     engines
         .plan_add_task(
             "work".to_owned(),
@@ -1400,12 +1400,16 @@ async fn a_native_iteration_requests_a_coordinated_workflow_read() {
         )
         .expect("add task");
 
-    // The agent's `magistr mcp` captures a signal after the loop's
+    // The agent's `magistr mcp` captures a request after the loop's
     // engines were opened, with no broadcast feed attached — so only the
     // iteration's own re-seed can put it in front of the cockpit.
     let server = agent_side(&engines);
     server
-        .signal_capture(SignalKind::Idea, "alice".to_owned(), "faster".to_owned())
+        .request_capture(
+            RequestKind::Suggestion,
+            "alice".to_owned(),
+            "faster".to_owned(),
+        )
         .expect("capture");
 
     let script = Actions::new().command(MS(2_500), Cmd::Quit);

@@ -44,12 +44,12 @@ const STATUS_VOCAB: &[&str] = &[
     "skipped",
     "shipped",
     "abandoned",
-    // signals
+    // requests
     "new",
     "researched",
-    "surfaced",
+    "raised",
     "promoted",
-    "ignored",
+    "dismissed",
     "snoozed",
 ];
 

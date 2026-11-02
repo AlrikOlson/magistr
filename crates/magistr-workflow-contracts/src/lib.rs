@@ -13,8 +13,8 @@ mod mutation_error;
 pub use mutation_error::WorkflowMutationError;
 pub mod decision;
 pub mod plan;
+pub mod request;
 pub mod run;
-pub mod signal;
 pub use family::Family;
 mod broadcast_frame;
 mod decision_thread;
@@ -53,12 +53,12 @@ pub use plan::{
     PLAN_SCHEMA_VERSION, PlanFrame, ReprioritizeProposal, StatusProposal, Task, TaskStatus,
     TitleProposal, WaitingOn, WaitingReason,
 };
+pub use request::{
+    Enrichment, REQUESTS_SCHEMA_VERSION, Request, RequestFrame, RequestKind, RequestStatus,
+};
 pub use run::{
     Artifact, ArtifactType, Check, CheckType, Goal, GoalStatus, Progress, ProgressType, RunFrame,
     Step, StepStatus, StepType, VerificationMode,
-};
-pub use signal::{
-    Enrichment, SIGNALS_SCHEMA_VERSION, Signal, SignalFrame, SignalKind, SignalStatus,
 };
 
 pub use family::{EPOCH_KEY, SEQ_KEY};

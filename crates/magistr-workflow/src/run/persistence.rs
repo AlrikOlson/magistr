@@ -15,7 +15,7 @@ use crate::run::domain::step::Step;
 #[path = "persistence_upgrade.rs"]
 mod upgrade;
 
-const SCHEMA_VERSION: u32 = 5;
+const SCHEMA_VERSION: u32 = 6;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct PersistedState {

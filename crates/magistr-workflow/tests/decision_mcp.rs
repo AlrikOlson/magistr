@@ -206,7 +206,7 @@ fn tools_list_carries_hints() {
     assert_eq!(
         ann.destructive_hint,
         Some(true),
-        "wipe must signal destructive=true for client confirmation gating"
+        "wipe must request destructive=true for client confirmation gating"
     );
 }
 

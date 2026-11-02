@@ -37,16 +37,20 @@ fn report_with(owner: Owner) -> ProjectionReport {
 
 #[test]
 fn a_contested_divergence_becomes_a_concern_linked_both_ways() {
-    let mut signal = SignalEngine::new("proj".into());
+    let mut request = RequestEngine::new("proj".into());
     let plan = plan_with_link();
 
-    let ids =
-        emit_divergence_concerns(&mut signal, &plan, "linear", &report_with(Owner::Contested))
-            .unwrap();
+    let ids = emit_divergence_concerns(
+        &mut request,
+        &plan,
+        "linear",
+        &report_with(Owner::Contested),
+    )
+    .unwrap();
 
     assert_eq!(ids.len(), 1);
-    let s = signal.get(&ids[0]).expect("signal");
-    assert_eq!(s.kind, SignalKind::Concern);
+    let s = request.get(&ids[0]).expect("request");
+    assert_eq!(s.kind, RequestKind::Concern);
     assert!(
         s.refs.contains(&"task:c1".to_string()),
         "findable from the task: {:?}",
@@ -59,7 +63,7 @@ fn a_contested_divergence_becomes_a_concern_linked_both_ways() {
     );
     assert!(
         s.body.contains("neither side owns it"),
-        "the signal body is the divergence's own sentence, not a second wording"
+        "the request body is the divergence's own sentence, not a second wording"
     );
 }
 
@@ -68,59 +72,69 @@ fn a_contested_divergence_becomes_a_concern_linked_both_ways() {
 /// abandoned within a day.
 #[test]
 fn re_raising_an_unchanged_conflict_mints_nothing() {
-    let mut signal = SignalEngine::new("proj".into());
+    let mut request = RequestEngine::new("proj".into());
     let plan = plan_with_link();
     let report = report_with(Owner::Contested);
 
-    let first = emit_divergence_concerns(&mut signal, &plan, "linear", &report).unwrap();
-    let second = emit_divergence_concerns(&mut signal, &plan, "linear", &report).unwrap();
+    let first = emit_divergence_concerns(&mut request, &plan, "linear", &report).unwrap();
+    let second = emit_divergence_concerns(&mut request, &plan, "linear", &report).unwrap();
 
     assert_eq!(first.len(), 1);
     assert!(second.is_empty(), "the same conflict was raised twice");
-    assert_eq!(signal.signals().signals.len(), 1);
+    assert_eq!(request.requests().requests.len(), 1);
 }
 
 /// A conflict whose VALUES moved is a different disagreement and deserves
 /// its own concern — dedup must not swallow a genuine change.
 #[test]
 fn a_changed_conflict_raises_again() {
-    let mut signal = SignalEngine::new("proj".into());
+    let mut request = RequestEngine::new("proj".into());
     let plan = plan_with_link();
 
-    emit_divergence_concerns(&mut signal, &plan, "linear", &report_with(Owner::Contested)).unwrap();
+    emit_divergence_concerns(
+        &mut request,
+        &plan,
+        "linear",
+        &report_with(Owner::Contested),
+    )
+    .unwrap();
 
     let mut moved = report_with(Owner::Contested);
     moved.divergences[0].1.theirs = "a different retitle".into();
-    let again = emit_divergence_concerns(&mut signal, &plan, "linear", &moved).unwrap();
+    let again = emit_divergence_concerns(&mut request, &plan, "linear", &moved).unwrap();
 
     assert_eq!(again.len(), 1, "a new disagreement must reach someone");
-    assert_eq!(signal.signals().signals.len(), 2);
+    assert_eq!(request.requests().requests.len(), 2);
 }
 
 /// A field the tracker owns diverging is normal. Raising it is the noise
 /// that gets the whole channel ignored.
 #[test]
 fn a_field_they_own_raises_nothing() {
-    let mut signal = SignalEngine::new("proj".into());
+    let mut request = RequestEngine::new("proj".into());
     let plan = plan_with_link();
 
-    let ids = emit_divergence_concerns(&mut signal, &plan, "linear", &report_with(Owner::Theirs))
+    let ids = emit_divergence_concerns(&mut request, &plan, "linear", &report_with(Owner::Theirs))
         .unwrap();
 
     assert!(ids.is_empty());
-    assert!(signal.signals().signals.is_empty());
+    assert!(request.requests().requests.is_empty());
 }
 
 /// Without a link there is no ticket to name, and a concern that cannot say
 /// which ticket it is about is not worth raising.
 #[test]
 fn a_task_with_no_link_raises_nothing() {
-    let mut signal = SignalEngine::new("proj".into());
+    let mut request = RequestEngine::new("proj".into());
     let plan = PlanEngine::new("proj".into());
 
-    let ids =
-        emit_divergence_concerns(&mut signal, &plan, "linear", &report_with(Owner::Contested))
-            .unwrap();
+    let ids = emit_divergence_concerns(
+        &mut request,
+        &plan,
+        "linear",
+        &report_with(Owner::Contested),
+    )
+    .unwrap();
     assert!(ids.is_empty());
 }
 

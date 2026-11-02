@@ -10,10 +10,10 @@ fn plan_of(tasks: Vec<Task>) -> Plan {
         ..Plan::default()
     }
 }
+use crate::request::domain::{RequestKind, RequestStatus};
 use crate::run::domain::goal::{GoalStatus, VerificationMode};
 use crate::run::domain::progress::{Progress, ProgressType};
 use crate::run::domain::step::{StepStatus, StepType};
-use crate::signal::domain::{SignalKind, SignalStatus};
 use serde_json::json;
 
 fn step(n: u32) -> Note {
@@ -96,18 +96,18 @@ fn task(id: &str) -> Task {
     }
 }
 
-fn signal(id: &str) -> Signal {
-    Signal {
+fn request(id: &str) -> Request {
+    Request {
         id: id.into(),
-        kind: SignalKind::Bug,
+        kind: RequestKind::Bug,
         from: "tester".into(),
         body: "body".into(),
         content: None,
         created: "2026-06-09T00:00:00Z".into(),
-        status: SignalStatus::New,
+        status: RequestStatus::New,
         enrichment: vec![],
         refs: vec![],
-        surfaced_at: None,
+        raised_at: None,
         snooze_until: None,
         project_id: None,
     }
@@ -118,20 +118,20 @@ fn collects_one_envelope_per_record_in_family_order() {
     let steps = [step(1), step(2)];
     let (goal, run_steps) = run_cycle(vec![progress(1, "t1")]);
     let tasks = [task("c1"), task("c2"), task("c3")];
-    let signals = [signal("s1")];
+    let requests = [request("s1")];
 
     let envelopes = collect_envelopes(
         "tenant-x",
         steps.iter(),
         Some((&goal, run_steps.as_slice())),
         &plan_of(tasks.to_vec()),
-        &signals,
+        &requests,
     )
     .unwrap();
 
     // One envelope per record: 2 decision + (1 goal + 1 step + 1 progress) + 3 + 1.
     assert_eq!(envelopes.len(), 9);
-    // Stable family order: decision, run, plan, signal.
+    // Stable family order: decision, run, plan, request.
     let families: Vec<Family> = envelopes.iter().map(|e| e.family).collect();
     assert_eq!(
         families,
@@ -144,7 +144,7 @@ fn collects_one_envelope_per_record_in_family_order() {
             Family::Plan,
             Family::Plan,
             Family::Plan,
-            Family::Signal,
+            Family::Request,
         ]
     );
     // Kinds + cycle-scoped run identities carried through.
@@ -156,7 +156,7 @@ fn collects_one_envelope_per_record_in_family_order() {
     assert_eq!(envelopes[4].kind, Kind::Progress);
     assert_eq!(envelopes[4].id, "obj-2026-06-09T00:00:00-00:00.progress-1");
     assert_eq!(envelopes[5].kind, Kind::Task);
-    assert_eq!(envelopes[8].kind, Kind::Signal);
+    assert_eq!(envelopes[8].kind, Kind::Request);
     assert!(envelopes.iter().all(|e| e.tenant_id == "tenant-x"));
 }
 
@@ -164,10 +164,10 @@ fn collects_one_envelope_per_record_in_family_order() {
 fn counts_match_the_collected_envelopes() {
     let steps = [step(1)];
     let tasks = [task("c1"), task("c2")];
-    let signals = [signal("s1"), signal("s2"), signal("s3")];
+    let requests = [request("s1"), request("s2"), request("s3")];
 
     let envelopes =
-        collect_envelopes("t", steps.iter(), None, &plan_of(tasks.to_vec()), &signals).unwrap();
+        collect_envelopes("t", steps.iter(), None, &plan_of(tasks.to_vec()), &requests).unwrap();
     let counts = BackfillCounts::from_envelopes(&envelopes);
 
     assert_eq!(
@@ -176,7 +176,7 @@ fn counts_match_the_collected_envelopes() {
             decision: 1,
             run: 0,
             plan: 2,
-            signal: 3,
+            request: 3,
         }
     );
     assert_eq!(counts.total(), 6);

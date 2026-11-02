@@ -12,10 +12,10 @@ test("selected details leave useful reading space and Back restores collection c
   await app.getByRole("button",{name:"Back to feedback",exact:true}).click();await expect(app.getByLabel("Search feedback",{exact:true})).toBeVisible();
 });
 test("ten thousand records remain searchable while rendered pages stay bounded",async({app})=>{
-  await open(app);await app.evaluate(()=>{const f=window.__fixture,w=f.workflow,task=w.plan.data.value.tasks[0],step=w.decisions.data.value.logs[0].notes[0],feedback=w.signals.data.value[0],runStep=w.run.data.value.current.steps[0],check=w.run.data.value.current.steps[1].checks[0];
+  await open(app);await app.evaluate(()=>{const f=window.__fixture,w=f.workflow,task=w.plan.data.value.tasks[0],step=w.decisions.data.value.logs[0].notes[0],feedback=w.requests.data.value[0],runStep=w.run.data.value.current.steps[0],check=w.run.data.value.current.steps[1].checks[0];
     w.plan.data.value.tasks=Array.from({length:10000},(_,n)=>({...task,id:"scale-plan-"+n,title:"Plan item "+n,notes:"Full plan marker "+n}));
     w.decisions.data.value.logs[0].notes=Array.from({length:10000},(_,n)=>({...step,record_id:"scale-step-"+n,note:1000+n,purpose:"Decision "+n,thought:n===9999?"Complete thought ".repeat(5000)+"Exact ending 日本語":"Recorded reasoning"}));
-    w.signals.data.value=Array.from({length:10000},(_,n)=>({...feedback,id:"scale-feedback-"+n,body:"Report "+n,content:{summary:"Feedback "+n,sections:[],facts:[]},enrichment:[]}));
+    w.requests.data.value=Array.from({length:10000},(_,n)=>({...feedback,id:"scale-feedback-"+n,body:"Report "+n,content:{summary:"Feedback "+n,sections:[],facts:[]},enrichment:[]}));
     w.run.data.value.current.steps=Array.from({length:10000},(_,n)=>({...runStep,id:"scale-step-"+n,title:"Step "+n,checks:[{...check,check_result_id:"scale-check-"+n,name:"Check "+n,details:n===9999?"Last full result 日本語":"Recorded output"}]}));
     w.run.data.value.current.step_instances=Object.fromEntries(w.run.data.value.current.steps.map(step=>[step.id,"instance-"+step.id]));f.publish("release",{workflow_revision:1});
   });

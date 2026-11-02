@@ -24,7 +24,7 @@ fn minimal_content_validates_and_round_trips() {
 
 #[test]
 fn schema_example_shape_deserializes() {
-    // The signal example in the canonical schema, record.content verbatim.
+    // The request example in the canonical schema, record.content verbatim.
     let wire = serde_json::json!({
         "version": 1,
         "summary": "Exporting the plan loses nested acceptance notes under their tasks.",

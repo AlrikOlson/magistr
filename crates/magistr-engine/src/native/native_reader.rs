@@ -8,12 +8,12 @@ use magistr_workflow::plan::domain::{
     FocusState, Plan, Task, WorkstreamCatalog, WorkstreamFrontier, WorkstreamResolution,
     next_ready, workstream_catalog, workstream_frontier,
 };
+use magistr_workflow::request::RequestEngine;
+use magistr_workflow::request::domain::{Request, Requests};
 use magistr_workflow::run::domain::check_result::CheckResult;
 use magistr_workflow::run::domain::goal::Goal;
 use magistr_workflow::run::domain::step::Step;
 use magistr_workflow::run::engine::RunEngine;
-use magistr_workflow::signal::SignalEngine;
-use magistr_workflow::signal::domain::{Signal, Signals};
 
 use super::native_config::NativeConfig;
 use super::open_engines::open_engines;
@@ -36,7 +36,7 @@ pub struct NativeReader {
     plan: Arc<Mutex<PlanEngine>>,
     decision: Arc<Mutex<ReasoningServer>>,
     run: Arc<Mutex<RunEngine>>,
-    signal: Arc<Mutex<SignalEngine>>,
+    request: Arc<Mutex<RequestEngine>>,
     observations: Arc<Mutex<NativeSnapshot>>,
 }
 
@@ -79,8 +79,8 @@ impl NativeReader {
     pub fn open_for_project(config: &NativeConfig, project_id: String) -> Self {
         // Event publication belongs to the admitted project writer. An
         // observer opens no publisher and never acquires a write lease.
-        let (decision, run, plan, signal) = open_engines(config, project_id.clone(), None);
-        Self::from_engines(project_id, config.clone(), decision, run, plan, signal)
+        let (decision, run, plan, request) = open_engines(config, project_id.clone(), None);
+        Self::from_engines(project_id, config.clone(), decision, run, plan, request)
     }
 
     pub(crate) fn from_engines(
@@ -89,7 +89,7 @@ impl NativeReader {
         decision: ReasoningServer,
         run: RunEngine,
         plan: PlanEngine,
-        signal: SignalEngine,
+        request: RequestEngine,
     ) -> Self {
         Self::from_shared(
             project_id,
@@ -97,7 +97,7 @@ impl NativeReader {
             Arc::new(Mutex::new(decision)),
             Arc::new(Mutex::new(run)),
             Arc::new(Mutex::new(plan)),
-            Arc::new(Mutex::new(signal)),
+            Arc::new(Mutex::new(request)),
         )
     }
 
@@ -110,7 +110,7 @@ impl NativeReader {
         decision: Arc<Mutex<ReasoningServer>>,
         run: Arc<Mutex<RunEngine>>,
         plan: Arc<Mutex<PlanEngine>>,
-        signal: Arc<Mutex<SignalEngine>>,
+        request: Arc<Mutex<RequestEngine>>,
     ) -> Self {
         Self {
             project_id,
@@ -118,7 +118,7 @@ impl NativeReader {
             plan,
             decision,
             run,
-            signal,
+            request,
             observations: Arc::new(Mutex::new(NativeSnapshot::default())),
         }
     }
@@ -163,16 +163,16 @@ impl NativeReader {
         result
     }
 
-    fn observe_signal(&self) -> Result<Observed<Signals>, ReadError> {
+    fn observe_request(&self) -> Result<Observed<Requests>, ReadError> {
         super::WorkflowUpgrade::ready(&self.config, &self.project_id)?;
-        let engine = lock(&self.signal);
+        let engine = lock(&self.request);
         let result = engine.observe();
         let view = result.as_ref().map(|observed| Observed {
-            value: observed.value.signals.clone(),
+            value: observed.value.requests.clone(),
             source: observed.source,
         });
         lock(&self.observations)
-            .signals
+            .requests
             .record(view.map_err(Clone::clone));
         result
     }
@@ -191,7 +191,7 @@ impl NativeReader {
     pub fn snapshot(&self) -> NativeSnapshot {
         let _ = self.observe_plan();
         let _ = self.observe_run();
-        let _ = self.observe_signal();
+        let _ = self.observe_request();
         let _ = self.observe_decision();
         lock(&self.observations).clone()
     }
@@ -372,32 +372,32 @@ impl NativeReader {
             .map_or_else(Vec::new, |run| run.steps))
     }
 
-    // ── Signal ─────────────────────────────────────────────────────────
+    // ── Request ─────────────────────────────────────────────────────────
 
     /// The owner's bounded inbox projection of validated records.
-    pub fn signal_status(&self) -> Result<serde_json::Value, String> {
-        let observed = self.observe_signal().map_err(|error| error.to_string())?;
+    pub fn request_status(&self) -> Result<serde_json::Value, String> {
+        let observed = self.observe_request().map_err(|error| error.to_string())?;
         Ok(
-            serde_json::to_value(magistr_workflow::signal::application::SignalInbox::from(
+            serde_json::to_value(magistr_workflow::request::application::RequestInbox::from(
                 &observed.value,
             ))
-            .expect("signal inbox contains serializable domain fields"),
+            .expect("request inbox contains serializable domain fields"),
         )
     }
 
-    pub fn signal(&self, id: &str) -> Result<Option<Signal>, String> {
+    pub fn request(&self, id: &str) -> Result<Option<Request>, String> {
         Ok(self
-            .signal_list()?
+            .request_list()?
             .into_iter()
-            .find(|signal| signal.id == id))
+            .find(|request| request.id == id))
     }
 
-    pub fn signal_list(&self) -> Result<Vec<Signal>, String> {
+    pub fn request_list(&self) -> Result<Vec<Request>, String> {
         Ok(self
-            .observe_signal()
+            .observe_request()
             .map_err(|error| error.to_string())?
             .value
-            .signals)
+            .requests)
     }
 }
 

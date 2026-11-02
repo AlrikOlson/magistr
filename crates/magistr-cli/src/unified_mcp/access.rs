@@ -29,7 +29,7 @@ impl Access {
                 | "decision_get"
                 | "decision_logs"
                 | "decision_log"
-                | "signal_pending"
+                | "request_ready"
         ) {
             return true;
         }
@@ -50,7 +50,7 @@ impl Access {
             | "decision_set_thread_status"
             | "decision_impact"
             | "decision_revise_estimate"
-            | "signal_capture" => true,
+            | "request_capture" => true,
             _ => false,
         }
     }

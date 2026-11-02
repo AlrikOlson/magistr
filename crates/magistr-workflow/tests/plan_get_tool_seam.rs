@@ -30,9 +30,9 @@ use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::domain::{Task, TaskStatus};
 use magistr_workflow::plan::{PlanEngine, PlanService};
+use magistr_workflow::request::{RequestEngine, RequestService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
-use magistr_workflow::signal::{SignalEngine, SignalService};
 use rmcp::{
     ServiceExt,
     model::{CallToolRequestParams, CallToolResult},
@@ -105,7 +105,7 @@ fn build_unified() -> UnifiedService {
         DecisionService::new(ReasoningServer::new(cfg)),
         run,
         plan,
-        SignalService::new(SignalEngine::new("waterworks-seam".into())),
+        RequestService::new(RequestEngine::new("waterworks-seam".into())),
     )
 }
 

@@ -188,7 +188,7 @@ fn repair_converts_version_one_work_and_reasoning_before_checking_the_connection
         ),
         (
             "signal/sessions/saved-project.json",
-            include_bytes!("../../magistr-workflow/src/signal/fixtures/older.json").as_slice(),
+            include_bytes!("../../magistr-workflow/src/request/fixtures/older.json").as_slice(),
         ),
     ];
     for (path, bytes) in &originals {
@@ -219,7 +219,7 @@ fn repair_converts_version_one_work_and_reasoning_before_checking_the_connection
         let reader = magistr_engine::native::NativeReader::open(&config);
         assert_eq!(reader.run_steps().unwrap()[0].id, "one");
         assert_eq!(reader.plan_tasks().unwrap()[0].id, "saved");
-        assert_eq!(reader.signal_list().unwrap()[0].id, "saved-signal");
+        assert_eq!(reader.request_list().unwrap()[0].id, "saved-signal");
         assert_eq!(
             reader.note(7).unwrap().unwrap().record_id.as_deref(),
             Some("retained-step")

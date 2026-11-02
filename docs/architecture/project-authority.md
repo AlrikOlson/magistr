@@ -26,14 +26,14 @@ execution inputs once.
 
 Every supported native mutation runs the first-party workflow application use
 case for its family. `ProjectAuthority::open` composes `DecisionUseCases`,
-`RunUseCases`, `PlanUseCases`, and `SignalUseCases` once, including the
-reciprocal plan/signal capabilities. NativeEngines calls their synchronous,
+`RunUseCases`, `PlanUseCases`, and `RequestUseCases` once, including the
+reciprocal plan/request capabilities. NativeEngines calls their synchronous,
 typed methods directly. `ProjectAuthority::serve` wraps those same capabilities
 in thin MCP adapters; an attached local client reaches them through the
 versioned owner command adapter.
 
 Validation and cross-family sequencing live below transports. Promoting a
-signal creates and cross-links its plan task; empty bodies, blank research
+request creates and cross-links its plan task; empty bodies, blank research
 summaries, illegal transitions, and unknown identities receive the same native
 refusals. JSON serialization belongs only to transport presentation. The old
 `handler_call` bridge, internal MCP argument/result decoding, and one-poll
@@ -284,7 +284,7 @@ identical contexts reuse their engine handles, idle entries are pruned, and
 admission refuses more than 128 live contexts. Every contextual view retains
 an active working-copy lease.
 
-Plan, reasoning and signals belong to the shared project. Run's selected
+Plan, reasoning and requests belong to the shared project. Run's selected
 scope, goals, plans and receipts belong to the execution context, under
 `run/executions/<context-key>/sessions` and its receipt partition. Selecting
 another context never replaces the first context's selected scope. Reopening
@@ -367,7 +367,7 @@ views before the host serves clients. Run
 events and Magistr phase/gate-output events also carry `execution_key`.
 The CLI feed delivers those events only to the matching context while
 advancing the cursor for every decoded frame. Shared plan, reasoning and
-signal events reach every context. Snapshot readers use the same contextual
+request events reach every context. Snapshot readers use the same contextual
 run persistence partition. Long and short feed paths resolve through the
 authority directory in every linked copy.
 

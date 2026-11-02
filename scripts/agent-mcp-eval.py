@@ -53,14 +53,14 @@ def verify_saved_work(root):
         paths=list((root/"state"/family).rglob("sessions/*.json"))
         if len(paths)!=1:raise AssertionError(f"{family}: expected one isolated project, found {len(paths)}")
         return json.loads(paths[0].read_text())
-    run=saved("run");decision=saved("decisions");signals=saved("signal");plan=saved("plan")
+    run=saved("run");decision=saved("decisions");requests=saved("requests");plan=saved("plan")
     checks=[c for task in run["tasks"] for c in task.get("checks",[])]
     proof=subprocess.run(["python3","-m","unittest","-q"],cwd=root,capture_output=True,text=True)
     result={
         "goalCompleted":run["goal"]["status"]=="completed",
         "tasksCompleted":bool(run["tasks"]) and all(t["status"]=="completed" for t in run["tasks"]),
         "recordedCheckPassed":required_checks_passed(checks),
-        "feedbackSaved":bool(signals["signals"]),
+        "feedbackSaved":bool(requests["requests"]),
         "futurePlanSaved":any(c["status"] in ("idea","to_do") for c in plan["tasks"]),
         "decisionRecordsSaved":any(log["notes"] for log in decision["logs"].values()),
         "testUnchanged":(root/"test_names.py").read_text()==TEST_SOURCE,

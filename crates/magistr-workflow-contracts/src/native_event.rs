@@ -3,7 +3,7 @@
 use crate::Family;
 
 use super::magistr_frame::MagistrFrame;
-use super::{DecisionFrame, PlanFrame, RunFrame, SignalFrame};
+use super::{DecisionFrame, PlanFrame, RequestFrame, RunFrame};
 
 /// One thing that happened, as the engines say it: the workflow's own
 /// typed frame for each of its four families — the very values the
@@ -16,7 +16,7 @@ use super::{DecisionFrame, PlanFrame, RunFrame, SignalFrame};
 /// answer (a task the cockpit started, a gate the loop ran) is built as
 /// one of these directly and never serialized on the way.
 ///
-/// Plan and signal frames carry the whole record, so folding one is
+/// Plan and request frames carry the whole record, so folding one is
 /// idempotent; decision frames carry the whole step; run frames are deltas
 /// over the goal (a task started, a check recorded), so a gap in the
 /// feed is repaired by a fresh [`NativeSnapshot`](super::NativeSnapshot),
@@ -34,8 +34,8 @@ pub enum NativeEvent {
     Run(RunFrame),
     /// A plan task changed, or a refresh was recorded.
     Plan(PlanFrame),
-    /// A stakeholder signal changed.
-    Signal(SignalFrame),
+    /// A stakeholder request changed.
+    Request(RequestFrame),
     /// The host said something about the run itself.
     Magistr(MagistrFrame),
 }
@@ -48,7 +48,7 @@ impl NativeEvent {
             Self::Decision(_) => Family::Decision,
             Self::Run(_) => Family::Run,
             Self::Plan(_) => Family::Plan,
-            Self::Signal(_) => Family::Signal,
+            Self::Request(_) => Family::Request,
             Self::Magistr(_) => Family::Magistr,
         }
     }

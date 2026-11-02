@@ -48,7 +48,7 @@ Further groupings stay with their owning feature units
 (`audit-260912-26` decision, `-27` session, `-28` work objects); there is
 no workspace-wide mechanical migration and no crate-count target.
 
-The native magistr library continues to own tasks, signals, reasoning,
+The native magistr library continues to own tasks, requests, reasoning,
 execution tasks and their durable records. These are not replicated in the
 domain. `magistr-engine::native` remains the native adapter. Engine and core still
 contain effects; neither crate is a substitute for the domain dependency boundary.

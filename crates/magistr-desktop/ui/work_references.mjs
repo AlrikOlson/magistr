@@ -2,13 +2,13 @@ import {element} from "./work_dom.mjs";
 import {readState} from "./work_records.mjs";
 export function resolveReference(snapshot,reference){
   const colon=reference.indexOf(":"),kind=reference.slice(0,colon),id=reference.slice(colon+1);
-  const family={task:"plan",decision:"decisions",signal:"signals"}[kind];
+  const family={task:"plan",decision:"decisions",request:"requests"}[kind];
   if(!family)return {message:"This reference does not identify a saved record that can be opened here."};
   const observed=readState(snapshot[family]);
   if(!observed.value)return {message:"The related records cannot be read. Use Refresh to try again."};
   let target;
   if(kind==="task"){const record=observed.value.tasks.find(record=>record.id===id);if(record)target={kind,id,title:record.title};}
-  if(kind==="signal"){const record=observed.value.find(record=>record.id===id);if(record)target={kind,id,title:record.content?.summary||record.body.slice(0,180)};}
+  if(kind==="request"){const record=observed.value.find(record=>record.id===id);if(record)target={kind,id,title:record.content?.summary||record.body.slice(0,180)};}
   if(kind==="decision")for(const history of observed.value.logs){const step=history.notes.find(step=>String(step.note)===id);if(step){target={kind,id:step.record_id,session:JSON.stringify(history.log_id??null),title:step.purpose};break;}}
   return target?{target,stale:!observed.current}:{message:"The related record is no longer available."};
 }

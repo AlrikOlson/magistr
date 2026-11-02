@@ -35,7 +35,7 @@ fn refresh_invalidates_retained_observations_until_an_actual_unchanged_read() {
     let mut snapshot = Arc::new(read.clone());
     assert!(observe(&mut snapshot, EngineEvent::Refresh));
     assert!(snapshot.plan.current().is_err());
-    assert!(snapshot.signals.current().is_err());
+    assert!(snapshot.requests.current().is_err());
     assert_eq!(snapshot.plan.last_successful(), read.plan.last_successful());
     assert!(!observe(&mut snapshot, EngineEvent::Seed(read.clone())));
     assert_eq!(snapshot.as_ref(), &read);

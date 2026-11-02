@@ -183,7 +183,7 @@ import.
 ## Migration boundary
 
 `arch-14b-workflow-use-cases` adds native application modules for reasoning,
-run, plan, and signals. Validation, reciprocal-family operations, tracker
+run, plan, and requests. Validation, reciprocal-family operations, tracker
 setup, and ordinary completion policy now sit beneath CLI/MCP adapters.
 Synchronous commands return typed values; command execution, provider probes,
 and approval waits use explicit async capabilities. Native callers no longer

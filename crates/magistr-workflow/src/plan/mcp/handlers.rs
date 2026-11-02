@@ -1616,16 +1616,16 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn plan_status_folds_in_pending_signal_count() {
+    async fn plan_status_folds_in_ready_request_count() {
         use crate::plan::engine::PlanEngine;
-        use crate::signal::domain::SignalKind;
-        use crate::signal::engine::SignalEngine;
+        use crate::request::domain::RequestKind;
+        use crate::request::engine::RequestEngine;
         use std::sync::{Arc, Mutex};
 
-        // A signal engine with one researched, above-threshold signal.
-        let mut se = SignalEngine::new("p".into());
+        // A request engine with one researched, above-threshold request.
+        let mut se = RequestEngine::new("p".into());
         let id = se
-            .capture(SignalKind::Idea, "x".into(), "do it".into())
+            .capture(RequestKind::Suggestion, "x".into(), "do it".into())
             .as_ref()
             .unwrap()
             .value
@@ -1635,10 +1635,10 @@ mod tests {
             .unwrap();
 
         let svc = PlanService::new(PlanEngine::new("p".into()), completion())
-            .with_signal(Arc::new(Mutex::new(se)));
+            .with_request(Arc::new(Mutex::new(se)));
         let res = svc.plan_status(Parameters(NoArgs {})).await.unwrap();
         let sc = res.structured_content.expect("structured content");
-        assert_eq!(sc["pending_signals"], 1);
+        assert_eq!(sc["ready_requests"], 1);
     }
 
     // ── tracker_setup (tracker-mcp-setup) ─────────────────────────────────
@@ -1826,11 +1826,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn plan_status_omits_count_when_signal_unwired() {
+    async fn plan_status_omits_count_when_request_unwired() {
         use crate::plan::engine::PlanEngine;
         let svc = PlanService::new(PlanEngine::new("p".into()), completion());
         let res = svc.plan_status(Parameters(NoArgs {})).await.unwrap();
         let sc = res.structured_content.expect("structured content");
-        assert!(sc.get("pending_signals").is_none());
+        assert!(sc.get("ready_requests").is_none());
     }
 }

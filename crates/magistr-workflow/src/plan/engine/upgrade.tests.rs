@@ -11,7 +11,7 @@ fn omitted_item_origins_are_filled_once_and_authored_content_survives() {
     let bytes = PlanEngine::upgrade_document(OLD, "saved-project").unwrap();
     let old: Value = serde_json::from_slice(OLD).unwrap();
     let new: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(new["schema_version"], 3);
+    assert_eq!(new["schema_version"], 4);
     assert!(new.get("chunks").is_none());
     let (before, after) = (&old["chunks"][0], &new["tasks"][0]);
     assert_eq!(after["project_id"], "saved-project");
@@ -28,7 +28,7 @@ fn omitted_item_origins_are_filled_once_and_authored_content_survives() {
     }
     assert_eq!(new["preamble"], old["preamble"]);
     assert!(
-        bytes.starts_with(b"{\"schema_version\":3"),
+        bytes.starts_with(b"{\"schema_version\":4"),
         "the version leads the document"
     );
     assert_eq!(
@@ -154,7 +154,7 @@ fn a_plan_saved_before_the_decision_words_takes_them_once() {
     let bytes =
         PlanEngine::upgrade_document(&serde_json::to_vec(&v2).unwrap(), "saved-project").unwrap();
     let new: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(new["schema_version"], 3);
+    assert_eq!(new["schema_version"], 4);
     assert_eq!(
         new["tasks"][0]["refs"],
         json!(["decision:7", "task:saved", "step:verify"]),
@@ -163,6 +163,27 @@ fn a_plan_saved_before_the_decision_words_takes_them_once() {
     assert_eq!(
         new["refreshes"][0],
         json!({"at": "2026-10-01", "summary": "Refreshed", "notes": [7, 8]})
+    );
+    assert_eq!(
+        PlanEngine::upgrade_document(&bytes, "saved-project").unwrap(),
+        bytes,
+        "a current document is unchanged"
+    );
+}
+
+#[test]
+fn a_plan_saved_before_the_request_words_takes_them_once() {
+    let mut v3 = converted(OLD);
+    v3["schema_version"] = json!(3);
+    v3["tasks"][0]["refs"] = json!(["signal:f1c9a4e2", "decision:7", "task:saved"]);
+    let bytes =
+        PlanEngine::upgrade_document(&serde_json::to_vec(&v3).unwrap(), "saved-project").unwrap();
+    let new: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(new["schema_version"], 4);
+    assert_eq!(
+        new["tasks"][0]["refs"],
+        json!(["request:f1c9a4e2", "decision:7", "task:saved"]),
+        "only the request prefix changes"
     );
     assert_eq!(
         PlanEngine::upgrade_document(&bytes, "saved-project").unwrap(),

@@ -1,7 +1,7 @@
 //! `UnifiedService` — the single MCP server that exposes every tool family.
 //!
 //! Routes an incoming `tools/call` to the family that CLAIMS its name prefix:
-//! [`DecisionService`], [`RunService`], [`PlanService`] or [`SignalService`].
+//! [`DecisionService`], [`RunService`], [`PlanService`] or [`RequestService`].
 //! Which of them a given deployment actually serves is decided once at startup
 //! by [`FamilySelection`]; this layer only dispatches.
 //!
@@ -41,8 +41,8 @@ use super::tasks::{Eligibility, HeartbeatSeed};
 
 use crate::decision::DecisionService;
 use crate::plan::PlanService;
+use crate::request::RequestService;
 use crate::run::RunService;
-use crate::signal::SignalService;
 use crate::usage::CallCounter;
 
 const SERVER_INSTRUCTIONS: &str = r#"magistr — unified MCP server for plan-driven reasoning + execution.
@@ -57,7 +57,7 @@ for the namespace it mirrors itself through:
   run_*      (7 tools)  run history: open a run, read its status, finish it
   approval_* (2 tools)  the run family's approvals: ask a person, wait for the answer
   step verbs (5 tools)  arrange_steps, start_step, record_progress, check_step, finish_step
-  signal_*  (10 tools)   stakeholder signals (capture/research/surface/promote + inbox verbs)
+  request_*  (10 tools)   stakeholder requests (capture/research/surface/promote + inbox verbs)
 
 plan_* sits above run_*: a plan task is realized by a run, which is
 motivated by decision reasoning. Link reasoning to a run through run_ref on
@@ -67,13 +67,13 @@ project identity from the working directory so their records correlate.
 "#;
 
 /// Single MCP server exposing the `decision_*`, `run_*`, `plan_*`, and
-/// `signal_*` families.
+/// `request_*` families.
 #[derive(Clone)]
 pub struct UnifiedService {
     decision: Arc<DecisionService>,
     run: Arc<RunService>,
     plan: Arc<PlanService>,
-    signal: Arc<SignalService>,
+    request: Arc<RequestService>,
     /// The last `traceparent` written to the otel partition. A tool call is a
     /// hot path and the adopted context is usually unchanged from the previous
     /// one, so this collapses a per-call file write into a per-trace one.
@@ -99,7 +99,7 @@ impl UnifiedService {
         decision: DecisionService,
         run: RunService,
         plan: PlanService,
-        signal: SignalService,
+        request: RequestService,
     ) -> Self {
         // Every tool name this binary registers, taken from the families
         // themselves rather than a hand-written list — and BEFORE any family
@@ -110,14 +110,14 @@ impl UnifiedService {
             .into_iter()
             .chain(run.list_tools_view())
             .chain(plan.list_tools_view())
-            .chain(signal.list_tools_view())
+            .chain(request.list_tools_view())
             .map(|t| t.name.to_string())
             .collect();
         Self {
             decision: Arc::new(decision),
             run: Arc::new(run),
             plan: Arc::new(plan),
-            signal: Arc::new(signal),
+            request: Arc::new(request),
             last_traceparent: Arc::new(Mutex::new(None)),
             tasks: TaskManager::new(),
             families: FamilySelection::all(),
@@ -253,10 +253,10 @@ impl UnifiedService {
                 Some(Family::Decision) => self.decision.call_tool(request, context).await,
                 Some(Family::Run) => self.run.call_tool(request, context).await,
                 Some(Family::Plan) => self.plan.call_tool(request, context).await,
-                Some(Family::Signal) => self.signal.call_tool(request, context).await,
+                Some(Family::Request) => self.request.call_tool(request, context).await,
                 None => Err(ErrorData::invalid_params(
                     format!(
-                        "unknown tool '{}'; expected a decision_*, run_*, plan_*, or signal_* \
+                        "unknown tool '{}'; expected a decision_*, run_*, plan_*, or request_* \
                          name",
                         request.name
                     ),
@@ -359,8 +359,8 @@ impl UnifiedService {
         if self.families.contains(Family::Plan) {
             tools.extend(self.plan.list_tools_view());
         }
-        if self.families.contains(Family::Signal) {
-            tools.extend(self.signal.list_tools_view());
+        if self.families.contains(Family::Request) {
+            tools.extend(self.request.list_tools_view());
         }
         tools
     }
@@ -387,14 +387,14 @@ pub enum Family {
     Decision,
     Run,
     Plan,
-    Signal,
+    Request,
 }
 
 impl Family {
     /// Every family this server serves. Callers that describe the surface —
     /// the instructions block, the generated CLAUDE.md — iterate this instead
     /// of hand-listing families, so adding a fifth can't leave a doc behind.
-    pub const ALL: [Family; 4] = [Family::Decision, Family::Run, Family::Plan, Family::Signal];
+    pub const ALL: [Family; 4] = [Family::Decision, Family::Run, Family::Plan, Family::Request];
 
     /// Every tool-name prefix this family CLAIMS, without trailing
     /// underscores, canonical one first.
@@ -418,7 +418,7 @@ impl Family {
             Family::Decision => &["decision"],
             Family::Run => &["run", "approval"],
             Family::Plan => &["plan", "tracker"],
-            Family::Signal => &["signal"],
+            Family::Request => &["request"],
         }
     }
 
@@ -444,7 +444,7 @@ impl Family {
     pub fn verbs(self) -> &'static [&'static str] {
         match self {
             Family::Run => &crate::run::mcp::STEP_VERBS,
-            Family::Decision | Family::Plan | Family::Signal => &[],
+            Family::Decision | Family::Plan | Family::Request => &[],
         }
     }
 
@@ -508,7 +508,7 @@ pub struct FamilySelection {
     decision: bool,
     run: bool,
     plan: bool,
-    signal: bool,
+    request: bool,
 }
 
 /// Why a family selection was refused. Every variant is a startup error: a
@@ -556,7 +556,7 @@ pub const SCHEMA_EXEMPT: &[(&str, &str)] = &[
     ),
     (
         "plan_focus_get",
-        "a schema is describable but not affordable: measured at +1,096 B for the pair even with both rich fields as bare Values, against 370 B of headroom under a ceiling a human had just moved for this task. Shapes are documented in the description instead. Payable once the duplicated signal_* schemas are reclaimed — see plan::output_schemas",
+        "a schema is describable but not affordable: measured at +1,096 B for the pair even with both rich fields as bare Values, against 370 B of headroom under a ceiling a human had just moved for this task. Shapes are documented in the description instead. Payable once the duplicated request_* schemas are reclaimed — see plan::output_schemas",
     ),
     (
         "plan_focus_set",
@@ -578,9 +578,9 @@ pub const SCHEMA_EXEMPT: &[(&str, &str)] = &[
 /// argument recorded on the test itself.
 ///
 /// The cost was structural, not sloppiness, and it is worth knowing before
-/// anyone adds a fifteenth signal tool: seven `signal_*` tools return a bare
-/// `Signal`, whose schema is 3,576 B once its nested `Enrichment` /
-/// `SignalKind` / `SignalStatus` definitions expand — and MCP has no way to
+/// anyone adds a fifteenth request tool: seven `request_*` tools return a bare
+/// `Request`, whose schema is 3,576 B once its nested `Enrichment` /
+/// `RequestKind` / `RequestStatus` definitions expand — and MCP has no way to
 /// `$ref` a schema across tools, so that is seven full copies, ~25 KB for one
 /// type. Adding a type to a shared response shape is therefore multiplied by
 /// however many tools return it.
@@ -604,7 +604,7 @@ impl FamilySelection {
             decision: true,
             run: true,
             plan: true,
-            signal: true,
+            request: true,
         }
     }
 
@@ -615,7 +615,7 @@ impl FamilySelection {
             decision: false,
             run: false,
             plan: false,
-            signal: false,
+            request: false,
         };
         for token in raw.split(',').map(str::trim).filter(|t| !t.is_empty()) {
             match Family::parse(token) {
@@ -647,7 +647,7 @@ impl FamilySelection {
             Family::Decision => self.decision = true,
             Family::Run => self.run = true,
             Family::Plan => self.plan = true,
-            Family::Signal => self.signal = true,
+            Family::Request => self.request = true,
         }
     }
 
@@ -658,7 +658,7 @@ impl FamilySelection {
             Family::Decision => self.decision,
             Family::Run => self.run,
             Family::Plan => self.plan,
-            Family::Signal => self.signal,
+            Family::Request => self.request,
         }
     }
 
@@ -938,7 +938,7 @@ mod tests {
             )),
             run,
             plan,
-            SignalService::new(crate::signal::engine::SignalEngine::new("p".into())),
+            RequestService::new(crate::request::engine::RequestEngine::new("p".into())),
         )
     }
 
@@ -967,8 +967,8 @@ mod tests {
             Some(Family::Plan)
         );
         assert_eq!(
-            UnifiedService::route_of("signal_capture"),
-            Some(Family::Signal)
+            UnifiedService::route_of("request_capture"),
+            Some(Family::Request)
         );
         assert_eq!(
             UnifiedService::route_of("tracker_setup"),
@@ -1197,7 +1197,7 @@ mod tests {
     /// The doc comment at the top of `lib.rs` is what docs.rs renders as the
     /// crate's front page, and what crates.io links to by default. It is the
     /// most-read prose this project publishes. It spent two releases claiming
-    /// the server had two tool families, because `plan_*` and `signal_*`
+    /// the server had two tool families, because `plan_*` and `request_*`
     /// arrived and nothing pointed back at that paragraph.
     ///
     /// [`Family::ALL`] already carried the guarantee — its own doc says callers
@@ -1211,7 +1211,7 @@ mod tests {
     ///
     /// It proves each family's prefix is PRESENT in the front page. It does not
     /// prove the surrounding sentence is true, or even grammatical — a page
-    /// reading "we do not support `signal_*`" would satisfy it. Presence is
+    /// reading "we do not support `request_*`" would satisfy it. Presence is
     /// what a text gate can honestly check; meaning needs a reader.
     #[test]
     fn the_crate_front_page_names_every_family_the_server_serves() {

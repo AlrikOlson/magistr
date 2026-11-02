@@ -1,11 +1,11 @@
 //! What an owner answers a command with.
 
 use magistr_workflow::plan::domain::Task;
+use magistr_workflow::request::application::RequestPromotion;
+use magistr_workflow::request::domain::Request;
 use magistr_workflow::run::domain::check::Check;
 use magistr_workflow::run::domain::progress::Progress;
 use magistr_workflow::run::domain::step::Step;
-use magistr_workflow::signal::application::SignalPromotion;
-use magistr_workflow::signal::domain::Signal;
 use magistr_workflow_contracts::Observed;
 use magistr_workflow_contracts::decision::RecordedNote;
 use serde::{Deserialize, Serialize};
@@ -27,8 +27,8 @@ pub enum OwnerReply {
     Progress(Observed<Progress>),
     /// The check recorded.
     Check(Observed<Check>),
-    /// The signal as it stands after the command.
-    Signal(Observed<Signal>),
+    /// The request as it stands after the command.
+    Request(Observed<Request>),
     /// The reasoning engine's answer to a recorded step: the formatted
     /// acceptance, or the refusal it printed.
     Note(Box<RecordedNote>),
@@ -41,5 +41,5 @@ pub enum OwnerReply {
     /// The command produced nothing to show.
     Done(Observed<()>),
     /// Both owning records acknowledge their own committed files.
-    Promotion(Box<SignalPromotion>),
+    Promotion(Box<RequestPromotion>),
 }

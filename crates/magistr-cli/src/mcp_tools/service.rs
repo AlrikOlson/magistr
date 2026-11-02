@@ -53,7 +53,7 @@ use super::plan_export::PlanExport;
 const INSTRUCTIONS: &str = "magistr — project workflow server. \
 `magistr_*` tools run quality gates (magistr_gate, recorded through check_step), \
 formatting, phase transitions, hooks and safe file operations for this project. \
-The decision_*/run_*/plan_*/signal_* families below are magistr, served \
+The decision_*/run_*/plan_*/request_* families below are magistr, served \
 in-process on the same store as Magistr's own views.";
 
 /// The rmcp server behind `magistr mcp`: the `magistr_*` tools plus the

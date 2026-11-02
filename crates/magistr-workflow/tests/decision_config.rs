@@ -430,7 +430,7 @@ fn namespace_log_id_clamps_to_128() {
 /// turns it on. The shared resolver has always accepted `1` as well as
 /// `true`; the reasoning config once compared against `"true"` alone, which
 /// meant `MAGISTR_WORKFLOW_PERSIST=1` persisted the plan, the run cycle and
-/// the signals while silently leaving the decision log in memory.
+/// the requests while silently leaving the decision log in memory.
 #[test]
 fn persist_switch_agrees_with_every_other_family() {
     for value in ["true", "1"] {

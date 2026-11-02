@@ -1,4 +1,4 @@
-//! Durability of the run/plan/signal stores under concurrent server
+//! Durability of the run/plan/request stores under concurrent server
 //! processes — the family-stores extension of `decision_trace_durability.rs`.
 //!
 //! Residue of the 2026-06-09 decision incident: these three engines still did
@@ -12,11 +12,11 @@ use tempfile::TempDir;
 use magistr_workflow::infra::{Domain, Persistence, PersistenceConfig};
 use magistr_workflow::plan::PlanEngine;
 use magistr_workflow::plan::domain::TaskStatus;
+use magistr_workflow::request::RequestEngine;
+use magistr_workflow::request::domain::{RequestKind, RequestStatus};
 use magistr_workflow::run::domain::step::StepType;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::run::persistence as run_persistence;
-use magistr_workflow::signal::SignalEngine;
-use magistr_workflow::signal::domain::{SignalKind, SignalStatus};
 
 fn infra_cfg(tmp: &TempDir) -> PersistenceConfig {
     PersistenceConfig::from_env()
@@ -29,9 +29,9 @@ fn plan_engine(tmp: &TempDir, project: &str) -> PlanEngine {
         .with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Plan))
 }
 
-fn signal_engine(tmp: &TempDir, project: &str) -> SignalEngine {
-    SignalEngine::new(project.into())
-        .with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Signal))
+fn request_engine(tmp: &TempDir, project: &str) -> RequestEngine {
+    RequestEngine::new(project.into())
+        .with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Request))
 }
 
 fn run_engine(tmp: &TempDir, project: &str) -> RunEngine {
@@ -119,53 +119,57 @@ fn stale_plan_writer_does_not_roll_back_task_status() {
     assert!(reloaded.plan().tasks.iter().any(|c| c.id == "y"));
 }
 
-// ── signal ─────────────────────────────────────────────────────────────────
+// ── request ─────────────────────────────────────────────────────────────────
 
-/// Same mechanism on the signal store: a signal captured (and acked) by B must
+/// Same mechanism on the request store: a request captured (and acked) by B must
 /// survive a save from stale A.
 #[test]
-fn concurrent_signal_writer_does_not_clobber_acked_signals() {
+fn concurrent_request_writer_does_not_clobber_acked_requests() {
     let tmp = TempDir::new().unwrap();
-    let mut a = signal_engine(&tmp, "proj");
-    let mut b = signal_engine(&tmp, "proj");
+    let mut a = request_engine(&tmp, "proj");
+    let mut b = request_engine(&tmp, "proj");
 
     let b_id = b
-        .capture(SignalKind::Bug, "b@example.com".into(), "from b".into())
+        .capture(RequestKind::Bug, "b@example.com".into(), "from b".into())
         .as_ref()
         .unwrap()
         .value
         .id
         .clone();
     let a_id = a
-        .capture(SignalKind::Idea, "a@example.com".into(), "from a".into())
+        .capture(
+            RequestKind::Suggestion,
+            "a@example.com".into(),
+            "from a".into(),
+        )
         .as_ref()
         .unwrap()
         .value
         .id
         .clone();
 
-    let reloaded = signal_engine(&tmp, "proj");
+    let reloaded = request_engine(&tmp, "proj");
     let ids: Vec<&str> = reloaded
-        .signals()
-        .signals
+        .requests()
+        .requests
         .iter()
         .map(|s| s.id.as_str())
         .collect();
     assert!(
         ids.contains(&b_id.as_str()),
-        "signal from B was acked but a stale concurrent writer erased it; survived: {ids:?}"
+        "request from B was acked but a stale concurrent writer erased it; survived: {ids:?}"
     );
-    assert!(ids.contains(&a_id.as_str()), "signal from A lost: {ids:?}");
+    assert!(ids.contains(&a_id.as_str()), "request from A lost: {ids:?}");
 }
 
-/// The signal lifecycle is forward-only, so a stale writer must never roll a
-/// signal's status backwards on disk.
+/// The request lifecycle is forward-only, so a stale writer must never roll a
+/// request's status backwards on disk.
 #[test]
-fn stale_signal_writer_does_not_roll_back_lifecycle_progress() {
+fn stale_request_writer_does_not_roll_back_lifecycle_progress() {
     let tmp = TempDir::new().unwrap();
     let seeded_id = {
-        let mut seed = signal_engine(&tmp, "proj");
-        seed.capture(SignalKind::Question, "q@example.com".into(), "seed".into())
+        let mut seed = request_engine(&tmp, "proj");
+        seed.capture(RequestKind::Question, "q@example.com".into(), "seed".into())
             .as_ref()
             .unwrap()
             .value
@@ -173,26 +177,26 @@ fn stale_signal_writer_does_not_roll_back_lifecycle_progress() {
             .clone()
     };
 
-    let mut a = signal_engine(&tmp, "proj"); // both load seeded@New
-    let mut b = signal_engine(&tmp, "proj");
+    let mut a = request_engine(&tmp, "proj"); // both load seeded@New
+    let mut b = request_engine(&tmp, "proj");
 
-    b.set_status(&seeded_id, SignalStatus::Triaged).unwrap(); // B advances
-    a.capture(SignalKind::Feedback, "a@example.com".into(), "new".into())
+    b.set_status(&seeded_id, RequestStatus::Triaged).unwrap(); // B advances
+    a.capture(RequestKind::Feedback, "a@example.com".into(), "new".into())
         .unwrap(); // A persists stale copy
 
-    let reloaded = signal_engine(&tmp, "proj");
+    let reloaded = request_engine(&tmp, "proj");
     let seeded = reloaded
-        .signals()
-        .signals
+        .requests()
+        .requests
         .iter()
         .find(|s| s.id == seeded_id)
-        .expect("seeded signal must survive");
+        .expect("seeded request must survive");
     assert_eq!(
         seeded.status,
-        SignalStatus::Triaged,
+        RequestStatus::Triaged,
         "stale writer rolled back an acked lifecycle transition"
     );
-    assert_eq!(reloaded.signals().signals.len(), 2);
+    assert_eq!(reloaded.requests().requests.len(), 2);
 }
 
 // ── run ───────────────────────────────────────────────────────────────────
@@ -315,52 +319,52 @@ fn run_reset_is_not_resurrected_by_later_saves() {
 }
 
 #[test]
-fn rejected_plan_and_signal_writes_preserve_bytes_and_retry_after_repair() {
+fn rejected_plan_and_request_writes_preserve_bytes_and_retry_after_repair() {
     use magistr_workflow::plan::engine::PlanMutationError;
-    use magistr_workflow::signal::engine::SignalMutationError;
+    use magistr_workflow::request::engine::RequestMutationError;
     use magistr_workflow_contracts::{ReadErrorKind, ReadSource, WriteErrorKind};
     let tmp = TempDir::new().unwrap();
     let mut plan = plan_engine(&tmp, "proj");
-    let mut signal = signal_engine(&tmp, "proj");
+    let mut request = request_engine(&tmp, "proj");
     add_task(&mut plan, "saved");
-    let captured = signal
-        .capture(SignalKind::Idea, "author".into(), "saved".into())
+    let captured = request
+        .capture(RequestKind::Suggestion, "author".into(), "saved".into())
         .unwrap();
     let plan_path = Persistence::new(&infra_cfg(&tmp), Domain::Plan).path_for("proj");
-    let signal_path = Persistence::new(&infra_cfg(&tmp), Domain::Signal).path_for("proj");
+    let request_path = Persistence::new(&infra_cfg(&tmp), Domain::Request).path_for("proj");
     let plan_bytes = std::fs::read(&plan_path).unwrap();
-    let signal_bytes = std::fs::read(&signal_path).unwrap();
+    let request_bytes = std::fs::read(&request_path).unwrap();
     for (bad, kind) in [
         (b"{".to_vec(), ReadErrorKind::Decode),
         (b"{}".to_vec(), ReadErrorKind::Decode),
     ] {
         std::fs::write(&plan_path, &bad).unwrap();
-        std::fs::write(&signal_path, &bad).unwrap();
+        std::fs::write(&request_path, &bad).unwrap();
         let PlanMutationError::Store(error) = plan.link_task("saved", "decision:1").unwrap_err()
         else {
             panic!("expected store refusal")
         };
         assert_eq!(error.kind, WriteErrorKind::Read(kind));
         assert_eq!(error.effect(), "none");
-        let SignalMutationError::Store(error) =
-            signal.link(&captured.value.id, "decision:1").unwrap_err()
+        let RequestMutationError::Store(error) =
+            request.link(&captured.value.id, "decision:1").unwrap_err()
         else {
             panic!("expected store refusal")
         };
         assert_eq!(error.kind, WriteErrorKind::Read(kind));
         assert_eq!(error.effect(), "none");
         assert_eq!(std::fs::read(&plan_path).unwrap(), bad);
-        assert_eq!(std::fs::read(&signal_path).unwrap(), bad);
+        assert_eq!(std::fs::read(&request_path).unwrap(), bad);
         assert!(plan.plan().tasks[0].refs.is_empty());
-        assert!(signal.signals().signals[0].refs.is_empty());
+        assert!(request.requests().requests[0].refs.is_empty());
     }
     std::fs::write(&plan_path, plan_bytes).unwrap();
-    std::fs::write(&signal_path, signal_bytes).unwrap();
+    std::fs::write(&request_path, request_bytes).unwrap();
     let saved = plan.link_task("saved", "decision:1").unwrap();
     assert!(matches!(saved.source, ReadSource::File(_)));
     assert_eq!(saved.source, plan.observe().unwrap().source);
-    let saved = signal.link(&captured.value.id, "decision:1").unwrap();
-    assert_eq!(saved.source, signal.observe().unwrap().source);
+    let saved = request.link(&captured.value.id, "decision:1").unwrap();
+    assert_eq!(saved.source, request.observe().unwrap().source);
     assert_eq!(saved.value.refs, ["decision:1"]);
 }
 
@@ -374,11 +378,15 @@ fn simultaneous_owner_transactions_retain_every_acknowledged_record() {
             let barrier = &barrier;
             scope.spawn(move || {
                 let mut plan = plan_engine(tmp, "proj");
-                let mut signals = signal_engine(tmp, "proj");
+                let mut requests = request_engine(tmp, "proj");
                 barrier.wait();
                 add_task(&mut plan, &format!("work-{i}"));
-                signals
-                    .capture(SignalKind::Idea, "author".into(), format!("idea {i}"))
+                requests
+                    .capture(
+                        RequestKind::Suggestion,
+                        "author".into(),
+                        format!("idea {i}"),
+                    )
                     .unwrap();
             });
         }
@@ -393,41 +401,41 @@ fn simultaneous_owner_transactions_retain_every_acknowledged_record() {
         8
     );
     assert_eq!(
-        signal_engine(&tmp, "proj")
+        request_engine(&tmp, "proj")
             .observe()
             .unwrap()
             .value
-            .signals
+            .requests
             .len(),
         8
     );
 }
 
 #[tokio::test]
-async fn signal_mcp_refuses_failed_saves_and_acknowledges_the_repaired_owner() {
-    use magistr_workflow::signal::{SignalService, mcp::handlers::CaptureArgs};
+async fn request_mcp_refuses_failed_saves_and_acknowledges_the_repaired_owner() {
+    use magistr_workflow::request::{RequestService, mcp::handlers::CaptureArgs};
     use rmcp::handler::server::wrapper::Parameters;
     let tmp = TempDir::new().unwrap();
-    let signal = signal_engine(&tmp, "proj");
-    let path = Persistence::new(&infra_cfg(&tmp), Domain::Signal).path_for("proj");
+    let request = request_engine(&tmp, "proj");
+    let path = Persistence::new(&infra_cfg(&tmp), Domain::Request).path_for("proj");
     std::fs::write(&path, "{").unwrap();
-    let service = SignalService::new(signal);
+    let service = RequestService::new(request);
     let args = || {
         Parameters(CaptureArgs {
-            kind: "idea".into(),
+            kind: "suggestion".into(),
             from: "author".into(),
             body: "Keep my work".into(),
             content: None,
         })
     };
-    let refused = service.signal_capture(args()).await.unwrap();
+    let refused = service.request_capture(args()).await.unwrap();
     assert_eq!(refused.is_error, Some(true));
     let body = refused.structured_content.unwrap();
     assert_eq!(body["effect"], "none");
     assert_eq!(body["error_kind"], "store_unavailable");
     assert_eq!(std::fs::read(&path).unwrap(), b"{");
     std::fs::remove_file(&path).unwrap();
-    let saved = service.signal_capture(args()).await.unwrap();
+    let saved = service.request_capture(args()).await.unwrap();
     assert_ne!(saved.is_error, Some(true));
     let body = saved.structured_content.unwrap();
     assert_eq!(body["source"]["kind"], "file");
@@ -440,7 +448,7 @@ async fn signal_mcp_refuses_failed_saves_and_acknowledges_the_repaired_owner() {
             .observe()
             .unwrap()
             .value
-            .signals
+            .requests
             .len(),
         1
     );

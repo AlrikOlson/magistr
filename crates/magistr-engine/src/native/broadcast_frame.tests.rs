@@ -1,12 +1,12 @@
 use super::*;
-use crate::native::{DecisionFrame, GateOutput, MagistrFrame, PlanFrame, RunFrame, SignalFrame};
+use crate::native::{DecisionFrame, GateOutput, MagistrFrame, PlanFrame, RequestFrame, RunFrame};
 use crate::native::{EventCursor, NativeEvent, OwnerGeneration};
 use crate::workflow::WorkflowPhase;
 #[cfg(unix)]
 use magistr_workflow::infra::Broadcaster;
 use magistr_workflow::infra::Family;
 use magistr_workflow::plan::domain::TaskStatus;
-use magistr_workflow::signal::domain::SignalKind;
+use magistr_workflow::request::domain::RequestKind;
 
 #[test]
 fn parses_family_and_type() {
@@ -60,18 +60,18 @@ fn task(id: &str) -> magistr_workflow::plan::domain::Task {
     }
 }
 
-fn signal(id: &str) -> magistr_workflow::signal::domain::Signal {
-    magistr_workflow::signal::domain::Signal {
+fn request(id: &str) -> magistr_workflow::request::domain::Request {
+    magistr_workflow::request::domain::Request {
         id: id.to_owned(),
-        kind: SignalKind::Idea,
+        kind: RequestKind::Suggestion,
         from: "alice".to_owned(),
         body: "faster startup".to_owned(),
         content: None,
         created: "2026-09-12T00:00:00Z".to_owned(),
-        status: magistr_workflow::signal::domain::SignalStatus::New,
+        status: magistr_workflow::request::domain::RequestStatus::New,
         enrichment: vec![],
         refs: vec![],
-        surfaced_at: None,
+        raised_at: None,
         snooze_until: None,
         project_id: None,
     }
@@ -125,13 +125,13 @@ fn every_family_round_trips_through_the_wire_line() {
             NativeEvent::Plan(PlanFrame::TaskChanged { task: task("a") }),
         ),
         (
-            Family::Signal,
-            serde_json::to_value(SignalFrame::SignalCaptured {
-                signal: signal("s1"),
+            Family::Request,
+            serde_json::to_value(RequestFrame::RequestCaptured {
+                request: request("s1"),
             })
             .unwrap(),
-            NativeEvent::Signal(SignalFrame::SignalCaptured {
-                signal: signal("s1"),
+            NativeEvent::Request(RequestFrame::RequestCaptured {
+                request: request("s1"),
             }),
         ),
         (
@@ -201,9 +201,9 @@ async fn a_live_broadcaster_line_decodes_with_its_stamps() {
     );
     publisher
         .emit(
-            Family::Signal,
-            &SignalFrame::SignalCaptured {
-                signal: signal("s9"),
+            Family::Request,
+            &RequestFrame::RequestCaptured {
+                request: request("s9"),
             },
         )
         .expect("emit");
@@ -215,8 +215,8 @@ async fn a_live_broadcaster_line_decodes_with_its_stamps() {
         .expect("decodes");
     assert_eq!(
         event,
-        NativeEvent::Signal(SignalFrame::SignalCaptured {
-            signal: signal("s9")
+        NativeEvent::Request(RequestFrame::RequestCaptured {
+            request: request("s9")
         })
     );
     assert_eq!(

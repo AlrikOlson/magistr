@@ -81,7 +81,7 @@ impl Field {
         Field::Assignee,
     ];
 
-    /// The name a human sees in a concern signal.
+    /// The name a human sees in a concern request.
     #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
