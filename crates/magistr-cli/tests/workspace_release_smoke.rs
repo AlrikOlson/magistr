@@ -36,7 +36,7 @@ const CORE_TOOLS: [&str; 10] = [
     "write",
     "undo",
     "script",
-    "run",
+    "command",
 ];
 const APP_TS: &str = "export function app(): number {\n  return 1;\n}\n";
 
@@ -216,7 +216,7 @@ async fn the_release_binary_serves_every_core_tool_with_no_runtime_beside_it() {
     assert_eq!(script["ok"], true, "{script}");
     assert_eq!(script["results"][0]["value"], json!(["src/app.ts"]));
 
-    let ran = call(&client, "run", json!({"command": "hello"})).await;
+    let ran = call(&client, "command", json!({"command": "hello"})).await;
     assert_eq!(ran["ok"], true, "{ran}");
     assert_eq!(ran["results"][0]["exitCode"], 0, "{ran}");
     assert!(

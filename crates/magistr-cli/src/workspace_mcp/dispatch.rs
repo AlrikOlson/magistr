@@ -132,9 +132,13 @@ async fn dispatch(
             }
         },
         "script" => script(service, args, session, context, version).await,
-        "run" => answer(
+        "command" => answer(
             service
-                .run(&arguments::run_input(args)?, session, context.ct.clone())
+                .run(
+                    &arguments::command_input(args)?,
+                    session,
+                    context.ct.clone(),
+                )
                 .await,
             version,
         ),

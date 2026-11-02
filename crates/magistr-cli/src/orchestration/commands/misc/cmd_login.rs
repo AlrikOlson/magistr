@@ -9,8 +9,8 @@ use color_eyre::eyre;
 use crate::config::inputs::ProjectInputs;
 use crate::error::MagistrError;
 use crate::output::OutputRenderer;
-use crate::team::TeamConfig;
-use crate::team::auth::{
+use crate::people::PeopleConfig;
+use crate::people::auth::{
     DeviceAuthorization, HttpDeviceFlow, IdentityCache, IdentityProvider, VerifiedIdentity, login,
 };
 use crate::utils::format as fmt;
@@ -37,7 +37,7 @@ pub fn cmd_login(
         return report_status(renderer, inputs);
     }
 
-    let configured = TeamConfig::load(dir)?.and_then(|config| config.identity_provider);
+    let configured = PeopleConfig::load(dir)?.and_then(|config| config.identity_provider);
     let provider = login_provider(
         configured.as_ref(),
         kind,

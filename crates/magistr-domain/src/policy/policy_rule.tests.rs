@@ -22,7 +22,7 @@ fn rules_are_not_overridable_unless_they_say_so() {
 fn round_trips_through_the_roster_json() {
     let rule = PolicyRule::new(
         "protect-roster",
-        PolicyCondition::path("*team.json"),
+        PolicyCondition::path("*people.json"),
         PolicyEffect::RequireApproval,
     )
     .describe("the roster is an org artifact")

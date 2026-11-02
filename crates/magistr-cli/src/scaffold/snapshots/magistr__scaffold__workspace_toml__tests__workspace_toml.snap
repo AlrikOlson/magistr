@@ -1,9 +1,9 @@
 ---
-source: src/scaffold/workspace_toml.tests.rs
+source: crates/magistr-cli/src/scaffold/workspace_toml.tests.rs
 expression: "WorkspaceSeed::from_template_vars(&vars()).render()"
 ---
 # Seeded by `magistr init` from .magistr/project.json (and `magistr init` manifest detection).
-# Amend by hand: this table is workspace `run`'s allowlist and only a human may change it.
+# Amend by hand: this table is workspace `command`'s allowlist and only a human may change it.
 [commands]
 "check" = "cargo check --all-targets" # project.json quality_gate.check
 "test" = "cargo nextest run" # project.json quality_gate.test

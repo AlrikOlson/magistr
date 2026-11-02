@@ -59,7 +59,7 @@ pub async fn cmd_doctor(dir: &std::path::Path, renderer: &dyn OutputRenderer) ->
             detail: Some(error.to_string()),
         }),
     }
-    // The workspace `run` allowlist is seeded from project.json once; flag
+    // The workspace `command` allowlist is seeded from project.json once; flag
     // the two drifting apart.
     checks.push(crate::scaffold::workspace_drift::doctor_check(&dir));
 

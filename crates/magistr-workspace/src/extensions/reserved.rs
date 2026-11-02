@@ -8,7 +8,7 @@ pub const RESERVED_TOOL_NAMES: [&str; 9] = [
     "map",
     "files",
     "script",
-    "run",
+    "command",
     "undo",
     "workspace_status",
 ];

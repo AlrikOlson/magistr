@@ -21,7 +21,7 @@ and the [workspace owner](workspace-owner.md):
 | Client | Workflow capability | Source capability | Owning composition and evidence |
 | --- | --- | --- | --- |
 | Desktop window | ProjectResources admits or attaches to the project authority; sessions use execution-bound views | One admitted source resource per working copy | SessionRegistry and InteractiveHost; resident process and native window journeys |
-| Plain and headless `magistr run` | The agent's connected MCP tools act through the project owner | WorkspaceAdmission, then the session's SourceRoute | AgentSession; source_pipeline_routing and effect_capabilities |
+| Plain and headless `magistr start` | The agent's connected MCP tools act through the project owner | WorkspaceAdmission, then the session's SourceRoute | AgentSession; source_pipeline_routing and effect_capabilities |
 | `magistr next`, `magistr next-loop` | NativeReader for progress; the agent's MCP tools use the project owner. IterationLoop owns no workflow lease. | Admitted workspace shared across attempts | Streamed/headless command composition; next_loop_recovery and mcp_project_owner suites |
 | Hosted work driver | Host supplies NativeEngines explicitly for mutations, judging and AdmittedCheck; IterationLoop receives its reader | The host's admitted source resource | HostedWork and loop_driver suites |
 | Workflow MCP | One Service writer when admitted, otherwise attachment to the current authority | Lock-free evidence for gates | MagistrService and mcp_bridge; mcp_project_owner and mcp_service_owner |

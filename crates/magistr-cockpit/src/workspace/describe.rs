@@ -3,7 +3,7 @@
 use crate::cockpit::WorkspaceCmd;
 
 /// The ask behind `cmd` — `open <path>`, `undo <id>`, `journal`,
-/// `search <q>`, `map`, `run <command>` — the words a refusal
+/// `search <q>`, `map`, `command <name>` — the words a refusal
 /// ([`WorkspaceEvent::Failed`](crate::cockpit::WorkspaceEvent::Failed))
 /// is reported on the stage with, and the name a session job runs under.
 #[must_use]
@@ -14,6 +14,6 @@ pub fn describe(cmd: &WorkspaceCmd) -> String {
         WorkspaceCmd::Journal => "journal".to_owned(),
         WorkspaceCmd::Search { query } => format!("search {query}"),
         WorkspaceCmd::Map => "map".to_owned(),
-        WorkspaceCmd::Run { command } => format!("run {command}"),
+        WorkspaceCmd::Command { command } => format!("command {command}"),
     }
 }

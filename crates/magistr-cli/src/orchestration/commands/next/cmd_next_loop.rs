@@ -29,7 +29,7 @@ pub async fn cmd_next_loop(
         crate::roadmap::open_native_reader(&dir)?,
     )
     .suggest()?;
-    super::select_loop_track(&mut iter_loop, request.track, true)?;
+    super::select_loop_feature(&mut iter_loop, request.feature, true)?;
     if let Some(selection) = inputs.session_selection() {
         iter_loop.bind_session_selection(selection.clone())?;
     }
@@ -38,7 +38,7 @@ pub async fn cmd_next_loop(
     // The workspace this host owns for the loop: every iteration's session
     // writes through it, or is refused when it could not be admitted.
     let workspace =
-        crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
+        crate::commands::start::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
     let source = workspace.source_route();
 
     eprintln!(
@@ -126,7 +126,7 @@ pub async fn cmd_next_loop(
             iter_loop.persist().suggest()?;
             continue;
         };
-        let ran = crate::commands::run::cmd_run_workflow(
+        let ran = crate::commands::start::cmd_start_workflow(
             &prompt,
             &dir,
             backend,

@@ -15,7 +15,7 @@ stops. The host may invoke it again only in a new Codex session. That session
 must re-read native roadmap and ship state before selecting the next chunk and
 continue only within the remaining bound. The skill
 cannot open a new Codex session from inside the current one; do not use context
-compaction as a substitute. Never launch `magistr next`, `magistr run`,
+compaction as a substitute. Never launch `magistr next`, `magistr start`,
 `magistr next-loop`, `run-autonomous.sh`, or another coding-agent runtime as
 a substitute for these skills. Do not create Claude `/tmp/*-next-loop` markers
 or rely on Claude `PreToolUse`/`Stop` hooks. Execute explicit formatting,

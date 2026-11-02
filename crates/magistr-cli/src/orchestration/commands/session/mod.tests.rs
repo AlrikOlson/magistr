@@ -1,8 +1,8 @@
 use super::*;
 use crate::output::{OutputRenderer, SilentRenderer};
+use crate::people::directory::DirectoryConfig;
 use crate::permissions;
 use crate::session;
-use crate::team::directory::DirectoryConfig;
 
 #[test]
 fn cmd_costs_succeeds_with_empty_data() {
@@ -228,14 +228,14 @@ fn the_policy_view_reports_no_policy_for_an_ungoverned_project() {
 
 #[test]
 fn the_policy_view_renders_a_governed_project() {
-    use crate::team::{TeamConfig, TeamRole};
+    use crate::people::{PeopleConfig, PersonRole};
     use magistr_engine::cost::{BudgetPeriod, BudgetRule, BudgetScope};
 
     let tmp = tempfile::TempDir::new().unwrap();
     let ledger = tmp.path().join("costs.json");
-    TeamConfig {
+    PeopleConfig {
         version: 1,
-        default_role: TeamRole::Developer,
+        default_role: PersonRole::Developer,
         identity_provider: None,
         budgets: vec![
             BudgetRule::new(BudgetScope::Org, BudgetPeriod::Monthly).limit(1000.0),

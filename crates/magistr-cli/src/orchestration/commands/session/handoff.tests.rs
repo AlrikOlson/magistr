@@ -61,7 +61,7 @@ fn owner_hands_off_their_own_session_and_audit_records_it() {
         "s1",
         "bob@example.dev",
         &alice,
-        TeamRole::Developer,
+        PersonRole::Developer,
         Some(&log),
         &AuditRetention::default(),
     )
@@ -93,7 +93,7 @@ fn developer_may_not_take_over_someone_elses_session() {
         "s1",
         "mallory@example.dev",
         &mallory,
-        TeamRole::Developer,
+        PersonRole::Developer,
         Some(&log),
         &AuditRetention::default(),
     );
@@ -117,7 +117,7 @@ fn admin_takes_over_any_session() {
         "s1",
         "carol@example.dev",
         &admin,
-        TeamRole::Admin,
+        PersonRole::Admin,
         None,
         &AuditRetention::default(),
     )
@@ -139,7 +139,7 @@ fn ownership_match_is_case_insensitive() {
         "s1",
         "bob@example.dev",
         &alice,
-        TeamRole::Viewer,
+        PersonRole::Viewer,
         None,
         &AuditRetention::default(),
     )
@@ -157,7 +157,7 @@ fn unknown_session_is_an_error() {
         "missing",
         "bob@example.dev",
         &alice,
-        TeamRole::Owner,
+        PersonRole::Owner,
         None,
         &AuditRetention::default(),
     );
@@ -183,7 +183,7 @@ fn retention_bounds_apply_after_the_handoff_append() {
             id,
             next,
             &alice,
-            TeamRole::Owner,
+            PersonRole::Owner,
             Some(&log),
             &retention,
         )

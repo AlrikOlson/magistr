@@ -149,7 +149,7 @@ fn journal_and_doctor_run_beside_a_live_owner_without_taking_or_disturbing_the_l
     let root = dir.path().to_str().expect("utf8 root");
     let state = dir.path().join(".magistr/workspace");
     seed_findings(dir.path());
-    // A live instance owns the workspace, exactly as during `magistr run`:
+    // A live instance owns the workspace, exactly as during `magistr start`:
     // the OS lock is held and the journal writer stays open.
     let lock = ServerLock::acquire(state.join(ServerLock::FILE_NAME)).expect("live owner");
     let writer = JournalDb::open(JournalDbOptions::new(state.join("journal.db"))).expect("writer");

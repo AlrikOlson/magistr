@@ -131,7 +131,7 @@ impl WorkspacePort for FakeWorkspace {
         Ok(paths)
     }
 
-    fn run(&mut self, command: &str) -> Result<Vec<RunRow>, String> {
+    fn command(&mut self, command: &str) -> Result<Vec<RunRow>, String> {
         self.calls.push(format!("run {command}"));
         self.runs
             .get(command)

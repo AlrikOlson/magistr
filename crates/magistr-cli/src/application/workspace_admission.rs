@@ -5,7 +5,7 @@ use super::HostedWorkspace;
 use crate::config::inputs::ProjectInputs;
 
 /// What a source-writing host got when it tried to own the checkout for its
-/// run — the one composition every such host shares (`magistr run` on the
+/// run — the one composition every such host shares (`magistr start` on the
 /// cockpit, headless and plain, the cockpit, plain and headless loops, the
 /// roadmap generator and the init interview). Either this process admitted
 /// the workspace and the session's authorized writes take its pipeline, or

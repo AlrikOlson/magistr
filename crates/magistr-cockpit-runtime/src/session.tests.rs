@@ -427,7 +427,10 @@ impl WorkspacePort for BlockingWorkspace {
     fn map(&mut self) -> Result<Vec<String>, String> {
         Ok(Vec::new())
     }
-    fn run(&mut self, _command: &str) -> Result<Vec<magistr_cockpit::workspace::RunRow>, String> {
+    fn command(
+        &mut self,
+        _command: &str,
+    ) -> Result<Vec<magistr_cockpit::workspace::RunRow>, String> {
         Ok(Vec::new())
     }
 }

@@ -8,7 +8,7 @@ use magistr_engine::cost::{BudgetConfig, BudgetPolicy, ResolvedBudget};
 use super::spend_by_scope::spend_by_scope;
 use super::spend_context::SpendContext;
 use super::storage::load_entries;
-use crate::team::TeamConfig;
+use crate::people::PeopleConfig;
 
 /// The budget a run in `dir` actually gets, given the roster's policy,
 /// what the ledger at `ledger` already spent, and the local budget the
@@ -28,10 +28,10 @@ pub fn governed_budget(
     local: &BudgetConfig,
     now: DateTime<Utc>,
 ) -> ResolvedBudget {
-    let roster = TeamConfig::load(dir).ok().flatten();
+    let roster = PeopleConfig::load(dir).ok().flatten();
     let policy = roster
         .as_ref()
-        .map_or_else(BudgetPolicy::default, TeamConfig::policy);
+        .map_or_else(BudgetPolicy::default, PeopleConfig::policy);
 
     if !policy.is_set() {
         return policy.resolve(local, &Default::default());

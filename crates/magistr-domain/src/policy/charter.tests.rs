@@ -121,10 +121,10 @@ fn the_roster_tightens_over_every_delegation() {
     ));
     let roster = PolicyEngine::new(vec![PolicyRule::new(
         "roster-is-precious",
-        PolicyCondition::path("*team.json"),
+        PolicyCondition::path("*people.json"),
         PolicyEffect::Deny,
     )]);
-    let precious = edit("/repo/.magistr/team.json");
+    let precious = edit("/repo/.magistr/people.json");
     let widened = charter.apply(PolicyEffect::RequireApproval, &precious);
     assert_eq!(
         widened.effect,

@@ -1,7 +1,7 @@
-//! The requested loop limit and roadmap track for non-graphical entry points.
+//! The requested loop limit and feature for non-graphical entry points.
 
 #[derive(Clone, Copy, Debug)]
 pub struct LoopRequest<'a> {
     pub max_iterations: u32,
-    pub track: Option<&'a str>,
+    pub feature: Option<&'a str>,
 }

@@ -87,11 +87,11 @@ fn snapshots_keep_provider_model_mcp_and_policy_after_configuration_changes() {
 #[test]
 fn inherited_models_pass_through_project_governance_before_launch() {
     let dir = tempfile::tempdir().expect("project");
-    let identity = crate::team::Identity::resolve(
+    let identity = crate::people::Identity::resolve(
         dir.path(),
         &crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None),
     );
-    let mut team = crate::team::TeamConfig::new_with_owner(&identity);
+    let mut team = crate::people::PeopleConfig::new_with_owner(&identity);
     team.policy = GovernancePolicy {
         approved_models: vec!["approved".into()],
         ..GovernancePolicy::default()
@@ -200,11 +200,11 @@ fn unsupported_provider_is_refused_before_runtime_discovery() {
 #[test]
 fn unknown_runtime_and_resumed_models_cannot_bypass_project_model_governance() {
     let dir = tempfile::tempdir().expect("project");
-    let identity = crate::team::Identity::resolve(
+    let identity = crate::people::Identity::resolve(
         dir.path(),
         &crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None),
     );
-    let mut team = crate::team::TeamConfig::new_with_owner(&identity);
+    let mut team = crate::people::PeopleConfig::new_with_owner(&identity);
     team.policy = GovernancePolicy {
         approved_models: vec!["approved".into()],
         ..GovernancePolicy::default()
@@ -275,7 +275,7 @@ fn malformed_user_defaults_are_refused_instead_of_selecting_another_provider() {
 
 #[test]
 fn malformed_project_governance_and_charter_refuse_session_resolution() {
-    for file in ["team.json", "charter.json"] {
+    for file in ["people.json", "charter.json"] {
         let dir = tempfile::tempdir().expect("project");
         std::fs::create_dir(dir.path().join(".magistr")).expect("project configuration directory");
         std::fs::write(dir.path().join(".magistr").join(file), "{broken json")
@@ -359,7 +359,7 @@ fn workflow_snapshots_require_the_exact_model_and_keep_unset_values() {
 fn changed_project_policy_cannot_substitute_a_workflows_saved_model() {
     let dir = tempfile::tempdir().unwrap();
     let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None);
-    let mut team = crate::team::TeamConfig::new_with_owner(&crate::team::Identity::resolve(
+    let mut team = crate::people::PeopleConfig::new_with_owner(&crate::people::Identity::resolve(
         dir.path(),
         &inputs,
     ));

@@ -3726,7 +3726,7 @@ async fn an_unreconciled_dispatch_ends_the_loop_without_a_launch_or_a_terminal_r
 // ── Hosted work ─────────────────────────────────────────────────────
 
 /// A start taken inside a live hosted session — the desktop's and
-/// `magistr run`'s host — runs on this same driver: the judged iteration
+/// `magistr start`'s host — runs on this same driver: the judged iteration
 /// completes the chunk with every operation settled in the checkpoint, the
 /// session takes conversation again when the run ends, and a further start
 /// is answered on its own terms.

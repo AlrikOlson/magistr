@@ -30,8 +30,8 @@ fn canonicalize_dir(dir: &std::path::Path) -> color_eyre::eyre::Result<std::path
 mod workflow_inputs;
 use workflow_inputs::workflow_inputs;
 
-mod select_loop_track;
-use select_loop_track::select_loop_track;
+mod select_loop_feature;
+use select_loop_feature::select_loop_feature;
 
 mod loop_request;
 pub use loop_request::LoopRequest;

@@ -1,7 +1,7 @@
 //! Decide which provider a `magistr login` should talk to.
 
 use crate::error::MagistrError;
-use crate::team::auth::IdentityProvider;
+use crate::people::auth::IdentityProvider;
 
 /// GitHub client ids can come from the environment so a team need not
 /// commit one — the id is public, but a fork should not inherit it.
@@ -39,7 +39,7 @@ pub fn login_provider(
                     MagistrError::Other(format!(
                         "GitHub login needs the OAuth app's client id — pass \
                          `--client-id`, set {GITHUB_CLIENT_ID_ENV}, or put it in \
-                         .magistr/team.json under identity_provider"
+                         .magistr/people.json under identity_provider"
                     ))
                 })?;
             Ok(IdentityProvider::Github { client_id, scope })
@@ -55,7 +55,7 @@ pub fn login_provider(
                 .ok_or_else(|| {
                     MagistrError::Other(
                         "OIDC login needs the issuer URL — pass `--issuer`, or put it in \
-                         .magistr/team.json under identity_provider"
+                         .magistr/people.json under identity_provider"
                             .to_string(),
                     )
                 })?;
@@ -65,7 +65,7 @@ pub fn login_provider(
                 .ok_or_else(|| {
                     MagistrError::Other(
                         "OIDC login needs the client id — pass `--client-id`, or put it in \
-                         .magistr/team.json under identity_provider"
+                         .magistr/people.json under identity_provider"
                             .to_string(),
                     )
                 })?;
@@ -127,7 +127,7 @@ fn no_provider() -> MagistrError {
     MagistrError::Other(
         "no identity provider configured — pass `--provider github --client-id <id>` \
          (or `--provider oidc --issuer <url> --client-id <id>`), or set \
-         identity_provider in .magistr/team.json"
+         identity_provider in .magistr/people.json"
             .to_string(),
     )
 }

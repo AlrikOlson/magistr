@@ -247,7 +247,7 @@ impl AgentConfig {
     ) {
         let config = crate::permissions::load_config(&self.cwd).unwrap_or_default();
         let profile = self.permission_profile.unwrap_or(config.profile);
-        let policy = crate::orchestration::commands::run::cockpit_policy_for_project(
+        let policy = crate::orchestration::commands::start::cockpit_policy_for_project(
             &self.cwd,
             &self.inputs,
             profile,

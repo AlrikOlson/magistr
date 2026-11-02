@@ -130,8 +130,8 @@ pub enum Command {
         annotations: bool,
     },
 
-    /// Launch an agent session with project context
-    Run {
+    /// Start an agent session with project context
+    Start {
         /// The prompt to send to the agent
         prompt: String,
 
@@ -191,9 +191,9 @@ pub enum Command {
 
     /// Run ready roadmap work in fresh agent sessions
     NextLoop {
-        /// Loop only on this roadmap track (exact name or unambiguous fragment)
+        /// Loop only on this feature (exact name or unambiguous fragment)
         #[arg(long)]
-        track: Option<String>,
+        feature: Option<String>,
         #[command(flatten)]
         agent: crate::workflow_agent_options::WorkflowAgentOptions,
         /// Project directory (defaults to current directory)
@@ -226,9 +226,9 @@ pub enum Command {
         /// Project directory
         #[arg(default_value = ".")]
         dir: PathBuf,
-        /// Saved run ID shown by workspace doctor
-        #[arg(long)]
-        run: String,
+        /// Saved loop ID shown by workspace doctor
+        #[arg(long = "loop")]
+        loop_id: String,
         /// Command ID shown by workspace doctor
         #[arg(long)]
         command: String,
@@ -441,19 +441,19 @@ pub enum Command {
         provider: Option<String>,
     },
 
-    /// Manage the team roster and roles (.magistr/team.json)
+    /// Manage the people roster and roles (.magistr/people.json)
     #[command(subcommand_required = false)]
-    Team {
-        /// Team action (defaults to show)
+    People {
+        /// People action (defaults to show)
         #[command(subcommand)]
-        action: Option<TeamAction>,
+        action: Option<PeopleAction>,
 
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,
     },
 
-    /// Inspect the org's workflow policy (.magistr/team.json `policy`)
+    /// Inspect the org's workflow policy (.magistr/people.json `policy`)
     #[command(subcommand_required = false)]
     Policy {
         /// Policy action (defaults to show)
@@ -757,13 +757,13 @@ pub enum ExportFormat {
     Csv,
 }
 
-/// Actions for the `magistr team` subcommand.
+/// Actions for the `magistr people` subcommand.
 #[derive(Debug, Subcommand)]
-pub enum TeamAction {
+pub enum PeopleAction {
     /// Show your identity, resolved role, and the roster (default)
     Show,
 
-    /// Create .magistr/team.json with you as the sole Owner
+    /// Create .magistr/people.json with you as the sole Owner
     Init,
 
     /// Add a member to the roster
@@ -989,7 +989,7 @@ pub enum LayoutFlag {
     Auto,
 }
 
-/// Output format for `magistr run --headless`.
+/// Output format for `magistr start --headless`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Default)]
 pub enum HeadlessFormat {
     /// Human-readable plain text (default)
@@ -1102,7 +1102,7 @@ pub enum PlanStatusFilter {
     Abandoned,
 }
 
-/// Agent backend selection for `magistr run`.
+/// Agent backend selection for `magistr start`.
 ///
 /// Can also be set via `MAGISTR_AGENT_BACKEND` environment variable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Default)]

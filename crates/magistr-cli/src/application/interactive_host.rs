@@ -126,7 +126,7 @@ impl InteractiveHost {
         let mut selection = spec.selection();
         let project = crate::commands::galaxy_data::project_name(spec.cwd());
         let dir = spec.cwd().display().to_string();
-        let supervision = crate::commands::run::supervision_seed(
+        let supervision = crate::commands::start::supervision_seed(
             spec.cwd(),
             spec.permission_profile(),
             spec.workflow_permissions(),

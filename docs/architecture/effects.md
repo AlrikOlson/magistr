@@ -79,7 +79,7 @@ file write or program side effect.
 
 `arch-14f2` routes an authorized `fs/write_text_file` through the admitted
 workspace when the host is its owner (`magistr::application::HostedWorkspace`,
-composed by `magistr run` and the cockpit loops). The order is unchanged:
+composed by `magistr start` and the cockpit loops). The order is unchanged:
 resolution, the session's permission decision, the post-decision recheck — and
 only then the route. A denied or cancelled write reaches neither the pipeline
 nor the file. Through the route the write is the workspace's `write` verb:

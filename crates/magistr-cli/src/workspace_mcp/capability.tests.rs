@@ -65,7 +65,7 @@ fn the_core_listing_is_the_served_wire_shape_with_or_without_script() {
             "write",
             "undo",
             "script",
-            "run"
+            "command"
         ]
     );
     assert_eq!(
@@ -79,7 +79,7 @@ fn the_core_listing_is_the_served_wire_shape_with_or_without_script() {
             "files",
             "write",
             "undo",
-            "run"
+            "command"
         ]
     );
     let listing = Capability::new(true).core_listing();

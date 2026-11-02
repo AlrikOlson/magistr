@@ -4,8 +4,8 @@ use std::path::Path;
 
 use chrono::Utc;
 
+use crate::people::{Identity, PersonRole, RosterChange};
 use crate::permissions::{AuditEntry, AuditRetention, RiskLevel, append_entry, apply_retention};
-use crate::team::{Identity, RosterChange, TeamRole};
 
 /// Append one `team_roster` entry for `change` to the audit log at
 /// `audit_log`, then apply the retention bounds.
@@ -20,7 +20,7 @@ pub fn audit_roster_edit(
     change: RosterChange,
     member_id: &str,
     actor: &Identity,
-    role: TeamRole,
+    role: PersonRole,
     audit_log: Option<&Path>,
     retention: &AuditRetention,
 ) {
@@ -43,7 +43,7 @@ pub fn audit_roster_edit(
 
     let entry = AuditEntry {
         timestamp: Utc::now(),
-        tool_name: "team_roster".to_string(),
+        tool_name: "people_roster".to_string(),
         risk: if change.touches_owner() {
             RiskLevel::High
         } else {

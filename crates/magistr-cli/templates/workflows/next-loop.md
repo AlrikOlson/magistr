@@ -17,14 +17,14 @@ state that bound before starting. Honor tighter existing limits. The native
 Claude harness cannot create a new host session from inside this skill, so it
 must hand off explicitly instead of chaining in the current context.
 
-Choose the requested roadmap track before selecting work. If none was supplied,
-ask which track to loop on, offering the current track names and all tracks.
-The native command accepts `--track` for a direct selection. Keep the chosen track in every fresh-session handoff.
-Resume unfinished work only within that scope; blocked work in other tracks
-does not prevent selection. A recovered run keeps its saved track and unfinished
+Choose the requested feature before selecting work. If none was supplied,
+ask which feature to loop on, offering the current feature names and all features.
+The native command accepts `--feature` for a direct selection. Keep the chosen feature in every fresh-session handoff.
+Resume unfinished work only within that scope; blocked work in other features
+does not prevent selection. A recovered run keeps its saved feature and unfinished
 operations. A new run does not inherit a blocked target from an ended run.
-When the chosen track has no ready or resumable work, stop without selecting
-work from another track. Choosing a new objective scope saves the unfinished
+When the chosen feature has no ready or resumable work, stop without selecting
+work from another feature. Choosing a new objective scope saves the unfinished
 plan; returning to its scope restores its tasks and checks. Preserve those
 plans without resetting them.
 
@@ -36,7 +36,7 @@ plans without resetting them.
    objective. If another scope is selected, use `ship_set_objective` to save
    its unfinished work and restore the chosen `chunk:<id>` scope, then read
    `ship_status` again. Preserve unrelated worktree changes and report
-   ambiguous work within the chosen track.
+   ambiguous work within the chosen feature.
 2. Invoke exactly one complete `{{invoke}}next` workflow. When its stop rule is
    reached, end this loop invocation; the return is not permission to select
    another chunk in the same session. A recoverable gate or test failure stays

@@ -88,7 +88,7 @@ pub async fn probe_models(
             .map_err(|error| error.to_string())?;
         let runtime = AgentRuntime::detect_for(&captured, Some(&provider))
             .map_err(|error| error.to_string())?;
-        let governance = crate::team::TeamConfig::load(&root)
+        let governance = crate::people::PeopleConfig::load(&root)
             .map_err(|error| error.to_string())?
             .map(|team| team.policy)
             .unwrap_or_default();

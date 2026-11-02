@@ -104,7 +104,7 @@ impl SessionHistory {
             Ok::<_, MagistrError>((
                 location.authority_root.display().to_string(),
                 location.working_copy.display().to_string(),
-                crate::team::Identity::resolve(&root, &inputs)
+                crate::people::Identity::resolve(&root, &inputs)
                     .id()
                     .to_owned(),
                 storage::sessions_db_path(&inputs),

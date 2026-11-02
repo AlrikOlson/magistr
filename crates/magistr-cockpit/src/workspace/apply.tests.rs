@@ -60,7 +60,7 @@ fn journal_lists_the_entries_through_the_port() {
 }
 
 #[test]
-fn search_map_and_run_answer_through_the_port() {
+fn search_map_and_command_answer_through_the_port() {
     let rows = vec![RunRow {
         name: "tests::alpha".to_owned(),
         passed: false,
@@ -90,7 +90,7 @@ fn search_map_and_run_answer_through_the_port() {
     assert_eq!(
         apply(
             &mut wb,
-            &WorkspaceCmd::Run {
+            &WorkspaceCmd::Command {
                 command: "test".to_owned()
             }
         ),
@@ -122,12 +122,12 @@ fn a_refusal_becomes_a_failed_event_with_the_reason() {
     assert_eq!(
         apply(
             &mut wb,
-            &WorkspaceCmd::Run {
+            &WorkspaceCmd::Command {
                 command: "test".to_owned()
             }
         ),
         WorkspaceEvent::Failed {
-            cmd: WorkspaceCmd::Run {
+            cmd: WorkspaceCmd::Command {
                 command: "test".to_owned()
             },
             error: "no declared command: test".to_owned(),

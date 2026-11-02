@@ -96,14 +96,14 @@ pub(crate) fn operations_section(root: &Path, workspace_generation: Option<u64>)
                 "present": true,
                 "readable": true,
                 "project": state.run_id.project().as_str(),
-                "run": state.run_id.local(),
+                "loop": state.run_id.local(),
                 "workspace": { "root": root.display().to_string(), "generation": workspace_generation },
                 "loopProcess": {
                     "pid": loop_pid,
                     "alive": loop_alive,
-                    "evidence": "the pid the run key names; not pinned to a start identity, so a live answer may be a reused id",
+                    "evidence": "the pid the loop key names; not pinned to a start identity, so a live answer may be a reused id",
                 },
-                "runState": {
+                "loopState": {
                     "mode": state.run.mode,
                     "completedAttempts": state.run.completed_attempts,
                     "maxIterations": state.run.max_iterations,
@@ -115,12 +115,12 @@ pub(crate) fn operations_section(root: &Path, workspace_generation: Option<u64>)
                     "nativeChunk": state.native_chunk_id,
                 },
                 "identities": {
-                    "project": "the run key's project, above",
+                    "project": "the loop key's project, above",
                     "workspace": "the canonical root and its durable generation, above",
                     "client": "live clients are the owner section's connections; the checkpoint records none",
                     "session": "not persisted: a provider session and its turns exist only in the live host's session feed and end with it",
                     "turn": "not persisted: see session",
-                    "run": "the run key, above",
+                    "loop": "the loop key, above",
                     "attempt": "each row's command and attempt number",
                     "check": "each receipt row's gate, task and receipt id",
                     "source": "the workspace generation above; a source snapshot names the same counter",
@@ -181,7 +181,7 @@ fn row(state: &IterationState, record: &OperationRecord, loop_alive: Option<bool
     });
     let detail = json!({
         "project": record.attempt.command().run().project().as_str(),
-        "run": record.attempt.command().run().local(),
+        "loop": record.attempt.command().run().local(),
         "attempt": {
             "command": record.attempt.command().local(),
             "number": record.attempt.number().get(),

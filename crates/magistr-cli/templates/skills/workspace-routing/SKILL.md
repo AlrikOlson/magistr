@@ -6,7 +6,7 @@ description: Use Magistr workspace operations for source search, reading, verifi
 # Workspace routing
 
 Use the single `magistr` connection. `search`, `read`, `edit` and `write` are
-direct tools. For `map`, `files`, `run`, `undo`, `script` and
+direct tools. For `map`, `files`, `command`, `undo`, `script` and
 `workspace_status`, inspect `discover({"operation":"name"})`, then invoke
 `execute({"source":"return magistr.call('name', {});"})` with its schema arguments.
 The routing table below names these catalog operations.
@@ -27,7 +27,7 @@ write is parse-verified and journaled in the same call.
 The shell is still right for things that are not about file content:
 
 - `git` (status, diff, log, commit, branch) — workspace never wraps git.
-- Installing dependencies, compiling, starting servers — use `run` when the project has declared
+- Installing dependencies, compiling, starting servers — use `command` when the project has declared
   the command, otherwise the shell.
 - Filtering another command's output (`… | grep`, `… | tail`) — that is output handling, not search.
 
@@ -92,7 +92,7 @@ One row names exactly one tool. `facet:value` picks a selection (`mode`, `op`, `
 | creating a file with content, `cat > file`, replacing a whole file | `write` — exact bytes, parse-verified, journaled, undoable | `path`, `content`, `expectedHash` |
 | `mkdir -p` | `files` `op:mkdir` | `to` |
 | `rm` | `files` `op:delete` — a journal-backed move to trash, undoable | `from`, `expectedHash` |
-| running the tests / build / lint | `run` — one declared command from the [commands] table, parsed output, no shell | `command`, `args`, `timeout` |
+| running the tests / build / lint | `command` — one declared command from the [commands] table, parsed output, no shell | `command`, `args`, `timeout` |
 | a bash one-liner or pipeline over many files | `script` — typed Code Mode in a sandbox; reads live, writes queued behind the confirm gate | `source`, `dryRun`, `confirm`, `fuel`, `memoryCapBytes` |
 | `git checkout --` on your own last edit | `undo` `scope:session` `onConflict:surface` — rewind your session's last op; conflicts are reported, nothing forced | `steps` |
 | reverting an op from *any* session | `undo` `scope:workspace` — cross-session; say so to the human first | `steps` |
@@ -202,17 +202,17 @@ apply → format → journal → atomic swap. A batch that would break syntax ro
   not skip verification, path protection, staleness checks, journaling or returned applied diffs.
 - `dryRun: true` runs the whole pipeline through re-verify and applies nothing — use it liberally.
 
-## Files, run, script, undo
+## Files, command, script, undo
 
 - `files` `op:move` rewrites importers (specifier-based, name-resolution-free — the notes say
   exactly what was rewritten); for a `.rs` file it is module-aware: the declaring `mod` item, the
   crate's `crate::`/`super::`/`self::` paths and Cargo.toml target `path` entries ride the same
   diff, and the notes name what was left for you (brace-grouped `use` members, non-leaf modules).
   `op:delete` is a move to `.magistr/workspace/trash/`, so it is undoable.
-- `run` executes one declared command as a single argv, never a shell. Shell operators in `args`
+- `command` executes one declared command as a single argv, never a shell. Shell operators in `args`
   are rejected, not interpreted. If the command is not declared (`COMMAND_NOT_DECLARED`) the human
   adds it to `.magistr/workspace.toml` (`magistr workspace init` seeds it) — you cannot, and you must not try to
-  reach it through `script` or any other door. Text or file munging through `run` answers
+  reach it through `script` or any other door. Text or file munging through `command` answers
   `RUN_REDIRECTED`: that job belongs to `search`/`read`/`edit`/`files`. Results come back as
   rows, not text: a `report` row (test failures — name, file, assertion, trimmed trace — from
   bun/jest/vitest/pytest/cargo test/cargo nextest/go), a `diagnostics` row (rustc/clippy
@@ -251,7 +251,7 @@ answers `PLUGIN_CRASHED` and the core tools keep working at full fidelity.
 | `PATTERN_INVALID` | `narrow` | The ast-grep/glob pattern did not parse. Fix it (balanced `$VAR`s, valid glob) and re-issue. |
 | `BUDGET_TOO_SMALL` | `narrow` | Raise `budget`, or narrow `path`/`kind` so the answer fits. |
 | `COMMAND_NOT_DECLARED` | `abort` | Not in `[commands]`. Tell the human to declare it in `.magistr/workspace.toml`; never route it through `script` or a shell. |
-| `RUN_REDIRECTED` | `abort` | You tried text/file munging or a shell through `run`. Use `search`/`read`/`edit`/`files` for that job. |
+| `RUN_REDIRECTED` | `abort` | You tried text/file munging or a shell through `command`. Use `search`/`read`/`edit`/`files` for that job. |
 | `SANDBOX_FUEL_EXCEEDED` | `narrow` | The script did too much in one round. Scope fewer files (`path`) or split the work across calls. |
 | `SANDBOX_CAP_DENIED` | `escalate` | The guest asked for a capability it does not have (network, ambient filesystem). By design; tell the human if the task truly needs it. |
 | `SANDBOX_MEMORY_EXCEEDED` | `narrow` | Reduce the working set: process fewer files per call, stream instead of accumulating. |
@@ -305,7 +305,7 @@ One per tool. Each block is a complete, valid call.
 { "path": "src/lib/clock.ts", "content": "export const now = (): number => Date.now();\n" }
 ```
 
-```json magistr:run
+```json magistr:command
 { "command": "test", "args": ["--filter", "auth"], "timeout": 300 }
 ```
 
@@ -326,6 +326,6 @@ The server's flight recorder writes one record per served request to `.magistr/w
 (`name` = `tool:<name>`, `status.code` + `status.recovery` on failures, `durationMs`). Misuse shows
 up there as patterns, not opinions: the same `tool:` with the same `status.code` five times in a
 row is a retry loop; a run of `RUN_REDIRECTED` means agents are still reaching for the shell
-through `run`; `CONFIRM_MISMATCH` churn means the confirm flow above is unclear. When you see one,
+through `command`; `CONFIRM_MISMATCH` churn means the confirm flow above is unclear. When you see one,
 revise the row or the recovery line that should have prevented it, by hand, and let `lint:skill`
 confirm the tables still agree with the product.

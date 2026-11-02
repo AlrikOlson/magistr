@@ -11,7 +11,7 @@ use super::append_entry::append_entry;
 use super::cost_entry::CostEntry;
 use super::session_spend::SessionSpend;
 use crate::config::inputs::ProjectInputs;
-use crate::team::Identity;
+use crate::people::Identity;
 
 /// Write `spend` to the ledger at `ledger` for a run in `dir`, stamping
 /// the identity resolved from `dir` and the captured `inputs` as the

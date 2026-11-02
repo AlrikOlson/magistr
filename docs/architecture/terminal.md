@@ -1,7 +1,7 @@
 # Command and protocol interfaces
 
 `magistr` is a plain command-line application. With no subcommand it prints
-help. `run`, `next` and `next-loop` stream progress to standard output;
+help. `start`, `next` and `next-loop` stream progress to standard output;
 `--headless` provides noninteractive execution. Commands never take over the
 terminal, negotiate graphics, enable mouse tracking or enter an alternate screen.
 
@@ -10,7 +10,7 @@ assistant text before tool activity, reports commands and tool outcomes, and
 shows concise findings, phases and check results. Long tool results have bounded
 previews that retain the beginning and end and identify omitted lines. JSON
 execution emits tool updates and results as separate protocol records. Workflow
-commands drain one turn; the loop owns continuation, while interactive `run`
+commands drain one turn; the loop owns continuation, while interactive `start`
 alone asks for follow-up input.
 
 `next-loop` holds the loop lease for its checkpoint and uses `NativeReader`

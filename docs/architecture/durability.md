@@ -97,7 +97,7 @@ reports for that process ([`process_start`](../../crates/magistr-core/src/workfl
 It names that particular process, not whatever holds the id later. Every loop
 records it: the cockpit driver right after the transport connects, the headless
 loop from its supervisor's provider pid, and the plain loop through the
-`launched` callback `cmd_run_workflow` calls as soon as its session is started.
+`launched` callback `cmd_start_workflow` calls as soon as its session is started.
 The cockpit's `magistr next` and headless `magistr next` run one turn with no
 loop checkpoint and record nothing new.
 
@@ -174,7 +174,7 @@ that the loop and every agent it started have stopped, resolve one attempt
 using the run, command and attempt reported there:
 
 ```sh
-magistr resolve-dispatch . --run run-… --command 0/dispatch --attempt 1 \
+magistr resolve-dispatch . --loop run-… --command 0/dispatch --attempt 1 \
   --outcome failed --reason "The agent stopped before completing the work." \
   --confirm-stopped
 ```

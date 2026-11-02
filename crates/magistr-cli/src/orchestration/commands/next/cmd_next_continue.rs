@@ -43,8 +43,8 @@ pub async fn cmd_next_continue(
     prompt.push_str("\n\nContinue this execution's selected unfinished objective and plan. Read ship_status first and retain its existing tasks and evidence. Do not select new work or infer objective completion from overall roadmap counts.");
 
     let workspace =
-        crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
-    let ran = crate::commands::run::cmd_run_workflow(
+        crate::commands::start::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
+    let ran = crate::commands::start::cmd_start_workflow(
         &prompt,
         &dir,
         backend,

@@ -10,7 +10,7 @@ use alloc::vec::Vec;
 /// no glob dependency to spend on it.
 ///
 /// Matching is anchored at both ends — a `protected_paths` entry like
-/// `.magistr/team.json` must be written `*team.json` (or an absolute
+/// `.magistr/people.json` must be written `*people.json` (or an absolute
 /// path) to catch a path with a leading directory, which keeps a rule
 /// from silently matching more than it says.
 #[must_use]

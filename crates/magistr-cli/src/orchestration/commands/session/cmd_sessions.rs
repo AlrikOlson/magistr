@@ -1,9 +1,9 @@
 use crate::cli;
 use crate::config::inputs::ProjectInputs;
 use crate::error::{self, ResultExt};
+use crate::people::auth::require_verified;
+use crate::people::{Identity, PeopleConfig, resolve_role};
 use crate::session;
-use crate::team::auth::require_verified;
-use crate::team::{Identity, TeamConfig, resolve_role};
 use crate::utils::format as fmt;
 use color_eyre::eyre;
 
@@ -45,7 +45,7 @@ pub fn cmd_sessions(
     {
         let dir = inputs.project_root();
         let identity = Identity::resolve(dir, inputs);
-        let config = TeamConfig::load(dir)?;
+        let config = PeopleConfig::load(dir)?;
         // Ahead of the role, as in `attach`: a role resolved from an
         // identity nobody vouched for is no basis for a handoff.
         require_verified(config.as_ref(), &identity)?;

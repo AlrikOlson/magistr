@@ -5,7 +5,7 @@ Every Magistr workspace client reaches one admitted native owner. The public
 Its workspace bridge speaks MCP to the admitted workspace owner over a local link.
 The first invocation admits the workspace and owns the
 `WorkspaceService` in-process; later invocations attach to it over Magistr's
-shared local owner endpoint. Since `arch-14f2` a `magistr run` or cockpit
+shared local owner endpoint. Since `arch-14f2` a `magistr start` or cockpit
 loop admits the workspace itself before its agent starts
 (`magistr::application::HostedWorkspace`) and serves the same endpoint, so the
 agent's bridge and the cockpit's port attach to the host and the host's own
@@ -175,7 +175,7 @@ nothing admitted, minted, marked or written.
   every attached session by kind with the caller each declared (`mcp` for
   bridges and the cockpit's port, `commands` for a workflow client); the
   embedded owner's own client speaks over an in-process duplex and is not
-  a socket session, so a lone `magistr run` reports zero. A durable counter
+  a socket session, so a lone `magistr start` reports zero. A durable counter
   that disagrees with the live owner, a refused identity/user probe and a
   listener that accepts but never greets are unhealthy findings. A probe
   refused on build equality is informational: it names the running build
@@ -243,7 +243,7 @@ supply actual execution results (macOS host).
 | 21: unreachable owner | `attachment`: a bridge preserves an unrecognized record and reconnects after an offline restore; a bridge started against a lock held without an endpoint answers within bounded windows, opens no store and admits once the lock is released. Non-temporary refusals still exit (66, 65, policy) | Startup against a lock held without an endpoint costs one bounded window per request until it is released |
 | 22: statelessness | Existing native served-schema/envelope tests use the same adapter through every path | Retained gate replayed through two bridges |
 | 23: Codex parent/subagent | `scripts/codex-subagent-check.py` passed on 2026-09-12 with codex-cli 0.154.0: parent and subagent `read` ok, two launches, zero exit-75, all nine tool names in the subagent's inventory | The gate is optional (needs `codex` and auth) |
-| 24: cockpit | `launcher_tests`: the cockpit port built from the project's `.mcp.json` maps, reads and lists the journal through the live owner without admitting | Live `magistr run` Changes-tab acceptance |
+| 24: cockpit | `launcher_tests`: the cockpit port built from the project's `.mcp.json` maps, reads and lists the journal through the live owner without admitting | Live `magistr start` Changes-tab acceptance |
 
 The retained reference files are unchanged. This matrix records a first-party
 adaptation with its own executed evidence, not a passing execution of the

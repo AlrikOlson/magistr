@@ -5,7 +5,7 @@ use color_eyre::eyre;
 
 use crate::agent;
 use crate::cli::HeadlessFormat;
-use crate::commands::run::{HeadlessOutcome, drain_headless};
+use crate::commands::start::{HeadlessOutcome, drain_headless};
 use crate::error::ResultExt;
 use crate::workflow;
 
@@ -41,7 +41,7 @@ pub async fn cmd_next_headless(
         .permission_profile(profile);
 
     let workspace =
-        crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
+        crate::commands::start::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
     let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;

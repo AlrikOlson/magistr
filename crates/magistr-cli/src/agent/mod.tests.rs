@@ -380,11 +380,12 @@ fn permission_context_uses_selected_project_and_preserves_explicit_profile() {
         PolicyDecision::Allow
     ));
     assert_eq!(
-        crate::commands::run::resolve_permission_profile(project.path(), None).unwrap(),
+        crate::commands::start::resolve_permission_profile(project.path(), None).unwrap(),
         PermissionProfile::Cautious
     );
     assert_eq!(
-        crate::commands::run::resolve_permission_profile(project.path(), Some("trusted")).unwrap(),
+        crate::commands::start::resolve_permission_profile(project.path(), Some("trusted"))
+            .unwrap(),
         PermissionProfile::Trusted
     );
 }

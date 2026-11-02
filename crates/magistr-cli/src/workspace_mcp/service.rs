@@ -86,7 +86,7 @@ impl ServerHandler for WorkspaceMcpService {
     ) -> Result<CallToolResponse, ErrorData> {
         // Run must finish its existing cancellation path to kill and reap its
         // owned process group; search likewise settles its worker cancellation.
-        let joins_cleanup = matches!(request.name.as_ref(), "run" | "search");
+        let joins_cleanup = matches!(request.name.as_ref(), "command" | "search");
         let response = dispatch::call(&self.service, &self.session, request, &context);
         if joins_cleanup {
             return response.await.map(Into::into);

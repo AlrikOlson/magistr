@@ -84,14 +84,14 @@ impl SessionPermissionPolicy {
         workflow: bool,
         model: Option<&str>,
     ) -> crate::error::Result<Self> {
-        let identity = crate::team::Identity::resolve(project_dir, inputs);
+        let identity = crate::people::Identity::resolve(project_dir, inputs);
         let store = CharterStore::at(project_dir);
         let charter = store.load()?;
         Ok(Self::new(
             profile,
             config.rules,
-            crate::orchestration::commands::run::collect_gate_commands(project_dir),
-            crate::orchestration::commands::run::protected_paths_for_project(project_dir),
+            crate::orchestration::commands::start::collect_gate_commands(project_dir),
+            crate::orchestration::commands::start::protected_paths_for_project(project_dir),
             workflow,
         )
         .rooted_at(Some(project_dir.to_path_buf()))

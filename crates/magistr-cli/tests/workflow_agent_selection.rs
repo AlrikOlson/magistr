@@ -69,7 +69,7 @@ fn native_previews_share_options_and_never_start_work() {
             "--show-config",
         ],
         vec![
-            "run",
+            "start",
             "unused prompt",
             "--provider",
             "codex",
@@ -143,7 +143,13 @@ fn saved_preferences_and_overrides_have_the_same_precedence_in_the_real_cli() {
     assert!(defaults["effort"].is_null());
     let other = preview(
         dir.path(),
-        &["run", "unused prompt", "--show-config", "--agent", "openai"],
+        &[
+            "start",
+            "unused prompt",
+            "--show-config",
+            "--agent",
+            "openai",
+        ],
     );
     assert!(
         other["model"].is_null(),

@@ -1,19 +1,17 @@
 use serde_json::Value;
 
-/// The retained tool contracts, served verbatim: each tool's `inputSchema`
-/// and the one `ResponseEnvelope` every tool returns as its `outputSchema`.
-/// The files under `crates/magistr-workspace/schemas/tools` are
-/// byte-identical to the reference tree's `schemas/` (an integration test
-/// proves it), so nothing hand-writes a tool schema in Rust and a client
-/// that validated against the reference validates against the native
-/// server. Tools the reference never had keep their schemas under
-/// `schemas/native`, outside that pin.
+/// The tool contracts, served verbatim: each tool's `inputSchema` and the
+/// one `ResponseEnvelope` every tool returns as its `outputSchema`, so
+/// nothing hand-writes a tool schema in Rust. The files under
+/// `crates/magistr-workspace/schemas` describe the current product
+/// contract; the retained reference tree keeps its upstream names and does
+/// not constrain them.
 pub struct ToolSchemas;
 
 impl ToolSchemas {
     /// The eight schema-defined tools; `workspace_status` is schema-less.
     pub const TOOL_NAMES: [&'static str; 8] = [
-        "search", "read", "map", "edit", "files", "run", "script", "undo",
+        "search", "read", "map", "edit", "files", "command", "script", "undo",
     ];
     /// Tools this server adds to the reference surface.
     pub const NATIVE_TOOL_NAMES: [&'static str; 1] = ["write"];
@@ -28,7 +26,7 @@ impl ToolSchemas {
             "map" => include_str!("../../schemas/tools/map.input.schema.json"),
             "edit" => include_str!("../../schemas/tools/edit.input.schema.json"),
             "files" => include_str!("../../schemas/tools/files.input.schema.json"),
-            "run" => include_str!("../../schemas/tools/run.input.schema.json"),
+            "command" => include_str!("../../schemas/tools/command.input.schema.json"),
             "script" => include_str!("../../schemas/tools/script.input.schema.json"),
             "undo" => include_str!("../../schemas/tools/undo.input.schema.json"),
             "write" => include_str!("../../schemas/native/write.input.schema.json"),

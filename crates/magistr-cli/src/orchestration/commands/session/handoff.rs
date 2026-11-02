@@ -5,9 +5,9 @@ use std::path::Path;
 use chrono::Utc;
 
 use crate::error::{MagistrError, Result};
+use crate::people::{Identity, PersonRole, SessionAction, session_access};
 use crate::permissions::{AuditEntry, AuditRetention, RiskLevel, append_entry, apply_retention};
 use crate::session;
-use crate::team::{Identity, SessionAction, TeamRole, session_access};
 
 /// Transfer `session_id` to `new_owner`, gated by the session-access
 /// matrix: the current owner may hand off their own session, and roles
@@ -23,7 +23,7 @@ pub fn handoff_session(
     session_id: &str,
     new_owner: &str,
     actor: &Identity,
-    role: TeamRole,
+    role: PersonRole,
     audit_log: Option<&Path>,
     retention: &AuditRetention,
 ) -> Result<String> {

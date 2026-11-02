@@ -206,7 +206,7 @@ fn a_lost_loop_explains_stalled_recoverable_settled_and_indeterminate_records() 
         ]
     );
     assert_eq!(section.detail["project"], "proj");
-    assert_eq!(section.detail["run"], run);
+    assert_eq!(section.detail["loop"], run);
     assert_eq!(section.detail["workspace"]["generation"], 3);
     assert_eq!(section.detail["loopProcess"]["alive"], false);
     let listed = rows(&section);

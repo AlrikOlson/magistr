@@ -34,8 +34,8 @@ fn question_mark_spans_exactly_one_character() {
 fn matching_is_anchored_at_both_ends() {
     // A bare filename does NOT match a path that merely ends with it —
     // the caller must say so with a leading star.
-    assert!(!glob_match("team.json", ".magistr/team.json"));
-    assert!(glob_match("*team.json", ".magistr/team.json"));
+    assert!(!glob_match("people.json", ".magistr/people.json"));
+    assert!(glob_match("*people.json", ".magistr/people.json"));
     assert!(!glob_match("rm -rf", "sudo rm -rf /"));
     assert!(glob_match("*rm -rf*", "sudo rm -rf /"));
 }

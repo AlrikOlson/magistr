@@ -94,16 +94,16 @@ fn the_allowlist_does_not_fire_on_a_request_with_no_tool() {
 #[test]
 fn a_protected_path_is_denied_but_overridable() {
     let policy = GovernancePolicy {
-        protected_paths: vec!["*team.json".into(), "*/migrations/*".into()],
+        protected_paths: vec!["*people.json".into(), "*/migrations/*".into()],
         ..GovernancePolicy::default()
     };
     let engine = policy.compile();
-    let decision = engine.evaluate(&PolicyRequest::tool("Write").with_path(".magistr/team.json"));
+    let decision = engine.evaluate(&PolicyRequest::tool("Write").with_path(".magistr/people.json"));
     assert_eq!(decision.effect, PolicyEffect::Deny);
     assert!(decision.override_allowed);
     assert_eq!(
         decision.binding.as_deref(),
-        Some("protected-path:*team.json")
+        Some("protected-path:*people.json")
     );
 
     assert_eq!(

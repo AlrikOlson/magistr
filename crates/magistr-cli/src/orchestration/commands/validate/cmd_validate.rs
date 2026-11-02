@@ -31,7 +31,7 @@ pub async fn cmd_validate(dir: &std::path::Path) -> eyre::Result<()> {
     }
 
     // The org's required-gate policy, on top of the run's own verdict.
-    let policy = crate::team::TeamConfig::governance_for(&dir);
+    let policy = crate::people::PeopleConfig::governance_for(&dir);
     let unmet = result.policy_violations(&policy);
     if !unmet.is_empty() {
         eprintln!();
@@ -45,7 +45,7 @@ pub async fn cmd_validate(dir: &std::path::Path) -> eyre::Result<()> {
         eprintln!(
             "  {}",
             fmt::info(
-                "configure the gate in .magistr/project.json, or ask an Owner to relax .magistr/team.json"
+                "configure the gate in .magistr/project.json, or ask an Owner to relax .magistr/people.json"
             )
         );
         std::process::exit(1);

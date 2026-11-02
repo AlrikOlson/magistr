@@ -1,5 +1,5 @@
 use super::*;
-use crate::commands::run::HeadlessOutcome;
+use crate::commands::start::HeadlessOutcome;
 use crate::workflow::spec::SpecSummary;
 use std::time::Duration;
 
@@ -43,7 +43,7 @@ fn workflow_session_uses_selected_project_for_execution_and_context() {
     assert_eq!(session.cwd, project.path());
     assert!(session.workflow_permissions);
     assert_eq!(
-        crate::commands::run::collect_gate_commands(project.path()),
+        crate::commands::start::collect_gate_commands(project.path()),
         vec![
             "selected-check",
             "selected-test",

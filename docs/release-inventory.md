@@ -13,9 +13,9 @@ configuration and stored formats until the owner declares official public releas
 
 | Surface | What is available |
 | --- | --- |
-| CLI | `magistr init`, `detect`, `validate`, `run`, `next`, `next-loop`, configuration, sessions, presets, plugins, completions, man pages, and diagnostics |
+| CLI | `magistr init`, `detect`, `validate`, `start`, `next`, `next-loop`, configuration, sessions, presets, plugins, completions, man pages, and diagnostics |
 | MCP server | The built-in `magistr mcp` endpoint and the native workflow and workspace tool families |
-| Workspace tools | Native `search`, `map`, `read`, `edit`, `files`, `undo`, `script`, and declared-command `run` operations |
+| Workspace tools | Native `search`, `map`, `read`, `edit`, `files`, `undo`, `script`, and declared-command `command` operations |
 | Agent integrations | Selected Claude Code, Codex, and portable MCP setup; Codex uses the managed `.codex/run` launcher |
 | API providers | OpenAI, Gemini, and Ollama chat adapters; provider authentication and credentials remain the caller's responsibility |
 | Release packages | Dependency-ordered Cargo archives and a macOS arm64 npm package with the native `magistr` executable, inventories and dependency license notices |

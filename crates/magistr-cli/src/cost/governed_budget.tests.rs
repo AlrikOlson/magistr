@@ -1,15 +1,15 @@
 use super::*;
 use crate::cost::CostEntry;
 use crate::cost::types::TokenBreakdown;
-use crate::team::TeamConfig;
-use crate::team::directory::DirectoryConfig;
+use crate::people::PeopleConfig;
+use crate::people::directory::DirectoryConfig;
 use chrono::Utc;
 use magistr_engine::cost::{BudgetPeriod, BudgetRule, BudgetScope};
 
 fn roster_with(dir: &std::path::Path, rules: Vec<BudgetRule>) {
-    let mut config = TeamConfig {
+    let mut config = PeopleConfig {
         version: 1,
-        default_role: crate::team::TeamRole::Developer,
+        default_role: crate::people::PersonRole::Developer,
         identity_provider: None,
         budgets: Vec::new(),
         policy: Default::default(),

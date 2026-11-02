@@ -5,7 +5,7 @@ use color_eyre::eyre;
 
 use crate::agent;
 use crate::cli::{BackendFlag, HeadlessFormat};
-use crate::commands::run::{HeadlessOutcome, drain_headless_observing};
+use crate::commands::start::{HeadlessOutcome, drain_headless_observing};
 use crate::error::ResultExt;
 use crate::workflow;
 use crate::workflow::iteration::{
@@ -40,7 +40,7 @@ pub async fn cmd_next_loop_headless(
         crate::roadmap::open_native_reader(&dir)?,
     )
     .suggest()?;
-    super::select_loop_track(&mut iter_loop, request.track, false)?;
+    super::select_loop_feature(&mut iter_loop, request.feature, false)?;
     if let Some(selection) = inputs.session_selection() {
         iter_loop.bind_session_selection(selection.clone())?;
     }
@@ -51,7 +51,7 @@ pub async fn cmd_next_loop_headless(
     // The workspace this host owns for the loop: every iteration's session
     // writes through it, or is refused when it could not be admitted.
     let workspace =
-        crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
+        crate::commands::start::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
     let source = workspace.source_route();
 
     let loop_start = Instant::now();

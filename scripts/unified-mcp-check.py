@@ -154,7 +154,7 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
             operations.update((op["name"], op) for op in page["operations"])
             if page["nextOffset"] is None: break
             offset = page["nextOffset"]
-        for name in ["map","files","run","undo","script","workspace_status","roadmap_add_chunk",
+        for name in ["map","files","command","undo","script","workspace_status","roadmap_add_chunk",
                      "think_record_step","ship_set_objective","ship_finalize","signal_capture"]:
             self.assertIn(name, operations)
         for name, tool in tools.items():
@@ -228,7 +228,7 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
     def test_cancellation_stops_a_native_command(self):
         c = self.connect()
         serial = c.begin("tools/call", {"name":"execute", "arguments":{
-            "source":'magistr.call("run", {command:"slow"}); return magistr.call("write", {path:"after.txt",content:"no"});'
+            "source":'magistr.call("command", {command:"slow"}); return magistr.call("write", {path:"after.txt",content:"no"});'
         }})
         def running_sleep():
             output = subprocess.check_output(["ps", "-axo", "pid=,ppid=,comm="], text=True)

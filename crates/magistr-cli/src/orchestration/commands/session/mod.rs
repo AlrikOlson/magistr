@@ -305,7 +305,7 @@ fn cmd_costs_policy(
                 eprintln!("{}", fmt::dim("No team budget policy for this project."));
                 eprintln!(
                     "{}",
-                    fmt::dim("Add a `budgets` array to .magistr/team.json to publish caps.")
+                    fmt::dim("Add a `budgets` array to .magistr/people.json to publish caps.")
                 );
                 return Ok(());
             }

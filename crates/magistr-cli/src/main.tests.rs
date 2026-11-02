@@ -562,37 +562,37 @@ fn cli_budget_flags_default_to_none() {
 
 #[test]
 fn cli_parses_model_flag() {
-    let cli = parse_cli(["magistr", "run", "--model", "sonnet", "fix the bug"]).unwrap();
+    let cli = parse_cli(["magistr", "start", "--model", "sonnet", "fix the bug"]).unwrap();
     match cli.command.unwrap() {
-        cli::Command::Run { agent, .. } => {
+        cli::Command::Start { agent, .. } => {
             let model = agent.model;
             assert_eq!(model.as_deref(), Some("sonnet"));
         }
-        _ => panic!("expected Run command"),
+        _ => panic!("expected Start command"),
     }
 }
 
 #[test]
 fn cli_parses_model_flag_short() {
-    let cli = parse_cli(["magistr", "run", "-m", "opus", "refactor this"]).unwrap();
+    let cli = parse_cli(["magistr", "start", "-m", "opus", "refactor this"]).unwrap();
     match cli.command.unwrap() {
-        cli::Command::Run { agent, .. } => {
+        cli::Command::Start { agent, .. } => {
             let model = agent.model;
             assert_eq!(model.as_deref(), Some("opus"));
         }
-        _ => panic!("expected Run command"),
+        _ => panic!("expected Start command"),
     }
 }
 
 #[test]
-fn cli_run_model_defaults_to_none() {
-    let cli = parse_cli(["magistr", "run", "hello"]).unwrap();
+fn cli_start_model_defaults_to_none() {
+    let cli = parse_cli(["magistr", "start", "hello"]).unwrap();
     match cli.command.unwrap() {
-        cli::Command::Run { agent, .. } => {
+        cli::Command::Start { agent, .. } => {
             let model = agent.model;
             assert!(model.is_none());
         }
-        _ => panic!("expected Run command"),
+        _ => panic!("expected Start command"),
     }
 }
 
@@ -704,17 +704,17 @@ fn cli_costs_chargeback_period_requires_chargeback() {
 fn a_roster_cap_overrides_the_users_own_budget_defaults() {
     use magistr::config::user_config::BudgetDefaults;
     use magistr::cost::governed_budget;
-    use magistr::team::TeamConfig;
-    use magistr::team::directory::DirectoryConfig;
+    use magistr::people::PeopleConfig;
+    use magistr::people::directory::DirectoryConfig;
     use magistr_engine::cost::{BudgetConfig, BudgetPeriod, BudgetRule, BudgetScope};
 
     let dir = tempfile::tempdir().expect("tempdir");
     let ledger = dir.path().join("costs.json");
 
     // A team that caps every session at two dollars.
-    let mut roster = TeamConfig {
+    let mut roster = PeopleConfig {
         version: 1,
-        default_role: magistr::team::TeamRole::Developer,
+        default_role: magistr::people::PersonRole::Developer,
         identity_provider: None,
         budgets: vec![BudgetRule::new(BudgetScope::Session, BudgetPeriod::Session).limit(2.0)],
         policy: Default::default(),

@@ -155,7 +155,7 @@ async fn run_cli() -> eyre::Result<()> {
                 commands::validate::cmd_validate(&dir).await
             }
         }
-        Command::Run {
+        Command::Start {
             prompt,
             resume,
             r#continue,
@@ -173,21 +173,27 @@ async fn run_cli() -> eyre::Result<()> {
             }
             magistr::workflow_agent_options::WorkflowAgentOptions::announce(&inputs);
             let agent_backend = commands::resolve_backend(backend, &inputs)?;
-            let profile = commands::run::resolve_permission_profile(
+            let profile = commands::start::resolve_permission_profile(
                 inputs.project_root(),
                 cli.trust.as_deref(),
             )?;
-            let request = commands::run::RunRequest {
+            let request = commands::start::StartRequest {
                 prompt: &prompt,
                 resume: resume.as_deref(),
                 continue_conversation: r#continue,
                 model: agent.model.as_deref(),
             };
             if headless {
-                commands::run::cmd_run_headless(request, agent_backend, format, profile, &inputs)
-                    .await
+                commands::start::cmd_start_headless(
+                    request,
+                    agent_backend,
+                    format,
+                    profile,
+                    &inputs,
+                )
+                .await
             } else {
-                commands::run::cmd_run(request, agent_backend, profile, &inputs).await
+                commands::start::cmd_start(request, agent_backend, profile, &inputs).await
             }
         }
         Command::Next {
@@ -209,7 +215,7 @@ async fn run_cli() -> eyre::Result<()> {
                 magistr::workflow_agent_options::WorkflowAgentOptions::announce(&inputs);
                 let agent_backend = commands::resolve_backend(backend, &inputs)?;
                 let profile =
-                    commands::run::resolve_permission_profile(&dir, cli.trust.as_deref())?;
+                    commands::start::resolve_permission_profile(&dir, cli.trust.as_deref())?;
                 if headless {
                     commands::next::cmd_next_headless(&dir, agent_backend, format, profile, &inputs)
                         .await
@@ -221,7 +227,7 @@ async fn run_cli() -> eyre::Result<()> {
             }
         }
         Command::NextLoop {
-            track,
+            feature,
             agent,
             dir,
             max_iterations,
@@ -235,13 +241,13 @@ async fn run_cli() -> eyre::Result<()> {
                 return magistr::workflow_agent_options::WorkflowAgentOptions::show(&inputs);
             }
             magistr::workflow_agent_options::WorkflowAgentOptions::announce(&inputs);
-            let profile = commands::run::resolve_permission_profile(&dir, cli.trust.as_deref())?;
+            let profile = commands::start::resolve_permission_profile(&dir, cli.trust.as_deref())?;
             if headless {
                 commands::next::cmd_next_loop_headless(
                     &dir,
                     commands::next::LoopRequest {
                         max_iterations,
-                        track: track.as_deref(),
+                        feature: feature.as_deref(),
                     },
                     backend,
                     format,
@@ -255,7 +261,7 @@ async fn run_cli() -> eyre::Result<()> {
                     &dir,
                     commands::next::LoopRequest {
                         max_iterations,
-                        track: track.as_deref(),
+                        feature: feature.as_deref(),
                     },
                     backend,
                     profile,
@@ -266,7 +272,7 @@ async fn run_cli() -> eyre::Result<()> {
         }
         Command::ResolveDispatch {
             dir,
-            run,
+            loop_id,
             command,
             attempt,
             outcome,
@@ -274,7 +280,7 @@ async fn run_cli() -> eyre::Result<()> {
             confirm_stopped,
         } => commands::next::cmd_resolve_dispatch(
             &dir,
-            &run,
+            &loop_id,
             &command,
             attempt,
             &outcome,
@@ -348,8 +354,8 @@ async fn run_cli() -> eyre::Result<()> {
         Command::Logout { provider } => {
             commands::misc::cmd_logout(provider.as_deref(), &*renderer, &inputs)
         }
-        Command::Team { action, dir } => {
-            commands::misc::cmd_team(&dir, &inputs, action, &*renderer)
+        Command::People { action, dir } => {
+            commands::misc::cmd_people(&dir, &inputs, action, &*renderer)
         }
         Command::Policy { action, dir } => {
             commands::misc::cmd_policy(&dir, &inputs, action, &*renderer)

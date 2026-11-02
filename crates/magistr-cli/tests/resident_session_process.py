@@ -103,11 +103,11 @@ def main():
                 cli = str(Path(sys.argv[2]).resolve())
                 project = parent / "second"
                 headless = subprocess.run(
-                    [cli, "run", "--headless", "--agent", "ollama", "--model", "desktop-test", "headless complete"],
+                    [cli, "start", "--headless", "--agent", "ollama", "--model", "desktop-test", "headless complete"],
                     cwd=project, env=env, capture_output=True, text=True, timeout=45)
                 assert headless.returncode == 0, headless.stderr
                 failed = subprocess.run(
-                    [cli, "run", "--headless", "--agent", "ollama", "--model", "desktop-test", "headless failure"],
+                    [cli, "start", "--headless", "--agent", "ollama", "--model", "desktop-test", "headless failure"],
                     cwd=project, env=env, capture_output=True, text=True, timeout=45)
                 assert failed.returncode != 0, failed.stdout
                 with sqlite3.connect(database) as history:
@@ -119,7 +119,7 @@ def main():
                 assert any(row[1] == "failed" and row[2] for row in rows), rows
                 assert any(row[3] is None for row in rows if row[1] == "failed"), rows
                 denied = subprocess.run(
-                    [cli, "run", "--headless", "--resume", completed[0], "must not reach provider"],
+                    [cli, "start", "--headless", "--resume", completed[0], "must not reach provider"],
                     cwd=project, env=env, capture_output=True, text=True, timeout=20)
                 assert denied.returncode != 0 and "cannot resume" in denied.stderr, denied.stderr
                 assert "must not reach provider" not in seen, seen

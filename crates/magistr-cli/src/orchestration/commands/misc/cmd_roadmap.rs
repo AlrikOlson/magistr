@@ -248,7 +248,7 @@ async fn cmd_roadmap_generate(
     // The generator's session writes source the way every host's does:
     // through the admitted workspace, or not at all.
     let workspace =
-        crate::commands::run::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
+        crate::commands::start::admit_workspace(&inputs, |line| eprintln!("{line}")).await;
     let mut session = agent::session::AgentSession::start(config, workspace.source_route())
         .await
         .suggest()?;

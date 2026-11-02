@@ -75,7 +75,7 @@ fn scaffolded_fixture_is_a_workspace_workspace() {
     assert!(tools.contains("discover"));
     assert!(!tools.contains("scope_search"));
 
-    // The gates are declared for workspace `run`.
+    // The gates are declared for workspace `command`.
     let toml_body = std::fs::read_to_string(dir.join(".magistr/workspace.toml"))
         .expect(".magistr/workspace.toml");
     let parsed: toml::Value = toml::from_str(&toml_body).expect("valid toml");

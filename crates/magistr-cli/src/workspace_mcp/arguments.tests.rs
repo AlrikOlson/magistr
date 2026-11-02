@@ -175,18 +175,18 @@ fn write_admission_requires_a_path_and_string_content_and_authorizes_nothing() {
 #[test]
 fn run_and_script_admission_refuse_schema_level_misuse() {
     assert_eq!(
-        message(run_input(&object(json!({}))).unwrap_err()),
+        message(command_input(&object(json!({}))).unwrap_err()),
         "run: command must be a non-empty string"
     );
     assert_eq!(
-        message(run_input(&object(json!({"command": "test", "timeout": 0}))).unwrap_err()),
+        message(command_input(&object(json!({"command": "test", "timeout": 0}))).unwrap_err()),
         "run: timeout must be an integer in [1, 3600] seconds"
     );
     assert_eq!(
-        message(run_input(&object(json!({"command": "test", "args": [1]}))).unwrap_err()),
+        message(command_input(&object(json!({"command": "test", "args": [1]}))).unwrap_err()),
         "run: args must be an array of strings"
     );
-    let run = run_input(&object(
+    let run = command_input(&object(
         json!({"command": "test", "args": ["--x"], "timeout": 5}),
     ))
     .expect("valid");

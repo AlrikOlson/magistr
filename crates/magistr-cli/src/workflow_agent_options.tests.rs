@@ -45,9 +45,9 @@ fn recovery_requires_matching_explicit_options() {
 fn all_native_commands_parse_the_same_options_and_provider_alias() {
     use crate::cli::{Cli, Command};
     use clap::Parser;
-    for command in ["next", "next-loop", "run"] {
+    for command in ["next", "next-loop", "start"] {
         let mut args = vec!["magistr", command];
-        if command == "run" {
+        if command == "start" {
             args.push("hello");
         }
         args.extend([
@@ -63,7 +63,7 @@ fn all_native_commands_parse_the_same_options_and_provider_alias() {
         let options = match parsed.command.unwrap() {
             Command::Next { agent, .. }
             | Command::NextLoop { agent, .. }
-            | Command::Run { agent, .. } => agent,
+            | Command::Start { agent, .. } => agent,
             _ => panic!("wrong command"),
         };
         assert_eq!(options.agent.as_deref(), Some("codex"));

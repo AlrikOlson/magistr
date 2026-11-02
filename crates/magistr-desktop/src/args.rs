@@ -3,7 +3,7 @@
 use clap::{Parser, Subcommand};
 use color_eyre::eyre::{self, Context as _};
 use magistr::agent::AgentConfig;
-use magistr::commands::run::resolve_permission_profile;
+use magistr::commands::start::resolve_permission_profile;
 use magistr::config::inputs::ProjectInputs;
 use magistr::unified_mcp::Access;
 use std::ffi::{OsStr, OsString};

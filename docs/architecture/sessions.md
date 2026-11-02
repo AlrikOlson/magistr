@@ -21,7 +21,7 @@ Automatic detection chooses Claude Code or Copilot.
 
 ## Configuration and defaults
 
-Native command options are shared by `run`, `next`, and `next-loop` through
+Native command options are shared by `start`, `next`, and `next-loop` through
 [`WorkflowAgentOptions`](../../crates/magistr-cli/src/workflow_agent_options.rs).
 [`session_defaults`](../../crates/magistr-cli/src/agent/session_defaults.rs)
 applies command options, `.magistr/agents.toml`, personal settings, and provider
@@ -190,7 +190,7 @@ capability table above.
 
 A later turn may start after the previous turn's terminal response. The legacy
 `cancel` convenience operation ends the usable session after cancellation;
-new callers use the explicit operations above. Headless `run`, `next`, and
+new callers use the explicit operations above. Headless `start`, `next`, and
 `next-loop` await termination before process exit or the next attempt.
 
 ### Bounds
@@ -264,7 +264,7 @@ matrix. Do not infer live Codex acceptance from a fixture or workflow definition
 
 [InteractiveHost](../../crates/magistr-cli/src/application/interactive_host.rs)
 composes the existing workflow client, workspace admission, resolved provider,
-shared coordinator and projection feeds. `magistr run` and `magistr-desktop`
+shared coordinator and projection feeds. `magistr start` and `magistr-desktop`
 use this host. Its
 `start` method accepts an initial model, inbox and command receiver and returns
 the running host plus the seeded model. It opens or attaches to the workflow

@@ -45,5 +45,5 @@ pub trait WorkspacePort: Send + Sync {
     /// # Errors
     /// The workspace's reason the command did not run — an undeclared
     /// command included.
-    fn run(&mut self, command: &str) -> Result<Vec<RunRow>, String>;
+    fn command(&mut self, command: &str) -> Result<Vec<RunRow>, String>;
 }

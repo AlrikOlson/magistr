@@ -227,7 +227,7 @@ pub(crate) fn script_input(args: &JsonObject) -> Result<ScriptInput, ErrorData> 
     decode("script", args)
 }
 
-pub(crate) fn run_input(args: &JsonObject) -> Result<RunInput, ErrorData> {
+pub(crate) fn command_input(args: &JsonObject) -> Result<RunInput, ErrorData> {
     let Some(command) = non_empty_string(args, "command") else {
         return Err(invalid("run: command must be a non-empty string"));
     };
@@ -255,7 +255,7 @@ pub(crate) fn run_input(args: &JsonObject) -> Result<RunInput, ErrorData> {
             })?;
         input = input.with_timeout_secs(timeout as u64);
     }
-    Ok(input.with_budget(budget(args, "run", RunInput::BUDGET_DEFAULT)?))
+    Ok(input.with_budget(budget(args, "command", RunInput::BUDGET_DEFAULT)?))
 }
 
 pub(crate) fn undo_request(args: &JsonObject) -> Result<UndoRequest, ErrorData> {

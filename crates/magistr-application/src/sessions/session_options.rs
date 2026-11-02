@@ -8,7 +8,7 @@ use alloc::string::String;
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SessionOptions {
     /// The prompt to send as soon as the session is initialized — what
-    /// `magistr run <prompt>` was given. `None` waits for the user.
+    /// `magistr start <prompt>` was given. `None` waits for the user.
     pub opening_prompt: Option<super::PromptInput>,
     /// The model to select through `session/set_config_option` before
     /// the opening prompt, when the agent advertises a model option.

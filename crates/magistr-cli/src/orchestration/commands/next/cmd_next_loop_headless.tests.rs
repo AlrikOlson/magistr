@@ -1,7 +1,7 @@
 use super::*;
 use crate::agent::message::{AgentMessage, SessionId};
 use crate::agent::mock::mock_session;
-use crate::commands::run::HeadlessOutcome;
+use crate::commands::start::HeadlessOutcome;
 use crate::workflow::spec::SpecSummary;
 use std::time::Duration;
 

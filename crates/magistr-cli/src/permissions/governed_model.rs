@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use crate::error::MagistrError;
-use crate::team::TeamConfig;
+use crate::people::PeopleConfig;
 
 /// The model a session in `dir` runs on, given what the caller asked for.
 ///
@@ -19,12 +19,12 @@ pub fn governed_model(dir: &Path, requested: Option<&str>) -> Result<Option<Stri
     let Some(requested) = requested else {
         return Ok(None);
     };
-    let policy = TeamConfig::governance_for(dir);
+    let policy = PeopleConfig::governance_for(dir);
     match policy.route_model(requested) {
         Some(model) => Ok(Some(model.to_string())),
         None => Err(MagistrError::Other(format!(
-            "model '{requested}' is not approved by this team's policy \
-             (.magistr/team.json) and the policy names no usable fallback — \
+            "model '{requested}' is not approved by this project's policy \
+             (.magistr/people.json) and the policy names no usable fallback — \
              run `magistr policy show` to see the approved models"
         ))),
     }

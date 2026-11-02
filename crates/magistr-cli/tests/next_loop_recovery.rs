@@ -51,7 +51,7 @@ fn resolve_command(dir: &Path, state: &IterationState, outcome: &str) -> std::pr
         .args(["resolve-dispatch"])
         .arg(dir)
         .args([
-            "--run",
+            "--loop",
             state.run_id.local(),
             "--command",
             dispatch.attempt.command().local(),
@@ -331,7 +331,7 @@ async fn entry_fixture_child() {
                 &dir,
                 magistr::commands::next::LoopRequest {
                     max_iterations: 8,
-                    track: None,
+                    feature: None,
                 },
                 BackendFlag::Acp,
                 profile,
@@ -344,7 +344,7 @@ async fn entry_fixture_child() {
                 &dir,
                 magistr::commands::next::LoopRequest {
                     max_iterations: 8,
-                    track: None,
+                    feature: None,
                 },
                 BackendFlag::Acp,
                 HeadlessFormat::Json,

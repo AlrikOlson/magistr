@@ -95,7 +95,7 @@ batch on the first call unless edit.force_confirm is set. Otherwise CONFIRM_REQU
 a confirmToken and re-invoking the identical call with confirm applies. \
 Abuse dies typed: SANDBOX_FUEL_EXCEEDED, SANDBOX_MEMORY_EXCEEDED, SANDBOX_CAP_DENIED.";
 
-const RUN: &str = "The declared-command escape hatch (SDD §9.6). Executes one command from the \
+const COMMAND: &str = "The declared-command escape hatch (SDD §9.6). Executes one command from the \
 merged config's [commands] table as a single argv — no shell, ever. The allowlist is seeded at \
 init from lockfile/manifest detection, amendable only by a human (.magistr/workspace.toml is a protected \
 path), and governable by org policy (§7.2). Known runners (bun/jest/vitest/pytest/cargo \
@@ -180,10 +180,10 @@ pub(crate) fn core_tools(offers_script: bool) -> Vec<Tool> {
         ));
     }
     tools.push(tool(
-        "run",
+        "command",
         "Run a declared project command",
-        RUN,
-        schema_of("run"),
+        COMMAND,
+        schema_of("command"),
     ));
     tools
 }

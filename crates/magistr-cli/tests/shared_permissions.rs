@@ -2,7 +2,7 @@
 use agent_client_protocol::schema::v1::ToolKind;
 use magistr::agent::permission_request::permission_request as policy_request;
 use magistr::agent::{AgentConfig, noninteractive_response::noninteractive_response};
-use magistr::orchestration::commands::run::cockpit_policy_for_project;
+use magistr::orchestration::commands::start::cockpit_policy_for_project;
 use magistr::permissions::{CharterStore, NoninteractivePolicy, PermissionProfile};
 use magistr_acp::{
     AcpPermissionOption, AcpPermissionOptionKind as Kind, AcpPermissionRequest,
@@ -47,7 +47,7 @@ fn project() -> tempfile::TempDir {
         "# protected legacy project fixture\n",
     )
     .unwrap();
-    std::fs::write(dir.path().join(".magistr/team.json"), serde_json::json!({
+    std::fs::write(dir.path().join(".magistr/people.json"), serde_json::json!({
         "policy": {"rules": [
             PolicyRule::new("no-publish", PolicyCondition::tool("Publish"), PolicyEffect::Deny),
             PolicyRule::new("review-release", PolicyCondition::tool("Release"), PolicyEffect::RequireApproval)

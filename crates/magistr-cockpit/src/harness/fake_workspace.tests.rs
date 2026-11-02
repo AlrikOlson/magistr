@@ -85,7 +85,7 @@ fn run_answers_scripted_rows_and_refuses_undeclared_commands() {
         detail: "assertion failed".to_owned(),
     }];
     let mut wb = FakeWorkspace::new().with_run("test", rows.clone());
-    assert_eq!(wb.run("test"), Ok(rows));
-    assert!(wb.run("build").is_err());
+    assert_eq!(wb.command("test"), Ok(rows));
+    assert!(wb.command("build").is_err());
     assert_eq!(wb.calls(), ["run test", "run build"]);
 }

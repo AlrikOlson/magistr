@@ -11,8 +11,8 @@ fn inputs(dir: &Path) -> ProjectInputs {
 
 fn governed_project() -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("tempdir");
-    let identity = crate::team::Identity::resolve(dir.path(), &inputs(dir.path()));
-    let mut config = TeamConfig::new_with_owner(&identity);
+    let identity = crate::people::Identity::resolve(dir.path(), &inputs(dir.path()));
+    let mut config = PeopleConfig::new_with_owner(&identity);
     config.policy = GovernancePolicy {
         tool_denylist: vec!["WebFetch".into()],
         protected_paths: vec!["*.env".into()],
@@ -36,13 +36,13 @@ fn show_on_an_ungoverned_project_succeeds_and_says_so() {
         &renderer,
     )
     .expect("show");
-    assert!(!TeamConfig::governance_for(dir.path()).is_set());
+    assert!(!PeopleConfig::governance_for(dir.path()).is_set());
 }
 
 #[test]
 fn show_compiles_the_roster_policy() {
     let dir = governed_project();
-    let policy = TeamConfig::governance_for(dir.path());
+    let policy = PeopleConfig::governance_for(dir.path());
     assert!(policy.is_set());
     // denylist + protected path + model allowlist = three rules.
     assert_eq!(policy.compile().len(), 3);
@@ -89,7 +89,7 @@ fn check_reports_the_effect_for_a_denied_tool() {
     .expect("check");
 
     // The decision the command prints is the engine's, unchanged.
-    let policy = TeamConfig::governance_for(dir.path());
+    let policy = PeopleConfig::governance_for(dir.path());
     let request = policy_request_for("WebFetch", &serde_json::json!({}), None);
     let decision = policy.compile().evaluate(&request);
     assert_eq!(decision.effect, PolicyEffect::Deny);
@@ -99,7 +99,7 @@ fn check_reports_the_effect_for_a_denied_tool() {
 #[test]
 fn check_sees_a_path_through_the_same_request_shape_enforcement_uses() {
     let dir = governed_project();
-    let policy = TeamConfig::governance_for(dir.path());
+    let policy = PeopleConfig::governance_for(dir.path());
     let request = policy_request_for(
         "Write",
         &serde_json::json!({ "paths": ["/repo/.env"] }),
@@ -126,7 +126,7 @@ fn check_sees_a_path_through_the_same_request_shape_enforcement_uses() {
 #[test]
 fn check_reports_an_unapproved_model() {
     let dir = governed_project();
-    let policy = TeamConfig::governance_for(dir.path());
+    let policy = PeopleConfig::governance_for(dir.path());
     let request = policy_request_for("", &serde_json::json!({}), Some("gpt-9"));
     assert_eq!(
         policy.compile().evaluate(&request).binding.as_deref(),
@@ -157,8 +157,8 @@ fn show_is_the_default_action() {
 #[test]
 fn a_model_only_check_is_not_answered_by_the_tool_allowlist() {
     let dir = tempfile::tempdir().expect("tempdir");
-    let identity = crate::team::Identity::resolve(dir.path(), &inputs(dir.path()));
-    let mut config = TeamConfig::new_with_owner(&identity);
+    let identity = crate::people::Identity::resolve(dir.path(), &inputs(dir.path()));
+    let mut config = PeopleConfig::new_with_owner(&identity);
     config.policy = GovernancePolicy {
         tool_allowlist: vec!["Read".into()],
         approved_models: vec!["claude-*".into()],
@@ -181,7 +181,7 @@ fn a_model_only_check_is_not_answered_by_the_tool_allowlist() {
     )
     .expect("check");
 
-    let policy = TeamConfig::governance_for(dir.path());
+    let policy = PeopleConfig::governance_for(dir.path());
     let mut request = policy_request_for("", &serde_json::json!({}), Some("claude-sonnet-5"));
     assert_eq!(
         policy.compile().evaluate(&request).binding.as_deref(),

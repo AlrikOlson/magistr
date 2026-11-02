@@ -26,8 +26,8 @@ pub enum WorkspaceCmd {
     },
     /// `/map`: the workspace map without the agent.
     Map,
-    /// `/run`: one declared command, rows back.
-    Run {
+    /// One declared command, rows back.
+    Command {
         /// The declared command's name.
         command: String,
     },

@@ -20,7 +20,7 @@ return magistr.call("roadmap_status", {});
 
 The same catalog includes roadmap, reasoning (`think_*`), feedback (`signal_*`),
 objectives and resumption (`ship_*`), quality gates (`magistr_gate`), and all
-workspace operations: `map`, `files`, `run`, `undo`, `script`, health and indexing.
+workspace operations: `map`, `files`, `command`, `undo`, `script`, health and indexing.
 Discover each operation before using it; do not guess argument names. Direct
 tools and composed calls use the same authorization, confirmation and source checks.
 

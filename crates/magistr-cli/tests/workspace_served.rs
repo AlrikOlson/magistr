@@ -40,7 +40,7 @@ const CORE_TOOLS: [&str; 10] = [
     "write",
     "undo",
     "script",
-    "run",
+    "command",
 ];
 const MAGISTR_WORKSPACE_TOML: &str = "[commands]\ntest = \"bun test\"\nlist = \"echo hi\"\n";
 const APP_TS: &str = "export function app(): number {\n  return 1;\n}\n";
@@ -662,15 +662,20 @@ async fn red_team_the_allowlist_cannot_be_self_amended_or_shelled_over_the_wire(
         }
         assert_eq!(toml(), before);
     }
-    refused("run", json!({"command": "deploy"}), "COMMAND_NOT_DECLARED").await;
     refused(
-        "run",
+        "command",
+        json!({"command": "deploy"}),
+        "COMMAND_NOT_DECLARED",
+    )
+    .await;
+    refused(
+        "command",
         json!({"command": "list", "args": [">", ".magistr/workspace.toml"]}),
         "RUN_REDIRECTED",
     )
     .await;
     refused(
-        "run",
+        "command",
         json!({"command": "list", "args": ["|", "sh"]}),
         "RUN_REDIRECTED",
     )
@@ -686,7 +691,7 @@ async fn red_team_the_allowlist_cannot_be_self_amended_or_shelled_over_the_wire(
     assert!(read(root, "src/app.ts").contains("return 42;"));
     assert_eq!(toml(), MAGISTR_WORKSPACE_TOML);
     // And a declared command actually runs, with no shell in between.
-    let ran = call(&client, "run", json!({"command": "list"})).await;
+    let ran = call(&client, "command", json!({"command": "list"})).await;
     assert_eq!(ran["ok"], true, "{ran}");
     assert!(ran.to_string().contains("hi"), "{ran}");
     close(client, server, service).await;

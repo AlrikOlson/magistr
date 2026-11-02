@@ -400,11 +400,38 @@ follow the code rules above.
 
 ## Cutover
 
-The [vocabulary cutover](../design/fleet-scale-roadmap.md#delivery) task
-applies this page in one change: code, storage upgrade, wire, CLI, skills,
-generated instructions, docs, website, fixtures and snapshots together. Paths
-and ids that carry an old word, such as `docs/design/fleet-scale-roadmap.md`
-and task ids like `chunk-claim-lease`, are identifiers: the cutover renames
-doc paths, and task ids keep their spelling. Until
-it lands, the running product still uses the old words. Use this page to
-translate them.
+The [vocabulary cutover](../design/fleet-scale-roadmap.md#delivery) applies
+this page one family at a time. The owner chose this split on 2 November 2026.
+Each family task renames its words completely in one change: code, storage
+upgrade, wire, CLI, skills, generated instructions, docs, fixtures and
+snapshots. No family keeps an alias, and nothing accepts both names. The tasks
+run in this order:
+
+1. `vocab-commands`: workspace `run` → `command`, `magistr run` →
+   `magistr start`, `--run` → `--loop`, `--track` → `--feature`, and
+   `magistr team` / `.magistr/team.json` → `magistr people` /
+   `.magistr/people.json`. This frees the words run and team.
+2. `vocab-run-family`: ship, objective, ship task, action, receipt and approval
+   gates. The run store rewrites `task:` to `step:` here.
+3. `vocab-plan-family`: roadmap, chunk, group and the task states. The plan
+   store rewrites `chunk:` to `task:` after the run store has finished.
+4. `vocab-decision-family` and `vocab-request-family`: think and signal.
+5. `vocab-teams-checks`: lane, workstream and gate.
+6. `vocab-copy-gate`: desktop, website and docs copy, plus a check that fails
+   on a word from [Words the interface never shows](#words-the-interface-never-shows).
+7. `vocabulary-cutover`: ship the staged skills, then prove an end-to-end agent
+   run that uses only the new names.
+
+While the tasks land, a family that is not done yet still uses its old words.
+Use this page to translate them.
+
+These keep their spelling on purpose:
+
+- Paths and ids that carry an old word are identifiers, such as
+  `docs/design/fleet-scale-roadmap.md` and task ids like `chunk-claim-lease`.
+  The copy task renames doc paths. Task ids keep their spelling.
+- Recorded evidence under `docs/evidence/` is history and is not rewritten.
+- The retained workspace reference tree under `subsystems/workspace/reference`
+  is pinned upstream code. The native tools own the public names.
+- The workspace error code `RUN_REDIRECTED` and the runner plugin interface
+  (`magistr:runner`) describe running a process, not a run.

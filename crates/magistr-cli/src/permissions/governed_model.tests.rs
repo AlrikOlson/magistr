@@ -5,8 +5,8 @@ use magistr_engine::policy::{GovernancePolicy, ModelTier, ModelTierRule};
 fn project_with(policy: GovernancePolicy) -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("tempdir");
     let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None);
-    let identity = crate::team::Identity::resolve(dir.path(), &inputs);
-    let mut config = TeamConfig::new_with_owner(&identity);
+    let identity = crate::people::Identity::resolve(dir.path(), &inputs);
+    let mut config = PeopleConfig::new_with_owner(&identity);
     config.policy = policy;
     config.save(dir.path()).expect("save roster");
     dir

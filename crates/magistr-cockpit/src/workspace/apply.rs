@@ -32,8 +32,8 @@ pub fn apply(port: &mut dyn WorkspacePort, cmd: &WorkspaceCmd) -> WorkspaceEvent
         crate::cockpit::WorkspaceCmd::Map => port
             .map()
             .map(|lines| crate::cockpit::WorkspaceEvent::Mapped { lines }),
-        crate::cockpit::WorkspaceCmd::Run { command } => {
-            port.run(command)
+        crate::cockpit::WorkspaceCmd::Command { command } => {
+            port.command(command)
                 .map(|rows| crate::cockpit::WorkspaceEvent::Ran {
                     command: command.clone(),
                     rows,

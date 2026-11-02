@@ -4,7 +4,7 @@ use color_eyre::eyre;
 
 use crate::error::MagistrError;
 use crate::output::OutputRenderer;
-use crate::team::auth::IdentityCache;
+use crate::people::auth::IdentityCache;
 use crate::utils::format as fmt;
 
 /// Clear one provider's cached login, or every one of them.

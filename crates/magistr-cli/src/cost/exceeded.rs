@@ -93,7 +93,7 @@ impl BudgetExceededScreen {
         lines.push(String::new());
         lines.push("  To continue, re-run with a higher budget:".to_string());
         lines.push(format!(
-            "    magistr run --budget {:.2} --continue",
+            "    magistr start --budget {:.2} --continue",
             self.suggested_extension
         ));
 

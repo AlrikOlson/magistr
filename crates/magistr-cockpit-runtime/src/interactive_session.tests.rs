@@ -692,7 +692,7 @@ impl WorkspacePort for HeldWorkspace {
     fn map(&mut self) -> Result<Vec<String>, String> {
         unreachable!()
     }
-    fn run(&mut self, _: &str) -> Result<Vec<magistr_cockpit::workspace::RunRow>, String> {
+    fn command(&mut self, _: &str) -> Result<Vec<magistr_cockpit::workspace::RunRow>, String> {
         unreachable!()
     }
 }
@@ -783,7 +783,7 @@ impl WorkspacePort for ObservedWorkspace {
     fn map(&mut self) -> Result<Vec<String>, String> {
         unreachable!()
     }
-    fn run(&mut self, _: &str) -> Result<Vec<magistr_cockpit::workspace::RunRow>, String> {
+    fn command(&mut self, _: &str) -> Result<Vec<magistr_cockpit::workspace::RunRow>, String> {
         unreachable!()
     }
 }

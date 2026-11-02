@@ -83,7 +83,7 @@ impl ResolvedSessionSpec {
         super::work_context::apply(&mut config)?;
         let mut provenance =
             super::session_defaults::session_defaults(&mut config, defaults, &runtime)?;
-        let governance = crate::team::TeamConfig::load(&config.cwd)?
+        let governance = crate::people::PeopleConfig::load(&config.cwd)?
             .map(|team| team.policy)
             .unwrap_or_default();
         let model = resolve_model(&governance, config.model.as_deref())?;
@@ -412,7 +412,7 @@ fn resolve_model(
         return Ok(None);
     };
     governance.route_model(requested).map(|model| Some(model.to_owned())).ok_or_else(||
-        MagistrError::Config(format!("model '{requested}' is not approved by this team's policy (.magistr/team.json) and no usable fallback is configured"))
+        MagistrError::Config(format!("model '{requested}' is not approved by this project's policy (.magistr/people.json) and no usable fallback is configured"))
     )
 }
 

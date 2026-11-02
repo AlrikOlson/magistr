@@ -17,17 +17,17 @@ fn an_allowed_edit_is_recorded_with_the_actor() {
 
     audit_roster_edit(
         true,
-        RosterChange::Add(TeamRole::Developer),
+        RosterChange::Add(PersonRole::Developer),
         "bob@example.dev",
         &identity("Alice", Some("alice@example.dev")),
-        TeamRole::Owner,
+        PersonRole::Owner,
         Some(&log),
         &AuditRetention::default(),
     );
 
     let entries = load_entries(&log).unwrap();
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries[0].tool_name, "team_roster");
+    assert_eq!(entries[0].tool_name, "people_roster");
     assert!(entries[0].allowed);
     assert_eq!(entries[0].actor.as_deref(), Some("alice@example.dev"));
     assert_eq!(entries[0].risk, RiskLevel::Medium);
@@ -46,12 +46,12 @@ fn a_refused_ownership_grab_is_recorded_as_high_risk_and_denied() {
     audit_roster_edit(
         false,
         RosterChange::SetRole {
-            from: TeamRole::Admin,
-            to: TeamRole::Owner,
+            from: PersonRole::Admin,
+            to: PersonRole::Owner,
         },
         "mallory@example.dev",
         &identity("Mallory", Some("mallory@example.dev")),
-        TeamRole::Admin,
+        PersonRole::Admin,
         Some(&log),
         &AuditRetention::default(),
     );
@@ -78,10 +78,10 @@ fn retention_bounds_are_applied_after_the_append() {
     for id in ["a", "b", "c"] {
         audit_roster_edit(
             true,
-            RosterChange::Add(TeamRole::Viewer),
+            RosterChange::Add(PersonRole::Viewer),
             id,
             &alice,
-            TeamRole::Owner,
+            PersonRole::Owner,
             Some(&log),
             &retention,
         );
@@ -97,10 +97,10 @@ fn retention_bounds_are_applied_after_the_append() {
 fn no_log_path_is_a_no_op() {
     audit_roster_edit(
         true,
-        RosterChange::Add(TeamRole::Viewer),
+        RosterChange::Add(PersonRole::Viewer),
         "bob",
         &identity("Alice", None),
-        TeamRole::Owner,
+        PersonRole::Owner,
         None,
         &AuditRetention::default(),
     );

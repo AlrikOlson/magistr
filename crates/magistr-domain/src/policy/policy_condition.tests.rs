@@ -34,8 +34,8 @@ fn tool_and_command_match_by_glob() {
 fn path_matches_when_any_touched_path_matches() {
     let request = PolicyRequest::tool("Write")
         .with_path("src/main.rs")
-        .with_path(".magistr/team.json");
-    assert!(PolicyCondition::path("*team.json").matches(&request));
+        .with_path(".magistr/people.json");
+    assert!(PolicyCondition::path("*people.json").matches(&request));
     assert!(PolicyCondition::path("src/*.rs").matches(&request));
     assert!(!PolicyCondition::path("*.toml").matches(&request));
 }

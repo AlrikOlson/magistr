@@ -1,11 +1,11 @@
-//! Seeding `.magistr/workspace.toml` — the allowlist workspace `run` executes from,
+//! Seeding `.magistr/workspace.toml` — the allowlist workspace `command` executes from,
 //! and the confirm mode that keeps a confirm-gated write off a human's desk.
 
 use std::collections::HashMap;
 use std::path::Path;
 
 const HEADER: &str = "# Seeded by `magistr init` from .magistr/project.json (and `magistr init` \
-manifest detection).\n# Amend by hand: this table is workspace `run`'s allowlist and only a human may change it.\n";
+manifest detection).\n# Amend by hand: this table is workspace `command`'s allowlist and only a human may change it.\n";
 
 /// The `[edit]` block `magistr init` declares when the project has none.
 /// Token mode applies verified writes without asking the agent to confirm

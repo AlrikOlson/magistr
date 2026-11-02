@@ -18,7 +18,7 @@ fn engine() -> PolicyEngine {
         ),
         PolicyRule::new(
             "roster-is-precious",
-            PolicyCondition::path("*team.json"),
+            PolicyCondition::path("*people.json"),
             PolicyEffect::RequireApproval,
         )
         .overridable(),
@@ -48,7 +48,7 @@ fn evaluation_takes_the_tightest_matching_rule() {
 
 #[test]
 fn an_overridable_rule_reports_its_escape_hatch() {
-    let request = PolicyRequest::tool("Write").with_path(".magistr/team.json");
+    let request = PolicyRequest::tool("Write").with_path(".magistr/people.json");
     let decision = engine().evaluate(&request);
     assert_eq!(decision.effect, PolicyEffect::RequireApproval);
     assert!(decision.override_allowed);
@@ -77,7 +77,7 @@ fn tighten_raises_a_permissive_local_decision_to_the_policys() {
 #[test]
 fn tighten_keeps_a_stricter_local_decision() {
     let engine = engine();
-    let request = PolicyRequest::tool("Write").with_path(".magistr/team.json");
+    let request = PolicyRequest::tool("Write").with_path(".magistr/people.json");
     // Policy says RequireApproval; the local profile already says Deny.
     let decision = engine.tighten(PolicyEffect::Deny, &request);
     assert_eq!(decision.effect, PolicyEffect::Deny);

@@ -161,10 +161,10 @@ impl WorkspacePort for McpWorkspace {
         Ok(entries(&envelope))
     }
 
-    fn run(&mut self, command: &str) -> Result<Vec<RunRow>, String> {
+    fn command(&mut self, command: &str) -> Result<Vec<RunRow>, String> {
         let envelope = self
             .client()?
-            .call("run", json!({ "command": command }), RUN)?;
+            .call("command", json!({ "command": command }), RUN)?;
         Ok(rows(&envelope, command))
     }
 }

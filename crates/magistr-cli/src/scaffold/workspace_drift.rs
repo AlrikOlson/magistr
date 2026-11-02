@@ -1,5 +1,5 @@
 //! Drift between `.magistr/project.json`'s gates and `.magistr/workspace.toml
-//! [commands]` — the allowlist workspace `run` executes from. `magistr init`
+//! [commands]` — the allowlist workspace `command` executes from. `magistr init`
 //! seeds the table once and never touches it again, so a later edit to
 //! either side silently desynchronises the two; `magistr lint` and
 //! `magistr doctor` surface that.

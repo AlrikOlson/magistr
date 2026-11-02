@@ -8,8 +8,8 @@ use magistr_engine::policy::{GovernancePolicy, PolicyEffect};
 use crate::cli::PolicyAction;
 use crate::error::{MagistrError, ResultExt};
 use crate::output::OutputRenderer;
+use crate::people::PeopleConfig;
 use crate::permissions::{ViolationReport, policy_request_for};
-use crate::team::TeamConfig;
 use crate::utils::format as fmt;
 
 pub fn cmd_policy(
@@ -18,7 +18,7 @@ pub fn cmd_policy(
     action: Option<PolicyAction>,
     renderer: &dyn OutputRenderer,
 ) -> eyre::Result<()> {
-    let policy = TeamConfig::governance_for(dir);
+    let policy = PeopleConfig::governance_for(dir);
     match action.unwrap_or(PolicyAction::Show) {
         PolicyAction::Show => show(&policy, renderer),
         PolicyAction::Check {
@@ -48,7 +48,7 @@ fn show(policy: &GovernancePolicy, renderer: &dyn OutputRenderer) -> eyre::Resul
         eprintln!(
             "  {}",
             fmt::dim(
-                "Ungoverned — no `policy` block in .magistr/team.json. Sessions run on the local profile alone."
+                "Ungoverned — no `policy` block in .magistr/people.json. Sessions run on the local profile alone."
             )
         );
         return Ok(());
