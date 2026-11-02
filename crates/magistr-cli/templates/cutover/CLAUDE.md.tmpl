@@ -1,0 +1,22 @@
+# {{project_name}}
+
+{{project_description}}
+
+## Quick start
+
+```bash
+# Open Magistr and choose or prepare a project
+magistr-desktop
+
+# Run the configured project checks
+magistr validate
+```
+
+The desktop opens conversations and reviews project setup before applying it.
+The CLI runs headless sessions, project administration and checks.
+
+## Configuration
+
+`.magistr/project.json` holds the check commands and plan policy. An empty
+command means that check is not configured: report it as missing, never as a
+pass. Project conventions are in `.claude/rules/conventions.md`.

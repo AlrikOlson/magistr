@@ -310,12 +310,19 @@ In the flags column, "same" means the command keeps every flag it has today.
 
 ## Skills, configuration and generated files
 
+The owner chose the skill set on 2 November 2026. The
+[skills design](../design/skills.md) gives each skill's job and what it replaces.
+
 | Today | After |
 |---|---|
-| Skill `roadmap` | `plan` |
-| Skill `roadmap-refresh` | `plan-refresh` |
+| Skills `roadmap`, `roadmap-refresh` | `plan`: status, research and shaping, never building |
 | Skill `signals` | `requests` |
-| Skills `next`, `next-loop`, `craft`, `validate`, `init`, `workspace-routing`, `switch-work`, `advance-work` | Names unchanged; their text uses this page's words |
+| User skills `switch-work`, `advance-work` | `focus` sets the feature and mode; `next` does the one unit |
+| User skill `handoff` | Part of `next-loop` |
+| User skills `roadmap-run`, `roadmap-sk`, `roadmap-refresh-sk`, `roadmap-run-sk`, `business-intel` | Retired |
+| Skills `next`, `next-loop`, `craft`, `validate`, `init`, `workspace-routing` | Names unchanged; their text uses this page's words |
+| `craft/references/runtime.md` | `craft/contract.md`, the one workflow contract |
+| `.claude/rules/workflow.md`, `.claude/rules/tools.md` | Retired; the generated section and the MCP server instructions carry what every session needs |
 | `.magistr/project.json` `quality_gate` | `checks` |
 | `.magistr/project.json` `custom_gates` | `custom_checks` |
 | `.magistr/project.json` `verification.gates` | `verification.checks` |

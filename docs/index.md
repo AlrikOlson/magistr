@@ -30,6 +30,8 @@ These files require repository access. They describe changing Magistr itself.
 - [Desktop identity](design/desktop-identity.md): the desktop's blessed design
   contract, with its [tokens](design/desktop/DESIGN.md) and
   [product brief](design/desktop/PRODUCT.md).
+- [Skills](design/skills.md): the built-in skill set and the agent
+  instructions every session loads.
 - [Website](../apps/website/README.md): content ownership, routes, search,
   browser checks and evidence.
 
