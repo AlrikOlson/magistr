@@ -14,7 +14,7 @@ have one owning writer; interfaces issue typed commands and observe snapshots.
 | Resident desktop session | SessionRegistry | Full project/workspace/session address |
 | Retained view | SessionObservation | Address, sequence, bounded replay and current requests/draft |
 | Iteration and checkpoint | IterationLoop and LoopDriver | Run, attempt and operation identities |
-| Checks | AdmittedCheck and native ship scope | Task and source-bound verification receipt |
+| Checks | AdmittedCheck and native run scope | Task and source-bound verification receipt |
 | Setup, repair and removal | Administrative change plan | Expected per-path state and applied receipts |
 
 Pure domain and application contracts depend on no runtime or renderer.
@@ -79,7 +79,7 @@ tests for the first group are in the [client inventory](clients.md#client-invent
 | `magistr reset`, `magistr import`, `magistr export`, `magistr preset`, `magistr plugins` | none | none | none |
 | `magistr detect`, `magistr lint`, `magistr doctor`, `magistr config`, `magistr archetypes`, `magistr policy`, `magistr people` | none | none | none |
 | `magistr models` | none | none | a zero-turn provider probe |
-| `magistr learn`, `magistr memory`, `magistr plans`, `magistr sessions`, `magistr costs`, `magistr permissions` | none; machine-local and project-local records | none | none |
+| `magistr learn`, `magistr memory`, `magistr runs`, `magistr sessions`, `magistr costs`, `magistr permissions` | none; machine-local and project-local records | none | none |
 | `magistr login`, `magistr logout` | none; identity cache | none | none |
 | `magistr completions`, `magistr man-pages` | none | none | none |
 | `magistr --workspace-worker` (private role, not a command) | none | none; child of one owner | none |

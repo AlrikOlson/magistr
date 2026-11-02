@@ -146,7 +146,7 @@ async fn broadcast_emits_step_appended_and_revised() {
     assert_eq!(frames[3]["pinned"].as_bool(), Some(true));
 
     // Every frame carries the family tag so a shared viewer can interleave
-    // think_* and ship_* events on one timeline.
+    // think_* and run_* events on one timeline.
     for (i, frame) in frames.iter().enumerate() {
         assert_eq!(
             frame["family"].as_str(),

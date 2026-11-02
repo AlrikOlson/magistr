@@ -13,7 +13,7 @@
 //! Notably absent are `delete`, `comment`, `list_projects`, `search` and every
 //! other thing an issue-tracker API offers, because the projector never needs
 //! them — and because this system is not trying to be an issue-CRUD surface. The
-//! vendors ship their own MCP servers for that and do it better; what this seam
+//! vendors run their own MCP servers for that and do it better; what this seam
 //! carries is the roadmap's plan and its provenance.
 //!
 //! [`TrackerPort::relate_items`] was added only after the seam met a real

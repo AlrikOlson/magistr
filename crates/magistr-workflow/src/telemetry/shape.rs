@@ -36,7 +36,7 @@ const STATUS_VOCAB: &[&str] = &[
     "blocked",
     "done",
     "obsoleted",
-    // ship objective/tasks
+    // run goal/tasks
     "defined",
     "planned",
     "active",
@@ -228,7 +228,7 @@ pub fn extract(
         }
 
         // Lifetime bucket: envelope `updated` when set, else the record's own
-        // lifecycle timestamps (chunks carry `updated_at`, ship tasks
+        // lifecycle timestamps (chunks carry `updated_at`, run tasks
         // `completed_at` — builders don't copy them up to the envelope).
         // Timestamps are parsed, never emitted — only the bucket name is.
         let end = env.updated.as_deref().or_else(|| {
@@ -309,7 +309,7 @@ mod tests {
     #[test]
     fn structure_is_preserved_topology_tools_lifetimes() {
         let mut env = envelope(
-            Kind::Step,
+            Kind::ThinkStep,
             "7",
             json!({
                 "status": "done",
@@ -321,7 +321,7 @@ mod tests {
                     relation: Some("supports".into()),
                 },
                 Edge {
-                    target: "task:explore".into(),
+                    target: "step:explore".into(),
                     relation: None,
                 },
             ],

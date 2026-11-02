@@ -34,7 +34,7 @@ impl BridgeLink for BrokenLink {
 async fn failed_send_answers_each_request_once_without_replaying_the_change() {
     let mut bridge = Bridge::new((), "test".to_owned(), Policy, Ok(BrokenLink));
     let request = serde_json::json!({"jsonrpc":"2.0","id":1,"method":"tools/call",
-        "params":{"name":"ship_record","arguments":{"description":"ambiguous change"}}});
+        "params":{"name":"record_progress","arguments":{"description":"ambiguous change"}}});
     let mut output = Vec::new();
     bridge
         .on_client(&request.to_string(), &mut output)

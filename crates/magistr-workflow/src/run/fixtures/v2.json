@@ -1,0 +1,202 @@
+{
+  "schema_version": 2,
+  "project_id": "magistr-5a5bc6",
+  "objective": {
+    "description": "Open Magistr before choosing a project or starting an agent, then prepare and open directories in the same window.",
+    "acceptance_criteria": [
+      "A native launch with no directory argument, no prepared project or an unavailable provider opens a usable project chooser with recoverable guidance; no provider is launched just to display it.",
+      "A native folder selection or explicit path opens a prepared project, or previews the real per-path setup plan with ownership/refusal details and applies that exact plan.",
+      "Partial, declined or refused setup stays visible and does not admit a fake project. After success, the same window opens a session through the existing authority.",
+      "Recent projects use current history/configuration owners. Update canonical setup metadata, docs and generated guidance for the Rust desktop and retained CLI/MCP roles; preserve project identity and user customizations.",
+      "Real-window tests cover clean launch, existing/new/invalid directories, unavailable provider, declined and partial setup, last-session close and later reopening using isolated state.",
+      "Before implementation, verify each behavior's producer, owning service and reader in current code. Fix missing behavior in its owner and update current callers together; add no parallel store or compatibility path. Use focused verification with formatting, affected crate/interface checks, real behavior tests and applicable native accessibility, contrast, icon, screenshot and architecture checks. Do not export roadmap files or widen to unrelated full suites."
+    ],
+    "constraints": [
+      "Preserve the pre-existing guard hook change; commit only this iteration's work.",
+      "One lazy application session authority; use existing administrative setup and history owners.",
+      "No compatibility paths or roadmap exports.",
+      "Focused affected crate, setup, native-window, contrast/icon/screenshot and architecture checks."
+    ],
+    "scope": "chunk:rust-gui-project-setup",
+    "verification": "focused",
+    "status": "completed",
+    "project_id": "magistr-5a5bc6",
+    "created_at": "2026-10-13T20:58:14.932309+00:00",
+    "completed_at": "2026-10-13T22:08:16.800654+00:00"
+  },
+  "tasks": [
+    {
+      "id": "rust-gui-project-setup-research",
+      "title": "[Research] Check native startup and folder dialog contracts",
+      "type": "research",
+      "status": "completed",
+      "estimate": null,
+      "started_at": "2026-10-13T20:58:43.349103+00:00",
+      "completed_at": "2026-10-13T20:58:43.355226+00:00",
+      "artifacts": [],
+      "checks": [],
+      "actions": [
+        {
+          "id": 1,
+          "task_id": "rust-gui-project-setup-research",
+          "timestamp": "2026-10-13T20:58:43.352357+00:00",
+          "type": "research",
+          "description": "Read current Tauri command and native dialog documentation and the pinned desktop architecture; asynchronous commands/callback dialogs keep startup and folder selection responsive.",
+          "files_touched": [],
+          "tools_used": [],
+          "result": "Use a Rust native dialog callback, build an empty app first, and defer provider/project admission until a user opens a project.",
+          "think_step": 1315
+        }
+      ]
+    },
+    {
+      "id": "rust-gui-project-setup-plan",
+      "title": "[Plan] Trace project admission, setup and history owners and choose focused evidence",
+      "type": "research",
+      "status": "completed",
+      "estimate": null,
+      "started_at": "2026-10-13T20:58:43.357997+00:00",
+      "completed_at": "2026-10-13T21:01:23.899793+00:00",
+      "artifacts": [],
+      "checks": [],
+      "actions": [
+        {
+          "id": 2,
+          "task_id": "rust-gui-project-setup-plan",
+          "timestamp": "2026-10-13T21:01:23.897171+00:00",
+          "type": "research",
+          "description": "Traced SessionRegistry/InteractiveHost, ProjectInputs, ScaffoldPipeline.preview/apply_approved/AdminService and session-backed project catalog. Selected lazy factory admission, absent current-project history state, and exact retained setup previews.",
+          "files_touched": [],
+          "tools_used": [],
+          "result": "Focused verification will cover CLI application/setup/history and boundary tests; separate desktop fmt/check/Clippy/Nextest and Node tests; native startup/setup and existing session journeys; structure, duplication, native-write-path, screenshots/index, contrast/icon and latency.",
+          "think_step": 1316
+        }
+      ]
+    }
+  ],
+  "next_action_id": 9,
+  "execution": {
+    "run_id": "6e841765-bd25-4b95-8a46-cf5c57ad0c35",
+    "tasks": {
+      "rust-gui-project-setup-plan": "867b4da2-a081-4da8-a046-4974895b434d",
+      "rust-gui-project-setup-research": "df1dceaf-46aa-4449-bdcc-1b895fd8ae94"
+    },
+    "removed_instances": []
+  },
+  "selection_revision": 1791925094932300,
+  "saved_cycles": [
+    {
+      "objective": {
+        "description": "Fix benchmark-exposed workspace and setup ownership defects, repair the paired pilot integration, and execute and report six fresh serial trials.",
+        "acceptance_criteria": [
+          "Native empty-file writes preserve concurrency, confirmation, journaling, undo and diagnostics.",
+          "Setup derives tools and commands from observed project evidence or explicit choices; missing checks remain unconfigured.",
+          "Investigate and correct any actual index readiness ownership or guidance defect.",
+          "Freeze a committed Linux ARM64 build, consistent runtime, accurate 1800-second deadlines and alternating paired order.",
+          "Pass reference and generated Codex/MCP installation controls, run both arms on three fixed tasks, and report all outcomes honestly."
+        ],
+        "constraints": [
+          "Preserve original 2026-09-21 evidence and unrelated work.",
+          "No compatibility paths, benchmark-specific product behavior, task modifications or selective retries.",
+          "Use separate atomic commits and focused checks; finish all builds and controls before scoring."
+        ],
+        "scope": "benchmark-fixes-and-paired-evaluation",
+        "verification": "focused",
+        "status": "active",
+        "project_id": "magistr-5a5bc6",
+        "created_at": "2026-09-22T08:21:23.588260+00:00"
+      },
+      "tasks": [
+        {
+          "id": "empty-files",
+          "title": "Repair the native empty-file population contract",
+          "type": "implement",
+          "status": "completed",
+          "estimate": null,
+          "started_at": "2026-09-22T07:39:25.028415+00:00",
+          "completed_at": "2026-09-22T07:51:41.533112+00:00",
+          "artifacts": [
+            {
+              "type": "commit",
+              "ref": "32c06a2",
+              "description": "Native empty-file writes, MCP schemas/guidance and focused regression checks."
+            }
+          ],
+          "checks": [
+            {
+              "type": "lint",
+              "name": "empty-files-format",
+              "passed": true,
+              "details": "$ cargo fmt --all --check\n[exit 0]\n",
+              "required": true,
+              "verified": true,
+              "command": "cargo fmt --all --check",
+              "exit_code": 0,
+              "timestamp": "2026-09-22T07:45:04.460404+00:00"
+            }
+          ],
+          "actions": [
+            {
+              "id": 1,
+              "task_id": "empty-files",
+              "timestamp": "2026-09-22T07:39:25.030363+00:00",
+              "type": "config",
+              "description": "workflow phase \u2192 Executing",
+              "files_touched": [],
+              "tools_used": [
+                "magistr_set_phase"
+              ],
+              "result": ""
+            }
+          ]
+        },
+        {
+          "id": "fresh-evaluation",
+          "title": "Build, verify controls, run six fresh trials and report",
+          "type": "test",
+          "status": "blocked",
+          "estimate": null,
+          "started_at": "2026-10-03T20:31:26.558028+00:00",
+          "artifacts": [],
+          "checks": [
+            {
+              "type": "build",
+              "name": "linux-arm64-build",
+              "passed": false,
+              "details": "$ docker run --rm --name magistr-pilot-followup-build --platform linux/arm64 --cpus 6 --memory 6g -v magistr-benchmark-cargo:/usr/local/cargo -v magistr-benchmark-target:/target -v magistr-benchmark-source:/src -v /Users/alrik/Code/magistr/target/benchmark-pilot/2026-09-22-followup:/out sha256:d7482085ff5b415f84dba5647ae71606650bdef00db7aeb69f4b3d170c3e4082 bash /out/build.sh > target/benchmark-pilot/2026-09-22-followup/build.log 2>&1\n[exit 127]\n",
+              "required": true,
+              "verified": true,
+              "command": "docker run --rm --name magistr-pilot-followup-build --platform linux/arm64 --cpus 6 --memory 6g -v magistr-benchmark-cargo:/usr/local/cargo -v magistr-benchmark-target:/target -v magistr-benchmark-source:/src -v /Users/alrik/Code/magistr/target/benchmark-pilot/2026-09-22-followup:/out sha256:d7482085ff5b415f84dba5647ae71606650bdef00db7aeb69f4b3d170c3e4082 bash /out/build.sh > target/benchmark-pilot/2026-09-22-followup/build.log 2>&1",
+              "exit_code": 127,
+              "timestamp": "2026-09-22T08:31:17.095850+00:00"
+            }
+          ],
+          "actions": [
+            {
+              "id": 10,
+              "task_id": "fresh-evaluation",
+              "timestamp": "2026-09-22T08:30:06.200651+00:00",
+              "type": "config",
+              "description": "workflow phase \u2192 Verifying",
+              "files_touched": [],
+              "tools_used": [
+                "magistr_set_phase"
+              ],
+              "result": ""
+            }
+          ],
+          "blocked_reason": "User prioritized diagnosing and fixing the TUI2 startup freeze, then committing and pushing main. Benchmark work remains unfinished and its evidence is preserved."
+        }
+      ],
+      "next_action_id": 39,
+      "execution": {
+        "run_id": "15cbcbd5-7d3a-422d-ba75-6de7d7d3e691",
+        "tasks": {
+          "empty-files": "33b7d5d0-fb68-4654-a4c8-54548c03aa4d",
+          "fresh-evaluation": "4639c390-10ac-4ef9-9c08-83d283978c78"
+        },
+        "removed_instances": []
+      }
+    }
+  ]
+}

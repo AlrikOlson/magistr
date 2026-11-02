@@ -49,7 +49,7 @@ fn planted_chunk() -> Chunk {
         "notes": "",
         "acceptance": [format!("no more {}", PLANTED[2])],
         "deps": [],
-        "cross_refs": ["think:7", "task:verify"],
+        "cross_refs": ["think:7", "step:verify"],
         "shared": false,
         "created_at": "2026-06-10T00:00:00Z",
         "updated_at": "2026-06-10T02:30:00Z",

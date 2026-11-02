@@ -95,7 +95,7 @@ for (const [path, html] of localDocuments) {
 }
 
 console.log("\nPublic language:");
-const jargon = /TUI2|GUI2|tui2|gui2|think-and-ship|Workbench|think:|ship:|chunk-id|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder/;
+const jargon = /TUI2|GUI2|tui2|gui2|think-and-ship|Workbench|think:|run:|chunk-id|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder/;
 const commentary = /\bHarbor\b|on purpose|design system|typographic hierarchy/i;
 for (const [name, html] of productPages) {
   const text = textOf(html);
@@ -168,7 +168,7 @@ assert(components.includes("BuildWalkthrough.astro") && !components.includes("Pr
 for (const file of readdirSync(resolve(srcDir, "content/docs"))) {
   assert(existsSync(resolve(distDir, "docs", file === "index.mdx" ? "" : file.replace(/\.mdx$/, ""), "index.html")), `guide ${file} is built`);
 }
-assert(!existsSync(resolve(distDir, "icons")), "no unused icon assets ship");
+assert(!existsSync(resolve(distDir, "icons")), "no unused icon assets run");
 
 console.log(`\n${failures === 0 ? "ALL TESTS PASSED" : `${failures} TEST(S) FAILED`}`);
 process.exit(failures === 0 ? 0 : 1);

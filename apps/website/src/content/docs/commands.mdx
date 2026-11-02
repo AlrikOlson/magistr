@@ -66,7 +66,7 @@ quality gate without implementing work.
 | --- | --- |
 | `magistr start "YOUR REQUEST"` | Start an agent turn with the quoted request. |
 | `magistr next` | Run one roadmap iteration. |
-| `magistr next --continue` | Continue the selected unfinished objective and task plan. |
+| `magistr next --continue` | Continue the selected unfinished goal and task plan. |
 | `magistr next --gate-only` | Run quality gates without an AI implementation iteration. |
 | `magistr next-loop --max-iterations 3` | Bound a run to three iterations, with fresh agent sessions. |
 | `--feature "FEATURE"` on `next-loop` | Limit selection to the named feature or an unambiguous fragment. |
@@ -83,7 +83,7 @@ Use [Configuration](/docs/configuration) for preference precedence and
 ```sh
 magistr roadmap status
 magistr roadmap next
-magistr plans . --status active
+magistr runs . --status active
 magistr sessions --limit 10
 ```
 
@@ -93,7 +93,7 @@ magistr sessions --limit 10
 | `magistr roadmap status` | Display a status snapshot; `--json` requests machine-readable output. |
 | `magistr roadmap next` | Report a ready chunk without implementing it. |
 | `magistr roadmap generate --help` | Inspect options for agent-assisted roadmap generation before requesting changes. |
-| `magistr plans .` | List current and retained plans; filter with `--status active`, `completed`, or `abandoned`. |
+| `magistr runs .` | List the current run and retained runs; filter with `--status open`, `active`, `finished` or `abandoned`. |
 | `magistr sessions` | List saved Magistr conversations; `--project` filters names and `--since-days` filters age. |
 | `magistr start --resume SESSION_ID "YOUR REQUEST"` | Resume a supported saved conversation and send a new request. |
 | `magistr start --continue "YOUR REQUEST"` | Continue the latest conversation for the current working copy. |

@@ -78,29 +78,29 @@ pub(crate) const DIRECT: &[(&str, &str, &str)] = &[
         "Create or replace a file through verified, journaled writes. Use expectedHash when replacing.",
     ),
     (
-        "ship_plan",
-        "plan_work",
-        "Add, remove or reorder tasks in the selected objective.",
+        "arrange_steps",
+        "arrange_steps",
+        "Add, remove or reorder steps in the open run.",
     ),
     (
-        "ship_start",
-        "start_work",
-        "Start a planned task in the selected objective.",
+        "start_step",
+        "start_step",
+        "Start a planned step in the open run.",
     ),
     (
-        "ship_record",
         "record_progress",
-        "Record an action and its result on the active task.",
+        "record_progress",
+        "Record progress and its result on the active step.",
     ),
     (
-        "ship_check",
-        "check_work",
-        "Run and record a verification command against the active task.",
+        "check_step",
+        "check_step",
+        "Run a check command and record its result on the active step.",
     ),
     (
-        "ship_complete",
-        "finish_work",
-        "Complete a task after its required checks pass.",
+        "finish_step",
+        "finish_step",
+        "Finish a step after its required checks pass.",
     ),
 ];
 
@@ -286,16 +286,16 @@ fn schema_tool(name: &'static str, description: &'static str, schema: Value) -> 
 
 fn examples(name: &str) -> Vec<Value> {
     let args = match name {
-        "context" | "ship_status" | "roadmap_status" | "workspace_status" => json!({}),
+        "context" | "run_status" | "roadmap_status" | "workspace_status" => json!({}),
         "search" => json!({"query":"TODO","mode":"lexical","budget":2000}),
         "read" => json!({"file":"README.md","budget":2000}),
         "map" => json!({"path":".","depth":2,"budget":2000}),
-        "plan_work" => {
-            json!({"action":"add","task_id":"investigate","title":"Investigate the requested change","task_type":"research"})
+        "arrange_steps" => {
+            json!({"action":"add","step_id":"investigate","title":"Investigate the requested change","step_type":"research"})
         }
-        "start_work" | "finish_work" => json!({"task_id":"investigate"}),
+        "start_step" | "finish_step" => json!({"step_id":"investigate"}),
         "undo" => json!({"steps":1}),
-        "ship_set_objective" => {
+        "run_open" => {
             json!({"description":"Investigate the requested change","scope":"investigation","verification":"focused"})
         }
         "signal_capture" => {

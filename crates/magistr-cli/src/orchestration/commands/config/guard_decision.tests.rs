@@ -15,8 +15,8 @@ fn named(name: &str, required: bool, passed: bool, verified: bool) -> CheckSumma
 
 fn shipped() -> GuardInput {
     GuardInput {
-        objective_status: Some("completed".into()),
-        tasks_total: 3,
+        goal_status: Some("finished".into()),
+        steps_total: 3,
         checks: vec![check(true, true, true)],
         ..GuardInput::default()
     }
@@ -24,8 +24,8 @@ fn shipped() -> GuardInput {
 
 fn in_flight() -> GuardInput {
     GuardInput {
-        objective_status: Some("active".into()),
-        tasks_total: 3,
+        goal_status: Some("active".into()),
+        steps_total: 3,
         ..GuardInput::default()
     }
 }
@@ -33,7 +33,7 @@ fn in_flight() -> GuardInput {
 // ── Stop ────────────────────────────────────────────────────────────
 
 #[test]
-fn stop_is_silent_while_the_objective_is_in_flight() {
+fn stop_is_silent_while_the_goal_is_in_flight() {
     let input = GuardInput {
         chunk_in_progress: true,
         ..in_flight()
@@ -45,7 +45,7 @@ fn stop_is_silent_while_the_objective_is_in_flight() {
 }
 
 #[test]
-fn stop_is_silent_without_an_objective() {
+fn stop_is_silent_without_an_goal() {
     let input = GuardInput {
         ..GuardInput::default()
     };
@@ -56,7 +56,7 @@ fn stop_is_silent_without_an_objective() {
 }
 
 #[test]
-fn stop_allows_a_shipped_objective_with_a_clean_tree_and_closed_chunk() {
+fn stop_allows_a_shipped_goal_with_a_clean_tree_and_closed_chunk() {
     assert_eq!(
         evaluate(GuardEvent::Stop, &shipped()),
         GuardVerdict::Allow(None)
@@ -64,7 +64,7 @@ fn stop_allows_a_shipped_objective_with_a_clean_tree_and_closed_chunk() {
 }
 
 #[test]
-fn stop_allows_a_shipped_objective_without_claiming_ownership_of_worktree_changes() {
+fn stop_allows_a_shipped_goal_without_claiming_ownership_of_worktree_changes() {
     assert_eq!(
         evaluate(GuardEvent::Stop, &shipped()),
         GuardVerdict::Allow(None)
@@ -72,7 +72,7 @@ fn stop_allows_a_shipped_objective_without_claiming_ownership_of_worktree_change
 }
 
 #[test]
-fn stop_blocks_a_shipped_objective_whose_chunk_is_still_in_progress() {
+fn stop_blocks_a_shipped_goal_whose_chunk_is_still_in_progress() {
     let input = GuardInput {
         chunk_in_progress: true,
         ..shipped()
@@ -93,7 +93,7 @@ fn stop_guidance_preserves_unrelated_changes_and_never_requests_exports() {
         ..shipped()
     };
     let GuardVerdict::Block(reason) = evaluate(GuardEvent::Stop, &input) else {
-        panic!("the objective's own chunk must be closed");
+        panic!("the goal's own chunk must be closed");
     };
     assert!(reason.contains("Preserve unrelated changes"), "{reason}");
     assert!(!reason.contains("stage everything"), "{reason}");
@@ -136,7 +136,7 @@ fn commit_ignores_bash_commands_that_are_not_git_commit() {
 }
 
 #[test]
-fn commit_without_an_objective_is_not_gated() {
+fn commit_without_an_goal_is_not_gated() {
     let input = GuardInput {
         command: Some("git commit -m x".into()),
         ..GuardInput::default()
@@ -161,7 +161,7 @@ fn commit_blocks_when_a_required_check_failed() {
 }
 
 #[test]
-fn commit_blocks_when_no_verified_check_exists_for_a_planned_objective() {
+fn commit_blocks_when_no_verified_check_exists_for_a_planned_goal() {
     let input = GuardInput {
         command: Some("git commit -q -F -".into()),
         checks: vec![check(true, true, false)], // self-reported only
@@ -191,7 +191,7 @@ fn commit_allows_after_a_verified_passing_required_check() {
 }
 
 #[test]
-fn commit_allows_a_shipped_objective_with_its_green_checks() {
+fn commit_allows_a_shipped_goal_with_its_green_checks() {
     let input = GuardInput {
         command: Some("git commit -m 'docs: roadmap'".into()),
         ..shipped()
@@ -278,12 +278,12 @@ fn is_git_commit_recognises_the_usual_shapes() {
     assert!(!is_git_commit(""));
 }
 
-// ── Commit: latest result per gate, shipped objectives ──────────────
+// ── Commit: latest result per gate, shipped goals ──────────────
 
 fn commit_input(status: &str, checks: Vec<CheckSummary>) -> GuardInput {
     GuardInput {
-        objective_status: Some(status.into()),
-        tasks_total: 3,
+        goal_status: Some(status.into()),
+        steps_total: 3,
         checks,
         command: Some("git commit -m x".into()),
         ..GuardInput::default()
@@ -336,11 +336,11 @@ fn commit_blocked_when_another_gate_is_still_red() {
 }
 
 #[test]
-fn commit_is_not_gated_once_the_objective_is_shipped() {
-    let input = commit_input("completed", vec![named("clippy", true, false, true)]);
+fn commit_is_not_gated_once_the_run_is_finished() {
+    let input = commit_input("finished", vec![named("clippy", true, false, true)]);
     assert!(matches!(
         evaluate(GuardEvent::Commit, &input),
-        GuardVerdict::Allow(Some(note)) if note.contains("shipped")
+        GuardVerdict::Allow(Some(note)) if note.contains("finished")
     ));
 }
 
@@ -356,9 +356,9 @@ fn frozen() -> FrozenTree {
 
 fn write_input(path: &str, status: Option<&str>, scope: Option<&str>) -> GuardInput {
     GuardInput {
-        objective_status: status.map(Into::into),
-        objective_scope: scope.map(Into::into),
-        tasks_total: usize::from(status.is_some()),
+        goal_status: status.map(Into::into),
+        goal_scope: scope.map(Into::into),
+        steps_total: usize::from(status.is_some()),
         frozen: Some(frozen()),
         write_path: Some(path.into()),
         ..GuardInput::default()
@@ -412,7 +412,7 @@ fn write_allows_paths_outside_the_frozen_tree() {
 }
 
 #[test]
-fn write_blocks_under_the_frozen_tree_with_an_unrelated_objective() {
+fn write_blocks_under_the_frozen_tree_with_an_unrelated_goal() {
     let input = write_input(
         "crates/magistr-gui/src/App.svelte",
         Some("active"),
@@ -437,7 +437,7 @@ fn write_blocks_under_the_frozen_tree_with_an_unrelated_objective() {
 }
 
 #[test]
-fn write_blocks_under_the_frozen_tree_without_an_objective() {
+fn write_blocks_under_the_frozen_tree_without_an_goal() {
     let input = write_input("crates/magistr-gui/src-tauri/src/main.rs", None, None);
     assert!(matches!(
         evaluate(GuardEvent::Write, &input),
@@ -446,7 +446,7 @@ fn write_blocks_under_the_frozen_tree_without_an_objective() {
 }
 
 #[test]
-fn write_allows_when_the_objective_scope_carries_an_unlock_word() {
+fn write_allows_when_the_goal_scope_carries_an_unlock_word() {
     for scope in [
         "chunk:gui2-0-freeze-tauri — legacy-gui freeze",
         "chunk:gui2-4-cutover: delete crates/magistr-gui",
@@ -455,7 +455,7 @@ fn write_allows_when_the_objective_scope_carries_an_unlock_word() {
     ] {
         let input = write_input(
             "crates/magistr-gui/src/App.svelte",
-            Some("defined"),
+            Some("open"),
             Some(scope),
         );
         assert!(
@@ -468,13 +468,13 @@ fn write_allows_when_the_objective_scope_carries_an_unlock_word() {
     }
 }
 
-/// A scope only unlocks while the objective is in flight — a shipped one is
+/// A scope only unlocks while the goal is in flight — a shipped one is
 /// a record, not a licence.
 #[test]
-fn write_ignores_the_scope_of_a_shipped_objective() {
+fn write_ignores_the_scope_of_a_shipped_goal() {
     let input = write_input(
         "crates/magistr-gui/src/App.svelte",
-        Some("completed"),
+        Some("finished"),
         Some("chunk:gui2-0-freeze-tauri — legacy-gui freeze"),
     );
     assert!(matches!(
@@ -536,7 +536,7 @@ fn write_block_suggests_the_declared_unlock_word_as_the_hotfix_scope() {
     match evaluate(GuardEvent::Write, &input) {
         GuardVerdict::Block(reason) => {
             assert!(
-                reason.contains("ship_set_objective(scope: \"legacy-thing:"),
+                reason.contains("run_open(scope: \"legacy-thing:"),
                 "{reason}"
             );
             assert!(reason.contains("somewhere else"), "{reason}");

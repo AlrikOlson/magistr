@@ -4,22 +4,22 @@
 
 use crate::cloud::envelope::{Edge, Family, Kind, UnifiedRecordEnvelope, edges_from_cross_refs};
 use crate::roadmap::domain::{Chunk, TrackerLink, TrackerOptIn};
-use crate::ship::domain::action::Action;
-use crate::ship::domain::check::Check;
-use crate::ship::domain::objective::Objective;
-use crate::ship::domain::task::Task;
+use crate::run::domain::check::Check;
+use crate::run::domain::goal::Goal;
+use crate::run::domain::progress::Progress;
+use crate::run::domain::step::Step;
 use crate::signal::domain::Signal;
 use crate::think::domain::step::ThinkStep;
 
-/// The cycle key — the stable wire identity of one ship cycle, derived from
-/// the objective's `created_at` (the same identity the disk merge uses). All
-/// four ship kinds prefix their wire ids with it, so ids never collide across
-/// cycles (sync-ship-full — the bare numeric action ids collided LIVE: every
-/// cycle's `action 1` overwrote the previous one's). Characters outside the
+/// The cycle key — the stable wire identity of one run cycle, derived from
+/// the goal's `created_at` (the same identity the disk merge uses). All
+/// four run kinds prefix their wire ids with it, so ids never collide across
+/// cycles (sync-run-full — the bare numeric progress ids collided LIVE: every
+/// cycle's `progress 1` overwrote the previous one's). Characters outside the
 /// contract id alphabet (`[A-Za-z0-9:._-]`) are mapped to `-`.
 #[must_use]
-pub fn cycle_key(objective_created_at: &str) -> String {
-    let sanitized: String = objective_created_at
+pub fn cycle_key(goal_created_at: &str) -> String {
+    let sanitized: String = goal_created_at
         .chars()
         .map(|c| {
             if c.is_ascii_alphanumeric() || matches!(c, ':' | '.' | '_' | '-') {
@@ -32,8 +32,8 @@ pub fn cycle_key(objective_created_at: &str) -> String {
     format!("obj-{sanitized}")
 }
 
-/// Extract the `chunk:<slug>` backref the /roadmap loop embeds in objective
-/// text, so the objective record carries a graph edge to its roadmap chunk.
+/// Extract the `chunk:<slug>` backref the /roadmap loop embeds in goal
+/// text, so the goal record carries a graph edge to its roadmap chunk.
 fn chunk_backref(text: &str) -> Option<String> {
     let start = text.find("chunk:")?;
     let slug: String = text[start + "chunk:".len()..]
@@ -43,25 +43,23 @@ fn chunk_backref(text: &str) -> Option<String> {
     (!slug.is_empty()).then(|| format!("chunk:{slug}"))
 }
 
-/// Build the cloud envelope for a ship objective. Wire id = the cycle key;
+/// Build the cloud envelope for a run goal. Wire id = the cycle key;
 /// re-push after status changes (defined → shipped) updates in place.
 #[must_use]
-pub fn from_objective(tenant: &str, cycle: &str, objective: &Objective) -> UnifiedRecordEnvelope {
-    let record = serde_json::to_value(objective).unwrap_or(serde_json::Value::Null);
+pub fn from_goal(tenant: &str, cycle: &str, goal: &Goal) -> UnifiedRecordEnvelope {
+    let record = serde_json::to_value(goal).unwrap_or(serde_json::Value::Null);
     let mut edges = Vec::new();
-    if let Some(backref) =
-        chunk_backref(&objective.description).or_else(|| chunk_backref(&objective.scope))
-    {
+    if let Some(backref) = chunk_backref(&goal.description).or_else(|| chunk_backref(&goal.scope)) {
         edges.push(Edge {
             target: backref,
             relation: Some("realizes".into()),
         });
     }
-    let created = objective.created_at.clone().unwrap_or_default();
+    let created = goal.created_at.clone().unwrap_or_default();
     UnifiedRecordEnvelope::owner(
         tenant,
-        Family::Ship,
-        Kind::Objective,
+        Family::Run,
+        Kind::Goal,
         cycle.to_string(),
         created,
         record,
@@ -69,39 +67,39 @@ pub fn from_objective(tenant: &str, cycle: &str, objective: &Objective) -> Unifi
     )
 }
 
-/// Build the cloud envelope for a ship task. Wire id = `<cycle>.<task_id>`;
-/// every lifecycle transition re-pushes the full task state in place. The
+/// Build the cloud envelope for a run step. Wire id = `<cycle>.<step_id>`;
+/// every lifecycle transition re-pushes the full step state in place. The
 /// store requires `record.id == envelope.id`, so the payload carries the wire
-/// id and keeps the per-cycle task id as `local_id`. `created` falls back to
-/// the objective's clock for tasks that haven't started yet.
+/// id and keeps the per-cycle step id as `local_id`. `created` falls back to
+/// the goal's clock for steps that haven't started yet.
 #[must_use]
-pub fn from_task(
+pub fn from_run_step(
     tenant: &str,
     cycle: &str,
-    objective_created_at: &str,
-    task: &Task,
+    goal_created_at: &str,
+    step: &Step,
 ) -> UnifiedRecordEnvelope {
-    let wire_id = format!("{cycle}.{}", task.id);
-    let mut record = serde_json::to_value(task).unwrap_or(serde_json::Value::Null);
+    let wire_id = format!("{cycle}.{}", step.id);
+    let mut record = serde_json::to_value(step).unwrap_or(serde_json::Value::Null);
     if let Some(obj) = record.as_object_mut() {
         obj.insert(
             "local_id".into(),
-            serde_json::Value::String(task.id.clone()),
+            serde_json::Value::String(step.id.clone()),
         );
         obj.insert("id".into(), serde_json::Value::String(wire_id.clone()));
     }
     let edges = vec![Edge {
-        target: format!("objective:{cycle}"),
+        target: format!("goal:{cycle}"),
         relation: Some("part_of".into()),
     }];
-    let created = task
+    let created = step
         .started_at
         .clone()
-        .unwrap_or_else(|| objective_created_at.to_string());
+        .unwrap_or_else(|| goal_created_at.to_string());
     UnifiedRecordEnvelope::owner(
         tenant,
-        Family::Ship,
-        Kind::Task,
+        Family::Run,
+        Kind::RunStep,
         wire_id,
         created,
         record,
@@ -110,27 +108,27 @@ pub fn from_task(
 }
 
 /// Build the cloud envelope for a quality-gate check. Checks have no id of
-/// their own — identity is the append-only index within the owning task
-/// (`<cycle>.<task_id>.check-<seq>`), stable across re-pushes; `created` is
+/// their own — identity is the append-only index within the owning step
+/// (`<cycle>.<step_id>.check-<seq>`), stable across re-pushes; `created` is
 /// the check's own timestamp.
 #[must_use]
 pub fn from_check(
     tenant: &str,
     cycle: &str,
-    task_id: &str,
+    step_id: &str,
     seq: usize,
     check: &Check,
 ) -> UnifiedRecordEnvelope {
     let record = serde_json::to_value(check).unwrap_or(serde_json::Value::Null);
     let edges = vec![Edge {
-        target: format!("task:{cycle}.{task_id}"),
+        target: format!("step:{cycle}.{step_id}"),
         relation: Some("verifies".into()),
     }];
     UnifiedRecordEnvelope::owner(
         tenant,
-        Family::Ship,
+        Family::Run,
         Kind::Check,
-        format!("{cycle}.{task_id}.check-{seq}"),
+        format!("{cycle}.{step_id}.check-{seq}"),
         check.timestamp.clone(),
         record,
         edges,
@@ -138,29 +136,29 @@ pub fn from_check(
 }
 
 /// Build the cloud envelope for an approval gate (webapp-approval-gates).
-/// Unlike the other ship kinds, a gate's id is its own UUID rather than a
+/// Unlike the other run kinds, a gate's id is its own UUID rather than a
 /// cycle-scoped key: the gate is born ON the cloud (it exists to be answered
-/// from a browser) and its id must survive `ship_reset` and cycle turnover
+/// from a browser) and its id must survive `run_reset` and cycle turnover
 /// while an agent is still waiting on it.
 #[must_use]
-pub fn from_gate(
+pub fn from_approval(
     tenant: &str,
-    gate: &crate::ship::gate::Gate,
-    task_id: Option<&str>,
+    gate: &crate::run::approval::Approval,
+    step_id: Option<&str>,
 ) -> UnifiedRecordEnvelope {
     let record = serde_json::to_value(gate).unwrap_or(serde_json::Value::Null);
-    let edges = task_id
+    let edges = step_id
         .map(|tid| {
             vec![Edge {
-                target: format!("task:{tid}"),
+                target: format!("step:{tid}"),
                 relation: Some("part_of".into()),
             }]
         })
         .unwrap_or_default();
     UnifiedRecordEnvelope::owner(
         tenant,
-        Family::Ship,
-        Kind::Gate,
+        Family::Run,
+        Kind::Approval,
         gate.id.clone(),
         gate.opened_at.clone(),
         record,
@@ -279,19 +277,19 @@ pub fn from_signal(tenant: &str, signal: &Signal) -> UnifiedRecordEnvelope {
     )
 }
 
-/// Build the cloud envelope for a ship action — the action as `record`, with a
-/// `task:<id>` edge to its task and a labeled `think:<n>` edge to the reasoning
+/// Build the cloud envelope for a run progress — the progress as `record`, with a
+/// `step:<id>` edge to its step and a labeled `think:<n>` edge to the reasoning
 /// step it derives from (when set). The richest edge case in the graph.
 #[must_use]
-pub fn from_action(tenant: &str, cycle: &str, action: &Action) -> UnifiedRecordEnvelope {
-    let wire_id = format!("{cycle}.action-{}", action.id);
-    let mut record = serde_json::to_value(action).unwrap_or(serde_json::Value::Null);
+pub fn from_progress(tenant: &str, cycle: &str, progress: &Progress) -> UnifiedRecordEnvelope {
+    let wire_id = format!("{cycle}.progress-{}", progress.id);
+    let mut record = serde_json::to_value(progress).unwrap_or(serde_json::Value::Null);
     if let Some(obj) = record.as_object_mut() {
-        obj.insert("local_id".into(), serde_json::Value::from(action.id));
+        obj.insert("local_id".into(), serde_json::Value::from(progress.id));
         obj.insert("id".into(), serde_json::Value::String(wire_id.clone()));
     }
-    let mut edges = vec![Edge::to(format!("task:{cycle}.{}", action.task_id))];
-    if let Some(step) = action.think_step {
+    let mut edges = vec![Edge::to(format!("step:{cycle}.{}", progress.step_id))];
+    if let Some(step) = progress.think_step {
         edges.push(Edge {
             target: format!("think:{step}"),
             relation: Some("realizes".into()),
@@ -299,10 +297,10 @@ pub fn from_action(tenant: &str, cycle: &str, action: &Action) -> UnifiedRecordE
     }
     UnifiedRecordEnvelope::owner(
         tenant,
-        Family::Ship,
-        Kind::Action,
+        Family::Run,
+        Kind::Progress,
         wire_id,
-        action.timestamp.clone(),
+        progress.timestamp.clone(),
         record,
         edges,
     )
@@ -346,7 +344,7 @@ pub fn from_step(
     Ok(UnifiedRecordEnvelope::owner(
         tenant,
         Family::Think,
-        Kind::Step,
+        Kind::ThinkStep,
         id.to_owned(),
         step.timestamp.clone().unwrap_or_default(),
         record,
@@ -519,27 +517,27 @@ mod tests {
     }
 
     #[test]
-    fn from_action_builds_a_schema_valid_envelope_with_task_and_think_edges() {
-        use crate::ship::domain::action::{Action, ActionType};
-        let action = Action {
+    fn from_progress_builds_a_schema_valid_envelope_with_step_and_think_edges() {
+        use crate::run::domain::progress::{Progress, ProgressType};
+        let progress = Progress {
             id: 42,
-            task_id: "impl-shipcloud".into(),
+            step_id: "impl-shipcloud".into(),
             timestamp: "2026-06-08T00:00:00Z".into(),
-            action_type: ActionType::Code,
+            progress_type: ProgressType::Code,
             description: "wired the hook".into(),
-            files_touched: vec!["src/ship/engine/mod.rs".into()],
+            files_touched: vec!["src/run/engine/mod.rs".into()],
             tools_used: vec!["Edit".into()],
             result: String::new(),
             think_step: Some(7),
         };
-        let envelope = from_action("magistr-676f38", "obj-2026-06-08T00:00:00Z", &action);
-        assert_eq!(envelope.id, "obj-2026-06-08T00:00:00Z.action-42");
+        let envelope = from_progress("magistr-676f38", "obj-2026-06-08T00:00:00Z", &progress);
+        assert_eq!(envelope.id, "obj-2026-06-08T00:00:00Z.progress-42");
         assert_eq!(envelope.record["id"], envelope.id);
         assert_eq!(envelope.record["local_id"], 42);
         assert_eq!(envelope.edges.len(), 2);
         assert_eq!(
             envelope.edges[0].target,
-            "task:obj-2026-06-08T00:00:00Z.impl-shipcloud"
+            "step:obj-2026-06-08T00:00:00Z.impl-shipcloud"
         );
         assert_eq!(envelope.edges[1].target, "think:7");
         assert_eq!(envelope.edges[1].relation.as_deref(), Some("realizes"));
@@ -561,10 +559,10 @@ mod tests {
     /// that routes around `Envelope::new` fails here instead of bleeding.
     #[test]
     fn every_family_stamps_the_source_project_on_the_record() {
-        use crate::ship::domain::action::{Action, ActionType};
-        use crate::ship::domain::check::{Check, CheckType};
-        use crate::ship::domain::objective::{Objective, ObjectiveStatus, VerificationMode};
-        use crate::ship::domain::task::{Task, TaskStatus, TaskType};
+        use crate::run::domain::check::{Check, CheckType};
+        use crate::run::domain::goal::{Goal, GoalStatus, VerificationMode};
+        use crate::run::domain::progress::{Progress, ProgressType};
+        use crate::run::domain::step::{Step, StepStatus, StepType};
         use crate::signal::domain::{SignalKind, SignalStatus};
         use crate::think::domain::step::ThinkStep;
         use serde_json::json;
@@ -596,33 +594,33 @@ mod tests {
             "timestamp": "2026-06-08T00:00:00Z"
         }))
         .expect("step fixture");
-        let action = Action {
+        let progress = Progress {
             id: 42,
-            task_id: "impl-x".into(),
+            step_id: "impl-x".into(),
             timestamp: "2026-06-08T00:00:00Z".into(),
-            action_type: ActionType::Code,
+            progress_type: ProgressType::Code,
             description: "wired the hook".into(),
             files_touched: vec![],
             tools_used: vec![],
             result: String::new(),
             think_step: None,
         };
-        let task = Task {
+        let run_step = Step {
             id: "impl-x".into(),
             title: "Implement the thing".into(),
-            task_type: TaskType::Implement,
-            status: TaskStatus::Active,
+            step_type: StepType::Implement,
+            status: StepStatus::Active,
             estimate: None,
             started_at: Some("2026-06-08T00:00:00Z".into()),
             completed_at: None,
             artifacts: vec![],
             checks: vec![],
-            actions: vec![],
-            blocked_reason: None,
+            progress: vec![],
+            waiting_reason: None,
             think_branch: None,
         };
         let check = Check {
-            receipt_id: None,
+            check_result_id: None,
             check_type: CheckType::Test,
             name: "cargo test".into(),
             passed: true,
@@ -652,13 +650,13 @@ mod tests {
             ("roadmap chunk", from_chunk(US, &owned_chunk, &[], &[])),
             ("signal", from_signal(US, &owned_signal)),
             ("think step", from_step(US, &step).unwrap()),
-            ("ship action", from_action(US, cycle, &action)),
+            ("run progress", from_progress(US, cycle, &progress)),
             (
-                "ship task",
-                from_task(US, cycle, "2026-06-08T00:00:00Z", &task),
+                "run step",
+                from_run_step(US, cycle, "2026-06-08T00:00:00Z", &run_step),
             ),
             (
-                "ship check",
+                "run check",
                 from_check(US, cycle, "2026-06-08T00:00:00Z", 0, &check),
             ),
         ];
@@ -672,21 +670,21 @@ mod tests {
         }
 
         // The other half: a family whose domain object already answers "which
-        // project" keeps its OWN answer. Ship objectives carry project_id, and
+        // project" keeps its OWN answer. Run goals carry project_id, and
         // overwriting it with the pushing tenant would relabel a record that
         // already knew better.
-        let objective = Objective {
+        let goal = Goal {
             description: "do the thing".into(),
             acceptance_criteria: vec![],
             constraints: vec![],
             scope: String::new(),
             verification: VerificationMode::Full,
-            status: ObjectiveStatus::Defined,
+            status: GoalStatus::Open,
             project_id: "some-other-project".into(),
             created_at: Some("2026-06-08T00:00:00Z".into()),
             completed_at: None,
         };
-        let obj_env = from_objective(US, cycle, &objective);
+        let obj_env = from_goal(US, cycle, &goal);
         assert_eq!(
             obj_env.record.get("project_id").and_then(|v| v.as_str()),
             Some("some-other-project"),
@@ -725,68 +723,68 @@ mod tests {
     }
 
     #[test]
-    fn ship_cycle_builders_emit_schema_valid_cycle_scoped_envelopes() {
-        use crate::ship::domain::check::{Check, CheckType};
-        use crate::ship::domain::objective::{Objective, ObjectiveStatus, VerificationMode};
-        use crate::ship::domain::task::{Task, TaskStatus, TaskType};
+    fn run_cycle_builders_emit_schema_valid_cycle_scoped_envelopes() {
+        use crate::run::domain::check::{Check, CheckType};
+        use crate::run::domain::goal::{Goal, GoalStatus, VerificationMode};
+        use crate::run::domain::step::{Step, StepStatus, StepType};
 
-        let objective = Objective {
-            description: "do the thing. chunk:sync-ship-full".into(),
+        let goal = Goal {
+            description: "do the thing. chunk:sync-run-full".into(),
             acceptance_criteria: vec!["it works".into()],
             constraints: vec![],
             scope: String::new(),
             verification: VerificationMode::Full,
-            status: ObjectiveStatus::Defined,
+            status: GoalStatus::Open,
             project_id: "magistr-676f38".into(),
             created_at: Some("2026-06-10T02:51:47.620058+00:00".into()),
             completed_at: None,
         };
-        let cycle = cycle_key(objective.created_at.as_deref().unwrap());
+        let cycle = cycle_key(goal.created_at.as_deref().unwrap());
 
-        let obj_env = from_objective("magistr-676f38", &cycle, &objective);
+        let obj_env = from_goal("magistr-676f38", &cycle, &goal);
         assert_eq!(obj_env.id, cycle);
         // The chunk: backref embedded in the description becomes a graph edge.
         assert_eq!(obj_env.edges.len(), 1);
-        assert_eq!(obj_env.edges[0].target, "chunk:sync-ship-full");
+        assert_eq!(obj_env.edges[0].target, "chunk:sync-run-full");
         assert_eq!(obj_env.edges[0].relation.as_deref(), Some("realizes"));
         assert_schema_valid(&obj_env);
 
-        let task = Task {
+        let step = Step {
             id: "implement-x".into(),
             title: "Implement the thing".into(),
-            task_type: TaskType::Implement,
-            status: TaskStatus::Active,
+            step_type: StepType::Implement,
+            status: StepStatus::Active,
             estimate: None,
             started_at: Some("2026-06-10T02:55:00Z".into()),
             completed_at: None,
             artifacts: vec![],
             checks: vec![],
-            actions: vec![],
-            blocked_reason: None,
+            progress: vec![],
+            waiting_reason: None,
             think_branch: None,
         };
-        let task_env = from_task(
+        let step_env = from_run_step(
             "magistr-676f38",
             &cycle,
-            objective.created_at.as_deref().unwrap(),
-            &task,
+            goal.created_at.as_deref().unwrap(),
+            &step,
         );
-        assert_eq!(task_env.id, format!("{cycle}.implement-x"));
+        assert_eq!(step_env.id, format!("{cycle}.implement-x"));
         // The store enforces record.id == envelope.id; the local id survives.
-        assert_eq!(task_env.record["id"], task_env.id);
-        assert_eq!(task_env.record["local_id"], "implement-x");
-        assert_eq!(task_env.edges[0].target, format!("objective:{cycle}"));
-        assert_schema_valid(&task_env);
+        assert_eq!(step_env.record["id"], step_env.id);
+        assert_eq!(step_env.record["local_id"], "implement-x");
+        assert_eq!(step_env.edges[0].target, format!("goal:{cycle}"));
+        assert_schema_valid(&step_env);
 
-        // A not-yet-started task still gets a valid `created` (the objective's clock).
-        let unstarted = Task {
+        // A not-yet-started step still gets a valid `created` (the goal's clock).
+        let unstarted = Step {
             started_at: None,
-            ..task.clone()
+            ..step.clone()
         };
-        let unstarted_env = from_task(
+        let unstarted_env = from_run_step(
             "magistr-676f38",
             &cycle,
-            objective.created_at.as_deref().unwrap(),
+            goal.created_at.as_deref().unwrap(),
             &unstarted,
         );
         assert_eq!(unstarted_env.created, "2026-06-10T02:51:47.620058+00:00");
@@ -794,7 +792,7 @@ mod tests {
 
         // Check names contain spaces — the id never embeds the name.
         let check = Check {
-            receipt_id: None,
+            check_result_id: None,
             check_type: CheckType::Test,
             name: "cargo test + clippy".into(),
             passed: true,
@@ -811,21 +809,21 @@ mod tests {
         assert_eq!(check_env.id, format!("{cycle}.implement-x.check-0"));
         assert_eq!(
             check_env.edges[0].target,
-            format!("task:{cycle}.implement-x")
+            format!("step:{cycle}.implement-x")
         );
         assert_schema_valid(&check_env);
 
         // Re-building the same logical entity yields the same identity (the
         // idempotent-upsert property the collision bug lacked).
         assert_eq!(
-            from_task(
+            from_run_step(
                 "magistr-676f38",
                 &cycle,
-                objective.created_at.as_deref().unwrap(),
-                &task
+                goal.created_at.as_deref().unwrap(),
+                &step
             )
             .idempotency_key,
-            task_env.idempotency_key
+            step_env.idempotency_key
         );
     }
 

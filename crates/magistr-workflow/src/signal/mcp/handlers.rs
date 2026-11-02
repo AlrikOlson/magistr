@@ -64,7 +64,7 @@ pub struct GetArgs {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct LinkArgs {
     pub id: String,
-    /// A cross-ref string: `think:N`, `task:X`, `action:N`, `check:X`,
+    /// A cross-ref string: `think:N`, `step:X`, `progress:N`, `check:X`,
     /// `chunk:X`, `signal:X`. `ref`/`crossref` accepted as forgiving aliases.
     #[serde(default, alias = "ref", alias = "crossref")]
     #[schemars(required, !default)]
@@ -200,7 +200,7 @@ impl SignalService {
 
     #[tool(
         name = "signal_link",
-        description = "Attach a typed cross-reference to a signal, fusing it into the think/ship/roadmap graph.\n\nInputs: id (required), cross_ref (required — think:N | task:X | action:N | check:X | chunk:X | signal:X).\n\nReturns: the updated signal. Duplicates are ignored.",
+        description = "Attach a typed cross-reference to a signal, fusing it into the think/run/roadmap graph.\n\nInputs: id (required), cross_ref (required — think:N | step:X | progress:N | check:X | chunk:X | signal:X).\n\nReturns: the updated signal. Duplicates are ignored.",
         annotations(
             title = "Link signal",
             read_only_hint = false,

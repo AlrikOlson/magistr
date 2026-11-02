@@ -93,7 +93,7 @@ async fn plain_tool_updates_show_command_output_and_gate_outcome() {
     let (mut session, tx) = mock_session();
     tx.send(Ok(text_msg("I’m checking the change."))).unwrap();
     let call = SessionUpdate::ToolCall(
-        ToolCall::new("gate", "mcp__magistr__ship_check")
+        ToolCall::new("gate", "mcp__magistr__check_step")
             .raw_input(serde_json::json!({"name":"check","command":"cargo check"})),
     );
     let update = SessionUpdate::ToolCallUpdate(ToolCallUpdate::new("gate",

@@ -6,10 +6,10 @@ use magistr_workflow::roadmap::domain::{
     Chunk, FocusState, Roadmap, WorkstreamCatalog, WorkstreamFrontier, WorkstreamResolution,
     next_ready, workstream_catalog, workstream_frontier,
 };
-use magistr_workflow::ship::domain::check_receipt::CheckReceipt;
-use magistr_workflow::ship::domain::objective::Objective;
-use magistr_workflow::ship::domain::task::Task;
-use magistr_workflow::ship::engine::ShipEngine;
+use magistr_workflow::run::domain::check_result::CheckResult;
+use magistr_workflow::run::domain::goal::Goal;
+use magistr_workflow::run::domain::step::Step;
+use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::SignalEngine;
 use magistr_workflow::signal::domain::{Signal, Signals};
 use magistr_workflow::think::domain::{ThinkHistory, ThinkStep};
@@ -20,7 +20,7 @@ use super::open_engines::open_engines;
 use super::snapshot::NativeRoadmapSnapshot;
 use crate::roadmap::RoadmapProgress;
 use magistr_workflow_contracts::{
-    NativeSnapshot, Observed, ReadError, RoadmapData, ShipData, ThinkData,
+    NativeSnapshot, Observed, ReadError, RoadmapData, RunData, ThinkData,
 };
 
 /// Validated queries over the four workflow owners.
@@ -35,7 +35,7 @@ pub struct NativeReader {
     config: NativeConfig,
     roadmap: Arc<Mutex<RoadmapEngine>>,
     think: Arc<Mutex<ReasoningServer>>,
-    ship: Arc<Mutex<ShipEngine>>,
+    run: Arc<Mutex<RunEngine>>,
     signal: Arc<Mutex<SignalEngine>>,
     observations: Arc<Mutex<NativeSnapshot>>,
 }
@@ -79,15 +79,15 @@ impl NativeReader {
     pub fn open_for_project(config: &NativeConfig, project_id: String) -> Self {
         // Event publication belongs to the admitted project writer. An
         // observer opens no publisher and never acquires a write lease.
-        let (think, ship, roadmap, signal) = open_engines(config, project_id.clone(), None);
-        Self::from_engines(project_id, config.clone(), think, ship, roadmap, signal)
+        let (think, run, roadmap, signal) = open_engines(config, project_id.clone(), None);
+        Self::from_engines(project_id, config.clone(), think, run, roadmap, signal)
     }
 
     pub(crate) fn from_engines(
         project_id: String,
         config: NativeConfig,
         think: ReasoningServer,
-        ship: ShipEngine,
+        run: RunEngine,
         roadmap: RoadmapEngine,
         signal: SignalEngine,
     ) -> Self {
@@ -95,7 +95,7 @@ impl NativeReader {
             project_id,
             config,
             Arc::new(Mutex::new(think)),
-            Arc::new(Mutex::new(ship)),
+            Arc::new(Mutex::new(run)),
             Arc::new(Mutex::new(roadmap)),
             Arc::new(Mutex::new(signal)),
         )
@@ -108,7 +108,7 @@ impl NativeReader {
         project_id: String,
         config: NativeConfig,
         think: Arc<Mutex<ReasoningServer>>,
-        ship: Arc<Mutex<ShipEngine>>,
+        run: Arc<Mutex<RunEngine>>,
         roadmap: Arc<Mutex<RoadmapEngine>>,
         signal: Arc<Mutex<SignalEngine>>,
     ) -> Self {
@@ -117,7 +117,7 @@ impl NativeReader {
             config,
             roadmap,
             think,
-            ship,
+            run,
             signal,
             observations: Arc::new(Mutex::new(NativeSnapshot::default())),
         }
@@ -155,11 +155,11 @@ impl NativeReader {
         result
     }
 
-    fn observe_ship(&self) -> Result<Observed<ShipData>, ReadError> {
+    fn observe_run(&self) -> Result<Observed<RunData>, ReadError> {
         super::WorkflowUpgrade::ready(&self.config, &self.project_id)?;
-        let engine = lock(&self.ship);
+        let engine = lock(&self.run);
         let result = engine.observe();
-        lock(&self.observations).ship.record(result.clone());
+        lock(&self.observations).run.record(result.clone());
         result
     }
 
@@ -190,7 +190,7 @@ impl NativeReader {
     #[must_use]
     pub fn snapshot(&self) -> NativeSnapshot {
         let _ = self.observe_roadmap();
-        let _ = self.observe_ship();
+        let _ = self.observe_run();
         let _ = self.observe_signal();
         let _ = self.observe_think();
         lock(&self.observations).clone()
@@ -340,48 +340,42 @@ impl NativeReader {
         Ok(RoadmapEngine::export_of(&observed.value, format))
     }
 
-    // ── Ship ───────────────────────────────────────────────────────────
+    // ── Run ───────────────────────────────────────────────────────────
 
-    /// The objective and complete plan from one successful owner read.
-    pub fn ship_snapshot(&self) -> Result<ShipData, String> {
-        Ok(self
-            .observe_ship()
-            .map_err(|error| error.to_string())?
-            .value)
+    /// The goal and complete plan from one successful owner read.
+    pub fn run_snapshot(&self) -> Result<RunData, String> {
+        Ok(self.observe_run().map_err(|error| error.to_string())?.value)
     }
 
     /// Resolve a selected or retained execution by its stable run identity.
     /// Missing work is distinct from a failed owner read.
-    pub fn ship_run(
-        &self,
-        run_id: &str,
-    ) -> Result<Option<magistr_workflow_contracts::ShipRun>, String> {
-        Ok(self.ship_snapshot()?.run(run_id).cloned())
+    pub fn run_run(&self, run_id: &str) -> Result<Option<magistr_workflow_contracts::Run>, String> {
+        Ok(self.run_snapshot()?.run(run_id).cloned())
     }
 
-    pub fn ship_objective(&self) -> Result<Option<Objective>, String> {
-        Ok(self.ship_snapshot()?.current.map(|run| run.objective))
+    pub fn run_goal(&self) -> Result<Option<Goal>, String> {
+        Ok(self.run_snapshot()?.current.map(|run| run.goal))
     }
 
-    pub fn ship_active_task_id(&self) -> Result<Option<String>, String> {
+    pub fn run_active_step_id(&self) -> Result<Option<String>, String> {
         Ok(self
-            .ship_snapshot()?
-            .active_task()
-            .map(|task| task.id.clone()))
+            .run_snapshot()?
+            .active_step()
+            .map(|step| step.id.clone()))
     }
 
-    /// Read the exact durable receipt through its own ledger. Its authority
+    /// Read the exact durable check_result through its own ledger. Its authority
     /// does not depend on whether the separate execution summary is readable.
-    pub fn ship_receipt(&self, id: &str) -> Result<Option<CheckReceipt>, String> {
-        let ledger = lock(&self.ship).receipts().clone();
+    pub fn run_check_result(&self, id: &str) -> Result<Option<CheckResult>, String> {
+        let ledger = lock(&self.run).check_results().clone();
         ledger.get(id).map_err(|error| error.to_string())
     }
 
-    pub fn ship_tasks(&self) -> Result<Vec<Task>, String> {
+    pub fn run_steps(&self) -> Result<Vec<Step>, String> {
         Ok(self
-            .ship_snapshot()?
+            .run_snapshot()?
             .current
-            .map_or_else(Vec::new, |run| run.tasks))
+            .map_or_else(Vec::new, |run| run.steps))
     }
 
     // ── Signal ─────────────────────────────────────────────────────────

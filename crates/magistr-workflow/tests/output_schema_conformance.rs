@@ -6,8 +6,8 @@
 //! over the real wire.
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::roadmap::{RoadmapService, engine::RoadmapEngine};
-use magistr_workflow::ship::engine::ShipEngine;
-use magistr_workflow::ship::mcp::ShipService;
+use magistr_workflow::run::engine::RunEngine;
+use magistr_workflow::run::mcp::RunService;
 use magistr_workflow::signal::{SignalService, engine::SignalEngine};
 use magistr_workflow::think::{ThinkService, config::ThinkConfig, engine::core::ReasoningServer};
 use rmcp::model::{CallToolRequestParams, CallToolResult, Tool};
@@ -24,13 +24,13 @@ async fn session() -> Session {
     let mut config = ThinkConfig::default();
     config.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(config));
-    let ship = ShipService::new(ShipEngine::new("schema-conformance".into()));
+    let run = RunService::new(RunEngine::new("schema-conformance".into()));
     let roadmap = RoadmapService::new(
         RoadmapEngine::new("schema-conformance".into()),
-        ship.use_cases(),
+        run.use_cases(),
     );
     let signal = SignalService::new(SignalEngine::new("schema-conformance".into()));
-    let server = UnifiedService::new(think, ship, roadmap, signal);
+    let server = UnifiedService::new(think, run, roadmap, signal);
     let (server_io, client_io) = tokio::io::duplex(1 << 16);
     tokio::spawn(async move {
         let running = server.serve(server_io).await.expect("server.serve");
@@ -92,23 +92,21 @@ fn assert_conforms(catalog: &[Tool], name: &str, result: &CallToolResult) {
 async fn a_task_that_starts_blocks_and_completes_is_returned_as_its_schema_says() {
     let session = session().await;
     let catalog = catalog(&session).await;
+    call(&session, "run_open", json!({"description": "conformance"})).await;
     call(
         &session,
-        "ship_set_objective",
-        json!({"description": "conformance"}),
-    )
-    .await;
-    call(
-        &session,
-        "ship_plan",
-        json!({"action": "add", "task_id": "t1", "title": "one"}),
+        "arrange_steps",
+        json!({"action": "add", "step_id": "t1", "title": "one"}),
     )
     .await;
 
     for (name, arguments) in [
-        ("ship_start", json!({"task_id": "t1"})),
-        ("ship_block", json!({"task_id": "t1", "reason": "waiting"})),
-        ("ship_complete", json!({"task_id": "t1"})),
+        ("start_step", json!({"step_id": "t1"})),
+        (
+            "run_block_step",
+            json!({"step_id": "t1", "reason": "waiting"}),
+        ),
+        ("finish_step", json!({"step_id": "t1"})),
     ] {
         let result = call(&session, name, arguments).await;
         assert_ne!(result.is_error, Some(true), "{name} succeeds: {result:?}");

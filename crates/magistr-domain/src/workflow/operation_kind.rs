@@ -7,10 +7,10 @@ use serde::{Deserialize, Serialize};
 pub enum OperationKind {
     /// An attempt slot claimed by the run's own checkpoint.
     Reservation,
-    /// A mutation of the native workflow store (roadmap, ship, signal, think).
+    /// A mutation of the native workflow store (roadmap, run, signal, think).
     NativeMutation,
-    /// A gate outcome recorded as evidence on a scoped task.
-    Receipt,
+    /// A check result recorded as evidence on a scoped step.
+    CheckResult,
     /// A change frame handed to attached surfaces.
     Publication,
     /// A provider runtime launched for an attempt.
@@ -23,7 +23,7 @@ impl OperationKind {
         match self {
             Self::Reservation => "reservation",
             Self::NativeMutation => "native_mutation",
-            Self::Receipt => "receipt",
+            Self::CheckResult => "check_result",
             Self::Publication => "publication",
             Self::ProviderDispatch => "provider_dispatch",
         }

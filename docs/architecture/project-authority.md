@@ -26,7 +26,7 @@ execution inputs once.
 
 Every supported native mutation runs the first-party workflow application use
 case for its family. `ProjectAuthority::open` composes `ThinkUseCases`,
-`ShipUseCases`, `RoadmapUseCases`, and `SignalUseCases` once, including the
+`RunUseCases`, `RoadmapUseCases`, and `SignalUseCases` once, including the
 reciprocal roadmap/signal capabilities. NativeEngines calls their synchronous,
 typed methods directly. `ProjectAuthority::serve` wraps those same capabilities
 in thin MCP adapters; an attached local client reaches them through the
@@ -39,7 +39,7 @@ refusals. JSON serialization belongs only to transport presentation. The old
 `handler_call` bridge, internal MCP argument/result decoding, and one-poll
 noop-waker invocation are deleted.
 
-Actual effects are explicit async operations. Ship checks admit a target before
+Actual effects are explicit async operations. Run checks admit a target before
 running a command, execute outside the workflow lock, then settle against that
 admission. Tracker setup probes its provider without holding the roadmap lock,
 then applies the shared native setup policy. Approval waits similarly use the
@@ -55,7 +55,7 @@ limited to `magistr-engine` and `magistr-cli`.
 
 ### Identities and check settlement
 
-Each admitted workflow execution carries an objective run and task instances
+Each admitted workflow execution carries a goal run and task instances
 within that run. New runs and task instances receive fresh identities.
 Duplicate plan task IDs are refused. Removed instances are fenced so a stale
 merge cannot resurrect them.
@@ -64,23 +64,23 @@ merge cannot resurrect them.
 `CheckAdmission` binds that target to the check request before an effect
 begins — together with the durable receipt it was admitted under, the
 acceptance revision then current, and the source the workflow observed at
-that moment. Native `check_work` retains this admission across command
+that moment. Native `check_step` retains this admission across command
 execution inside the workflow crate; `magistr_gate` and the loop driver
 retain it through the [composition boundary](application.md#the-composition-boundary)'s
 `AdmittedCheck`. The loop additionally fixes one task admission for the
 complete gate set, including retries. Reusing a task name in a later
-objective cannot collect an earlier command's result.
+goal cannot collect an earlier command's result.
 
 ### Receipts and the evidence capability
 
-Every admitted check writes a durable `CheckReceipt` before its command
-runs (`ship/executions/<context-key>/receipts/<project>/<id>.json` beside the session record, one
+Every admitted check writes a durable `CheckResult` before its command
+runs (`run/executions/<context-key>/receipts/<project>/<id>.json` beside the session record, one
 file per receipt, published by temp → fsync → rename → fsync-directory;
 in memory when persistence is off). The receipt names the run, task
 instance and per-gate attempt, the gate contract as requested (name, type,
-command, required), the objective's acceptance revision (a content digest
+command, required), the goal's acceptance revision (a content digest
 of description, acceptance criteria, constraints and scope — an in-flight
-`ship_set_objective` keeps the run id but moves the revision) and, when the
+`run_open` keeps the run id but moves the revision) and, when the
 writer carries the evidence capability, a `SourceObservation`: which
 workspace and owner generation, under which scheme and selection policy,
 the content-addressed revision of the selected bytes, the digest of those
@@ -115,12 +115,12 @@ mutation lock: admission holds the engine lock only to name the target,
 observes, then publishes; settlement validates the witness first and takes
 the lock only to append the check and rewrite the receipt.
 
-Settlement re-reads the current native ship state and compares identity under
+Settlement re-reads the current native run state and compares identity under
 the existing persistence lock before appending an ordinary check. A stale
 settlement — the run or task instance superseded while the command ran —
 returns its admission and execution outcome intact and settles the receipt
 `Stale` with the reason under its original identity, so a late result after
-an objective rollover keeps its record and never reaches the task that reused
+a goal rollover keeps its record and never reaches the task that reused
 the name; the MCP adapter reports `stale_result` with the receipt, and host
 runners report an unrecorded result. An observation that cannot be taken
 refuses the admission before anything runs: an unobservable gate is never
@@ -150,7 +150,7 @@ the evidence capability decides input coverage. A newer relevant failure or
 unfinished execution still prevents an older pass from being reused. The index
 rebuilds from canonical receipts, including older records, without rewriting them.
 
-`check_work(reuse_only: true)` never launches the command on a miss. Both MCP and
+`check_step(reuse_only: true)` never launches the command on a miss. Both MCP and
 host callers settle an explicit unverified, nonpassing `reuse_unavailable`
 outcome. Use it when checking for existing evidence; decide what actually needs
 to run from that result. `reuse: false` still requests a fresh execution and
@@ -165,17 +165,17 @@ volatile checks must disable reuse.
 
 ### Receipt retention
 
-Receipts remain available across objective changes until explicitly compacted.
-`ship_compact_receipts` (also `NativeEngines::ship_compact_receipts` and the
-attached owner's `ShipCommand::CompactReceipts`) permanently removes only
+Receipts remain available across goal changes until explicitly compacted.
+`run_compact_checks` (also `NativeEngines::run_compact_checks` and the
+attached owner's `RunCommand::CompactReceipts`) permanently removes only
 settled receipts outside the persisted current run. It keeps every current-run
 attempt, every receipt with incomplete settlement, and every exact receipt ID
 referenced by an unresolved loop operation. The report counts these disjoint
 groups as `retained_current`, `retained_unsettled`, and `retained_referenced`,
 alongside `removed`. There is no age threshold, automatic pruning, or archive.
-A missing current objective refuses compaction.
+A missing current goal refuses compaction.
 
-The canonical payload stays `ship/executions/<context-key>/receipts/<project>/<id>.json`. A derived
+The canonical payload stays `run/executions/<context-key>/receipts/<project>/<id>.json`. A derived
 `runs-v1/<sha256(run_id)>/<id>.ref` membership index makes completion and
 attempt allocation read only that run's receipts; exact-ID reads and settlement
 open just that payload. The derived index is built under the ledger lock
@@ -191,7 +191,7 @@ payload; it is not evidence and never advances an attempt. An acknowledged
 receipt cannot be omitted from its run's index. The admitted project writer
 owns this index and every contextual receipt partition.
 
-Compaction holds the persisted cycle lock before the ledger lock, so an objective
+Compaction holds the persisted cycle lock before the ledger lock, so a goal
 rollover cannot change which run is protected during deletion. Under the ledger
 lock, the host's `EvidencePort::retained_receipts` reads the typed
 `.magistr/loop-state.json` checkpoint. The loop persists its `receipt:<id>`
@@ -212,12 +212,12 @@ ordinary session checks; they are not copied into the evidence ledger.
 
 `roadmap_complete_chunk` is the one route to `done`, and every adapter lands
 on it — the MCP tool, the owner command, the loop judge and the cockpit's
-Complete action. The ship family is the roadmap's completion authority by
-construction: `RoadmapUseCases::new` takes the `ShipUseCases` it completes
-against, `FamilyServices` composes every writer's roadmap over its ship
+Complete action. The run family is the roadmap's completion authority by
+construction: `RoadmapUseCases::new` takes the `RunUseCases` it completes
+against, `FamilyServices` composes every writer's roadmap over its run
 family, and there is no permissive branch to compose instead
-(`audit-260912-05`). Completion asks `ShipUseCases::verify_completion`
-first: the current objective must be
+(`audit-260912-05`). Completion asks `RunUseCases::verify_completion`
+first: the current goal must be
 scoped `chunk:<id>`; the verification task is the caller's `task:` reference
 (a task of the current run) or, absent one, the instance the run's latest
 receipt landed on, and the completion is stored with that reference so it
@@ -235,7 +235,7 @@ and what re-running it would satisfy; earlier failures a later pass
 superseded are reported as `recovered`. A self-reported pass neither
 certifies a configured gate nor blocks. `roadmap_set_status(done)` and
 accepting a `done` status proposal are refused toward `roadmap_complete_chunk`.
-`ship_finalize`'s report separates `recovered_failures` from
+`run_finish`'s report separates `recovered_failures` from
 `outstanding_failures`, and its failed-required warning names only the
 outstanding ones.
 
@@ -284,9 +284,9 @@ identical contexts reuse their engine handles, idle entries are pruned, and
 admission refuses more than 128 live contexts. Every contextual view retains
 an active working-copy lease.
 
-Roadmap, reasoning and signals belong to the shared project. Ship's selected
-scope, objectives, plans and receipts belong to the execution context, under
-`ship/executions/<context-key>/sessions` and its receipt partition. Selecting
+Roadmap, reasoning and signals belong to the shared project. Run's selected
+scope, goals, plans and receipts belong to the execution context, under
+`run/executions/<context-key>/sessions` and its receipt partition. Selecting
 another context never replaces the first context's selected scope. Reopening
 the same context restores its cycle. Its evidence capability observes that
 context's source directory, the shared project's settings and the owner's
@@ -301,7 +301,7 @@ binding is refused before any check can be attached. Durable receipts also
 retain workflow run and task-instance identity and the independent source
 observation. Source editing remains useful without a workflow task: source
 sessions and confirmation tokens are governed by the source owner, while
-check receipts establish the relationship to an admitted workflow task.
+check results establish the relationship to an admitted run step.
 
 ## Working-copy lifecycle
 
@@ -363,12 +363,12 @@ next request and restore its own persisted execution.
 
 One project publisher supplies the shared sequence and owner epoch. A host can
 start it after opening its engines; publication binds all existing execution
-views before the host serves clients. Ship
+views before the host serves clients. Run
 events and Magistr phase/gate-output events also carry `execution_key`.
 The CLI feed delivers those events only to the matching context while
 advancing the cursor for every decoded frame. Shared roadmap, reasoning and
 signal events reach every context. Snapshot readers use the same contextual
-ship persistence partition. Long and short feed paths resolve through the
+run persistence partition. Long and short feed paths resolve through the
 authority directory in every linked copy.
 
 ## Cached state and the store stamp
@@ -376,7 +376,7 @@ authority directory in every linked copy.
 Each family observes its persisted file's inode, modification time and length
 before answering or acting. Changed stamps trigger a read; unchanged stamps
 reuse memory. Writes are atomic and adopt the written stamp. Contexts share
-the project's planning engines and have their own ship handles. Queries across
+the project's planning engines and have their own run handles. Queries across
 families are not one transaction. Readers never grant mutation authority;
 source revisions and owner generations remain distinct.
 

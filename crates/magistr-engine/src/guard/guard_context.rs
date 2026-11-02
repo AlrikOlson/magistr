@@ -1,10 +1,10 @@
-use super::ship_guard_state::ShipGuardState;
+use super::run_guard_state::RunGuardState;
 
 /// Context passed to guard hooks so they can inspect project state.
 ///
 /// Uses `String` paths (not `PathBuf`) because the engine layer is IO-free.
 /// Infrastructure adapters convert `PathBuf` to `String` at the boundary,
-/// and read the ship engine's records into [`ShipGuardState`] before handing
+/// and read the run engine's records into [`RunGuardState`] before handing
 /// it here — the guards never open a store or a plan file themselves.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GuardContext {
@@ -12,10 +12,10 @@ pub struct GuardContext {
     pub project_dir: String,
     /// Path to the spec file (e.g., `ROADMAP.md`).
     pub spec_path: String,
-    /// The execution-trace slice the plan guard keys on (objective, tasks,
-    /// recorded checks) — what `ship_status` answered when the context was
+    /// The execution-trace slice the plan guard keys on (goal, tasks,
+    /// recorded checks) — what `run_status` answered when the context was
     /// built.
-    pub ship: ShipGuardState,
+    pub run: RunGuardState,
 }
 
 impl GuardContext {
@@ -23,12 +23,12 @@ impl GuardContext {
     pub fn new(
         project_dir: impl Into<String>,
         spec_path: impl Into<String>,
-        ship: ShipGuardState,
+        run: RunGuardState,
     ) -> Self {
         Self {
             project_dir: project_dir.into(),
             spec_path: spec_path.into(),
-            ship,
+            run,
         }
     }
 }

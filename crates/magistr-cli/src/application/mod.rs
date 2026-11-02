@@ -10,7 +10,7 @@
 //!
 //! What it binds: a workflow [`CheckAdmission`](magistr_engine::native::CheckAdmission)
 //! — project, run, task and task instance captured *before* a gate runs,
-//! under a durable [`CheckReceipt`](magistr_engine::native::CheckReceipt) —
+//! under a durable [`CheckResult`](magistr_engine::native::CheckResult) —
 //! whose source the workflow observed through the evidence capability the
 //! writer was admitted with ([`WorkspaceEvidence`](magistr_core::evidence::WorkspaceEvidence),
 //! composed by [`writer_config`](magistr_core::evidence::writer_config)).

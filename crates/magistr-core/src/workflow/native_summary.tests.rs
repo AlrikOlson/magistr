@@ -72,7 +72,7 @@ fn resumes_one_active_item_before_higher_priority_pending_work_without_writes() 
 }
 
 #[test]
-fn multiple_active_items_need_a_saved_target_or_matching_unfinished_objective() {
+fn multiple_active_items_need_a_saved_target_or_matching_unfinished_goal() {
     let tmp = tempfile::tempdir().unwrap();
     let e = engines(&tmp);
     add(&e, "first", 500, &[]);
@@ -94,7 +94,7 @@ fn multiple_active_items_need_a_saved_target_or_matching_unfinished_objective() 
         "first"
     );
 
-    e.ship_set_objective(
+    e.run_open(
         "Finish the second item".into(),
         vec![],
         vec![],
@@ -105,18 +105,15 @@ fn multiple_active_items_need_a_saved_target_or_matching_unfinished_objective() 
         native_work_chunk(&e, None, None).unwrap().unwrap().id,
         "second"
     );
-    e.ship_add_task(
+    e.add_step(
         "resume".into(),
         "Continue the second item".into(),
-        magistr_engine::native::TaskType::Implement,
+        magistr_engine::native::StepType::Implement,
         None,
     )
     .unwrap();
-    e.ship_start_task("resume").unwrap();
-    assert_eq!(
-        e.ship_objective().unwrap().unwrap().status,
-        ObjectiveStatus::Active
-    );
+    e.start_step("resume").unwrap();
+    assert_eq!(e.run_goal().unwrap().unwrap().status, GoalStatus::Active);
     assert_eq!(
         native_work_chunk(&e, None, None).unwrap().unwrap().id,
         "second"
@@ -133,7 +130,7 @@ fn multiple_active_items_need_a_saved_target_or_matching_unfinished_objective() 
 }
 
 #[test]
-fn saved_pending_target_stays_bound_and_unfinished_objectives_are_preserved() {
+fn saved_pending_target_stays_bound_and_unfinished_goals_are_preserved() {
     let tmp = tempfile::tempdir().unwrap();
     let e = engines(&tmp);
     add(&e, "chosen", 500, &[]);
@@ -145,7 +142,7 @@ fn saved_pending_target_stays_bound_and_unfinished_objectives_are_preserved() {
             .id,
         "chosen"
     );
-    e.ship_set_objective("Current research".into(), vec![], vec![], "research".into())
+    e.run_open("Current research".into(), vec![], vec![], "research".into())
         .unwrap();
     let before = e.snapshot();
     assert_eq!(
@@ -159,13 +156,13 @@ fn saved_pending_target_stays_bound_and_unfinished_objectives_are_preserved() {
 }
 
 #[test]
-fn unbound_objectives_do_not_imply_a_conflicting_chunk() {
+fn unbound_goals_do_not_imply_a_conflicting_chunk() {
     for scope in ["", "general", " General "] {
         let tmp = tempfile::tempdir().unwrap();
         let e = engines(&tmp);
         add(&e, "only", 1, &[]);
         e.roadmap_start_chunk("only").unwrap();
-        e.ship_set_objective(
+        e.run_open(
             "Continue existing work".into(),
             vec![],
             vec![],
@@ -177,7 +174,7 @@ fn unbound_objectives_do_not_imply_a_conflicting_chunk() {
             native_work_chunk(&e, None, None).unwrap().unwrap().id,
             "only"
         );
-        assert_eq!(e.snapshot(), before, "unbound objectives remain intact");
+        assert_eq!(e.snapshot(), before, "unbound goals remain intact");
     }
 }
 
@@ -234,7 +231,7 @@ fn missing_saved_work_refuses_unrelated_pending_or_active_work_without_writes() 
         add(&e, "other", 1, &[]);
         if active {
             e.roadmap_start_chunk("other").unwrap();
-            e.ship_set_objective(
+            e.run_open(
                 "Finish other work".into(),
                 vec![],
                 vec![],
@@ -306,7 +303,7 @@ fn active_dependencies_are_checked_again_and_missing_work_is_not_invented() {
 }
 
 #[test]
-fn finished_objectives_and_saved_items_do_not_prevent_the_next_ready_item() {
+fn finished_goals_and_saved_items_do_not_prevent_the_next_ready_item() {
     let tmp = tempfile::tempdir().unwrap();
     let e = engines(&tmp);
     add(&e, "finished", 100, &[]);
@@ -321,8 +318,8 @@ fn finished_objectives_and_saved_items_do_not_prevent_the_next_ready_item() {
         (2, 1, 1)
     );
     assert_eq!(e.snapshot(), before);
-    e.ship_complete_task("verify", vec![]).unwrap();
-    e.ship_finalize(vec![], None).unwrap();
+    e.finish_step("verify", vec![]).unwrap();
+    e.run_finish(vec![], None).unwrap();
     e.roadmap_start_chunk("next").unwrap();
     complete_native_chunk(&e, "next");
     let summary = native_work_summary(&e, Some("next"), None).unwrap();
@@ -373,7 +370,7 @@ fn selecting_work_refuses_an_unreadable_execution_plan_until_recovery() {
     let tmp = tempfile::tempdir().unwrap();
     let e = engines(&tmp);
     add(&e, "work", 100, &[]);
-    e.ship_set_objective(
+    e.run_open(
         "Continue this work".into(),
         vec![],
         vec![],
@@ -388,7 +385,7 @@ fn selecting_work_refuses_an_unreadable_execution_plan_until_recovery() {
         .config()
         .persistence_config()
         .data_dir
-        .join("ship")
+        .join("run")
         .join("executions")
         .join(e.config().execution_context().key())
         .join("sessions")

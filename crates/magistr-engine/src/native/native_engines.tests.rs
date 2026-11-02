@@ -4,9 +4,9 @@ use crate::native::{
     SourceFreshness, SourceObservation, SourceWitness, WriterRole,
 };
 use magistr_workflow::roadmap::domain::{BlockerKind, ChunkStatus};
-use magistr_workflow::ship::domain::action::ActionType;
-use magistr_workflow::ship::domain::check::{Check, CheckType};
-use magistr_workflow::ship::domain::task::TaskType;
+use magistr_workflow::run::domain::check::{Check, CheckType};
+use magistr_workflow::run::domain::progress::ProgressType;
+use magistr_workflow::run::domain::step::StepType;
 use magistr_workflow::signal::domain::SignalKind;
 use magistr_workflow::think::domain::ThinkStep;
 
@@ -106,27 +106,27 @@ fn step(n: u32, purpose: &str) -> ThinkStep {
 }
 
 #[test]
-fn compaction_owner_command_preserves_receipts_for_current_and_retained_runs() {
-    use crate::native::{OwnerCommand, OwnerReply, ShipCommand};
+fn compaction_owner_command_preserves_check_results_for_current_and_retained_runs() {
+    use crate::native::{OwnerCommand, OwnerReply, RunCommand};
     let temp = tempfile::tempdir().unwrap();
     let cfg = temp_config(&temp);
     let engines = host(&cfg, "compaction");
-    assert!(engines.ship_compact_receipts().is_err());
+    assert!(engines.run_compact_checks().is_err());
     let mut old_id = String::new();
     for n in 0..2 {
         engines
-            .ship_set_objective(format!("Run {n}"), vec![], vec![], String::new())
+            .run_open(format!("Run {n}"), vec![], vec![], String::new())
             .unwrap();
         engines
-            .ship_add_task("verify".into(), "Verify".into(), TaskType::Test, None)
+            .add_step("verify".into(), "Verify".into(), StepType::Test, None)
             .unwrap();
-        engines.ship_start_task("verify").unwrap();
+        engines.start_step("verify").unwrap();
         let admission = engines
-            .ship_admit_gate(None, "test", "true".into(), true)
+            .run_admit_gate(None, "test", "true".into(), true)
             .unwrap();
-        let receipt_id = admission.value.receipt_id.clone();
+        let check_result_id = admission.value.check_result_id.clone();
         engines
-            .ship_settle_gate(
+            .run_settle_gate(
                 admission.value,
                 CheckExecution::Exited { code: 0 },
                 String::new(),
@@ -134,14 +134,14 @@ fn compaction_owner_command_preserves_receipts_for_current_and_retained_runs() {
             )
             .unwrap();
         if n == 0 {
-            old_id = receipt_id;
-            engines.ship_complete_task("verify", vec![]).unwrap();
-            engines.ship_finalize(vec![], None).unwrap();
+            old_id = check_result_id;
+            engines.finish_step("verify", vec![]).unwrap();
+            engines.run_finish(vec![], None).unwrap();
         }
     }
-    assert!(engines.ship_receipt(&old_id).unwrap().is_some());
+    assert!(engines.run_check_result(&old_id).unwrap().is_some());
     let command: OwnerCommand = serde_json::from_value(
-        serde_json::to_value(OwnerCommand::Ship(ShipCommand::CompactReceipts)).unwrap(),
+        serde_json::to_value(OwnerCommand::Run(RunCommand::CompactCheckResults)).unwrap(),
     )
     .unwrap();
     let OwnerReply::Report(report) = engines.apply(command).unwrap() else {
@@ -150,7 +150,7 @@ fn compaction_owner_command_preserves_receipts_for_current_and_retained_runs() {
     assert_eq!(report["removed"], 0);
     assert_eq!(report["retained_current"], 1);
     assert_eq!(report["retained_referenced"], 1);
-    assert!(engines.ship_receipt(&old_id).unwrap().is_some());
+    assert!(engines.run_check_result(&old_id).unwrap().is_some());
 }
 
 #[test]
@@ -176,25 +176,25 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
         engines
             .think_record_step(step(1, "Keep recovery isolated"))
             .expect("origin");
-        let mut branch = step(2, "Can each tenant keep its own receipt?");
-        branch.branch_id = Some("receipt".into());
-        branch.branch_name = Some("Can each tenant keep its own receipt?".into());
+        let mut branch = step(2, "Can each tenant keep its own check_result?");
+        branch.branch_id = Some("check_result".into());
+        branch.branch_name = Some("Can each tenant keep its own check_result?".into());
         branch.branch_from = Some(1);
-        branch.outcome = "Keep one receipt per tenant.".into();
+        branch.outcome = "Keep one check_result per tenant.".into();
         engines.think_record_step(branch).expect("branch");
         engines
             .think_record_step(step(3, "Check the log format"))
             .expect("unrelated step");
         engines
-            .think_record_step(step(4, "Use tenant receipts during recovery"))
+            .think_record_step(step(4, "Use tenant check_results during recovery"))
             .expect("synthesis");
         engines
             .services
             .think
-            .set_branch_status("receipt", "merged", Some(4))
+            .set_branch_status("check_result", "merged", Some(4))
             .expect("merge");
         let snapshot = observer.snapshot();
-        let receipt = snapshot
+        let check_result = snapshot
             .think
             .current()
             .unwrap()
@@ -204,12 +204,15 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
             .branches
             .iter()
             .flatten()
-            .find(|branch| branch.id == "receipt")
+            .find(|branch| branch.id == "check_result")
             .expect("persisted branch");
-        assert_eq!(receipt.name, "Can each tenant keep its own receipt?");
-        assert_eq!(receipt.from_step, 1);
-        assert_eq!(receipt.status, BranchStatus::Merged);
-        assert_eq!(receipt.merged_into, Some(4));
+        assert_eq!(
+            check_result.name,
+            "Can each tenant keep its own check_result?"
+        );
+        assert_eq!(check_result.from_step, 1);
+        assert_eq!(check_result.status, BranchStatus::Merged);
+        assert_eq!(check_result.merged_into, Some(4));
         assert_eq!(
             snapshot
                 .think
@@ -221,7 +224,7 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
                 .steps[1]
                 .branch_id
                 .as_deref(),
-            Some("receipt")
+            Some("check_result")
         );
         assert_eq!(
             snapshot
@@ -233,13 +236,13 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
                 .unwrap()
                 .steps[1]
                 .outcome,
-            "Keep one receipt per tenant."
+            "Keep one check_result per tenant."
         );
     }
 
     let restarted = reader(&cfg, project);
     let persisted = restarted.snapshot();
-    let receipt = persisted
+    let check_result = persisted
         .think
         .current()
         .unwrap()
@@ -249,11 +252,11 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
         .branches
         .iter()
         .flatten()
-        .find(|branch| branch.id == "receipt")
+        .find(|branch| branch.id == "check_result")
         .expect("branch after restart");
-    assert_eq!(receipt.status, BranchStatus::Merged);
+    assert_eq!(check_result.status, BranchStatus::Merged);
     assert_eq!(
-        receipt.merged_into,
+        check_result.merged_into,
         Some(4),
         "do not substitute the first later main-line step"
     );
@@ -263,11 +266,11 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
         engines
             .services
             .think
-            .set_branch_status("receipt", "abandoned", None)
+            .set_branch_status("check_result", "abandoned", None)
             .expect("stop investigation after restart");
     }
     let stopped = restarted.snapshot();
-    let receipt = stopped
+    let check_result = stopped
         .think
         .current()
         .unwrap()
@@ -277,11 +280,11 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
         .branches
         .iter()
         .flatten()
-        .find(|branch| branch.id == "receipt")
+        .find(|branch| branch.id == "check_result")
         .expect("stopped branch");
-    assert_eq!(receipt.status, BranchStatus::Abandoned);
+    assert_eq!(check_result.status, BranchStatus::Abandoned);
     assert_eq!(
-        receipt.merged_into, None,
+        check_result.merged_into, None,
         "reseed clears obsolete merge provenance"
     );
 }
@@ -305,29 +308,29 @@ fn round_trip_through_a_temp_store() {
 
         assert_eq!(
             engines
-                .ship_set_objective("obj".into(), vec![], vec![], "chunk:base".into())
-                .expect("objective")
+                .run_open("obj".into(), vec![], vec![], "chunk:base".into())
+                .expect("goal")
                 .value,
             0
         );
         engines
-            .ship_add_task("t1".into(), "Task one".into(), TaskType::Implement, None)
-            .expect("add task");
-        let t = engines.ship_start_task("t1").expect("start task");
+            .add_step("t1".into(), "Step one".into(), StepType::Implement, None)
+            .expect("add step");
+        let t = engines.start_step("t1").expect("start step");
         assert_eq!(t.value.id, "t1");
-        let action = engines
-            .ship_record_action(
+        let progress = engines
+            .record_progress(
                 None,
-                ActionType::Code,
+                ProgressType::Code,
                 "wrote code".into(),
                 vec!["a.rs".into()],
                 vec![],
                 Some(1),
             )
-            .expect("action");
-        assert_eq!(action.value.think_step, Some(1));
+            .expect("progress");
+        assert_eq!(progress.value.think_step, Some(1));
         let check = engines
-            .ship_record_gate(
+            .run_record_gate(
                 None,
                 "test",
                 "cargo nextest".into(),
@@ -340,14 +343,14 @@ fn round_trip_through_a_temp_store() {
         assert!(check.value.passed && check.value.verified);
         assert_eq!(check.value.exit_code, Some(0));
         let failed = engines
-            .ship_record_gate(None, "lint", "clippy".into(), 1, String::new(), true, None)
+            .run_record_gate(None, "lint", "clippy".into(), 1, String::new(), true, None)
             .expect("gate");
         assert!(!failed.value.passed && failed.value.verified);
         // The red lint is current evidence against completion until it
         // is re-run green; then it is a recovered failure, not an
         // outstanding one.
         let refused = engines
-            .roadmap_complete_chunk("base", Some("task:t1"))
+            .roadmap_complete_chunk("base", Some("step:t1"))
             .expect_err("a failed required gate refuses completion");
         assert!(
             refused
@@ -356,23 +359,23 @@ fn round_trip_through_a_temp_store() {
             "{refused}"
         );
         engines
-            .ship_record_gate(None, "lint", "clippy".into(), 0, String::new(), true, None)
+            .run_record_gate(None, "lint", "clippy".into(), 0, String::new(), true, None)
             .expect("gate");
-        engines.ship_complete_task("t1", vec![]).expect("complete");
+        engines.finish_step("t1", vec![]).expect("complete");
 
         let sig = engines
             .signal_capture(SignalKind::Idea, "alice".into(), "make it faster".into())
             .expect("capture");
         assert_eq!(sig.value.body, "make it faster");
         let done = engines
-            .roadmap_complete_chunk("base", Some("task:t1"))
+            .roadmap_complete_chunk("base", Some("step:t1"))
             .expect("complete chunk");
         assert_eq!(done.value.status, ChunkStatus::Done);
         let report = engines
-            .ship_finalize(vec![], Some("done".into()))
+            .run_finish(vec![], Some("done".into()))
             .expect("finalize");
-        assert_eq!(report.value.status, "shipped");
-        assert_eq!(report.value.recovered_failures, vec!["lint (task: t1)"]);
+        assert_eq!(report.value.status, "finished");
+        assert_eq!(report.value.recovered_failures, vec!["lint (step: t1)"]);
     }
 
     // A second process on the same store sees everything.
@@ -386,7 +389,7 @@ fn round_trip_through_a_temp_store() {
             .roadmap_chunk("base")
             .unwrap()
             .map(|c| c.cross_refs),
-        Some(vec!["task:t1".to_string()])
+        Some(vec!["step:t1".to_string()])
     );
     let pinned = reopened
         .think_session(None)
@@ -398,15 +401,15 @@ fn round_trip_through_a_temp_store() {
         .count();
     assert_eq!(pinned, 1, "think trace persisted with its pin");
     assert_eq!(
-        reopened.ship_objective().unwrap().unwrap().status,
-        crate::native::ObjectiveStatus::Completed
+        reopened.run_goal().unwrap().unwrap().status,
+        crate::native::GoalStatus::Finished
     );
     assert_eq!(reopened.signal_status().unwrap()["counts"]["new"], 1);
 
     // Every family wrote under its own partition of the one data dir.
-    for family in ["roadmap", "think", "ship", "signal"] {
+    for family in ["roadmap", "think", "run", "signal"] {
         let base = tmp.path().join("data").join(family);
-        let base = if family == "ship" {
+        let base = if family == "run" {
             base.join("executions").join(cfg.execution_context().key())
         } else {
             base
@@ -598,26 +601,26 @@ fn repeated_validated_reads_pick_up_another_writers_changes() {
 
     add_chunk(&server, "only-on-disk", 100, &[]);
     server
-        .ship_set_objective("obj".into(), vec![], vec![], "chunk:only-on-disk".into())
-        .expect("objective");
+        .run_open("obj".into(), vec![], vec![], "chunk:only-on-disk".into())
+        .expect("goal");
     server
-        .ship_add_task("t1".into(), "task".into(), TaskType::Implement, None)
-        .expect("add task");
+        .add_step("t1".into(), "step".into(), StepType::Implement, None)
+        .expect("add step");
 
     // The host opened before those writes; every query observes durable truth.
     assert_eq!(
         host.roadmap_next().unwrap().map(|c| c.id).as_deref(),
         Some("only-on-disk")
     );
-    assert_eq!(host.ship_snapshot().unwrap().tasks().len(), 1);
+    assert_eq!(host.run_snapshot().unwrap().steps().len(), 1);
 
     assert_eq!(
         host.roadmap_next().unwrap().map(|c| c.id).as_deref(),
         Some("only-on-disk")
     );
-    assert_eq!(host.ship_snapshot().unwrap().tasks().len(), 1);
+    assert_eq!(host.run_snapshot().unwrap().steps().len(), 1);
     assert_eq!(
-        host.ship_snapshot().unwrap().objective().unwrap().scope,
+        host.run_snapshot().unwrap().goal().unwrap().scope,
         "chunk:only-on-disk"
     );
 }
@@ -909,7 +912,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
         crate::native::ReadSource::Missing
     );
     assert_eq!(
-        empty.ship.current().unwrap().source,
+        empty.run.current().unwrap().source,
         crate::native::ReadSource::Missing
     );
     assert_eq!(
@@ -930,29 +933,29 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
     add_chunk(&engines, "next", 200, &["base"]);
     engines.roadmap_start_chunk("base").expect("start");
     engines
-        .ship_set_objective(
-            "ship the snapshot".into(),
+        .run_open(
+            "run the snapshot".into(),
             vec![],
             vec![],
             "chunk:base".into(),
         )
-        .expect("objective");
+        .expect("goal");
     engines
-        .ship_add_task("t1".into(), "read it".into(), TaskType::Implement, None)
-        .expect("task");
-    engines.ship_start_task("t1").expect("start task");
+        .add_step("t1".into(), "read it".into(), StepType::Implement, None)
+        .expect("step");
+    engines.start_step("t1").expect("start step");
     engines
-        .ship_record_action(
+        .record_progress(
             Some("t1"),
-            ActionType::Code,
+            ProgressType::Code,
             "wrote the seed".into(),
             vec![],
             vec![],
             None,
         )
-        .expect("action");
+        .expect("progress");
     engines
-        .ship_record_gate(
+        .run_record_gate(
             Some("t1"),
             "cargo nextest",
             "true".into(),
@@ -974,7 +977,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
         crate::native::ReadSource::File(_)
     ));
     assert!(matches!(
-        snapshot.ship.current().unwrap().source,
+        snapshot.run.current().unwrap().source,
         crate::native::ReadSource::File(_)
     ));
     assert!(matches!(
@@ -987,34 +990,34 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
     ));
     assert_eq!(
         snapshot
-            .ship
+            .run
             .current()
             .unwrap()
             .value
-            .objective()
+            .goal()
             .as_ref()
             .map(|o| o.scope.as_str()),
         Some("chunk:base")
     );
-    assert_eq!(snapshot.ship.current().unwrap().value.tasks().len(), 1);
+    assert_eq!(snapshot.run.current().unwrap().value.steps().len(), 1);
     assert_eq!(
-        snapshot.ship.current().unwrap().value.tasks()[0]
-            .actions
+        snapshot.run.current().unwrap().value.steps()[0]
+            .progress
             .len(),
         1,
-        "actions ride their task"
+        "progress ride their step"
     );
     assert_eq!(
-        snapshot.ship.current().unwrap().value.tasks()[0]
+        snapshot.run.current().unwrap().value.steps()[0]
             .checks
             .len(),
         1,
-        "checks ride their task"
+        "checks ride their step"
     );
     assert_eq!(
-        snapshot.ship.current().unwrap().value.tasks()[0].checks[0].exit_code,
+        snapshot.run.current().unwrap().value.steps()[0].checks[0].exit_code,
         Some(0),
-        "the exit code ship_status would have dropped"
+        "the exit code run_status would have dropped"
     );
     let ids: Vec<&str> = snapshot
         .roadmap
@@ -1188,22 +1191,22 @@ fn signal_queries_observe_another_writers_capture() {
     assert_eq!(host.signal_status().unwrap()["counts"]["total"], 1);
 }
 
-/// A ship trace with one active task, ready to take a gate record.
-fn engines_with_active_task(tmp: &tempfile::TempDir) -> NativeEngines {
+/// A run trace with one active step, ready to take a gate record.
+fn engines_with_active_step(tmp: &tempfile::TempDir) -> NativeEngines {
     let engines = host(&temp_config(tmp), "gate-rec");
     engines
-        .ship_set_objective("record the gates".into(), vec![], vec![], String::new())
-        .expect("objective");
+        .run_open("record the gates".into(), vec![], vec![], String::new())
+        .expect("goal");
     engines
-        .ship_add_task("t1".into(), "run gates".into(), TaskType::Implement, None)
-        .expect("add task");
-    engines.ship_start_task("t1").expect("start");
+        .add_step("t1".into(), "run gates".into(), StepType::Implement, None)
+        .expect("add step");
+    engines.start_step("t1").expect("start");
     engines
 }
 
 fn checks(engines: &NativeEngines) -> Vec<Check> {
     engines
-        .ship_tasks()
+        .run_steps()
         .unwrap()
         .into_iter()
         .flat_map(|t| t.checks)
@@ -1213,10 +1216,10 @@ fn checks(engines: &NativeEngines) -> Vec<Check> {
 #[test]
 fn a_recorded_gate_is_verified_and_carries_the_command_and_the_real_exit_code() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let engines = engines_with_active_task(&tmp);
+    let engines = engines_with_active_step(&tmp);
 
     engines
-        .ship_record_gate(
+        .run_record_gate(
             None,
             "lint",
             "cargo clippy --workspace".to_owned(),
@@ -1241,10 +1244,10 @@ fn a_recorded_gate_is_verified_and_carries_the_command_and_the_real_exit_code() 
 #[test]
 fn the_check_type_is_derived_from_the_gate_name_archetype_suffix_and_all() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let engines = engines_with_active_task(&tmp);
+    let engines = engines_with_active_step(&tmp);
     for name in ["check", "test:app-typescript", "lint", "structure", "test"] {
         engines
-            .ship_record_gate(None, name, "true".to_owned(), 0, String::new(), true, None)
+            .run_record_gate(None, name, "true".to_owned(), 0, String::new(), true, None)
             .expect("record");
     }
     let kinds: Vec<CheckType> = checks(&engines)
@@ -1268,7 +1271,7 @@ fn the_check_type_is_derived_from_the_gate_name_archetype_suffix_and_all() {
 #[test]
 fn a_junit_report_is_parsed_into_the_record() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let engines = engines_with_active_task(&tmp);
+    let engines = engines_with_active_step(&tmp);
     let report = tmp.path().join("junit.xml");
     std::fs::write(
         &report,
@@ -1284,7 +1287,7 @@ fn a_junit_report_is_parsed_into_the_record() {
     .expect("write junit");
 
     engines
-        .ship_record_gate(
+        .run_record_gate(
             None,
             "test",
             "cargo nextest run".to_owned(),
@@ -1312,11 +1315,11 @@ fn a_junit_report_is_parsed_into_the_record() {
 #[test]
 fn a_missing_report_is_not_parsed_and_never_a_failure() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let engines = engines_with_active_task(&tmp);
+    let engines = engines_with_active_step(&tmp);
     let absent = tmp.path().join("never-written.xml");
 
     let check = engines
-        .ship_record_gate(
+        .run_record_gate(
             None,
             "test",
             "cargo nextest run".to_owned(),
@@ -1336,13 +1339,13 @@ fn a_missing_report_is_not_parsed_and_never_a_failure() {
 }
 
 #[test]
-fn a_gate_cannot_be_recorded_with_no_task_to_record_it_against() {
+fn a_gate_cannot_be_recorded_with_no_step_to_record_it_against() {
     // The loop needs the refusal to be legible: it prints it on the stage
     // rather than silently recording nothing.
     let tmp = tempfile::tempdir().expect("tempdir");
-    let engines = host(&temp_config(&tmp), "no-task");
+    let engines = host(&temp_config(&tmp), "no-step");
     let refusal = engines
-        .ship_record_gate(
+        .run_record_gate(
             None,
             "check",
             "true".to_owned(),
@@ -1351,7 +1354,7 @@ fn a_gate_cannot_be_recorded_with_no_task_to_record_it_against() {
             true,
             None,
         )
-        .expect_err("no active task");
+        .expect_err("no active step");
     assert!(
         !refusal.to_string().is_empty(),
         "the refusal says something"
@@ -1383,47 +1386,47 @@ fn the_handlers_refusals_are_the_writers_refusals() {
     add_chunk(&engines, "c", 100, &[]);
     let done = engines
         .roadmap_complete_chunk("c", None)
-        .expect_err("no objective certifies the chunk");
+        .expect_err("no goal certifies the chunk");
     assert!(
         done.to_string()
-            .starts_with("completion refused: no ship objective is set"),
+            .starts_with("completion refused: no run goal is set"),
         "{done}"
     );
 
-    let no_task = engines
-        .ship_start_task("nothing")
-        .expect_err("an unknown task is refused");
-    assert!(no_task.to_string().contains("nothing"), "{no_task}");
+    let no_step = engines
+        .start_step("nothing")
+        .expect_err("an unknown step is refused");
+    assert!(no_step.to_string().contains("nothing"), "{no_step}");
 }
 
-/// A fresh objective after a shipped one clears the stale plan — the
+/// A fresh goal after a shipped one clears the stale plan — the
 /// count the handler reports comes back as the typed answer.
 #[test]
-fn a_fresh_cycle_reports_how_many_stale_tasks_it_cleared() {
+fn a_fresh_cycle_reports_how_many_stale_steps_it_cleared() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp).persist(false);
     let engines = host(&cfg, "fresh-cycle");
     assert_eq!(
         engines
-            .ship_set_objective("first".into(), vec![], vec![], String::new())
-            .expect("objective")
+            .run_open("first".into(), vec![], vec![], String::new())
+            .expect("goal")
             .value,
         0
     );
     engines
-        .ship_add_task("t1".into(), "one".into(), TaskType::Implement, None)
-        .expect("add task");
+        .add_step("t1".into(), "one".into(), StepType::Implement, None)
+        .expect("add step");
     engines
-        .ship_add_task("t2".into(), "two".into(), TaskType::Test, None)
-        .expect("add task");
-    engines.ship_finalize(vec![], None).expect("finalize");
+        .add_step("t2".into(), "two".into(), StepType::Test, None)
+        .expect("add step");
+    engines.run_finish(vec![], None).expect("finalize");
     assert_eq!(
         engines
-            .ship_set_objective("second".into(), vec![], vec![], String::new())
-            .expect("objective")
+            .run_open("second".into(), vec![], vec![], String::new())
+            .expect("goal")
             .value,
         2,
-        "the finished cycle's two tasks were cleared"
+        "the finished cycle's two steps were cleared"
     );
-    assert!(engines.ship_tasks().unwrap().is_empty());
+    assert!(engines.run_steps().unwrap().is_empty());
 }

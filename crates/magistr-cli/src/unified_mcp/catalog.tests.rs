@@ -40,10 +40,12 @@ fn direct_discovery_and_dispatch_share_native_schemas() {
         );
     }
     assert!(!catalog.operation("undo").unwrap().direct);
-    assert!(catalog.operation("ship_plan").is_err());
+    for retired in ["ship_plan", "plan_work", "check_work"] {
+        assert!(catalog.operation(retired).is_err(), "{retired}");
+    }
     assert_eq!(
-        catalog.operation("plan_work").unwrap().native_name,
-        "ship_plan"
+        catalog.operation("arrange_steps").unwrap().native_name,
+        "arrange_steps"
     );
 }
 

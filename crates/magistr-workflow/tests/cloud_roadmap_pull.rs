@@ -91,7 +91,7 @@ fn upsert_chunk_keeps_a_newer_local_mutation_over_a_stale_cloud_copy() {
 
     // The local chunk, freshly mutated (a cross-ref attached at T2).
     let mut local = chunk_at("a", ChunkStatus::InProgress, "2026-06-08T02:00:00Z");
-    local.cross_refs = vec!["task:verify".into()];
+    local.cross_refs = vec!["step:verify".into()];
     upsert(&mut engine, local);
 
     // The reconcile delivers the cloud copy from T1 — before the push landed.
@@ -108,7 +108,7 @@ fn upsert_chunk_keeps_a_newer_local_mutation_over_a_stale_cloud_copy() {
         .unwrap();
     assert_eq!(
         a.cross_refs,
-        vec!["task:verify".to_string()],
+        vec!["step:verify".to_string()],
         "a stale cloud copy clobbered a newer local mutation"
     );
     assert_eq!(a.updated_at, "2026-06-08T02:00:00Z");

@@ -10,7 +10,7 @@ use crate::workflow::iteration::tests::{
 use crate::workflow::iteration::{IterationLoop, PreCheckResult};
 use magistr_engine::NativeEngines;
 use magistr_engine::native::ChunkStatus;
-use magistr_engine::native::TaskType;
+use magistr_engine::native::StepType;
 use std::path::Path;
 
 fn recover(dir: &Path, spec: &Path, native: Option<NativeEngines>) -> IterationLoop {
@@ -251,45 +251,48 @@ fn every_native_mutation_verb_is_read_back_from_the_chunk() {
     assert_eq!(recovered.reconciliation().open.len(), 1);
 }
 
-/// Engines with an objective and an active `verify` task — the shape the
+/// Engines with a goal and an active `verify` step — the shape the
 /// loop's gates are recorded into.
-fn engines_with_verify_task(dir: &tempfile::TempDir) -> NativeEngines {
+fn engines_with_verify_step(dir: &tempfile::TempDir) -> NativeEngines {
     let engines = native_engines(dir);
     add_native_chunk(&engines, "c1", 100, &[]);
     engines
-        .ship_set_objective("obj".into(), vec![], vec![], "chunk:c1".into())
+        .run_open("obj".into(), vec![], vec![], "chunk:c1".into())
         .unwrap();
     engines
-        .ship_add_task("verify".into(), "verify".into(), TaskType::Review, None)
+        .add_step("verify".into(), "verify".into(), StepType::Review, None)
         .unwrap();
-    engines.ship_start_task("verify").unwrap();
+    engines.start_step("verify").unwrap();
     engines
 }
 
-/// A receipt intended, admitted and started the way the loop does it:
-/// the record carries the durable receipt id, and the admission is what
+/// A check_result intended, admitted and started the way the loop does it:
+/// the record carries the durable check_result id, and the admission is what
 /// settlement needs.
-fn admit_receipt(
+fn admit_check_result(
     il: &mut IterationLoop,
     engines: &NativeEngines,
     gate: &str,
 ) -> (AttemptId, magistr_engine::native::CheckAdmission) {
-    let target = format!("gate:{gate}@task:verify");
+    let target = format!("gate:{gate}@step:verify");
     let attempt = il
-        .begin_operation(OperationKind::Receipt, &target, &target)
+        .begin_operation(OperationKind::CheckResult, &target, &target)
         .unwrap()
         .unwrap();
     let admission = engines
-        .ship_admit_gate(Some("verify"), gate, "true".into(), true)
+        .run_admit_gate(Some("verify"), gate, "true".into(), true)
         .unwrap()
         .value;
-    il.start_operation(&attempt, Some(format!("receipt:{}", admission.receipt_id)))
-        .unwrap();
+    il.start_operation(
+        &attempt,
+        Some(format!("check_result:{}", admission.check_result_id)),
+    )
+    .unwrap();
     (attempt, admission)
 }
 
 #[test]
-fn compaction_keeps_a_receipt_for_recovery_and_its_saved_objective() {
+fn compaction_keeps_a_check_result_for_recovery_and_its_saved_goal() {
     use magistr_engine::native::{CheckExecution, NativeConfig, ProjectAuthority, WriterRole};
     let (dir, spec) = setup_project("- [ ] item\n");
     let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None);
@@ -303,37 +306,34 @@ fn compaction_keeps_a_receipt_for_recovery_and_its_saved_objective() {
             .unwrap()
             .open();
     engines
-        .ship_set_objective("Old".into(), vec![], vec![], String::new())
+        .run_open("Old".into(), vec![], vec![], String::new())
         .unwrap();
     engines
-        .ship_add_task("verify".into(), "Verify".into(), TaskType::Test, None)
+        .add_step("verify".into(), "Verify".into(), StepType::Test, None)
         .unwrap();
-    engines.ship_start_task("verify").unwrap();
+    engines.start_step("verify").unwrap();
     let mut il = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
     il.pre_iteration_check().unwrap();
-    let (operation, admission) = admit_receipt(&mut il, &engines, "test");
+    let (operation, admission) = admit_check_result(&mut il, &engines, "test");
     il.persist().unwrap();
-    let id = admission.receipt_id.clone();
+    let id = admission.check_result_id.clone();
     engines
-        .ship_settle_gate(
+        .run_settle_gate(
             admission,
             CheckExecution::Exited { code: 0 },
             String::new(),
             None,
         )
         .unwrap();
-    engines.ship_complete_task("verify", vec![]).unwrap();
-    engines.ship_finalize(vec![], None).unwrap();
+    engines.finish_step("verify", vec![]).unwrap();
+    engines.run_finish(vec![], None).unwrap();
     engines
-        .ship_set_objective("New".into(), vec![], vec![], String::new())
+        .run_open("New".into(), vec![], vec![], String::new())
         .unwrap();
-    drop(il); // Crash before acknowledging the applied receipt in the checkpoint.
-    assert_eq!(
-        engines.ship_compact_receipts().unwrap().retained_referenced,
-        1
-    );
+    drop(il); // Crash before acknowledging the applied check_result in the checkpoint.
+    assert_eq!(engines.run_compact_checks().unwrap().retained_referenced, 1);
     assert!(
-        engines.ship_receipt(&id).unwrap().is_some(),
+        engines.run_check_result(&id).unwrap().is_some(),
         "unresolved operation must retain its authority"
     );
     let recovered = recover(dir.path(), &spec, Some(engines.clone()));
@@ -352,27 +352,27 @@ fn compaction_keeps_a_receipt_for_recovery_and_its_saved_objective() {
     );
     let evidence = crate::evidence::WorkspaceEvidence::from_inputs(&inputs);
     assert!(
-        magistr_engine::native::EvidencePort::retained_receipts(&evidence)
+        magistr_engine::native::EvidencePort::retained_check_results(&evidence)
             .unwrap()
             .is_empty()
     );
-    let report = engines.ship_compact_receipts().unwrap();
-    // Reconciliation releases the checkpoint reference, but the saved objective
-    // still owns its verification receipt. Compaction must preserve that history.
+    let report = engines.run_compact_checks().unwrap();
+    // Reconciliation releases the checkpoint reference, but the saved goal
+    // still owns its verification check_result. Compaction must preserve that history.
     assert_eq!(report.removed, 0, "{report:?}");
     assert_eq!(report.retained_referenced, 1);
-    assert!(engines.ship_receipt(&id).unwrap().is_some());
+    assert!(engines.run_check_result(&id).unwrap().is_some());
 }
 
 #[test]
-fn a_receipt_is_reconciled_against_its_own_receipt_never_a_same_named_check() {
+fn a_check_result_is_reconciled_against_its_own_check_result_never_a_same_named_check() {
     use magistr_engine::native::CheckExecution;
     let (dir, spec) = setup_project("- [ ] item\n");
-    let engines = engines_with_verify_task(&dir);
-    // The agent's own gate run on the same task, before the loop's set: a
-    // same-named check that is not the loop's receipt.
+    let engines = engines_with_verify_step(&dir);
+    // The agent's own gate run on the same step, before the loop's set: a
+    // same-named check that is not the loop's check_result.
     engines
-        .ship_record_gate(
+        .run_record_gate(
             Some("verify"),
             "test",
             "true".into(),
@@ -383,11 +383,11 @@ fn a_receipt_is_reconciled_against_its_own_receipt_never_a_same_named_check() {
         )
         .unwrap();
     let mut il = native_loop(dir.path(), &spec, &engines);
-    let (lost, _) = admit_receipt(&mut il, &engines, "test");
-    let (landed, landed_admission) = admit_receipt(&mut il, &engines, "lint");
+    let (lost, _) = admit_check_result(&mut il, &engines, "test");
+    let (landed, landed_admission) = admit_check_result(&mut il, &engines, "lint");
     il.persist().unwrap();
     engines
-        .ship_settle_gate(
+        .run_settle_gate(
             landed_admission,
             CheckExecution::Exited { code: 0 },
             "ok".into(),
@@ -397,52 +397,52 @@ fn a_receipt_is_reconciled_against_its_own_receipt_never_a_same_named_check() {
     drop(il);
 
     let recovered = recover(dir.path(), &spec, Some(engines));
-    // The lost receipt was admitted and never settled: nothing was applied,
-    // whatever same-named check sits on the task.
+    // The lost check_result was admitted and never settled: nothing was applied,
+    // whatever same-named check sits on the step.
     assert_eq!(outcome_of(&recovered, &lost), OperationOutcome::Failed);
     assert_eq!(outcome_of(&recovered, &landed), OperationOutcome::Completed);
     assert!(recovered.reconciliation().is_clean());
 }
 
 #[test]
-fn a_receipt_settled_stale_or_never_admitted_is_failed_and_a_foreign_one_stays_open() {
+fn a_check_result_settled_stale_or_never_admitted_is_failed_and_a_foreign_one_stays_open() {
     use magistr_engine::native::CheckExecution;
     let (dir, spec) = setup_project("- [ ] item\n");
-    let engines = engines_with_verify_task(&dir);
+    let engines = engines_with_verify_step(&dir);
     let mut il = native_loop(dir.path(), &spec, &engines);
-    let (stale, stale_admission) = admit_receipt(&mut il, &engines, "test");
-    // A record that names another receipt than its own: the lint record
-    // wearing the test receipt's id.
+    let (stale, stale_admission) = admit_check_result(&mut il, &engines, "test");
+    // A record that names another check_result than its own: the lint record
+    // wearing the test check_result's id.
     let foreign = il
         .begin_operation(
-            OperationKind::Receipt,
-            "gate:lint@task:verify",
-            "gate:lint@task:verify",
+            OperationKind::CheckResult,
+            "gate:lint@step:verify",
+            "gate:lint@step:verify",
         )
         .unwrap()
         .unwrap();
     il.start_operation(
         &foreign,
-        Some(format!("receipt:{}", stale_admission.receipt_id)),
+        Some(format!("check_result:{}", stale_admission.check_result_id)),
     )
     .unwrap();
     let unadmitted = il
         .begin_operation(
-            OperationKind::Receipt,
-            "gate:check@task:verify",
-            "gate:check@task:verify",
+            OperationKind::CheckResult,
+            "gate:check@step:verify",
+            "gate:check@step:verify",
         )
         .unwrap()
         .unwrap();
     il.persist().unwrap();
-    // The objective rolls over under the admitted test receipt: its
-    // settlement is kept stale, never applied to the new run's task.
-    engines.ship_finalize(vec![], None).unwrap();
+    // The goal rolls over under the admitted test check_result: its
+    // settlement is kept stale, never applied to the new run's step.
+    engines.run_finish(vec![], None).unwrap();
     engines
-        .ship_set_objective("next".into(), vec![], vec![], "chunk:c1".into())
+        .run_open("next".into(), vec![], vec![], "chunk:c1".into())
         .unwrap();
     let settled = engines
-        .ship_settle_gate(
+        .run_settle_gate(
             stale_admission,
             CheckExecution::Exited { code: 0 },
             "late".into(),
@@ -469,7 +469,7 @@ fn a_receipt_settled_stale_or_never_admitted_is_failed_and_a_foreign_one_stays_o
 }
 
 #[test]
-fn a_native_mutation_or_receipt_without_engines_stays_open() {
+fn a_native_mutation_or_check_result_without_engines_stays_open() {
     let (dir, spec) = setup_project("- [ ] item\n");
     let mut il = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
     il.pre_iteration_check().unwrap();
@@ -820,16 +820,16 @@ fn unreadable_native_outcomes_remain_indeterminate_until_the_store_recovers() {
 }
 
 #[test]
-fn receipt_recovery_uses_its_ledger_when_the_execution_summary_is_unreadable() {
+fn check_result_recovery_uses_its_ledger_when_the_execution_summary_is_unreadable() {
     use magistr_engine::native::CheckExecution;
     let (dir, spec) = setup_project("- [ ] item\n");
-    let engines = engines_with_verify_task(&dir);
+    let engines = engines_with_verify_step(&dir);
     let mut run = native_loop(dir.path(), &spec, &engines);
-    let (attempt, admission) = admit_receipt(&mut run, &engines, "test");
+    let (attempt, admission) = admit_check_result(&mut run, &engines, "test");
     run.persist().unwrap();
-    let receipt_id = admission.receipt_id.clone();
+    let check_result_id = admission.check_result_id.clone();
     engines
-        .ship_settle_gate(
+        .run_settle_gate(
             admission,
             CheckExecution::Exited { code: 0 },
             "Passed".into(),
@@ -843,14 +843,14 @@ fn receipt_recovery_uses_its_ledger_when_the_execution_summary_is_unreadable() {
     let path = config
         .persistence_config()
         .data_dir
-        .join("ship")
+        .join("run")
         .join("executions")
         .join(config.execution_context().key())
         .join("sessions")
         .join(format!("{}.json", reader.project_id()));
     std::fs::write(&path, b"{ unreadable plan").unwrap();
-    assert!(reader.ship_snapshot().is_err());
-    assert!(reader.ship_receipt(&receipt_id).unwrap().is_some());
+    assert!(reader.run_snapshot().is_err());
+    assert!(reader.run_check_result(&check_result_id).unwrap().is_some());
 
     let recovered = recover(dir.path(), &spec, Some(engines));
     assert_eq!(

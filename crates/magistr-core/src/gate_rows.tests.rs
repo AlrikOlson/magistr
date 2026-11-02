@@ -109,7 +109,7 @@ fn nextest_failures_carry_the_panic_location_and_skip_retries() {
                 GateRowSeverity::TestFailure,
                 None,
                 "magistr-cli::next_iteration_integration \
-                 headless_iteration_is_guarded_on_ship_state_and_cross_referenced: \
+                 headless_iteration_is_guarded_on_run_state_and_cross_referenced: \
                  assertion failed: `(left == right)`",
                 Some("tests/next_iteration_integration.rs"),
                 Some(83),

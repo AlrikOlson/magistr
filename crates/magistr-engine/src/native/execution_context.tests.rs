@@ -55,49 +55,49 @@ fn linked_worktrees_share_authority_but_not_execution_selection() {
         .for_working_copy(&linked, "default")
         .expect("linked context");
     writer
-        .ship_set_objective_with_verification(
+        .run_open_with_verification(
             "main".into(),
             vec![],
             vec![],
             "chunk:main".into(),
-            magistr_workflow::ship::domain::objective::VerificationMode::Focused,
+            magistr_workflow::run::domain::goal::VerificationMode::Focused,
         )
-        .expect("main objective");
+        .expect("main goal");
     other
-        .ship_set_objective_with_verification(
+        .run_open_with_verification(
             "linked".into(),
             vec![],
             vec![],
             "chunk:linked".into(),
-            magistr_workflow::ship::domain::objective::VerificationMode::Focused,
+            magistr_workflow::run::domain::goal::VerificationMode::Focused,
         )
-        .expect("linked objective");
+        .expect("linked goal");
     assert_eq!(
-        writer.ship_objective().unwrap().expect("main").scope,
+        writer.run_goal().unwrap().expect("main").scope,
         "chunk:main"
     );
     assert_eq!(
-        other.ship_objective().unwrap().expect("linked").scope,
+        other.run_goal().unwrap().expect("linked").scope,
         "chunk:linked"
     );
     let again = writer
         .for_working_copy(&linked, "default")
         .expect("same context");
     assert_eq!(
-        again.ship_objective().unwrap().expect("retained").scope,
+        again.run_goal().unwrap().expect("retained").scope,
         "chunk:linked"
     );
     let parallel = writer
         .for_working_copy(&linked, "second")
         .expect("second execution");
-    assert!(parallel.ship_objective().unwrap().is_none());
+    assert!(parallel.run_goal().unwrap().is_none());
     assert_eq!(
-        other.ship_objective().unwrap().expect("unchanged").scope,
+        other.run_goal().unwrap().expect("unchanged").scope,
         "chunk:linked"
     );
     let reader = super::super::NativeReader::open(&linked_config);
     assert_eq!(
-        reader.ship_objective().unwrap().expect("persisted").scope,
+        reader.run_goal().unwrap().expect("persisted").scope,
         "chunk:linked"
     );
 }

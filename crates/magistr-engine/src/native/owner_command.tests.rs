@@ -1,6 +1,6 @@
 use super::*;
 use crate::native::{OwnerReply, ThinkCommand};
-use magistr_workflow::ship::domain::task::TaskType;
+use magistr_workflow::run::domain::step::StepType;
 use magistr_workflow_contracts::{Observed, ReadSource};
 
 fn round_trip(command: &OwnerCommand) -> OwnerCommand {
@@ -20,10 +20,10 @@ fn every_family_survives_the_wire() {
             step_number: 3,
             pinned: true,
         }),
-        OwnerCommand::Ship(ShipCommand::AddTask {
+        OwnerCommand::Run(RunCommand::AddStep {
             id: "t".into(),
-            title: "Task".into(),
-            task_type: TaskType::Implement,
+            title: "Step".into(),
+            step_type: StepType::Implement,
             estimate: None,
         }),
         OwnerCommand::Signal(SignalCommand::Snooze {
@@ -47,7 +47,7 @@ fn every_family_survives_the_wire() {
 #[test]
 fn replies_that_carry_primitives_survive_the_wire() {
     for reply in [
-        OwnerReply::Step(Box::new(magistr_workflow_contracts::think::RecordedStep {
+        OwnerReply::ThinkStep(Box::new(magistr_workflow_contracts::think::RecordedStep {
             project_id: "project".into(),
             step: serde_json::from_value(serde_json::json!({
                 "step_number": 1, "record_id": "record-1", "purpose": "investigation"

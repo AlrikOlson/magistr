@@ -5,18 +5,18 @@
 //!   - a name the server does not serve fails with its replacement named.
 //!
 //! Replaces the structural input/output-schema parity tests that lived
-//! in `think_mcp.rs` and `ship_mcp.rs` — those still run as cheap
+//! in `think_mcp.rs` and `run_mcp.rs` — those still run as cheap
 //! sanity checks, but this test exercises the actual wire path.
 
 use std::sync::Arc;
 
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
-use magistr_workflow::ship::ShipService;
-use magistr_workflow::ship::application::{
+use magistr_workflow::run::RunService;
+use magistr_workflow::run::application::{
     EvidencePort, GateContract, SourceFreshness, SourceObservation, SourceWitness,
 };
-use magistr_workflow::ship::engine::ShipEngine;
+use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
 use magistr_workflow::think::ThinkService;
 use magistr_workflow::think::config::ThinkConfig;
@@ -77,16 +77,16 @@ fn build_unified() -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
-    let ship = ShipService::from_use_cases(
-        ShipService::new(ShipEngine::new("test-abc123".into()))
+    let run = RunService::from_use_cases(
+        RunService::new(RunEngine::new("test-abc123".into()))
             .use_cases()
             .with_evidence(Arc::new(Evidence(
                 tempfile::tempdir().expect("evidence workspace"),
             ))),
     );
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), ship.use_cases());
+    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
-    UnifiedService::new(think, ship, roadmap, signal)
+    UnifiedService::new(think, run, roadmap, signal)
 }
 
 async fn pair() -> (
@@ -118,12 +118,12 @@ async fn tools_list_serves_unique_typed_operations_for_every_workflow_family() {
     assert_eq!(names.len(), tools.tools.len(), "duplicate tool names");
     for required in [
         "think_record_step",
-        "ship_set_objective",
-        "ship_plan",
-        "ship_start",
-        "ship_check",
-        "ship_complete",
-        "ship_finalize",
+        "run_open",
+        "arrange_steps",
+        "start_step",
+        "check_step",
+        "finish_step",
+        "run_finish",
         "roadmap_add_chunk",
         "roadmap_start_chunk",
         "roadmap_complete_chunk",
@@ -145,31 +145,39 @@ async fn tools_list_serves_unique_typed_operations_for_every_workflow_family() {
 }
 
 /// Through real rmcp dispatch, a name the server does not serve comes back with
-/// its replacement named rather than a bare "unknown tool". `ship_ship` is the
+/// its replacement named rather than a bare "unknown tool". `run_run` is the
 /// case that matters: it is what a caller derives from the family prefix.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_misderived_name_fails_with_its_replacement_named() {
+async fn retired_run_names_are_refused_like_any_unknown_tool() {
     let (client_service, server_handle) = pair().await;
 
-    let req = CallToolRequestParams::new("ship_ship");
-    let err = client_service
-        .peer()
-        .call_tool(req)
-        .await
-        .expect_err("ship_ship is not served");
-    let message = err.to_string();
-    assert!(
-        message.contains("ship_finalize"),
-        "calling ship_ship should name ship_finalize, got: {message}"
-    );
+    for retired in [
+        "ship_finalize",
+        "ship_status",
+        "plan_work",
+        "check_work",
+        "run_run",
+    ] {
+        let err = client_service
+            .peer()
+            .call_tool(CallToolRequestParams::new(retired))
+            .await
+            .expect_err("a retired name is not served");
+        let message = err.to_string();
+        assert!(
+            (message.contains("unknown tool") || message.contains("tool not found"))
+                && !message.contains("instead"),
+            "{retired} should be refused as unknown, got: {message}"
+        );
+    }
 
     let _ = client_service.cancel().await;
     server_handle.abort();
 }
 
-/// `ship_finalize` works end-to-end over the wire.
+/// `run_finish` works end-to-end over the wire.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn ship_finalize_round_trips_over_the_wire() {
+async fn run_finish_round_trips_over_the_wire() {
     let (client_service, server_handle) = pair().await;
 
     let mut args = serde_json::Map::new();
@@ -177,21 +185,17 @@ async fn ship_finalize_round_trips_over_the_wire() {
         "description".to_string(),
         Value::String("smoke test goal".to_string()),
     );
-    let mut set_obj = CallToolRequestParams::new("ship_set_objective");
+    let mut set_obj = CallToolRequestParams::new("run_open");
     set_obj.arguments = Some(args);
     let result = client_service.peer().call_tool(set_obj).await.unwrap();
-    assert_ne!(
-        result.is_error,
-        Some(true),
-        "set_objective failed: {result:?}"
-    );
+    assert_ne!(result.is_error, Some(true), "set_goal failed: {result:?}");
 
-    let req = CallToolRequestParams::new("ship_finalize");
+    let req = CallToolRequestParams::new("run_finish");
     let result = client_service.peer().call_tool(req).await.unwrap();
     assert_ne!(
         result.is_error,
         Some(true),
-        "ship_finalize should close the objective; got {result:?}"
+        "run_finish should close the goal; got {result:?}"
     );
 
     let _ = client_service.cancel().await;
@@ -270,7 +274,7 @@ async fn roadmap_cross_family_linkage_over_the_wire() {
     a.insert("title".to_string(), Value::String("Wire it".to_string()));
     assert_ne!(call("roadmap_add_chunk", a).await.is_error, Some(true));
 
-    // start_chunk → in_progress + the chunk:<id> backref for ship/think.
+    // start_chunk → in_progress + the chunk:<id> backref for run/think.
     let mut s = serde_json::Map::new();
     s.insert("id".to_string(), Value::String("phase-1".to_string()));
     let started = call("roadmap_start_chunk", s).await;
@@ -292,55 +296,52 @@ async fn roadmap_cross_family_linkage_over_the_wire() {
     let mut c = serde_json::Map::new();
     c.insert("id".to_string(), Value::String("phase-1".to_string()));
     c.insert(
-        "ship_ref".to_string(),
-        Value::String("task:wire-it".to_string()),
+        "step_ref".to_string(),
+        Value::String("step:wire-it".to_string()),
     );
     let refused = call("roadmap_complete_chunk", c.clone()).await;
     assert_eq!(refused.is_error, Some(true));
     let refusal = refused.structured_content.expect("refusal structured");
-    assert!(
-        refusal.to_string().contains("no ship objective"),
-        "{refusal}"
-    );
+    assert!(refusal.to_string().contains("no run goal"), "{refusal}");
 
-    // The objective scoped to the chunk, its verification task, and a
+    // The goal scoped to the chunk, its verification task, and a
     // check the server runs itself: the receipt that lets it complete.
-    let objective = serde_json::json!({
+    let goal = serde_json::json!({
         "description": "Wire it", "scope": "chunk:phase-1",
     });
     assert_ne!(
-        call("ship_set_objective", objective.as_object().unwrap().clone())
+        call("run_open", goal.as_object().unwrap().clone())
             .await
             .is_error,
         Some(true)
     );
     let plan = serde_json::json!({
-        "action": "add", "task_id": "wire-it", "title": "Wire it", "task_type": "test",
+        "action": "add", "step_id": "wire-it", "title": "Wire it", "step_type": "test",
     });
     assert_ne!(
-        call("ship_plan", plan.as_object().unwrap().clone())
+        call("arrange_steps", plan.as_object().unwrap().clone())
             .await
             .is_error,
         Some(true)
     );
-    let start = serde_json::json!({ "task_id": "wire-it" });
+    let start = serde_json::json!({ "step_id": "wire-it" });
     assert_ne!(
-        call("ship_start", start.as_object().unwrap().clone())
+        call("start_step", start.as_object().unwrap().clone())
             .await
             .is_error,
         Some(true)
     );
     let check = serde_json::json!({ "type": "test", "name": "wire", "command": "true" });
-    let checked = call("ship_check", check.as_object().unwrap().clone()).await;
+    let checked = call("check_step", check.as_object().unwrap().clone()).await;
     assert_ne!(checked.is_error, Some(true), "{checked:?}");
 
-    // complete with the verification task as its proof-of-ship ref.
+    // complete with the verification task as its proof-of-run ref.
     let done = call("roadmap_complete_chunk", c).await;
     let dc = done.structured_content.expect("complete structured");
     assert_eq!(dc["value"]["status"], "done");
     let refs = dc["value"]["cross_refs"].as_array().unwrap();
     assert!(refs.iter().any(|r| r == "think:1"));
-    assert!(refs.iter().any(|r| r == "task:wire-it"));
+    assert!(refs.iter().any(|r| r == "step:wire-it"));
 
     // record a refresh note.
     let mut r = serde_json::Map::new();

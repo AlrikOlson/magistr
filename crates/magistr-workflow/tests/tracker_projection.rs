@@ -98,7 +98,7 @@ async fn a_chunk_projects_to_an_issue_with_its_provenance() {
     let mut e = engine();
     add(&mut e, "c1", vec![]);
     e.link_chunk("c1", "think:7").expect("think ref");
-    e.link_chunk("c1", "task:projector").expect("ship ref");
+    e.link_chunk("c1", "step:projector").expect("run ref");
     opt_in(&mut e, "c1");
 
     let report = project_all(&mut e, &github(&server), None)
@@ -126,7 +126,7 @@ async fn a_chunk_projects_to_an_issue_with_its_provenance() {
     let parsed: serde_json::Value = serde_json::from_str(json_text).expect("footer is JSON");
     assert_eq!(parsed["chunk"], "c1");
     assert_eq!(parsed["think"][0], "think:7");
-    assert_eq!(parsed["ship"][0], "task:projector");
+    assert_eq!(parsed["run"][0], "step:projector");
 
     // The binding is recorded, so the next run patches instead of creating.
     assert_eq!(

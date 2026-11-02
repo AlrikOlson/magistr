@@ -5,10 +5,10 @@
 use std::process::Command;
 
 use magistr_engine::{
-    NativeConfig, NativeEngines, NativeReader, ProjectAuthority, ShipGuardState, WriterRole,
+    NativeConfig, NativeEngines, NativeReader, ProjectAuthority, RunGuardState, WriterRole,
 };
 use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::ship::domain::task::TaskType;
+use magistr_workflow::run::domain::step::StepType;
 
 fn config(tmp: &tempfile::TempDir) -> NativeConfig {
     let root = tmp.path().join("project");
@@ -22,24 +22,24 @@ fn host(config: &NativeConfig, project_id: &str) -> NativeEngines {
         .open()
 }
 
-fn objective_with_task(engines: &NativeEngines, scope: &str, task: &str) {
+fn goal_with_step(engines: &NativeEngines, scope: &str, step: &str) {
     engines
-        .ship_set_objective(
+        .run_open(
             "Characterize native state".into(),
             vec![],
             vec![],
             scope.into(),
         )
-        .expect("objective");
+        .expect("goal");
     engines
-        .ship_add_task(
-            task.into(),
+        .add_step(
+            step.into(),
             "Verify the contract".into(),
-            TaskType::Test,
+            StepType::Test,
             None,
         )
-        .expect("add task");
-    engines.ship_start_task(task).expect("start the task");
+        .expect("add step");
+    engines.start_step(step).expect("start the step");
 }
 
 #[test]
@@ -48,39 +48,36 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
     let config = config(&tmp);
     let owner = host(&config, "project-a");
     let shared = owner.clone();
-    objective_with_task(&owner, "chunk:first", "first-verify");
+    goal_with_step(&owner, "chunk:first", "first-verify");
 
     shared
-        .ship_add_task(
+        .add_step(
             "second-verify".into(),
-            "Second task".into(),
-            TaskType::Test,
+            "Second step".into(),
+            StepType::Test,
             None,
         )
-        .expect("add task");
+        .expect("add step");
     let refusal = shared
-        .ship_start_task("second-verify")
-        .expect_err("another task is already active in this project");
+        .start_step("second-verify")
+        .expect_err("another step is already active in this project");
     assert!(refusal.to_string().contains("first-verify"), "{refusal}");
     assert_eq!(
-        shared.ship_active_task_id().unwrap().unwrap(),
+        shared.run_active_step_id().unwrap().unwrap(),
         "first-verify"
     );
 
-    // Selecting another scope saves the first plan and selects its own tasks.
+    // Selecting another scope saves the first plan and selects its own steps.
     assert_eq!(
         shared
-            .ship_set_objective("Replacement".into(), vec![], vec![], "chunk:second".into())
-            .expect("objective")
+            .run_open("Replacement".into(), vec![], vec![], "chunk:second".into())
+            .expect("goal")
             .value,
         0
     );
-    assert_eq!(
-        owner.ship_objective().unwrap().unwrap().scope,
-        "chunk:second"
-    );
-    assert!(owner.ship_active_task_id().unwrap().is_none());
-    assert!(owner.ship_tasks().unwrap().is_empty());
+    assert_eq!(owner.run_goal().unwrap().unwrap().scope, "chunk:second");
+    assert!(owner.run_active_step_id().unwrap().is_none());
+    assert!(owner.run_steps().unwrap().is_empty());
 
     // Other clients reuse the admitted writer. A second writer role still
     // cannot acquire this project's authority while its owner is alive.
@@ -91,44 +88,38 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
         std::io::ErrorKind::WouldBlock
     );
     let reopened = owner.clone();
+    assert_eq!(reopened.run_goal().unwrap().unwrap().scope, "chunk:second");
+    assert!(reopened.start_step("second-verify").is_err());
+    goal_with_step(&reopened, "chunk:second", "second-scope-verify");
     assert_eq!(
-        reopened.ship_objective().unwrap().unwrap().scope,
-        "chunk:second"
-    );
-    assert!(reopened.ship_start_task("second-verify").is_err());
-    objective_with_task(&reopened, "chunk:second", "second-scope-verify");
-    assert_eq!(
-        owner.ship_active_task_id().unwrap().unwrap(),
+        owner.run_active_step_id().unwrap().unwrap(),
         "second-scope-verify"
     );
     owner
-        .ship_set_objective("First plan".into(), vec![], vec![], "chunk:first".into())
+        .run_open("First plan".into(), vec![], vec![], "chunk:first".into())
         .expect("restore first scope");
     assert_eq!(
-        reopened.ship_active_task_id().unwrap().unwrap(),
+        reopened.run_active_step_id().unwrap().unwrap(),
         "first-verify"
     );
-    assert_eq!(reopened.ship_tasks().unwrap().len(), 2);
+    assert_eq!(reopened.run_steps().unwrap().len(), 2);
 
     let independent_root = tmp.path().join("project-b");
     std::fs::create_dir(&independent_root).expect("independent project");
     let independent_config = NativeConfig::from_lookup(independent_root, |_| None)
         .with_data_dir(tmp.path().join("native-store"));
     let independent = host(&independent_config, "project-b");
-    assert!(independent.ship_objective().unwrap().is_none());
-    objective_with_task(&independent, "chunk:independent", "independent-verify");
+    assert!(independent.run_goal().unwrap().is_none());
+    goal_with_step(&independent, "chunk:independent", "independent-verify");
     assert_eq!(
-        independent.ship_active_task_id().unwrap().unwrap(),
+        independent.run_active_step_id().unwrap().unwrap(),
         "independent-verify"
     );
-    assert_eq!(
-        owner.ship_active_task_id().unwrap().unwrap(),
-        "first-verify"
-    );
+    assert_eq!(owner.run_active_step_id().unwrap().unwrap(), "first-verify");
 }
 
 /// A writer admitted on a configuration that carries no evidence capability
-/// (what every test here opens) still composes the ship family as the
+/// (what every test here opens) still composes the run family as the
 /// roadmap's completion authority: completion is refused with the missing
 /// capability named, and neither the phase guard nor finalization changes
 /// what that refusal decided.
@@ -153,10 +144,10 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
         )
         .expect("add chunk");
     engines.roadmap_start_chunk("fixture").expect("start chunk");
-    objective_with_task(&engines, "chunk:fixture", "fixture-verify");
-    let before = ShipGuardState::from_ship(
-        engines.ship_objective().unwrap().as_ref(),
-        &engines.ship_tasks().unwrap(),
+    goal_with_step(&engines, "chunk:fixture", "fixture-verify");
+    let before = RunGuardState::from_run(
+        engines.run_goal().unwrap().as_ref(),
+        &engines.run_steps().unwrap(),
     );
     assert!(before.phase_block("verify").is_none());
     assert!(before.phase_block("done").is_some());
@@ -183,9 +174,9 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
     assert_eq!(chunk.status, ChunkStatus::InProgress);
     assert!(chunk.cross_refs.is_empty());
     assert!(
-        ShipGuardState::from_ship(
-            engines.ship_objective().unwrap().as_ref(),
-            &engines.ship_tasks().unwrap()
+        RunGuardState::from_run(
+            engines.run_goal().unwrap().as_ref(),
+            &engines.run_steps().unwrap()
         )
         .phase_block("done")
         .is_some()
@@ -203,7 +194,7 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
     assert!(!output.status.success(), "the fixture command must fail");
     let exit_code = output.status.code().expect("normal process exit");
     let check = engines
-        .ship_record_gate(
+        .run_record_gate(
             None,
             "test",
             format!("{binary} {argument}"),
@@ -216,20 +207,20 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
     assert!(check.value.required && check.value.verified);
     assert!(!check.value.passed);
     assert_eq!(check.value.exit_code, Some(exit_code));
-    let guard = ShipGuardState::from_ship(
-        engines.ship_objective().unwrap().as_ref(),
-        &engines.ship_tasks().unwrap(),
+    let guard = RunGuardState::from_run(
+        engines.run_goal().unwrap().as_ref(),
+        &engines.run_steps().unwrap(),
     );
     assert_eq!(guard.checks_recorded, 1);
     assert!(guard.phase_block("done").is_none());
 
     engines
-        .ship_complete_task("fixture-verify", vec![])
-        .expect("complete the task with its failed check retained");
+        .finish_step("fixture-verify", vec![])
+        .expect("complete the step with its failed check retained");
     let report = engines
-        .ship_finalize(vec![], Some("Characterization only".into()))
+        .run_finish(vec![], Some("Characterization only".into()))
         .expect("finalize");
-    assert_eq!(report.value.status, "shipped");
+    assert_eq!(report.value.status, "finished");
     assert!(
         report.value.warnings.iter().any(|warning| {
             warning.contains("required checks failed") && warning.contains("fixture-verify")
@@ -239,10 +230,10 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
 
     let reopened = NativeReader::open_for_project(&config, "completion".into());
     assert_eq!(
-        reopened.ship_objective().unwrap().unwrap().status,
-        magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed
+        reopened.run_goal().unwrap().unwrap().status,
+        magistr_workflow::run::domain::goal::GoalStatus::Finished
     );
-    assert!(!reopened.ship_tasks().unwrap()[0].checks[0].passed);
+    assert!(!reopened.run_steps().unwrap()[0].checks[0].passed);
     let chunk = reopened
         .roadmap_chunk("fixture")
         .unwrap()

@@ -128,7 +128,7 @@ iteration projection uses `u32` spec counts; core spec collections retain `usize
 counts. `WorkflowPhase::step_index` uses `usize` without narrowing observations.
 
 Live session setup reads native execution state for current-work context. The
-objective and tasks remain owned by the workflow service; there is no independent
+goal and tasks remain owned by the workflow service; there is no independent
 project-context snapshot or file-plan archive.
 
 ## Recovery boundaries

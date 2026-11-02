@@ -12,7 +12,7 @@ Run `$next` and `$roadmap` in the current Codex session through native Magistr
 MCP tools. `$next-loop` is a single-chunk fresh-session handoff protocol: this
 invocation completes exactly one `$next` iteration, writes the handoff, and
 stops. The host may invoke it again only in a new Codex session. That session
-must re-read native roadmap and ship state before selecting the next chunk and
+must re-read native roadmap and run state before selecting the next chunk and
 continue only within the remaining bound. The skill
 cannot open a new Codex session from inside the current one; do not use context
 compaction as a substitute. Never launch `magistr next`, `magistr start`,

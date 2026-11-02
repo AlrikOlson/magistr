@@ -12,11 +12,11 @@ fn producers_and_surfaces_share_the_same_record_definitions() {
     same_type::<contracts::Signal, magistr_workflow::signal::domain::Signal>();
     same_type::<contracts::ThinkStep, magistr_workflow::think::domain::ThinkStep>();
     same_type::<contracts::think::Branch, magistr_workflow::think::domain::Branch>();
-    same_type::<contracts::Objective, magistr_workflow::ship::domain::objective::Objective>();
-    same_type::<contracts::Task, magistr_workflow::ship::domain::task::Task>();
-    same_type::<contracts::Action, magistr_workflow::ship::domain::action::Action>();
-    same_type::<contracts::Check, magistr_workflow::ship::domain::check::Check>();
-    same_type::<contracts::ship::ReportRecord, magistr_workflow::ship::report::ReportRecord>();
+    same_type::<contracts::Goal, magistr_workflow::run::domain::goal::Goal>();
+    same_type::<contracts::Step, magistr_workflow::run::domain::step::Step>();
+    same_type::<contracts::Progress, magistr_workflow::run::domain::progress::Progress>();
+    same_type::<contracts::Check, magistr_workflow::run::domain::check::Check>();
+    same_type::<contracts::run::ReportRecord, magistr_workflow::run::report::ReportRecord>();
     same_type::<contracts::StructuredContent, magistr_workflow::content::StructuredContent>();
 }
 
@@ -24,8 +24,8 @@ fn producers_and_surfaces_share_the_same_record_definitions() {
 fn projections_observations_and_broadcasts_share_canonical_type_identity() {
     same_type::<contracts::NativeSnapshot, magistr_engine::NativeSnapshot>();
     same_type::<
-        contracts::ReadState<contracts::ShipData>,
-        magistr_engine::native::ReadState<magistr_engine::native::ShipData>,
+        contracts::ReadState<contracts::RunData>,
+        magistr_engine::native::ReadState<magistr_engine::native::RunData>,
     >();
     same_type::<contracts::ReadSource, magistr_engine::native::ReadSource>();
     same_type::<contracts::StoreStamp, magistr_workflow::infra::StoreStamp>();
@@ -35,7 +35,7 @@ fn projections_observations_and_broadcasts_share_canonical_type_identity() {
     same_type::<contracts::OwnerGeneration, magistr_engine::OwnerGeneration>();
     same_type::<contracts::Family, magistr_workflow::infra::Family>();
     same_type::<contracts::ThinkFrame, magistr_workflow::think::broadcast::BroadcastFrame>();
-    same_type::<contracts::ShipFrame, magistr_workflow::ship::broadcast::BroadcastFrame>();
+    same_type::<contracts::RunFrame, magistr_workflow::run::broadcast::BroadcastFrame>();
     same_type::<contracts::RoadmapFrame, magistr_workflow::roadmap::broadcast::RoadmapFrame>();
     same_type::<contracts::SignalFrame, magistr_workflow::signal::broadcast::SignalFrame>();
     same_type::<magistr_domain::workflow::CheckpointReason, magistr_engine::CheckpointReason>();

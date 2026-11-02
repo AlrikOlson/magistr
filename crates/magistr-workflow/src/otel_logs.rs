@@ -81,7 +81,7 @@ use crate::otel_live::now_nanos;
 
 /// Only events whose target starts with this reach the wire.
 ///
-/// This is the whole answer to "a Layer would ship whatever anyone ever logged":
+/// This is the whole answer to "a Layer would run whatever anyone ever logged":
 /// "anyone" is fenced to us. Rust's module paths make our crate's default target
 /// `magistr_workflow::…`, and the handful of sites that set an explicit target
 /// (`target: "magistr_workflow::cloud"`) already spell it the same way.

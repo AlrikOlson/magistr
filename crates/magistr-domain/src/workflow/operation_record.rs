@@ -15,7 +15,7 @@ pub struct OperationRecord {
     pub attempt: AttemptId,
     pub kind: OperationKind,
     /// What the effect is aimed at, in the adapter's own words
-    /// (`complete_chunk:arch-13`, `gate:test@task:arch-13-verify`).
+    /// (`complete_chunk:arch-13`, `gate:test@step:arch-13-verify`).
     pub target: String,
     pub outcome: OperationOutcome,
     #[serde(deserialize_with = "required_option")]

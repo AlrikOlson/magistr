@@ -1,6 +1,6 @@
 //! SEP-2663 Tasks: a long gate stops holding the tool call open.
 //!
-//! `ship_check` with a `command` is the one tool in this server that provably
+//! `check_step` with a `command` is the one tool in this server that provably
 //! blocks for minutes: running `cargo test --workspace` inside a single
 //! `tools/call` is how this project's own gates are recorded, and it is ~90s
 //! cold. Every other tool here returns in single-digit milliseconds. Tasks are
@@ -66,7 +66,7 @@
 //!
 //! 1. The client declared no tasks extension.
 //! 2. The tool is not one [`wants_task`] considers long.
-//! 3. `ship_check` was called without a `command` (a self-reported check does
+//! 3. `check_step` was called without a `command` (a self-reported check does
 //!    no work and returns instantly).
 //! 4. The inner call produced something other than
 //!    [`CallToolResponse::Complete`] — the task settles `failed` rather than
@@ -84,7 +84,7 @@ use rmcp::{
 use super::progress::Heartbeat;
 
 /// The one tool whose `tools/call` is worth converting into a task.
-pub const LONG_GATE_TOOL: &str = "ship_check";
+pub const LONG_GATE_TOOL: &str = "check_step";
 
 /// The argument whose presence makes [`LONG_GATE_TOOL`] actually do work.
 pub const LONG_GATE_ARG: &str = "command";
@@ -103,7 +103,7 @@ pub const TASK_POLL_INTERVAL_MS: u64 = 2_000;
 /// allowed to run would kill legitimate work. `run_check_command` caps a gate at
 /// `CHECK_TIMEOUT_SECS`, so the TTL is that plus a minute of slack. Deriving it
 /// means raising the command timeout cannot silently orphan this constant.
-pub const TASK_TTL_MS: u64 = (crate::ship::mcp::CHECK_TIMEOUT_SECS + 60) * 1_000;
+pub const TASK_TTL_MS: u64 = (crate::run::mcp::CHECK_TIMEOUT_SECS + 60) * 1_000;
 
 /// Does this call do enough work to be worth a task handle?
 ///
@@ -288,9 +288,9 @@ mod tests {
     }
 
     #[test]
-    fn a_ship_check_with_a_command_is_the_long_gate() {
+    fn a_run_check_with_a_command_is_the_long_gate() {
         assert!(wants_task(
-            "ship_check",
+            "check_step",
             Some(&args(
                 serde_json::json!({"name": "t", "command": "cargo test"})
             ))
@@ -298,11 +298,11 @@ mod tests {
     }
 
     #[test]
-    fn a_self_reported_ship_check_stays_inline() {
+    fn a_self_reported_run_check_stays_inline() {
         // No command means no subprocess: the call returns in microseconds and a
         // task handle would be pure overhead for the client to poll.
         assert!(!wants_task(
-            "ship_check",
+            "check_step",
             Some(&args(serde_json::json!({"name": "t", "passed": true})))
         ));
     }
@@ -313,11 +313,11 @@ mod tests {
         // Without the trim this would materialize a task that settles before the
         // client's first poll.
         assert!(!wants_task(
-            "ship_check",
+            "check_step",
             Some(&args(serde_json::json!({"command": "   "})))
         ));
         assert!(!wants_task(
-            "ship_check",
+            "check_step",
             Some(&args(serde_json::json!({"command": ""})))
         ));
     }
@@ -325,14 +325,14 @@ mod tests {
     #[test]
     fn a_non_string_command_stays_inline() {
         assert!(!wants_task(
-            "ship_check",
+            "check_step",
             Some(&args(serde_json::json!({"command": 7})))
         ));
     }
 
     #[test]
     fn no_arguments_at_all_stays_inline() {
-        assert!(!wants_task("ship_check", None));
+        assert!(!wants_task("check_step", None));
     }
 
     /// The other 47 tools return in single-digit milliseconds. If this ever
@@ -344,7 +344,7 @@ mod tests {
             "roadmap_status",
             "signal_capture",
             "tracker_setup",
-            "ship_finalize",
+            "run_finish",
         ] {
             assert!(
                 !wants_task(
@@ -362,7 +362,7 @@ mod tests {
     /// raising the command timeout.
     #[test]
     fn the_task_ttl_outlives_the_longest_a_gate_may_run() {
-        let gate_ceiling_ms = crate::ship::mcp::CHECK_TIMEOUT_SECS * 1_000;
+        let gate_ceiling_ms = crate::run::mcp::CHECK_TIMEOUT_SECS * 1_000;
         assert!(
             TASK_TTL_MS > gate_ceiling_ms,
             "TTL {TASK_TTL_MS}ms must exceed the {gate_ceiling_ms}ms command timeout"
@@ -380,17 +380,17 @@ mod tests {
     #[test]
     fn the_tick_label_names_both_the_tool_and_the_task() {
         assert_eq!(
-            HeartbeatSeed::tick_label("ship_check", "abc-123"),
-            "ship_check (task abc-123)"
+            HeartbeatSeed::tick_label("check_step", "abc-123"),
+            "check_step (task abc-123)"
         );
         // And it flows through the real message builder unchanged, so a tick a
         // human sees carries the id rather than just the tool.
         assert_eq!(
             super::super::progress::tick_message(
-                &HeartbeatSeed::tick_label("ship_check", "abc-123"),
+                &HeartbeatSeed::tick_label("check_step", "abc-123"),
                 1
             ),
-            "ship_check (task abc-123) still running (2s elapsed)"
+            "check_step (task abc-123) still running (2s elapsed)"
         );
     }
 }

@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn task_evidence_retains_recent_records_and_bounds_unicode_details() {
+fn step_evidence_retains_recent_records_and_bounds_unicode_details() {
     let checks: Vec<Value> = (0..85)
         .map(|n| {
             json!({
@@ -14,20 +14,20 @@ fn task_evidence_retains_recent_records_and_bounds_unicode_details() {
     let actions: Vec<Value> = (0..83)
         .map(|n| {
             json!({
-                "id": n, "task_id": "evidence", "timestamp": "2026-10-02T00:00:00Z",
+                "id": n, "step_id": "evidence", "timestamp": "2026-10-02T00:00:00Z",
                 "type": "test", "description": format!("action {n}"),
                 "files_touched": [], "tools_used": [], "result": ""
             })
         })
         .collect();
-    let task = serde_json::from_value(json!({
+    let step = serde_json::from_value(json!({
         "id": "evidence", "title": "Inspect evidence", "type": "test",
-        "status": "active", "estimate": null, "checks": checks, "actions": actions
+        "status": "active", "estimate": null, "checks": checks, "progress": actions
     }))
-    .expect("canonical task");
-    let view = bounded_task(task);
+    .expect("canonical step");
+    let view = bounded_step(step);
     assert_eq!(view["omitted_checks"], 5);
-    assert_eq!(view["omitted_actions"], 3);
+    assert_eq!(view["omitted_progress"], 3);
     assert_eq!(view["record"]["checks"].as_array().unwrap().len(), 80);
     assert_eq!(view["record"]["checks"][0]["name"], "check 5");
     assert_eq!(
@@ -38,18 +38,18 @@ fn task_evidence_retains_recent_records_and_bounds_unicode_details() {
             .count(),
         6000
     );
-    assert_eq!(view["record"]["actions"][0]["id"], 3);
+    assert_eq!(view["record"]["progress"][0]["id"], 3);
 }
 
 #[test]
 fn query_options_refuse_unknown_malformed_empty_and_oversized_selectors() {
     assert!(validate_args(&json!({})).is_ok());
-    assert!(validate_args(&json!({"task_id": "task", "receipt_id": "receipt"})).is_ok());
+    assert!(validate_args(&json!({"step_id": "step", "check_result_id": "check_result"})).is_ok());
     for args in [
         json!(null),
-        json!({"task_id": 3}),
-        json!({"receipt_id": ""}),
-        json!({"task_id": "x".repeat(257)}),
+        json!({"step_id": 3}),
+        json!({"check_result_id": ""}),
+        json!({"step_id": "x".repeat(257)}),
         json!({"run": true}),
     ] {
         assert!(validate_args(&args).is_err(), "{args}");
@@ -57,16 +57,16 @@ fn query_options_refuse_unknown_malformed_empty_and_oversized_selectors() {
 }
 
 #[test]
-fn phase_is_unknown_until_announced_and_scoped_to_cycle_and_task() {
+fn phase_is_unknown_until_announced_and_scoped_to_cycle_and_step() {
     let state = ContextState::default();
     let cycle = Some("cycle".to_owned());
-    let task = Some("task".to_owned());
-    assert_eq!(state.phase(&cycle, &task), None);
-    state.observe(cycle.clone(), task.clone(), WorkflowPhase::Verifying);
-    assert_eq!(state.phase(&cycle, &task), Some(WorkflowPhase::Verifying));
-    assert_eq!(state.phase(&Some("new cycle".to_owned()), &task), None);
+    let step = Some("step".to_owned());
+    assert_eq!(state.phase(&cycle, &step), None);
+    state.observe(cycle.clone(), step.clone(), WorkflowPhase::Verifying);
+    assert_eq!(state.phase(&cycle, &step), Some(WorkflowPhase::Verifying));
+    assert_eq!(state.phase(&Some("new cycle".to_owned()), &step), None);
     assert_eq!(state.phase(&cycle, &None), None);
-    assert_eq!(ContextState::default().phase(&cycle, &task), None);
+    assert_eq!(ContextState::default().phase(&cycle, &step), None);
 }
 
 #[test]

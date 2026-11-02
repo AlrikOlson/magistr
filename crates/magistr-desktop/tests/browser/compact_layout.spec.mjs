@@ -98,7 +98,7 @@ test("dependency groups remain readable within the inspector",async({app})=>{
 
 test("current work reveals complete requirements on demand",async({app})=>{
   await openWork(app);await app.setViewportSize({width:760,height:550});
-  const disclosure=app.locator(".work-objective-details").first();
+  const disclosure=app.locator(".work-goal-details").first();
   await expect(disclosure).not.toHaveAttribute("open","");
   await disclosure.locator("summary").focus();await app.keyboard.press("Enter");
   await expect(disclosure.locator("li").last()).toBeVisible();
@@ -108,27 +108,27 @@ test("current work reveals complete requirements on demand",async({app})=>{
   await disclosure.locator("summary").click();await capture(app,"09-current-work");
 });
 
-test("task rows align title and status at the minimum width",async({app})=>{
+test("step rows align title and status at the minimum width",async({app})=>{
   await openWork(app);await app.setViewportSize({width:760,height:550});
-  await app.locator(".work-tasks").scrollIntoViewIfNeeded();
-  const heading=app.locator(".work-task-heading").first();
+  await app.locator(".work-steps").scrollIntoViewIfNeeded();
+  const heading=app.locator(".work-step-heading").first();
   const title=await heading.locator("strong").boundingBox(),state=await heading.locator("span").boundingBox();
   expect(Math.abs(title.y-state.y)).toBeLessThan(6);
-  expect((await app.locator(".work-tasks>li").first().boundingBox()).height).toBeLessThan(85);
-  await capture(app,"10-tasks");
+  expect((await app.locator(".work-steps>li").first().boundingBox()).height).toBeLessThan(85);
+  await capture(app,"10-steps");
 });
 
-test("task metadata uses labeled facts and complete times",async({app})=>{
-  await openWork(app);await app.evaluate(()=>{const f=window.__fixture;f.workflow.ship.data.value.current.tasks[1].started_at="2026-10-15T08:12:00Z";f.publish("release",{workflow_revision:1});});
-  const row=app.locator(".work-tasks>li").nth(1);await row.locator(".work-task-heading").scrollIntoViewIfNeeded();
+test("step metadata uses labeled facts and complete times",async({app})=>{
+  await openWork(app);await app.evaluate(()=>{const f=window.__fixture;f.workflow.run.data.value.current.steps[1].started_at="2026-10-15T08:12:00Z";f.publish("release",{workflow_revision:1});});
+  const row=app.locator(".work-steps>li").nth(1);await row.locator(".work-step-heading").scrollIntoViewIfNeeded();
   await expect(row.locator(":scope>.work-inline-facts dt")).toHaveText(["Type","Estimate","Started"]);
   await expect(row.locator(":scope>.work-inline-facts time")).toHaveAttribute("datetime","2026-10-15T08:12:00Z");
-  await capture(app,"11-task-facts");
+  await capture(app,"11-step-facts");
 });
 
 test("check outcomes stay aligned with long names",async({app})=>{
   await openWork(app);await app.getByRole("radio",{name:"Checks",exact:true}).check();
-  await app.evaluate(()=>{const f=window.__fixture;f.workflow.ship.data.value.current.tasks[1].checks[0].name="Verify installation and complete restoration of the conversation, file attachments and unsent message";f.publish("release",{workflow_revision:1});});
+  await app.evaluate(()=>{const f=window.__fixture;f.workflow.run.data.value.current.steps[1].checks[0].name="Verify installation and complete restoration of the conversation, file attachments and unsent message";f.publish("release",{workflow_revision:1});});
   await app.setViewportSize({width:760,height:550});
   const summary=app.locator(".work-check summary").first();await summary.scrollIntoViewIfNeeded();
   const title=await summary.locator("strong").boundingBox(),result=await summary.locator("span").boundingBox();
@@ -161,7 +161,7 @@ test("small result sets show counts and larger sets retain paging",async({app})=
   await expect(app.getByRole("button",{name:"Next page",exact:true})).toHaveCount(0);
   await expect(app.locator(".work-pages")).toContainText("2 results");
   await capture(app,"15-work-results");
-  await app.evaluate(()=>{const f=window.__fixture,ship=f.workflow.ship.data.value,run=ship.retained[0];ship.retained=Array.from({length:70},(_,n)=>({...run,run_id:"saved-"+n}));f.publish("release",{workflow_revision:1});});
+  await app.evaluate(()=>{const f=window.__fixture,history=f.workflow.run.data.value,run=history.retained[0];history.retained=Array.from({length:70},(_,n)=>({...run,run_id:"saved-"+n}));f.publish("release",{workflow_revision:1});});
   await expect(app.getByRole("button",{name:"Next page",exact:true})).toBeEnabled();
   await app.getByRole("button",{name:"Next page",exact:true}).click();
   await expect(app.locator(".roadmap-items>li")).toHaveCount(21);

@@ -1,6 +1,6 @@
 //! Why a check could not be admitted, observed or settled.
 
-use magistr_workflow::ship::application::ShipError;
+use magistr_workflow::run::application::RunError;
 use std::fmt;
 
 /// A typed refusal from the composition boundary. Each variant names the
@@ -12,12 +12,12 @@ use std::fmt;
 pub enum CheckEvidenceError {
     /// The workflow could not name a task to admit the check against, or
     /// refused the request itself (no active task, an ambiguous id, no
-    /// execution identity, no objective).
-    Admission(ShipError),
+    /// execution identity, no goal).
+    Admission(RunError),
     /// The workspace could not be observed at admission.
-    Source(ShipError),
+    Source(RunError),
     /// The workflow refused to settle the admitted check.
-    Settlement(ShipError),
+    Settlement(RunError),
 }
 
 impl CheckEvidenceError {
@@ -31,7 +31,7 @@ impl CheckEvidenceError {
     }
 
     /// Classify the workflow's typed admission failure without parsing copy.
-    pub(super) fn from_admission(reason: ShipError) -> Self {
+    pub(super) fn from_admission(reason: RunError) -> Self {
         if reason.kind() == "source_unavailable" {
             Self::Source(reason)
         } else {

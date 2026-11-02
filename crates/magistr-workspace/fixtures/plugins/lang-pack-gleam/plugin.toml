@@ -1,6 +1,6 @@
 # The bundled gleam language pack (chunk:m5-lang-pack): the first first-party
 # lang pack on the public magistr:lang-pack@0.1.0 interface — the same
-# interface a third-party pack would ship against. Declares ZERO
+# interface a third-party pack would run against. Declares ZERO
 # capabilities: a lang pack is a carrier of pure data (grammar bytes, tag
 # queries, a path heuristic), so the sandbox's default-deny has nothing to
 # grant. The grammar itself executes in the engine child's WasmStore lane —

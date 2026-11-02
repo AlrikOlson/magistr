@@ -1,14 +1,14 @@
 # Magistr shared runtime contract
 
 Use the single **magistr** MCP connection. Common tasks have direct typed tools:
-`context`, `search`, `read`, `edit`, `write`, `plan_work`, `start_work`,
-`record_progress`, `check_work`, and `finish_work`.
+`context`, `search`, `read`, `edit`, `write`, `arrange_steps`, `start_step`,
+`record_progress`, `check_step`, and `finish_step`.
 
 Find every other operation with `discover`, then request its exact schema with
 `discover({"operation":"name"})`. Execute it with
 `execute({"source":"return magistr.call('name', { /* schema arguments */ });"})`.
 This includes `roadmap_*`, `think_*`, `signal_*`, `tracker_*`, the remaining
-`ship_*` and `magistr_*` operations, and workspace `map`, `files`, `command`,
+`run_*` and `magistr_*` operations, and workspace `map`, `files`, `command`,
 `undo`, `script` and health. Names in the instructions below refer to catalog
 operations; use direct tools where advertised and `execute` for the rest.
 
@@ -45,7 +45,7 @@ tooling.
 
 ## State and evidence
 
-- The native roadmap is authoritative and execution tasks live in `plan_work`.
+- The native roadmap is authoritative and run steps live in `arrange_steps`.
   Read `roadmap_status`, `roadmap_next`, and targeted `roadmap_get` records;
   avoid dumping the complete roadmap.
 - Read `.magistr/project.json` and project instructions for roadmap export
@@ -53,32 +53,32 @@ tooling.
   `ROADMAP.md` or `ROADMAP.json`, run a file export, or redirect an export into
   the checkout. Otherwise generate a roadmap view only when project policy
   requests it; a view never becomes the source of truth.
-- Recover existing work using `roadmap_status`, `ship_status`, relevant tasks,
+- Recover existing work using `roadmap_status`, `run_status`, relevant steps,
   checks and reasoning. Select only the scope authorized by the request;
   roadmap work uses `chunk:<id>`. If another scope is selected, use
-  `ship_set_objective` to save its unfinished work and restore the authorized
-  scope, or seed a new objective when that scope has no saved work. Restoration
-  keeps objective details, verification and the complete plan unchanged. Read
-  `ship_status` again and take task IDs and references from those live records.
+  `run_open` to save its unfinished work and restore the authorized
+  scope, or seed a new goal when that scope has no saved work. Restoration
+  keeps goal details, verification and the complete plan unchanged. Read
+  `run_status` again and take step IDs and references from those live records.
   Resume a matching scope without repeating setup. An unrelated unfinished
-  objective alone is not a blocker; never reset or finalize it to make room.
-- `plan_work` task types are `research`, `implement`, `test`, `review`,
-  `config`, and `docs`. Change lifecycle with `start_work` and `finish_work`;
-  keep only one task active. Record material actions with `record_progress`.
+  goal alone is not a blocker; never reset or finalize it to make room.
+- `arrange_steps` step types are `research`, `implement`, `test`, `review`,
+  `config`, and `docs`. Change lifecycle with `start_step` and `finish_step`;
+  keep only one step active. Record material progress with `record_progress`.
 - Omit `step_number` in `think_record_step` to allocate it. Link the returned
   step; total step count is not the next number. Use `think_step` to link a
-  `record_progress` action to reasoning.
+  `record_progress` entry to reasoning.
 - Select verification by the changed behavior, affected dependencies, and
   acceptance criteria. Explicitly set `verification: "focused"` for bounded
   changes, including code and roadmap chunks, and record the relevant checks.
   Use `verification: "full"` and `magistr_gate(gate: "all")` only when the user
   requests the full suite or a concrete cross-cutting risk needs every gate;
-  state the reason first. New objectives default to focused; saved objectives
-  retain their promised verification. An active ship task supplies recording
+  state the reason first. New goals default to focused; saved goals
+  retain their promised verification. An active run step supplies recording
   context. Inspect `passed`,
   `recorded`, `note`, exit codes, and native errors; transport success is not evidence.
 - Declare complete check inputs and reuse valid recorded evidence. Use
-  `check_work(reuse_only: true)` when asking whether a previous result can be
+  `check_step(reuse_only: true)` when asking whether a previous result can be
   reused: a miss records that nothing ran. Do not launch another command merely
   because metadata, gate requiredness or elapsed time changed. Narrowed scopes
   require retained path-level proof; missing proof is a stated limit, never a
@@ -88,19 +88,19 @@ tooling.
   the final source. After a failure, diagnose it and rerun affected checks.
   Do not repeat a failing suite without new evidence or a relevant correction;
   do not widen the suite merely because one check failed.
-- Standalone validation may be green with `recorded: false` because no ship
-  task is active. This is a valid command result but not proof of ship.
-  During implementation, required checks must pass and be recorded. If task
-  context was missing, recover the existing verification task and rerun the
+- Standalone validation may be green with `recorded: false` because no run
+  step is active. This is a valid command result but not proof of work.
+  During implementation, required checks must pass and be recorded. If step
+  context was missing, recover the existing verification step and rerun the
   affected gates once to retry recording. If recording still fails, preserve
   the checkpoint and report the blocker; do not repeat green unrecorded runs.
-- For targeted `check_work`, supply the actual `command` and check type:
+- For targeted `check_step`, supply the actual `command` and check type:
   `test`, `lint`, `typecheck`, `build`, `review`, or `manual`. The server must
   execute it. Set `inputs` to every source/configuration input and affected
   dependency for a bounded command; omit it when the full input set is unknown.
-  Matching successful checks can reuse a receipt for up to 24 hours when source,
+  Matching successful checks can reuse a check result for up to 24 hours when source,
   command, configuration, tools and environment still match. Read its original
-  `receipt_id`; reuse has no new exit code. Use `reuse: false` for a deliberate
+  `check_result_id`; reuse has no new exit code. Use `reuse: false` for a deliberate
   rerun. Reviews, builds and network-dependent checks never inherit reuse from
   ordinary test commands. Configure custom gate reuse explicitly only when its
   inputs fully describe the result.
@@ -108,18 +108,18 @@ tooling.
   collects all results. Cargo commands sharing a target directory serialize;
   independent resources may overlap. Budgets and resource declarations live in
   `verification` in project.json; `timeout_secs` overrides one check's budget.
-  Mutation responses return compact receipt/task summaries; use `context` or
+  Mutation responses return compact check result and step summaries; use `context` or
   native queries for the full record instead of requesting the whole trace.
   Never manufacture checks with `passed: true` or copied shell summaries.
   Inspect native errors and lifecycle refusals before proceeding.
-- Append iteration receipts to `.magistr/iteration-log.md`; include the file
+- Append iteration records to `.magistr/iteration-log.md`; include the file
   in a commit only if Git already tracks it. Never force-add ignored local
   state. Stage and commit only the current iteration's changes.
 - A dirty checkout alone does not mean this work is unfinished. Stop hooks must
-  preserve unrelated edits and must not request roadmap exports. Once the task
+  preserve unrelated edits and must not request roadmap exports. Once the step
   is closed, the outer runner validates its recorded checks against the current
   source; it must not widen focused verification or rerun green checks just to
-  obtain an active task. Missing or stale evidence requires the affected checks.
+  obtain an active step. Missing or stale evidence requires the affected checks.
 
 If the required Magistr connection is unavailable, report that connection and
 preserve current state. Do not substitute another store or claim a native

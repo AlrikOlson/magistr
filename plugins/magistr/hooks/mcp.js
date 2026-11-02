@@ -6,11 +6,11 @@ const DIRECT = new Set([
   'read',
   'edit',
   'write',
-  'plan_work',
-  'start_work',
+  'arrange_steps',
+  'start_step',
   'record_progress',
-  'check_work',
-  'finish_work',
+  'check_step',
+  'finish_step',
 ])
 
 // One bounded operation per request. The native catalog and owner authorize it.
@@ -34,15 +34,15 @@ export function request(operation, args = {}) {
 export function response(operation, raw) {
   if (DIRECT.has(operation)) return raw
   const value = decode(raw)
-  const receipt = value.receipts?.[0]
+  const check_result = value.check_results?.[0]
   if (
     !value.ok ||
-    value.receipts?.length !== 1 ||
-    receipt?.operation !== operation ||
-    receipt.failed
+    value.check_results?.length !== 1 ||
+    check_result?.operation !== operation ||
+    check_result.failed
   )
     throw new Error(
       'The request did not return its completed result. Refresh and inspect the record.',
     )
-  return receipt.result
+  return check_result.result
 }

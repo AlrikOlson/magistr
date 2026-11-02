@@ -1,4 +1,4 @@
-//! The pure decision behind `magistr guard`: given the ship/roadmap state, the
+//! The pure decision behind `magistr guard`: given the run/roadmap state, the
 //! working tree and the hook's own input, does this hook event block — and why.
 //!
 //! Kept free of I/O so the rules the `/next` skill promises are tested as
@@ -11,7 +11,7 @@ use super::guard_routing::workspace_search_refusal;
 use crate::cli::GuardEvent;
 
 /// A tree the project has frozen (`.magistr/legacy-gui-ratchet.json`): it may
-/// only shrink, so writes under it need a ship objective that says so.
+/// only shrink, so writes under it need a run goal that says so.
 ///
 /// Nothing here names a particular tree — the declaration file does. That is
 /// what let the second freeze (`crates/magistr-gui`) reuse the mechanism the
@@ -20,7 +20,7 @@ use crate::cli::GuardEvent;
 pub(crate) struct FrozenTree {
     /// Project-relative root of the frozen tree, e.g. `crates/magistr-gui`.
     pub(crate) path: String,
-    /// Words any one of which, in the active objective's scope, unlocks it
+    /// Words any one of which, in the active goal's scope, unlocks it
     /// (`legacy-gui` for a hotfix, `delete` for a deletion chunk).
     pub(crate) unlock: Vec<String>,
     /// Where work that was refused belongs instead, as the declaration words
@@ -32,14 +32,14 @@ pub(crate) struct FrozenTree {
 /// One recorded quality check, reduced to what the guard looks at.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CheckSummary {
-    /// The gate's name (`ship_check(name:)`); re-runs of a gate share it, and
+    /// The gate's name (`check_step(name:)`); re-runs of a gate share it, and
     /// only the latest result per name counts.
     pub(crate) name: String,
-    /// A required gate (the default for `ship_check`).
+    /// A required gate (the default for `check_step`).
     pub(crate) required: bool,
     /// Its recorded outcome.
     pub(crate) passed: bool,
-    /// Recorded from a real exit code (`ship_check(command:)`), not self-reported.
+    /// Recorded from a real exit code (`check_step(command:)`), not self-reported.
     pub(crate) verified: bool,
 }
 
@@ -47,21 +47,21 @@ pub(crate) struct CheckSummary {
 /// the hook JSON; built by hand in tests.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct GuardInput {
-    /// Validated objective status, lowercase (`defined` / `active` /
-    /// `completed` / `abandoned`); `None` when no objective exists.
-    pub(crate) objective_status: Option<String>,
-    /// Number of tasks in the validated execution plan.
-    pub(crate) tasks_total: usize,
-    /// Every recorded check on the objective.
+    /// Validated goal status, lowercase (`defined` / `active` /
+    /// `completed` / `abandoned`); `None` when no goal exists.
+    pub(crate) goal_status: Option<String>,
+    /// Number of steps in the validated execution plan.
+    pub(crate) steps_total: usize,
+    /// Every recorded check on the goal.
     pub(crate) checks: Vec<CheckSummary>,
-    /// The chunk named by this objective's scope is still `in_progress`.
+    /// The chunk named by this goal's scope is still `in_progress`.
     pub(crate) chunk_in_progress: bool,
     /// Claude Code already continued once because of a Stop hook.
     pub(crate) stop_hook_active: bool,
     /// `tool_input.command` of a PreToolUse(Bash) hook.
     pub(crate) command: Option<String>,
-    /// Validated objective scope; `None` when no objective exists.
-    pub(crate) objective_scope: Option<String>,
+    /// Validated goal scope; `None` when no goal exists.
+    pub(crate) goal_scope: Option<String>,
     /// The tree the project declares frozen; `None` when it declares none.
     pub(crate) frozen: Option<FrozenTree>,
     /// `tool_input.file_path` (or `notebook_path`) of a PreToolUse hook on a
@@ -95,7 +95,7 @@ pub(crate) fn evaluate(event: GuardEvent, input: &GuardInput) -> GuardVerdict {
 }
 
 /// Write: a file under the frozen tree is only writable while a defined or
-/// active ship objective's scope carries one of the tree's unlock words.
+/// active run goal's scope carries one of the tree's unlock words.
 /// Everything else — no frozen tree, a path outside it, a hook without a
 /// path — passes untouched.
 fn evaluate_write(input: &GuardInput) -> GuardVerdict {
@@ -105,12 +105,9 @@ fn evaluate_write(input: &GuardInput) -> GuardVerdict {
     if !Path::new(path).starts_with(&frozen.path) {
         return GuardVerdict::Allow(None);
     }
-    let in_flight = matches!(
-        input.objective_status.as_deref(),
-        Some("defined" | "active")
-    );
+    let in_flight = matches!(input.goal_status.as_deref(), Some("open" | "active"));
     let scope = input
-        .objective_scope
+        .goal_scope
         .as_deref()
         .filter(|_| in_flight)
         .map(str::to_ascii_lowercase)
@@ -121,7 +118,7 @@ fn evaluate_write(input: &GuardInput) -> GuardVerdict {
         .find(|w| scope.contains(&w.to_ascii_lowercase()))
     {
         return GuardVerdict::Allow(Some(format!(
-            "{} is frozen; this write is admitted because the objective scope says '{word}'",
+            "{} is frozen; this write is admitted because the goal scope says '{word}'",
             frozen.path
         )));
     }
@@ -136,15 +133,15 @@ fn evaluate_write(input: &GuardInput) -> GuardVerdict {
         .unwrap_or_default();
     GuardVerdict::Block(format!(
         "{path} is under the frozen tree {tree} — a frozen tree only shrinks (see \
-         {tree}/README.md). Only a defined/active ship objective whose scope contains \
-         one of {unlock:?} may write here: ship_set_objective(scope: \"{hotfix}: \
+         {tree}/README.md). Only a defined/active run goal whose scope contains \
+         one of {unlock:?} may write here: run_open(scope: \"{hotfix}: \
          <what broke>\") for a hotfix, or a roadmap deletion chunk.{elsewhere}",
         tree = frozen.path,
         unlock = frozen.unlock,
     ))
 }
 
-/// Stop checks only the objective's own unfinished roadmap chunk. A dirty
+/// Stop checks only the goal's own unfinished roadmap chunk. A dirty
 /// checkout cannot identify this run's work: it may contain pre-existing or
 /// concurrent changes, so it must never trigger staging or export instructions.
 fn evaluate_stop(input: &GuardInput) -> GuardVerdict {
@@ -153,10 +150,10 @@ fn evaluate_stop(input: &GuardInput) -> GuardVerdict {
             "stop hook already active for this turn; not blocking twice".to_owned(),
         ));
     }
-    if input.objective_status.as_deref() == Some("completed") && input.chunk_in_progress {
+    if input.goal_status.as_deref() == Some("finished") && input.chunk_in_progress {
         return GuardVerdict::Block(
             "This work is finished, but its roadmap item is still open. Complete that item \
-             with roadmap_complete_chunk using its recorded verification task, or record \
+             with roadmap_complete_chunk using its recorded verification step, or record \
              the work that remains. Preserve unrelated changes."
                 .to_owned(),
         );
@@ -165,41 +162,41 @@ fn evaluate_stop(input: &GuardInput) -> GuardVerdict {
 }
 
 /// Commit: a `git commit` while a required gate failed, or before any
-/// verified gate was recorded for the objective, is refused. Any other Bash
+/// verified gate was recorded for the goal, is refused. Any other Bash
 /// command is only routed: grep, rg, find and sed aimed at the workspace
 /// are refused in favour of magistr when the project declares it.
-/// Projects without an objective pass.
+/// Projects without a goal pass.
 fn evaluate_commit(input: &GuardInput) -> GuardVerdict {
     if !input.command.as_deref().is_some_and(is_git_commit) {
         return evaluate_routing(input);
     }
-    if input.objective_status.is_none() {
+    if input.goal_status.is_none() {
         return GuardVerdict::Allow(Some(
-            "no ship objective is set; this commit is not gated".to_owned(),
+            "no run goal is set; this commit is not gated".to_owned(),
         ));
     }
-    // A shipped objective has nothing in flight a commit could be skipping —
+    // A finished run has nothing in flight a commit could be skipping —
     // its historical checks (including red runs later re-run green) are
     // records, not state.
-    if input.objective_status.as_deref() == Some("completed") {
+    if input.goal_status.as_deref() == Some("finished") {
         return GuardVerdict::Allow(Some(
-            "the ship objective is already shipped; this commit is not gated".to_owned(),
+            "the run is already finished; this commit is not gated".to_owned(),
         ));
     }
     let latest = latest_check_per_gate(&input.checks);
     if latest.iter().any(|c| c.required && !c.passed) {
         return GuardVerdict::Block(
             "a required quality check is recorded as FAILED — fix it and re-run the \
-             affected checks (a named magistr_gate or ship_check(command: …)) before \
+             affected checks (a named magistr_gate or check_step(command: …)) before \
              git commit"
                 .to_owned(),
         );
     }
     let verified_pass = latest.iter().any(|c| c.required && c.passed && c.verified);
-    if !verified_pass && input.tasks_total > 0 {
+    if !verified_pass && input.steps_total > 0 {
         return GuardVerdict::Block(
-            "no verified quality check is recorded for this objective — run \
-             a named magistr_gate or ship_check(command: …) (a real exit \
+            "no verified quality check is recorded for this goal — run \
+             a named magistr_gate or check_step(command: …) (a real exit \
              code, not a self-reported pass) before git commit"
                 .to_owned(),
         );
@@ -222,7 +219,7 @@ fn evaluate_routing(input: &GuardInput) -> GuardVerdict {
     }
 }
 
-/// The most recent result of each gate, in first-seen order. The ship trace
+/// The most recent result of each gate, in first-seen order. The run trace
 /// keeps every run; a gate that failed and was then re-run green is green.
 fn latest_check_per_gate(checks: &[CheckSummary]) -> Vec<&CheckSummary> {
     let mut latest: Vec<&CheckSummary> = Vec::new();

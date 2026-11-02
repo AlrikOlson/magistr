@@ -45,8 +45,8 @@ use std::time::Duration;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::elicit::{AskOutcome, Unanswered, ask_propose_consent};
 use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
-use magistr_workflow::ship::ShipService;
-use magistr_workflow::ship::engine::ShipEngine;
+use magistr_workflow::run::RunService;
+use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
 use magistr_workflow::think::ThinkService;
 use magistr_workflow::think::config::ThinkConfig;
@@ -142,10 +142,10 @@ fn build_unified(project: &str) -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
-    let ship = ShipService::new(ShipEngine::new(project.into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), ship.use_cases());
+    let run = RunService::new(RunEngine::new(project.into()));
+    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(think, ship, roadmap, signal)
+    UnifiedService::new(think, run, roadmap, signal)
 }
 
 struct Session {
@@ -411,7 +411,7 @@ fn exactly_one_tool_is_the_moment_to_ask() {
         "roadmap_status",
         "roadmap_add_chunk",
         "think_record_step",
-        "ship_check",
+        "check_step",
         "",
     ] {
         assert!(
@@ -427,7 +427,7 @@ fn exactly_one_tool_is_the_moment_to_ask() {
 /// without a test seam for the tracker port (`build_tracker_port` knows only
 /// github and linear, both of which need a network). Matched WITH its
 /// indentation so a commented-out or differently-scoped call cannot satisfy it
-/// — the failure mode that let `propose_status_from_sweep` ship dead,
+/// — the failure mode that let `propose_status_from_sweep` run dead,
 /// undetected, for a long stretch of development.
 #[test]
 fn the_roadmap_seam_actually_calls_the_consent_ask() {

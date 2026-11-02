@@ -38,7 +38,7 @@ the first unfinished phase.
    callers of every shared interface. Research current primary documentation
    and known pitfalls. Tie findings to the definition of done.
 2. `magistr_set_phase(phase: "plan")`. Open or restore the run for
-   `task:<id>` as the contract describes. Add only missing steps with
+   `step:<id>` as the contract describes. Add only missing steps with
    `arrange_steps`, ids prefixed by the task, ending with a `review` or `test`
    step. Record the chosen checks and why.
 3. Record the plan with `decision_record` and link the note to the task with

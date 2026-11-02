@@ -3,17 +3,17 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::roadmap::domain::{Chunk, ChunkStatus};
 use crate::roadmap::engine::RoadmapEngine;
-use crate::ship::ShipUseCases;
+use crate::run::RunUseCases;
 use crate::signal::engine::SignalEngine;
 
 use super::{ChunkDraft, RoadmapError};
 
 /// Admitted native roadmap operations shared by MCP and local clients.
 ///
-/// The ship family is the roadmap's completion authority, by construction:
+/// The run family is the roadmap's completion authority, by construction:
 /// a chunk completes only on that run's current evidence — every route —
 /// MCP, an owner command, the cockpit, a loop — lands here, and none of
-/// them can mark a chunk done another way. A ship family composed without
+/// them can mark a chunk done another way. A run family composed without
 /// an evidence capability refuses every completion with the reason, so a
 /// roadmap can never be composed over a permissive path.
 #[derive(Clone)]
@@ -21,7 +21,7 @@ pub struct RoadmapUseCases {
     pub(super) engine: Arc<Mutex<RoadmapEngine>>,
     pub(super) signal: Option<Arc<Mutex<SignalEngine>>>,
     pub(super) workspace_root: Option<std::path::PathBuf>,
-    pub(super) completion: ShipUseCases,
+    pub(super) completion: RunUseCases,
 }
 
 #[cfg(test)]
@@ -29,9 +29,9 @@ pub struct RoadmapUseCases {
 mod tests;
 
 impl RoadmapUseCases {
-    /// Compose the roadmap over `engine` with `completion` — the ship
+    /// Compose the roadmap over `engine` with `completion` — the run
     /// family whose receipts govern every route to `done`.
-    pub fn new(engine: Arc<Mutex<RoadmapEngine>>, completion: ShipUseCases) -> Self {
+    pub fn new(engine: Arc<Mutex<RoadmapEngine>>, completion: RunUseCases) -> Self {
         Self {
             engine,
             signal: None,
@@ -117,8 +117,8 @@ impl RoadmapUseCases {
             .map_err(RoadmapError::invalid_state)
     }
 
-    /// Mark `id` done with its proof-of-ship reference. The ship objective
-    /// must be scoped to this chunk and its verification task — the `task:`
+    /// Mark `id` done with its proof-of-run reference. The run goal
+    /// must be scoped to this chunk and its verification task — the `step:`
     /// reference when given, else the task holding the run's receipts —
     /// must carry current, passing, verified receipts for every required
     /// gate; the refusal names what is missing. The stored reference is the
@@ -127,19 +127,19 @@ impl RoadmapUseCases {
     pub fn complete_chunk(
         &self,
         id: &str,
-        ship_ref: Option<&str>,
+        step_ref: Option<&str>,
     ) -> Result<Observed<Chunk>, RoadmapError> {
         let scope = format!("chunk:{id}");
-        let task = ship_ref
-            .and_then(|reference| reference.trim().strip_prefix("task:"))
+        let task = step_ref
+            .and_then(|reference| reference.trim().strip_prefix("step:"))
             .map(str::trim);
         let evidence = self
             .completion
             .verify_completion(&scope, task)
             .map_err(|refusal| RoadmapError::InvalidState(refusal.to_string()))?;
-        let resolved = ship_ref
+        let resolved = step_ref
             .map(str::to_owned)
-            .unwrap_or_else(|| format!("task:{}", evidence.task_id));
+            .unwrap_or_else(|| format!("step:{}", evidence.step_id));
         self.lock()?
             .complete_chunk(id, Some(resolved.as_str()))
             .map_err(RoadmapError::invalid_state)

@@ -28,16 +28,16 @@ fn guard_result_warn_is_not_ok() {
 
 #[test]
 fn guard_context_construction() {
-    let ship = ShipGuardState {
-        objective_set: true,
-        tasks_planned: 2,
+    let run = RunGuardState {
+        goal_set: true,
+        steps_planned: 2,
         checks_recorded: 0,
     };
-    let ctx = GuardContext::new("/project", "/project/SPEC.md", ship);
+    let ctx = GuardContext::new("/project", "/project/SPEC.md", run);
     assert_eq!(ctx.project_dir, "/project");
     assert_eq!(ctx.spec_path, "/project/SPEC.md");
-    assert_eq!(ctx.ship, ship);
-    assert!(ctx.ship.has_plan());
+    assert_eq!(ctx.run, run);
+    assert!(ctx.run.has_plan());
 }
 
 // ── WorkflowGuard trait defaults ────────────────────────────────────
@@ -52,7 +52,7 @@ fn default_trait_methods_return_ok() {
     }
 
     let guard = TestGuard;
-    let ctx = GuardContext::new("/p", "/p/SPEC.md", ShipGuardState::default());
+    let ctx = GuardContext::new("/p", "/p/SPEC.md", RunGuardState::default());
     assert!(guard.pre_session(&ctx).is_ok());
     assert!(guard.post_session(&ctx).is_ok());
     assert!(guard.pre_commit(&ctx).is_ok());

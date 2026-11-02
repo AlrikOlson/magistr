@@ -10,7 +10,7 @@ use super::rule_mode::RuleMode;
 /// lives in the session's policy, and a copy of the condition language
 /// here would be a second place for the rules to live. The subject is
 /// display text the seeder derives once (from a rule's id or its
-/// shorthand), the way `ShipView` holds the plan's words rather than
+/// shorthand), the way `RunView` holds the plan's words rather than
 /// the plan.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CharterRule {

@@ -7,7 +7,7 @@
 # them free for paths outside it and for piped output) and a PreToolUse hook
 # on Edit/Write/MultiEdit/NotebookEdit (`write`, refusing writes under a
 # frozen tree declared in .magistr/legacy-gui-ratchet.json). Forwards the
-# hook JSON on stdin to `magistr guard`, which reads the ship/roadmap state
+# hook JSON on stdin to `magistr guard`, which reads the run/roadmap state
 # (never a plan file) and exits 2 with the reason on stderr to block. A
 # magistr that is missing from PATH, or predates the `guard` verb, allows
 # through and says so — an old binary must never freeze a session.

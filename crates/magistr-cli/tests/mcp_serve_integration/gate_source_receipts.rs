@@ -11,7 +11,7 @@ async fn begin_receipt_task(client: &Client) {
     call(client, "roadmap_start_chunk", json!({"id": "receipts"})).await;
     call(
         client,
-        "ship_set_objective",
+        "run_open",
         json!({
             "description": "Verify current source",
             "scope": "chunk:receipts",
@@ -21,11 +21,11 @@ async fn begin_receipt_task(client: &Client) {
     .await;
     call(
         client,
-        "ship_plan",
-        json!({"action": "add", "task_id": "verify-source", "title": "Verify", "task_type": "test"}),
+        "arrange_steps",
+        json!({"action": "add", "step_id": "verify-source", "title": "Verify", "step_type": "test"}),
     )
     .await;
-    let started = text_json(&call(client, "ship_start", json!({"task_id": "verify-source"})).await);
+    let started = text_json(&call(client, "start_step", json!({"step_id": "verify-source"})).await);
     assert_eq!(started["value"]["status"], "active", "{started}");
 }
 
@@ -51,25 +51,25 @@ async fn gate_receipt(client: &Client, gate: &Value) -> Value {
         &call(
             client,
             "magistr_context",
-            json!({"receipt_id": gate["receipt"]}),
+            json!({"check_result_id": gate["check_result"]}),
         )
         .await,
     );
-    context["receipt"].clone()
+    context["check_result"].clone()
 }
 
 async fn complete_receipts(client: &Client) -> CallToolResult {
     call(
         client,
         "roadmap_complete_chunk",
-        json!({"id": "receipts", "ship_ref": "task:verify-source"}),
+        json!({"id": "receipts", "step_ref": "step:verify-source"}),
     )
     .await
 }
 
 #[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn named_gates_and_ship_checks_run_in_the_observed_project_and_read_its_report() {
+async fn named_gates_and_run_checks_run_in_the_observed_project_and_read_its_report() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("project");
     std::fs::create_dir_all(root.join("results")).expect("root");
@@ -94,7 +94,7 @@ async fn named_gates_and_ship_checks_run_in_the_observed_project_and_read_its_re
     let direct = text_json(
         &call(
             &client,
-            "ship_check",
+            "check_step",
             json!({
                 "type": "test", "name": "direct-source", "command": command,
                 "report": {"format": "junit", "path": "results/junit.xml"}
@@ -152,7 +152,7 @@ async fn named_gate_reruns_capture_source_and_evidence_edits_and_completion_stay
 
     let second = named_gate(&client).await;
     let second_receipt = gate_receipt(&client, &second).await;
-    assert_ne!(second["receipt"], first["receipt"]);
+    assert_ne!(second["check_result"], first["check_result"]);
     assert_ne!(second["source_revision"], first["source_revision"]);
     assert_eq!(second_receipt["attempt"], 2);
     assert_eq!(second_receipt["target"], first_receipt["target"]);
@@ -160,7 +160,7 @@ async fn named_gate_reruns_capture_source_and_evidence_edits_and_completion_stay
     assert_eq!(second_receipt["source"]["revision"], current.revision());
 
     let repeated = named_gate(&client).await;
-    assert_ne!(repeated["receipt"], second["receipt"]);
+    assert_ne!(repeated["check_result"], second["check_result"]);
     assert_eq!(repeated["source_revision"], second["source_revision"]);
     assert_eq!(gate_receipt(&client, &repeated).await["attempt"], 3);
     let completed = complete_receipts(&client).await;

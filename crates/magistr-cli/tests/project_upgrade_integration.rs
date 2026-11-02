@@ -174,7 +174,7 @@ fn repair_converts_version_one_work_and_reasoning_before_checking_the_connection
     let originals = [
         (
             "ship/sessions/saved-project.json",
-            include_bytes!("../../magistr-workflow/src/ship/fixtures/v1.json").as_slice(),
+            include_bytes!("../../magistr-workflow/src/run/fixtures/v1.json").as_slice(),
         ),
         (
             "think/sessions/saved-project.json",
@@ -215,7 +215,7 @@ fn repair_converts_version_one_work_and_reasoning_before_checking_the_connection
         let config = magistr_engine::native::NativeConfig::from_lookup(root, |_| None)
             .with_data_dir(&current);
         let reader = magistr_engine::native::NativeReader::open(&config);
-        assert_eq!(reader.ship_tasks().unwrap()[0].id, "one");
+        assert_eq!(reader.run_steps().unwrap()[0].id, "one");
         assert_eq!(reader.roadmap_chunks().unwrap()[0].id, "saved");
         assert_eq!(reader.signal_list().unwrap()[0].id, "saved-signal");
         assert_eq!(

@@ -20,11 +20,11 @@ const SHARED_TOOLS: &[&str] = &[
     "mcp__magistr__write",
     "mcp__magistr__discover",
     "mcp__magistr__execute",
-    "mcp__magistr__plan_work",
-    "mcp__magistr__start_work",
+    "mcp__magistr__arrange_steps",
+    "mcp__magistr__start_step",
     "mcp__magistr__record_progress",
-    "mcp__magistr__check_work",
-    "mcp__magistr__finish_work",
+    "mcp__magistr__check_step",
+    "mcp__magistr__finish_step",
     "mcp__brave-search__brave_web_search",
 ];
 

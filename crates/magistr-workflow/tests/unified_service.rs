@@ -1,13 +1,13 @@
 //! End-to-end smoke test for the UnifiedService: all four families register
-//! together and expose the full 56-tool surface (think 13, ship 14, roadmap 17,
+//! together and expose the full 56-tool surface (think 13, run 14, roadmap 17,
 //! tracker 2, signal 10 — all canonical).
 
 use std::collections::BTreeSet;
 
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
-use magistr_workflow::ship::ShipService;
-use magistr_workflow::ship::engine::ShipEngine;
+use magistr_workflow::run::RunService;
+use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
 use magistr_workflow::think::ThinkService;
 use magistr_workflow::think::config::ThinkConfig;
@@ -17,10 +17,10 @@ fn build_unified() -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
-    let ship = ShipService::new(ShipEngine::new("test-abc123".into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), ship.use_cases());
+    let run = RunService::new(RunEngine::new("test-abc123".into()));
+    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
-    UnifiedService::new(think, ship, roadmap, signal)
+    UnifiedService::new(think, run, roadmap, signal)
 }
 
 #[test]
@@ -30,7 +30,7 @@ fn lists_56_canonical_tools_across_four_families() {
     assert_eq!(
         tools.len(),
         56,
-        "expected 13 think_* + 14 ship_* + 17 roadmap_* + 2 tracker_* + 10 signal_*, got {}",
+        "expected 13 think_* + 14 run (run_*, approval_*, step verbs) + 17 roadmap_* + 2 tracker_* + 10 signal_*, got {}",
         tools.len()
     );
 
@@ -38,10 +38,14 @@ fn lists_56_canonical_tools_across_four_families() {
     let count = |prefix: &str| names.iter().filter(|n| n.starts_with(prefix)).count();
     assert_eq!(count("think_"), 13, "13 think_* tools");
     assert_eq!(
-        count("ship_"),
-        14,
-        "14 ship_* tools (including receipt compaction)"
+        count("run_"),
+        7,
+        "7 run_* tools (including check compaction)"
     );
+    assert_eq!(count("approval_"), 2, "2 approval_* tools");
+    for verb in magistr_workflow::run::mcp::STEP_VERBS {
+        assert!(names.contains(verb), "the step verb {verb} is served");
+    }
     assert_eq!(count("roadmap_"), 17, "17 roadmap_* tools");
     assert_eq!(count("signal_"), 10, "10 signal_* tools");
 }
@@ -158,7 +162,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 /// # The line moved a second time, deliberately, on 2026-07-31
 ///
 /// 140,000 -> 150,000, human-approved for `webapp-approval-gates`. The two
-/// gate verbs (`ship_gate_open` / `ship_gate_wait`) measured 4,621 B on the
+/// gate verbs (`approval_open` / `approval_wait`) measured 4,621 B on the
 /// wire — 143,967 B total against the 140,000 line. The gate refused the
 /// increment and the question went to the human, as designed; the answer was
 /// to keep both verbs and move the line, on three grounds. First, approval
@@ -168,7 +172,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 /// bytes are outputSchema/annotations the model never sees; the model-facing
 /// gate below is the number that guards context, and it holds. Third,
 /// `FamilySelection` still offers lean deployments to anyone who does not
-/// want the ship family at all. Two verbs rather than one multiplexed tool
+/// want the run family at all. Two verbs rather than one multiplexed tool
 /// was deliberate: open and wait have disjoint inputs and outputs, and a
 /// discriminator arg would bury the headless-safety contract that each
 /// description carries.
@@ -240,7 +244,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 ///
 /// # The line moved a fifth time, on 2026-08-15, for structured check results
 ///
-/// 154,000 -> 157,000, for `ship_check`'s `report` argument
+/// 154,000 -> 157,000, for `check_step`'s `report` argument
 /// (structured-test-results, issue #21).
 ///
 /// WHAT WAS MEASURED. Before the chunk: 153,587 B, headroom 413 B — nothing
@@ -250,7 +254,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 /// the old line**. The remaining cost splits as ~900 B of input surface
 /// (the `report {format, path}` arg + the description clauses an agent must
 /// know BEFORE calling — that a report problem never fails the check, and
-/// that stdout is never scraped) and ~1,900 B of `ship_check` outputSchema
+/// that stdout is never scraped) and ~1,900 B of `check_step` outputSchema
 /// (ReportRecord + TestResults + TestFailure), which the model never pays.
 ///
 /// WHY NOT ZERO. The degradation contract has to be stated where the call is
@@ -270,7 +274,7 @@ fn tools_list_payload_stays_within_budget() {
         "tools/list is {actual} bytes, over the {BUDGET}-byte budget (was 87,897 when \
          the surface-size decision chose option D, 135,524 B after the outputSchema work, \
          143,967 B after the approval-gate verbs, 150,728 B after roadmap_get, 153,630 B \
-         after the focus verbs, 156,363 B after ship_check's structured report). Re-decide \
+         after the focus verbs, 156,363 B after check_step's structured report). Re-decide \
          the surface rather than raising this — the line has moved exactly five times, with \
          every argument written above. Before proposing a sixth, read the outputSchema \
          note: over half of this payload is outputSchema and much of it is duplicated, so \
@@ -324,8 +328,8 @@ fn descriptions_stay_substantial() {
         "think_record_step lost the XML-serialization warning naming the closing tag"
     );
     assert!(
-        describe("ship_check").contains("PREFER passing `command`"),
-        "ship_check lost the guidance that makes a check verified rather than self-reported"
+        describe("check_step").contains("PREFER passing `command`"),
+        "check_step lost the guidance that makes a check verified rather than self-reported"
     );
     assert!(
         describe("roadmap_reprioritize").contains("does NOT reorder"),
@@ -440,23 +444,6 @@ fn records_the_measured_tool_surface() {
     }
 }
 
-/// `ship_finalize` is the one verb whose name a caller cannot derive from the
-/// family prefix — `ship_` + "ship" is the shape a model reaches for, and it is
-/// wrong. Answering it with the real name costs one branch; a bare "unknown
-/// tool" costs a retry against 51 candidates.
-#[test]
-fn a_misderived_finalize_name_is_answered_with_the_real_one() {
-    assert_eq!(
-        UnifiedService::replacement_for_retired("ship_ship").as_deref(),
-        Some("ship_finalize"),
-    );
-
-    // Canonical and unrelated names are not misderived — they route normally.
-    assert!(UnifiedService::replacement_for_retired("ship_finalize").is_none());
-    assert!(UnifiedService::replacement_for_retired("think_record_step").is_none());
-    assert!(UnifiedService::replacement_for_retired("audit_anything").is_none());
-}
-
 /// The `instructions` block is pasted into the model's system prompt by several
 /// MCP clients, so a wrong tool count there misinforms every fresh agent. Nothing
 /// tied that prose to the registry, and it drifted (roadmap advertised 8 against a
@@ -471,7 +458,7 @@ fn advertised_tool_counts_match_the_real_registry() {
     let instructions = info
         .instructions
         .as_deref()
-        .expect("the unified server must ship instructions");
+        .expect("the unified server must run instructions");
 
     let names: Vec<String> = svc
         .list_tools_view()
@@ -479,7 +466,15 @@ fn advertised_tool_counts_match_the_real_registry() {
         .map(|t| t.name.to_string())
         .collect();
 
-    for family in magistr_workflow::mcp::UnifiedFamily::ALL.map(|f| f.prefix()) {
+    let verbs = magistr_workflow::run::mcp::STEP_VERBS;
+    assert!(
+        instructions.contains(&format!("step verbs ({} tools)", verbs.len())),
+        "the instructions count the step verbs:\n{instructions}"
+    );
+    for family in magistr_workflow::mcp::UnifiedFamily::ALL
+        .iter()
+        .flat_map(|f| f.prefixes().iter().copied())
+    {
         let prefix = format!("{family}_");
         let served = names.iter().filter(|n| n.starts_with(&prefix)).count();
         let advertised = advertised_count(instructions, family).unwrap_or_else(|| {
@@ -512,8 +507,8 @@ fn route_of_classifies_tools_by_family() {
         Some(UnifiedFamily::Think)
     );
     assert_eq!(
-        UnifiedService::route_of("ship_set_objective"),
-        Some(UnifiedFamily::Ship)
+        UnifiedService::route_of("run_open"),
+        Some(UnifiedFamily::Run)
     );
     // An unknown prefix routes nowhere rather than falling through to a family.
     assert!(UnifiedService::route_of("audit_anything").is_none());
@@ -593,7 +588,7 @@ fn a_narrowed_deployment_lists_only_its_families() {
     assert!(names.iter().all(|n| n.starts_with("think_")
         || n.starts_with("roadmap_")
         || n.starts_with("tracker_")));
-    assert_eq!(names.iter().filter(|n| n.starts_with("ship_")).count(), 0);
+    assert_eq!(names.iter().filter(|n| n.starts_with("run_")).count(), 0);
     assert_eq!(names.iter().filter(|n| n.starts_with("signal_")).count(), 0);
     // 13 reasoning tools plus 17 roadmap and 2 tracker tools.
     assert_eq!(names.len(), 32);
@@ -689,10 +684,10 @@ fn an_empty_selection_is_refused() {
 /// (Tolerating these is what keeps the strict unknown-token rule reasonable.)
 #[test]
 fn selection_parsing_is_forgiving_about_shape_but_not_about_names() {
-    let sel = FamilySelection::parse(" Think , SHIP, ").expect("shape noise is tolerated");
-    assert!(sel.contains(Family::Think) && sel.contains(Family::Ship));
+    let sel = FamilySelection::parse(" Think , RUN, ").expect("shape noise is tolerated");
+    assert!(sel.contains(Family::Think) && sel.contains(Family::Run));
     assert!(!sel.contains(Family::Roadmap) && !sel.contains(Family::Signal));
-    assert_eq!(sel.summary(), "think_*, ship_*");
+    assert_eq!(sel.summary(), "think_*, run_*");
 }
 
 /// LISTING AND DISPATCH MUST AGREE.
@@ -709,11 +704,11 @@ fn selection_parsing_is_forgiving_about_shape_but_not_about_names() {
 fn every_listed_tool_routes_to_an_exposed_family() {
     for spec in [
         "think",
-        "ship",
+        "run",
         "signal",
         "roadmap",
         "think,signal",
-        "think,ship,roadmap,signal",
+        "think,run,roadmap,signal",
     ] {
         let sel = FamilySelection::parse(spec).expect("valid selection");
         let svc = build_with(sel);
@@ -850,7 +845,7 @@ fn schema_disposition_lists_have_no_stale_entries() {
 fn the_known_schema_gap_stays_closed() {
     assert!(
         SCHEMA_PENDING_BUDGET.is_empty(),
-        "the outputSchema gap reopened with {:?} — a new tool must ship with a schema, \
+        "the outputSchema gap reopened with {:?} — a new tool must run with a schema, \
          or a declared SCHEMA_EXEMPT entry explaining why it cannot have one",
         SCHEMA_PENDING_BUDGET
     );
@@ -983,7 +978,7 @@ fn the_known_schema_gap_stays_closed() {
 ///
 /// # The companion line, moved on 2026-08-15 with the wire ceiling
 ///
-/// 57,000 -> 58,500, for `ship_check`'s `report` argument
+/// 57,000 -> 58,500, for `check_step`'s `report` argument
 /// (structured-test-results, issue #21). Same decision as the wire raise
 /// above, measured on this axis: headroom before the chunk was 179 B, the
 /// trimmed landing figure is **57,915 B, +1,094**. What the model pays for is
@@ -1001,7 +996,7 @@ fn model_facing_tool_surface_stays_lean() {
         actual <= BUDGET,
         "model-facing tool surface is {actual} bytes (~{} tokens), over the {BUDGET}-byte \
          budget (was 46,047 when the budget was split from the wire figure, 54,285 before \
-         the focus verbs, 56,821 before ship_check's structured report). This is the number \
+         the focus verbs, 56,821 before check_step's structured report). This is the number \
          an agent pays on every session — argue for it before raising it.",
         actual / 4
     );

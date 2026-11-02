@@ -144,7 +144,7 @@ pub struct Signal {
     /// Append-only agent enrichment trail.
     #[serde(default)]
     pub enrichment: Vec<Enrichment>,
-    /// Typed cross-refs into the think/ship/roadmap graph in `prefix:value`
+    /// Typed cross-refs into the think/run/roadmap graph in `prefix:value`
     /// wire form (the `signal:` variant is written by the promotion path).
     #[serde(default)]
     pub cross_refs: Vec<String>,

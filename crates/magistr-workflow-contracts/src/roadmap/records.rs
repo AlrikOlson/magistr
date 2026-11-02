@@ -1,7 +1,7 @@
 //! Roadmap domain types — pure data, no infra imports (DIP).
 //!
 //! A [`Roadmap`] is the long-horizon plan-of-plans: an ordered set of
-//! [`Chunk`]s (phases / items) that sits above `ship_*` objectives and links
+//! [`Chunk`]s (phases / items) that sits above `run_*` goals and links
 //! across to `think_*` reasoning steps. These types are serde-only and depend
 //! on nothing in `crate::infra` so the dependency graph stays one-directional
 //! (engine → domain + infra, never the reverse).
@@ -140,7 +140,7 @@ pub enum ChunkStatus {
     Backlog,
     /// Prioritized work; readiness also requires no blocker and completed dependencies.
     Pending,
-    /// Currently being implemented (typically by a linked ship objective).
+    /// Currently being implemented (typically by a linked run goal).
     InProgress,
     /// Has an unmet dependency or external blocker.
     Blocked,
@@ -294,7 +294,7 @@ pub enum BlockerKind {
     PremiseRefuted,
     /// Every dependency is `Done`, but the chunk waits on a world condition
     /// rather than on other work: "not until X exists", "only once the data is
-    /// there". `deps` models what must SHIP first and can never model what must
+    /// there". `deps` models what must RUN first and can never model what must
     /// be TRUE first, which is why this cannot be expressed as a dependency.
     PremiseUnmet,
     /// The work needs a person at a keyboard — a recording, a physical
@@ -371,7 +371,7 @@ pub struct BlockedBy {
     /// to be re-derived from the title is precisely the failure this replaces.
     pub reason: String,
     /// What says so, as a cross-ref wire string (`think:42`, `chunk:foo`,
-    /// `task:bar`) — or `None` when nothing does, which is an honest answer
+    /// `step:bar`) — or `None` when nothing does, which is an honest answer
     /// rather than a gap to fill with a guess.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub evidence: Option<String>,
@@ -461,7 +461,7 @@ pub struct Chunk {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tier: Option<u32>,
     /// Cross-references into other families as wire strings (e.g. `"think:42"`,
-    /// `"task:auth"`). The typed `CrossRef::RoadmapChunk` integration layers
+    /// `"step:auth"`). The typed `CrossRef::RoadmapChunk` integration layers
     /// on top of these raw strings.
     #[serde(default)]
     pub cross_refs: Vec<String>,
@@ -487,7 +487,7 @@ pub struct Chunk {
     pub obsoleted_reason: Option<String>,
     /// Why this chunk cannot be worked, when the reason is not a dependency.
     ///
-    /// `deps` answers "what must ship first" and is the ONLY readiness
+    /// `deps` answers "what must run first" and is the ONLY readiness
     /// vocabulary the roadmap had; this answers "what must be true first", or
     /// "who must act first", or "what did we measure that killed this". A chunk
     /// carrying one keeps its priority, its band and its place in every listing

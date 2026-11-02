@@ -8,7 +8,7 @@ web search, page opening, and user-question tools for the shared capabilities.
 Run `/next` and `/roadmap` in the current Claude session. The scaffold keeps
 its `PreToolUse`/`Stop` guard hooks; inspect their result, but execute and verify
 the explicit shared lifecycle and recorded gates yourself. Hooks do not turn
-a green unrecorded result into proof of ship.
+a green unrecorded result into proof of run.
 
 For `/next-loop`, use the shared single-chunk handoff contract. This
 invocation completes exactly one `/next` iteration; then write the handoff and

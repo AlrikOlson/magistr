@@ -185,7 +185,7 @@ def main():
     parser.add_argument("--stage", choices=("website", "publication", "release"), default="release",
                         help="website permits private/unpublished preparation; publication adds public support; release checks registry versions")
     parser.add_argument("--site", default=SITE, help="Deployed site or local preview URL")
-    parser.add_argument("--out", type=Path, help="Save the actual endpoint and content check receipt")
+    parser.add_argument("--out", type=Path, help="Save the actual endpoint and content check record")
     args = parser.parse_args()
     receipt = audit(args.stage, product_version(), site=args.site)
     for check in receipt["checks"]:

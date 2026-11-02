@@ -13,7 +13,7 @@ The native stdio test uses the freshly built executable in `target/debug`.
 | MCP service integration | 13 passed | Real rmcp queries and refusals, discovery, native gate recording and existing behavior |
 | Service owner integration | 6 passed | Native admission, lease lifetime, role coexistence, copied roots and Windows feed refusal |
 | Independent adapter contracts | 26 passed | Shipped decoder, renderer and handlers, action confirmation and bounded check limits, changed target/command refusal, two raw reads, stale replies, cancellation, missing/incompatible servers, duplicate clicks, coexistence and text fallback |
-| Native stdio boundary | Passed | A new isolated fixture's genuine Magistr MCP service is decoded by the shipped adapter; explicitly announced phase, canonical task and durable check receipt are read back |
+| Native stdio boundary | Passed | A new isolated fixture's genuine Magistr MCP service is decoded by the shipped adapter; explicitly announced phase, canonical step and durable check result are read back |
 | Rust formatting and CLI Clippy | Passed | Affected native code formats and compiles without Clippy warnings |
 | Structure and native-write-path gates | Passed | Existing facade, dependency and native ownership checks; early runs observed intervening source edits, so their receipts do not claim a single unchanged final tree |
 | Plugin/marketplace validation | Passed | Claude accepts both manifests and the package layout |
@@ -65,7 +65,7 @@ Consequently these agreed acceptance criteria remain unverified:
   Deterministic narrow/wide element trees are not screenshots or live keyboard evidence.
 - Invocation of the namespaced text skill in an authenticated Claude session.
 
-The native objective and integration chunk must remain open until those checks
+The native goal and integration chunk must remain open until those checks
 pass. The package is a preview, not a verified finished release.
 
 ## Connection boundary at capture time
@@ -103,7 +103,7 @@ claude plugin validate plugins/magistr
 claude plugin test plugins/magistr
 ```
 
-Record actual commands through `check_work`, and run the applicable
+Record actual commands through `check_step`, and run the applicable
 `structure` and `native-write-path` named gates through `magistr_gate`.
 Keep verification focused. These adapter changes do not require workspace
 reference compatibility, release smoke/latency or desktop/terminal goldens.
@@ -133,7 +133,7 @@ Once Anthropic enables third-party Mods and ordinary Claude sign-in succeeds:
    single Magistr MCP connection through Claude's ordinary permission flow.
 3. Install/upgrade through the local marketplace and restart Claude normally.
    Open `/magistr`, navigate all five views with the keyboard, inspect source
-   and check receipts, confirm a chosen task and focused check, then verify the
+   and check results, confirm a chosen step and focused check, then verify the
    actual native read-back. Exercise cancellation and a native refusal.
 4. Capture loading, empty, unavailable, stale and recovered states; test a narrow
    terminal and the supported Desktop host. Observe another plugin's band and

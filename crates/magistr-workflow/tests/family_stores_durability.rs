@@ -1,4 +1,4 @@
-//! Durability of the ship/roadmap/signal stores under concurrent server
+//! Durability of the run/roadmap/signal stores under concurrent server
 //! processes — the family-stores extension of `think_trace_durability.rs`.
 //!
 //! Residue of the 2026-06-09 think incident: these three engines still did
@@ -12,9 +12,9 @@ use tempfile::TempDir;
 use magistr_workflow::infra::{Domain, Persistence, PersistenceConfig};
 use magistr_workflow::roadmap::RoadmapEngine;
 use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::ship::domain::task::TaskType;
-use magistr_workflow::ship::engine::ShipEngine;
-use magistr_workflow::ship::persistence as ship_persistence;
+use magistr_workflow::run::domain::step::StepType;
+use magistr_workflow::run::engine::RunEngine;
+use magistr_workflow::run::persistence as run_persistence;
 use magistr_workflow::signal::SignalEngine;
 use magistr_workflow::signal::domain::{SignalKind, SignalStatus};
 
@@ -34,12 +34,12 @@ fn signal_engine(tmp: &TempDir, project: &str) -> SignalEngine {
         .with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Signal))
 }
 
-fn ship_engine(tmp: &TempDir, project: &str) -> ShipEngine {
-    let cfg = ship_persistence::PersistenceConfig {
+fn run_engine(tmp: &TempDir, project: &str) -> RunEngine {
+    let cfg = run_persistence::PersistenceConfig {
         enabled: true,
         data_dir: tmp.path().to_path_buf(),
     };
-    ShipEngine::new(project.into()).with_persistence(ship_persistence::Persistence::new(&cfg))
+    RunEngine::new(project.into()).with_persistence(run_persistence::Persistence::new(&cfg))
 }
 
 fn add_chunk(e: &mut RoadmapEngine, id: &str) {
@@ -195,123 +195,123 @@ fn stale_signal_writer_does_not_roll_back_lifecycle_progress() {
     assert_eq!(reloaded.signals().signals.len(), 2);
 }
 
-// ── ship ───────────────────────────────────────────────────────────────────
+// ── run ───────────────────────────────────────────────────────────────────
 
-/// Two engines working the SAME cycle (B loaded the objective A persisted):
-/// a task acked to either process must survive the other's saves.
+/// Two engines working the SAME cycle (B loaded the goal A persisted):
+/// a step acked to either process must survive the other's saves.
 #[test]
-fn concurrent_ship_writers_union_tasks_within_one_cycle() {
+fn concurrent_run_writers_union_steps_within_one_cycle() {
     let tmp = TempDir::new().unwrap();
-    let mut a = ship_engine(&tmp, "proj");
-    a.set_objective("Shared cycle".into(), vec![], vec![], String::new())
+    let mut a = run_engine(&tmp, "proj");
+    a.set_goal("Shared cycle".into(), vec![], vec![], String::new())
         .unwrap();
 
-    // B loads the persisted objective — same cycle as A.
-    let mut b = ship_engine(&tmp, "proj");
-    assert!(b.objective.is_some(), "B must join A's cycle");
+    // B loads the persisted goal — same cycle as A.
+    let mut b = run_engine(&tmp, "proj");
+    assert!(b.goal.is_some(), "B must join A's cycle");
 
-    a.add_task(
-        "a-task".into(),
-        "A's task".into(),
-        TaskType::Implement,
+    a.add_step(
+        "a-step".into(),
+        "A's step".into(),
+        StepType::Implement,
         None,
         None,
     )
     .unwrap();
-    // B never saw a-task; its save must not erase it.
-    b.add_task(
-        "b-task".into(),
-        "B's task".into(),
-        TaskType::Test,
+    // B never saw a-step; its save must not erase it.
+    b.add_step(
+        "b-step".into(),
+        "B's step".into(),
+        StepType::Test,
         None,
         None,
     )
     .unwrap();
 
-    let reloaded = ship_engine(&tmp, "proj");
-    let ids: Vec<&str> = reloaded.tasks.iter().map(|t| t.id.as_str()).collect();
+    let reloaded = run_engine(&tmp, "proj");
+    let ids: Vec<&str> = reloaded.steps.iter().map(|t| t.id.as_str()).collect();
     assert!(
-        ids.contains(&"a-task"),
-        "task acked to A erased by stale writer B; survived: {ids:?}"
+        ids.contains(&"a-step"),
+        "step acked to A erased by stale writer B; survived: {ids:?}"
     );
-    assert!(ids.contains(&"b-task"), "task from B lost: {ids:?}");
+    assert!(ids.contains(&"b-step"), "step from B lost: {ids:?}");
 }
 
 /// A stale process still holding a PRIOR cycle must not clobber the new cycle
 /// another process started after a reset.
 #[test]
-fn stale_ship_cycle_does_not_clobber_a_newer_cycle() {
+fn stale_run_cycle_does_not_clobber_a_newer_cycle() {
     let tmp = TempDir::new().unwrap();
-    let mut a = ship_engine(&tmp, "proj");
-    a.set_objective("Old cycle".into(), vec![], vec![], String::new())
+    let mut a = run_engine(&tmp, "proj");
+    a.set_goal("Old cycle".into(), vec![], vec![], String::new())
         .unwrap();
 
-    let mut b = ship_engine(&tmp, "proj"); // B holds the old cycle
-    assert_eq!(b.objective.as_ref().unwrap().description, "Old cycle");
+    let mut b = run_engine(&tmp, "proj"); // B holds the old cycle
+    assert_eq!(b.goal.as_ref().unwrap().description, "Old cycle");
 
     a.reset().unwrap();
-    a.set_objective("New cycle".into(), vec![], vec![], String::new())
+    a.set_goal("New cycle".into(), vec![], vec![], String::new())
         .unwrap();
 
     // B (stale, old cycle) saves — it must not resurrect the old cycle.
-    b.add_task(
+    b.add_step(
         "zombie".into(),
         "stale".into(),
-        TaskType::Implement,
+        StepType::Implement,
         None,
         None,
     )
     .unwrap_err();
 
-    let reloaded = ship_engine(&tmp, "proj");
+    let reloaded = run_engine(&tmp, "proj");
     assert_eq!(
-        reloaded.objective.as_ref().map(|o| o.description.as_str()),
+        reloaded.goal.as_ref().map(|o| o.description.as_str()),
         Some("New cycle"),
         "a stale writer resurrected a reset-away cycle"
     );
     assert!(
-        reloaded.tasks.iter().all(|t| t.id != "zombie"),
-        "a stale cycle's task leaked into the new cycle"
+        reloaded.steps.iter().all(|t| t.id != "zombie"),
+        "a stale cycle's step leaked into the new cycle"
     );
 }
 
 /// Reset stays a reset for the resetting process itself: its own next cycle
-/// must not re-merge the pre-reset tasks. (Guards the merge-on-save change —
+/// must not re-merge the pre-reset steps. (Guards the merge-on-save change —
 /// this already passes pre-fix and must keep passing.)
 #[test]
-fn ship_reset_is_not_resurrected_by_later_saves() {
+fn run_reset_is_not_resurrected_by_later_saves() {
     let tmp = TempDir::new().unwrap();
-    let mut a = ship_engine(&tmp, "proj");
-    a.set_objective("Cycle 1".into(), vec![], vec![], String::new())
+    let mut a = run_engine(&tmp, "proj");
+    a.set_goal("Cycle 1".into(), vec![], vec![], String::new())
         .unwrap();
-    a.add_task(
+    a.add_step(
         "old".into(),
         "pre-reset".into(),
-        TaskType::Implement,
+        StepType::Implement,
         None,
         None,
     )
     .unwrap();
 
     a.reset().unwrap();
-    a.set_objective("Cycle 2".into(), vec![], vec![], String::new())
+    a.set_goal("Cycle 2".into(), vec![], vec![], String::new())
         .unwrap();
-    a.add_task(
+    a.add_step(
         "new".into(),
         "post-reset".into(),
-        TaskType::Implement,
+        StepType::Implement,
         None,
         None,
     )
     .unwrap();
 
-    let reloaded = ship_engine(&tmp, "proj");
+    let reloaded = run_engine(&tmp, "proj");
     assert_eq!(
-        reloaded.objective.as_ref().map(|o| o.description.as_str()),
+        reloaded.goal.as_ref().map(|o| o.description.as_str()),
         Some("Cycle 2")
     );
-    let ids: Vec<&str> = reloaded.tasks.iter().map(|t| t.id.as_str()).collect();
-    assert_eq!(ids, vec!["new"], "reset-away task resurrected: {ids:?}");
+    let ids: Vec<&str> = reloaded.steps.iter().map(|t| t.id.as_str()).collect();
+    assert_eq!(ids, vec!["new"], "reset-away step resurrected: {ids:?}");
 }
 
 #[test]

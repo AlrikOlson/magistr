@@ -44,7 +44,7 @@ fn display(value: &Value, depth: usize) -> String {
     if value["step_number"].is_number() && value["outcome_excerpt"].is_string() {
         return "Finding recorded.".into();
     }
-    if let Some(tasks) = value["tasks"].as_array() {
+    if let Some(tasks) = value["steps"].as_array() {
         return tasks
             .iter()
             .map(|task| {

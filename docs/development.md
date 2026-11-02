@@ -57,14 +57,14 @@ record real commands through Magistr. Use `just gate` or `$validate` for an
 explicit complete-suite request. Clippy already checks the same targets, so an
 identical `cargo check` does not need a second pass.
 
-New objectives default to focused verification. Existing objectives keep their
+New goals default to focused verification. Existing goals keep their
 recorded contract. Select checks for the changed behavior and its consumers;
 a roadmap chunk alone does not require release packaging or every project gate.
 
-`check_work` accepts `inputs` (files/directories relative to the project),
+`check_step` accepts `inputs` (files/directories relative to the project),
 `timeout_secs`, and `reuse`. Include every dependency of the command in its
 inputs, or omit the list for the full source selection. A successful test, lint
-or typecheck receipt may be reused for 24 hours when the command, selected source,
+or typecheck result may be reused for 24 hours when the command, selected source,
 configuration, tools and environment still match. A reused result links to its
 original receipt and has no new exit code. Use `reuse: false` to rerun deliberately.
 Builds and human reviews require fresh results. Network-dependent custom gates
@@ -84,7 +84,7 @@ Gate batches stop scheduling after a required failure. Use `diagnostic: true`
 when collecting all failures is the task. Correct the failure before rerunning;
 the loop does not automatically repeat failed commands. Task/check mutations
 return compact summaries; retrieve the full record with `context` and its
-`receipt_id` when needed.
+`check_result_id` when needed.
 
 The structure gate enforces cohesive modules, companion tests and dependency
 direction. Its allowlists only shrink. The duplication gate checks the desktop

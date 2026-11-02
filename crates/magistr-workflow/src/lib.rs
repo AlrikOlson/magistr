@@ -20,7 +20,7 @@
 //!
 //! - `think_*` — the reasoning trace. Steps, branches, revisions, confidence,
 //!   and conclusions worth pinning. Answers *why*.
-//! - `ship_*` — the execution trace. Objectives, tasks, actions, quality gates,
+//! - `run_*` — the run history. Goals, steps, progress, checks,
 //!   artifacts. Answers *what was actually done*.
 //! - `roadmap_*` — the long-horizon plan the other two serve. Chunks of work
 //!   with dependencies, statuses and priorities. It claims a second prefix,
@@ -45,7 +45,7 @@
 //! The composed server is [`mcp::unified::UnifiedService`], and which families
 //! it exposes is decided once at startup by [`mcp::unified::FamilySelection`].
 //! Each family is also usable on its own — [`think::ThinkService`],
-//! [`ship::ShipService`], [`roadmap::RoadmapService`],
+//! [`run::RunService`], [`roadmap::RoadmapService`],
 //! [`signal::SignalService`] — and each wraps a plain engine you can drive
 //! without any MCP wire at all, such as [`roadmap::RoadmapEngine`] and
 //! [`signal::SignalEngine`].
@@ -67,7 +67,7 @@ pub mod otel_live;
 pub mod otel_logs;
 pub mod otlp_config;
 pub mod roadmap;
-pub mod ship;
+pub mod run;
 pub mod signal;
 pub mod telemetry;
 pub mod think;

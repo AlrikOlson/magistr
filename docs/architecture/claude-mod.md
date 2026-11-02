@@ -24,11 +24,11 @@ submits a prompt, calls a model, starts a scheduler or opens native persistence.
 The existing family query contracts supply work, roadmap and findings.
 `context` adds only the admitted service's canonical root and owner epoch,
 an explicitly
-announced phase (nullable), bounded canonical task evidence, check receipts,
+announced phase (nullable), bounded canonical step evidence, check results,
 and configured check choices resolved by the
 canonical gate resolver. Phase is an observation of this service's successful
-`magistr_set_phase`, scoped to its objective creation time and active task.
-A new owner, changed objective/task, or a phase announced only through another
+`magistr_set_phase`, scoped to its goal creation time and active task.
+A new owner, changed goal/task, or a phase announced only through another
 writer means unknown; prose and timestamps are never used to infer a phase.
 Check choices describe commands; they neither authorize nor execute them.
 

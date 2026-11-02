@@ -12,14 +12,14 @@ start an implementation loop by itself.
 - Ground substantial decisions in the actual code through workspace before
   researching replacements. Record evidence-backed findings with native
   `think_*` tools throughout research, implementation, and verification,
-  linked to the relevant chunk and ship task. Explain what each finding
+  linked to the relevant chunk and run step. Explain what each finding
   changes and what to check next. Follow the shared runtime's guidance for
   real questions, branch membership, revisions, dependencies, and synthesis;
   revisit earlier conclusions when evidence changes them.
 - Deliver one coherent, independently verifiable change at a time. Read
   acceptance criteria before implementing, preserve authorized scope, and
-  record discoveries separately instead of silently expanding the task.
-- Track implementation with the native ship lifecycle. Run the configured
+  record discoveries separately instead of silently expanding the step.
+- Track implementation with the native run lifecycle. Run the configured
   gates, including required custom gates, and inspect recorded evidence.
   Verify acceptance criteria as well as compilation and tests. Format before
   final gates. Report failures, omissions, and uncertainty accurately.
@@ -46,7 +46,7 @@ start an implementation loop by itself.
   for each image: inspect composition and readable detail, record the user task,
   specific observations and a verdict, and judge relationship layout
   and routing as well as text and spacing. Keep a required `GUI visual review`
-  ship check failed while defects remain. Fix, recapture and inspect again before
+  run check failed while defects remain. Fix, recapture and inspect again before
   completing the affected work or advancing to its next visual iteration.
 
 `{{invoke}}next` owns one implementation iteration; `{{invoke}}next-loop` owns bounded

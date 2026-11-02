@@ -29,9 +29,9 @@
 //!     `mcp/progress.rs` singled out: a second emitter would double every
 //!     notification.
 //!
-//! # Why each test drives set_objective → plan → start first
+//! # Why each test drives set_goal → plan → start first
 //!
-//! `ship_check` needs an active task to attach to. Skipping that setup would
+//! `check_step` needs an active task to attach to. Skipping that setup would
 //! record only the error path, and every claim about `verified`/`exit_code`
 //! would be a claim about an error envelope instead of a real gate.
 
@@ -41,8 +41,8 @@ use std::time::Duration;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::progress::tick_message;
 use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
-use magistr_workflow::ship::ShipService;
-use magistr_workflow::ship::engine::ShipEngine;
+use magistr_workflow::run::RunService;
+use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
 use magistr_workflow::think::ThinkService;
 use magistr_workflow::think::config::ThinkConfig;
@@ -100,10 +100,10 @@ fn build_unified(project: &str) -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
-    let ship = ShipService::new(ShipEngine::new(project.into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), ship.use_cases());
+    let run = RunService::new(RunEngine::new(project.into()));
+    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(think, ship, roadmap, signal)
+    UnifiedService::new(think, run, roadmap, signal)
 }
 
 type Client = rmcp::service::RunningService<RoleClient, TaskClient>;
@@ -149,22 +149,22 @@ async fn call(client: &Client, tool: &str, arguments: Value) -> CallToolResponse
         .unwrap_or_else(|e| panic!("{tool} failed: {e}"))
 }
 
-/// `ship_check` attaches to an ACTIVE task, so a bare check would only ever
+/// `check_step` attaches to an ACTIVE task, so a bare check would only ever
 /// exercise the error path. Drives the real tools, not the engine directly.
 async fn arm_an_active_task(client: &Client) {
     call(
         client,
-        "ship_set_objective",
+        "run_open",
         json!({"description": "prove the gate seam"}),
     )
     .await;
     call(
         client,
-        "ship_plan",
-        json!({"action": "add", "task_id": "gate", "title": "run a gate", "task_type": "test"}),
+        "arrange_steps",
+        json!({"action": "add", "step_id": "gate", "title": "run a gate", "step_type": "test"}),
     )
     .await;
-    call(client, "ship_start", json!({"task_id": "gate"})).await;
+    call(client, "start_step", json!({"step_id": "gate"})).await;
 }
 
 fn task_id_of(response: &CallToolResponse) -> String {
@@ -242,7 +242,7 @@ async fn a_gate_returns_a_task_handle_to_a_client_that_declared_tasks() {
 
     let response = call(
         &client,
-        "ship_check",
+        "check_step",
         json!({"type": "test", "name": "quick", "command": "true"}),
     )
     .await;
@@ -264,7 +264,7 @@ async fn a_client_that_declared_nothing_still_gets_the_blocking_result() {
 
     let response = call(
         &client,
-        "ship_check",
+        "check_step",
         json!({"type": "test", "name": "quick", "command": "true"}),
     )
     .await;
@@ -292,7 +292,7 @@ async fn the_tasks_terminal_result_is_the_same_envelope_as_the_inline_one() {
     let inline_body = complete_body(
         &call(
             &inline,
-            "ship_check",
+            "check_step",
             json!({"type": "test", "name": "parity", "command": command}),
         )
         .await,
@@ -302,7 +302,7 @@ async fn the_tasks_terminal_result_is_the_same_envelope_as_the_inline_one() {
     arm_an_active_task(&tasked).await;
     let handle = call(
         &tasked,
-        "ship_check",
+        "check_step",
         json!({"type": "test", "name": "parity", "command": command}),
     )
     .await;
@@ -355,7 +355,7 @@ async fn a_failing_command_run_as_a_task_still_reports_failure() {
 
     let handle = call(
         &client,
-        "ship_check",
+        "check_step",
         json!({"type": "test", "name": "red", "command": "exit 3"}),
     )
     .await;
@@ -388,7 +388,7 @@ async fn cancelling_a_gate_settles_the_task_as_cancelled() {
 
     let handle = call(
         &client,
-        "ship_check",
+        "check_step",
         json!({"type": "test", "name": "slow", "command": "sleep 30"}),
     )
     .await;
@@ -438,7 +438,7 @@ async fn cancelling_a_gate_kills_the_child_process() {
 
     let handle = call(
         &client,
-        "ship_check",
+        "check_step",
         json!({"type": "test", "name": "killable", "command": command}),
     )
     .await;
@@ -481,7 +481,7 @@ async fn cancelling_a_gate_kills_the_child_process() {
 
 /// Claim 7: a cancelled gate is neither passed nor silently missing. The
 /// dangerous version of this feature records a check anyway; the other
-/// dangerous version leaves a `ship_finalize` believing the gate is still
+/// dangerous version leaves a `run_finish` believing the gate is still
 /// coming.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_cancelled_gate_records_no_check_at_all() {
@@ -490,7 +490,7 @@ async fn a_cancelled_gate_records_no_check_at_all() {
 
     let handle = call(
         &client,
-        "ship_check",
+        "check_step",
         json!({"type": "test", "name": "abandoned", "command": "sleep 30"}),
     )
     .await;
@@ -503,10 +503,10 @@ async fn a_cancelled_gate_records_no_check_at_all() {
         .expect("tasks/cancel");
     await_terminal(&client, &id, Duration::from_secs(5)).await;
 
-    let status = complete_body(&call(&client, "ship_status", json!({})).await);
+    let status = complete_body(&call(&client, "run_status", json!({})).await);
     let checks = status["checks"]
         .as_array()
-        .unwrap_or_else(|| panic!("ship_status should carry a checks array: {status}"))
+        .unwrap_or_else(|| panic!("run_status should carry a checks array: {status}"))
         .clone();
     assert!(
         checks.is_empty(),
@@ -520,7 +520,7 @@ async fn a_cancelled_gate_records_no_check_at_all() {
 /// would make every trivial call a two-round-trip poll.
 ///
 /// **This test is vacuous against half of what it appears to cover, and that is
-/// deliberate.** No tool other than `ship_check` accepts a `command` argument,
+/// deliberate.** No tool other than `check_step` accepts a `command` argument,
 /// so breaking the tool-NAME half of `wants_task` leaves this green — proven
 /// by deliberately breaking it. The name half is carried by
 /// `mcp::tasks::tests::every_other_tool_stays_inline_even_carrying_a_command_key`,
@@ -532,12 +532,9 @@ async fn other_tools_stay_inline_even_for_a_tasks_declaring_client() {
     let client = session("tasks-others-inline", true).await;
 
     for (tool, arguments) in [
-        ("ship_status", json!({})),
+        ("run_status", json!({})),
         ("roadmap_status", json!({})),
-        (
-            "ship_set_objective",
-            json!({"description": "not a long gate"}),
-        ),
+        ("run_open", json!({"description": "not a long gate"})),
     ] {
         let response = call(&client, tool, arguments).await;
         assert!(
@@ -547,16 +544,16 @@ async fn other_tools_stay_inline_even_for_a_tasks_declaring_client() {
     }
 
     // And the twin that keeps this from passing vacuously: a self-reported
-    // `ship_check` — same tool, no command, no subprocess — also stays inline.
+    // `check_step` — same tool, no command, no subprocess — also stays inline.
     let response = call(
         &client,
-        "ship_check",
+        "check_step",
         json!({"type": "manual", "name": "read it myself", "passed": true}),
     )
     .await;
     assert!(
         matches!(response, CallToolResponse::Complete(_)),
-        "a ship_check with no command does no work and must stay inline, got {response:?}"
+        "a check_step with no command does no work and must stay inline, got {response:?}"
     );
 
     let _ = client.cancel().await;
@@ -574,7 +571,7 @@ async fn a_task_backed_gates_ticks_name_the_task() {
     // Comfortably past FIRST_TICK (2s) with room for several ticks.
     let handle = call(
         &client,
-        "ship_check",
+        "check_step",
         json!({"type": "test", "name": "ticking", "command": "sleep 6"}),
     )
     .await;
@@ -587,14 +584,14 @@ async fn a_task_backed_gates_ticks_name_the_task() {
         .filter(|f| {
             f.message
                 .as_deref()
-                .is_some_and(|m| m.contains("ship_check"))
+                .is_some_and(|m| m.contains("check_step"))
         })
         .collect();
     assert!(
         !gate_ticks.is_empty(),
         "a 6s task-backed gate must still tick; saw {frames:?}"
     );
-    let expected = tick_message(&format!("ship_check (task {id})"), 1);
+    let expected = tick_message(&format!("check_step (task {id})"), 1);
     assert_eq!(
         gate_ticks[0].message.as_deref(),
         Some(expected.as_str()),
@@ -620,7 +617,7 @@ async fn a_task_backed_gate_has_exactly_one_ticker() {
 
     let handle = call(
         &client,
-        "ship_check",
+        "check_step",
         json!({"type": "test", "name": "ticking", "command": "sleep 8"}),
     )
     .await;
@@ -634,7 +631,7 @@ async fn a_task_backed_gate_has_exactly_one_ticker() {
         .filter(|f| {
             f.message
                 .as_deref()
-                .is_some_and(|m| m.contains("ship_check"))
+                .is_some_and(|m| m.contains("check_step"))
         })
         .map(|f| f.progress as u64)
         .collect();

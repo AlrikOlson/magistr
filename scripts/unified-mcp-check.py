@@ -138,7 +138,7 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
         self.assertIsNotNone(plan)
         for operation, args in [("roadmap_set_status",{"id":"future","status":"done"}),
                                 ("script",{"source":"return 1;"}),
-                                ("check_work",{"name":"forbidden","type":"test","command":"true"})]:
+                                ("check_step",{"name":"forbidden","type":"test","command":"true"})]:
             stopped = c.execute("return magistr.call("+json.dumps(operation)+","+json.dumps(args)+");")
             self.assertFalse(stopped["ok"],stopped)
 
@@ -146,7 +146,7 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
         c = self.connect()
         tools = {t["name"]:t for t in c.ask("tools/list",{})["tools"]}
         self.assertEqual(set(tools), {"context","search","read","edit","write",
-            "plan_work","start_work","record_progress","check_work","finish_work","discover","execute"})
+            "arrange_steps","start_step","record_progress","check_step","finish_step","discover","execute"})
         operations = {}
         offset = 0
         while True:
@@ -155,7 +155,7 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
             if page["nextOffset"] is None: break
             offset = page["nextOffset"]
         for name in ["map","files","command","undo","script","workspace_status","roadmap_add_chunk",
-                     "think_record_step","ship_set_objective","ship_finalize","signal_capture"]:
+                     "think_record_step","run_open","run_finish","signal_capture"]:
             self.assertIn(name, operations)
         for name, tool in tools.items():
             if name in ("discover","execute"): continue
@@ -193,13 +193,13 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
         path.write_text("customized instructions\n")
         c=self.connect()
         self.assertEqual(path.read_text(),"customized instructions\n")
-        c.operation("ship_set_objective",{"description":"Verify unified tools","scope":"test","verification":"focused"})
-        c.tool("plan_work",{"action":"add","task_id":"verify","title":"Verify","task_type":"test"})
-        c.tool("start_work",{"task_id":"verify"})
-        check=c.tool("check_work",{"name":"fixture check","type":"test","command":"true"})
+        c.operation("run_open",{"description":"Verify unified tools","scope":"test","verification":"focused"})
+        c.tool("arrange_steps",{"action":"add","step_id":"verify","title":"Verify","step_type":"test"})
+        c.tool("start_step",{"step_id":"verify"})
+        check=c.tool("check_step",{"name":"fixture check","type":"test","command":"true"})
         self.assertTrue(check["check"]["value"]["passed"],check)
-        c.tool("finish_work",{"task_id":"verify"})
-        final=c.operation("ship_finalize",{})
+        c.tool("finish_step",{"step_id":"verify"})
+        final=c.operation("run_finish",{})
         self.assertNotEqual(final.get("ok"),False,final)
         result=c.execute('return magistr.call("roadmap_export", {});')
         self.assertFalse(result["ok"],result)

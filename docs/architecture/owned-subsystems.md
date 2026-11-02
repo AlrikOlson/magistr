@@ -58,7 +58,7 @@ reviewed imports.
 ## Why change ownership now?
 
 Magistr must decide whether evidence permits completion. In the audited
-magistr source, `ship/engine/mod.rs::ship` completes an objective while
+magistr source, `run/engine/mod.rs::run` completes a goal while
 returning warnings for incomplete tasks or failed required checks. Some
 cross-family validation and execution sequencing live in async MCP handlers.
 Before extraction, Magistr reached those handlers through a synchronous
@@ -83,7 +83,7 @@ Importing only the Rust crate would omit much of the workspace authority.
 flowchart TD
     Hosts["CLI · MCP · local clients · cockpit adapters"] --> App["Application use cases"]
     App --> Workflow["Workflow service"]
-    Workflow --> Store["Native workflow store and check receipts"]
+    Workflow --> Store["Native workflow store and check results"]
     App --> Workspace["Workspace port"]
     Workspace --> Owner["One owner per workspace"]
     Owner --> Files["Files · write journal · derived index"]
@@ -93,7 +93,7 @@ flowchart TD
     Runner -- "Correlated check result" --> Workflow
 ```
 
-Workflow owns objectives, tasks, reasoning, roadmap, cross-family mutations,
+Workflow owns goals, tasks, reasoning, roadmap, cross-family mutations,
 receipt admission/settlement, and completion policy. Typed commands and queries
 sit below MCP, CLI, and local protocols. Internal calls do not serialize to
 tool JSON or poll async handlers with a noop waker. Transport dispatch still
@@ -286,7 +286,7 @@ external configuration layers' `ConfigDigest` since
 `audit-260912-17-config-evidence`, plus the gate resolver) as the
 workflow's one `EvidencePort`, every
 server-executed check — `magistr_gate`, the loop's gates, native
-`check_work` — carries a durable `CheckReceipt` bound to the observed
+`check_step` — carries a durable `CheckResult` bound to the observed
 revision, and completion validates run/task-instance/attempt identity,
 gate contracts, acceptance revision, required outcomes and source
 freshness against the current tree
@@ -318,10 +318,10 @@ recovered versus outstanding — informed the workflow-owned design.
 | `arch-14d-workspace-owner` | The session-stamping bridge with on-demand reconnect and typed unavailable answers, build refusal, worker exit on owner death, the native workspace bridge with the external resolver deleted, and cockpit and Codex clients through one owner; the [ADR-018 matrix](workspace-owner.md#adr-018-scope) maps every row to executed evidence |
 | `arch-14e-source-snapshots` | The `snapshot` module: `SourceSnapshot` (identity, generation, scheme/policy digests, content manifest, optimistic validation with foreign-workspace refusal), `SourceExport` for immutable inputs, `MutationReceipt` from the resolved durable intent, the owner's `source_snapshot`/`validate_snapshot`/`mutation_receipt` and the lock-free `magistr workspace snapshot` verb; check consumption remains `arch-14-verification-receipts` |
 | `arch-14f-native-application` | The [composition boundary](application.md#the-composition-boundary) `magistr::application`: `AdmittedCheck`/`SettledCheck`/`CheckIdentities` binding a workflow check admission to a lock-free source observation and settling both; `magistr_gate` and the loop driver routed through it; the contract-only workflow/checks/projections facades deleted; `arch-11b` retired on evidence; the [standalone surface decisions](#standalone-surface-decisions) below; source-write routing (`arch-14f2`), the client audit (`arch-14f3`) and rehoming (`arch-14f4`) split out |
-| `arch-14-verification-receipts` | Durable `CheckReceipt`s in the workflow's ship family (`ReceiptLedger`, one published file per receipt, outliving the cycle), the `EvidencePort`/`SourceWitness`/`GateContract`/`CheckExecution` types, receipt-bearing admission and settlement with stale results kept under their own identity, `verify_completion` and the roadmap's completion authority on every route (`roadmap_set_status(done)` refused), `ShipReport` recovered versus outstanding; Magistr's `WorkspaceEvidence` + `writer_config` composed at every production admission, the cockpit failing closed without it, `native-write-path` rule 8; the gate resolver moved to `magistr_core::gates` |
-| `arch-14f2-source-pipeline-routing` | The workspace `write` verb (exact bytes, anchored, verified, journaled, never confirm-gated) behind `WorkspaceService::write`; the `SourceWriter` capability in `magistr-application` and `LocalEffectPort` routing an authorized `fs/write_text_file` through it with route-stamped events; `HostedWorkspace` + `WorkspaceSourceWriter` in [`magistr::application`](application.md#the-hosted-workspace) so `magistr start` and the cockpit loops own the workspace and their bridges attach; the `magistr-process` crate as the [one process mechanism](application.md#one-process-mechanism) under the gate runner, the workflow's `check_work` runner and the workspace's declared-command executor, the pty pair rehomed there from `magistr-acp` |
+| `arch-14-verification-receipts` | Durable `CheckResult`s in the workflow's run family (`CheckResultLedger`, one published file per receipt, outliving the cycle), the `EvidencePort`/`SourceWitness`/`GateContract`/`CheckExecution` types, receipt-bearing admission and settlement with stale results kept under their own identity, `verify_completion` and the roadmap's completion authority on every route (`roadmap_set_status(done)` refused), `RunReport` recovered versus outstanding; Magistr's `WorkspaceEvidence` + `writer_config` composed at every production admission, the cockpit failing closed without it, `native-write-path` rule 8; the gate resolver moved to `magistr_core::gates` |
+| `arch-14f2-source-pipeline-routing` | The workspace `write` verb (exact bytes, anchored, verified, journaled, never confirm-gated) behind `WorkspaceService::write`; the `SourceWriter` capability in `magistr-application` and `LocalEffectPort` routing an authorized `fs/write_text_file` through it with route-stamped events; `HostedWorkspace` + `WorkspaceSourceWriter` in [`magistr::application`](application.md#the-hosted-workspace) so `magistr start` and the cockpit loops own the workspace and their bridges attach; the `magistr-process` crate as the [one process mechanism](application.md#one-process-mechanism) under the gate runner, the workflow's `check_step` runner and the workspace's declared-command executor, the pty pair rehomed there from `magistr-acp` |
 | `arch-14f4-rehome-naming` | The fork rehomed as `crates/magistr-workflow` (`magistr-workflow` 0.1.0, `magistr_workflow`) with provenance under `subsystems/workflow`; `magistr_engine::tas` → `native` (`NativeConfig`); the standalone binary, CLI, skill embedding, examples, packaging files and their tests deleted, the served tracker plumbing rehomed to `tracker::host`; the workflow-source gate pins the deletions and one first-party version, the structure baseline follows the crate, native-write-path and lint-structure pin the new paths |
-| `arch-14f3-client-audit-consistency` | The [client inventory](clients.md): every supported surface's workflow and workspace capability, admission path and test evidence; `native-write-path` rules 9–11 pinning where a `WorkspaceService` is opened, a writer admitted and an owner attached; the owner-command vocabulary left as is on the evidence that the attached cockpit is its only producer; the [consistency model](clients.md#workflow-consistency-model) stating read-through ship verbs against cached roadmap/signal/ship queries, backed by `tests/workflow_consistency.rs` |
+| `arch-14f3-client-audit-consistency` | The [client inventory](clients.md): every supported surface's workflow and workspace capability, admission path and test evidence; `native-write-path` rules 9–11 pinning where a `WorkspaceService` is opened, a writer admitted and an owner attached; the owner-command vocabulary left as is on the evidence that the attached cockpit is its only producer; the [consistency model](clients.md#workflow-consistency-model) stating read-through run verbs against cached roadmap/signal/run queries, backed by `tests/workflow_consistency.rs` |
 | `audit-260912-15-admin-plan` | The [administrative change plan](configuration.md#administrative-change-plan): one `ChangePlan` of `PlannedChange`s (expected hash or absence, ownership judged from policy and manifest, apply/skip/refuse intent with reasons) computed by setup, selective apply, presets/import, template plugins, explicit repair and owned Codex removal and executed by the same writers; `CanonicalSource` rendering a Magistr source checkout's live workflow templates and refusing missing or unreadable canonical input; reset left separate; application-time revalidation and receipts deferred to `audit-260912-16-admin-apply` |
 | `audit-260912-16-admin-apply` | [Application and receipts](configuration.md#application-and-receipts): `scaffold::AdminService` as the one executor of setup/generation, selective apply, explicit repair and owned Codex removal, revalidating each target's expected state at its write (`create_new` creates, temp-file-plus-rename overwrites, re-read removals) and answering an `ApplyReceipt` of per-change outcomes (applied / skipped / refused / failed with cause) plus the manifest outcome; partial receipts surfaced as errors naming what was applied; `native-write-path` rule 13 pinning administrative writes to the service; reset still separate |
 | `audit-260912-17-config-evidence` | [Configuration evidence](configuration.md#configuration-evidence): `magistr_workspace::config::ConfigDigest` over the external layers (org-policy, user; content only, absent distinct from empty, unreadable refused) taken by `WorkspaceEvidence` from the captured project inputs; `SourceObservation` carrying `source_digest` and `config_digest` beside the revision, selection policy and owner generation; typed `ObservationDrift` naming the first identity that moved (workspace, scheme, policy, source, configuration, unbound) and `SourceFreshness::Reconfigured`; completion and cross-process settlement judging digests, never the owner generation; the MCP service refusing a config without evidence; the loop resolving contracts through the admitted port |
@@ -376,7 +376,7 @@ The unfinished receipt implementation is preserved as a blocked checkpoint,
 including regressions and runner work. Its temporary MCP interceptions and
 duplicate policy must be replaced during migration. It has not passed the
 integrated or full required gates and is not committed or finalized.
-Its objective/task recovery remains native `think:714`. On the owner's request
+Its goal/task recovery remains native `think:714`. On the owner's request
 to continue on `main`, the exact draft (16 tracked changes and nine untracked
 source files) moved to the verified recovery bundle
 `magistr-main-integration-20260910T190025Z/receipt-draft` in the maintainer's

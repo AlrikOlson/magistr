@@ -46,7 +46,7 @@ fn next_prompt_includes_workflow_reference() {
     assert!(prompt.contains("Research-Plan-Execute-Verify"));
     assert!(prompt.contains("magistr_set_phase"));
     assert!(prompt.contains("roadmap_complete_chunk"));
-    assert!(prompt.contains("ship_finalize"));
+    assert!(prompt.contains("run_finish"));
     assert!(!prompt.contains("magistr_roadmap"));
 }
 

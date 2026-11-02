@@ -14,7 +14,7 @@ pub enum RoadmapCommand {
     /// `roadmap_complete_chunk`.
     CompleteChunk {
         id: String,
-        ship_ref: Option<String>,
+        step_ref: Option<String>,
     },
     /// `roadmap_add_chunk`.
     AddChunk {

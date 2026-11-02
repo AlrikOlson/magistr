@@ -18,24 +18,24 @@ const string = (v, key) => {
 }
 
 const optionalArray = (v, key) => (v == null ? [] : array(v, key))
-const taskRecord = (t) => {
-  if (!record(t)) throw new Error('Task evidence could not be read.')
-  string(t.id, 'a task')
-  string(t.title, 'a task title')
-  string(t.status, 'a task status')
-  array(t.checks, 'task checks').forEach((c) => {
+const stepRecord = (t) => {
+  if (!record(t)) throw new Error('Step evidence could not be read.')
+  string(t.id, 'a step')
+  string(t.title, 'a step title')
+  string(t.status, 'a step status')
+  array(t.checks, 'step checks').forEach((c) => {
     string(c.name, 'a check name')
     if (typeof c.passed !== 'boolean')
       throw new Error('A check has no outcome.')
     if (c.verified != null && typeof c.verified !== 'boolean')
       throw new Error('The check evidence has an unsupported format.')
   })
-  array(t.actions, 'task actions').forEach((a) => {
+  array(t.progress, 'step actions').forEach((a) => {
     optionalArray(a.files_touched, 'changed files').forEach((p) =>
       string(p, 'a file'),
     )
   })
-  optionalArray(t.artifacts, 'task artifacts')
+  optionalArray(t.artifacts, 'step artifacts')
 }
 const workRecord = (c) => {
   if (!record(c)) throw new Error('Work details could not be read.')
@@ -126,12 +126,12 @@ export function decode(raw, depth = 0) {
 }
 export function validate(kind, raw) {
   const v = decode(raw)
-  if (kind === 'ship') {
+  if (kind === 'run') {
     string(v.project_id, 'the project')
-    array(v.task_list, 'the tasks').forEach((t) => {
-      string(t.id, 'a task')
-      string(t.title, 'a task title')
-      string(t.status, 'a task status')
+    array(v.step_list, 'the steps').forEach((t) => {
+      string(t.id, 'a step')
+      string(t.title, 'a step title')
+      string(t.status, 'a step status')
     })
     array(v.checks, 'the checks').forEach((c) => {
       string(c.name, 'a check name')
@@ -140,12 +140,12 @@ export function validate(kind, raw) {
       if (c.verified != null && typeof c.verified !== 'boolean')
         throw new Error('The check evidence has an unsupported format.')
     })
-    array(v.recent_actions, 'the recorded actions')
-    if (v.objective != null) {
-      string(v.objective.description, 'the objective')
-      array(v.objective.acceptance_criteria, 'the acceptance criteria')
+    array(v.recent_progress, 'the recorded actions')
+    if (v.goal != null) {
+      string(v.goal.description, 'the goal')
+      array(v.goal.acceptance_criteria, 'the acceptance criteria')
     }
-    if (v.active_task != null) taskRecord(v.active_task)
+    if (v.active_step != null) stepRecord(v.active_step)
   } else if (kind === 'roadmap') {
     string(v.project_id, 'the project')
     array(v.chunks, 'the roadmap').forEach(workRecord)
@@ -174,15 +174,15 @@ export function validate(kind, raw) {
       throw new Error('The reported phase is unsupported.')
     if (v.phase_cycle != null && typeof v.phase_cycle !== 'string')
       throw new Error('The reported work is unsupported.')
-    if (v.task != null) taskRecord(v.task.record)
-    if (v.receipt != null) {
+    if (v.step != null) stepRecord(v.step.record)
+    if (v.check_result != null) {
       if (
-        !record(v.receipt) ||
-        typeof v.receipt.gate !== 'string' ||
-        !record(v.receipt.target)
+        !record(v.check_result) ||
+        typeof v.check_result.gate !== 'string' ||
+        !record(v.check_result.target)
       )
-        throw new Error('The check receipt could not be read.')
-      optionalArray(v.receipt.freshness?.paths, 'changed files').forEach((p) =>
+        throw new Error('The check check_result could not be read.')
+      optionalArray(v.check_result.freshness?.paths, 'changed files').forEach((p) =>
         string(p, 'a file'),
       )
     }
@@ -272,7 +272,7 @@ export function validateAction(kind, value, target) {
       )
   } else if (
     value.id !== target.id ||
-    value.status !== (kind === 'task' ? 'active' : 'in_progress')
+    value.status !== (kind === 'step' ? 'active' : 'in_progress')
   ) {
     throw new Error(
       'The reply did not confirm the chosen work. Refresh and inspect it.',
@@ -280,22 +280,22 @@ export function validateAction(kind, value, target) {
   }
   return value
 }
-export function verification(ship) {
-  const checks = ship?.checks ?? []
+export function verification(run) {
+  const checks = run?.checks ?? []
   if (!checks.length) return 'No checks recorded'
   const latest = new Map()
-  for (const c of checks) latest.set((c.task_id ?? '') + '\0' + c.name, c)
+  for (const c of checks) latest.set((c.step_id ?? '') + '\0' + c.name, c)
   const rows = [...latest.values()]
   if (rows.some((c) => !c.passed)) return 'Checks need attention'
   if (rows.some((c) => c.verified !== true))
     return 'Some checks are self-reported'
   return 'Recorded checks passed'
 }
-export function phase(context, ship) {
+export function phase(context, run) {
   if (
-    context?.phase_cycle !== ship?.objective?.created_at ||
+    context?.phase_cycle !== run?.goal?.created_at ||
     !context?.phase ||
-    context.phase_task !== (ship?.active_task?.id ?? null)
+    context.phase_step !== (run?.active_step?.id ?? null)
   )
     return 'Phase not reported'
   return {
@@ -306,10 +306,10 @@ export function phase(context, ship) {
     complete: 'Finished',
   }[context.phase]
 }
-export function titles(ship) {
+export function titles(run) {
   return (
-    ship?.active_task?.title ||
-    ship?.objective?.description ||
+    run?.active_step?.title ||
+    run?.goal?.description ||
     'No current work'
   )
 }
@@ -354,7 +354,7 @@ export function sameRoot(left, right) {
   )
 }
 export function health(m) {
-  const names = { ship: 'Magistr', context: 'Progress', workspace: 'Magistr' }
+  const names = { run: 'Magistr', context: 'Progress', workspace: 'Magistr' }
   return Object.entries(names)
     .map(([key, name]) => {
       const s = m.slots[key]
@@ -385,7 +385,7 @@ export const status = (slot) =>
           ? 'Out of date'
           : 'Current at last refresh'
 export function summary(m, tab = m.tab) {
-  const slot = m.slots[tab === 'current' || tab === 'checks' ? 'ship' : tab]
+  const slot = m.slots[tab === 'current' || tab === 'checks' ? 'run' : tab]
   if (!slot?.value)
     return (
       (slot?.error || 'Nothing loaded yet.') +
@@ -396,7 +396,7 @@ export function summary(m, tab = m.tab) {
   if (tab === 'current') {
     lines.push(titles(v), phase(m.slots.context?.value, v), verification(v))
     lines.push(
-      ...(v.task_list ?? [])
+      ...(v.step_list ?? [])
         .slice(0, LIMIT)
         .map(
           (t) =>
@@ -466,12 +466,12 @@ export function summary(m, tab = m.tab) {
 export function detailSummary(kind, value) {
   if (!value) return 'No details available. Refresh and try again.'
   const lines = []
-  if (kind === 'task') {
-    const t = value.task?.record
-    if (!t) return 'This task is no longer available.'
+  if (kind === 'step') {
+    const t = value.step?.record
+    if (!t) return 'This step is no longer available.'
     lines.push(clean(t.title, 180), clean(t.status, 40).replaceAll('_', ' '))
-    if (t.blocked_reason)
-      lines.push('Waiting: ' + clean(t.blocked_reason, 1000))
+    if (t.waiting_reason)
+      lines.push('Waiting: ' + clean(t.waiting_reason, 1000))
     for (const c of t.checks.slice(-20))
       lines.push(
         clean(c.name, 140) +
@@ -481,7 +481,7 @@ export function detailSummary(kind, value) {
         clean(c.command || 'No command recorded.', 1200),
         clean(c.details, 3000),
       )
-    for (const a of t.actions.slice(-10))
+    for (const a of t.progress.slice(-10))
       lines.push(
         clean(a.description, 500),
         clean(a.result, 1000),
@@ -489,7 +489,7 @@ export function detailSummary(kind, value) {
           .slice(0, 5)
           .map((p) => 'File: ' + clean(p, 300)),
       )
-    if (!t.checks.length) lines.push('No checks recorded for this task.')
+    if (!t.checks.length) lines.push('No checks recorded for this step.')
   } else if (kind === 'work') {
     const w = value.records[0]
     if (!w) return 'This work is no longer available.'

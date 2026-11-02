@@ -4,11 +4,6 @@ use serde_json::{Value, json};
 pub fn request(name: &str, args: Value) -> (String, Value, bool) {
     let public = match name {
         "magistr_context" => "context",
-        "ship_plan" => "plan_work",
-        "ship_start" => "start_work",
-        "ship_record" => "record_progress",
-        "ship_check" => "check_work",
-        "ship_complete" => "finish_work",
         name => name,
     };
     if [
@@ -17,11 +12,11 @@ pub fn request(name: &str, args: Value) -> (String, Value, bool) {
         "read",
         "edit",
         "write",
-        "plan_work",
-        "start_work",
+        "arrange_steps",
+        "start_step",
         "record_progress",
-        "check_work",
-        "finish_work",
+        "check_step",
+        "finish_step",
         "discover",
         "execute",
     ]

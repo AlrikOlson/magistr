@@ -1,6 +1,6 @@
 use super::*;
 use crate::native::{EventCursor, NativeEvent, OwnerGeneration};
-use crate::native::{GateOutput, MagistrFrame, RoadmapFrame, ShipFrame, SignalFrame, ThinkFrame};
+use crate::native::{GateOutput, MagistrFrame, RoadmapFrame, RunFrame, SignalFrame, ThinkFrame};
 use crate::workflow::WorkflowPhase;
 #[cfg(unix)]
 use magistr_workflow::infra::Broadcaster;
@@ -19,8 +19,8 @@ fn parses_family_and_type() {
 
 #[test]
 fn missing_type_is_an_empty_kind() {
-    let f = NativeFrame::parse_line("{\"family\":\"ship\"}\n").expect("frame");
-    assert_eq!(f.family, "ship");
+    let f = NativeFrame::parse_line("{\"family\":\"run\"}\n").expect("frame");
+    assert_eq!(f.family, "run");
     assert_eq!(f.kind, "");
 }
 
@@ -110,13 +110,13 @@ fn every_family_round_trips_through_the_wire_line() {
             }),
         ),
         (
-            Family::Ship,
-            serde_json::to_value(ShipFrame::TaskStarted {
-                task_id: "t1".to_owned(),
+            Family::Run,
+            serde_json::to_value(RunFrame::StepStarted {
+                step_id: "t1".to_owned(),
             })
             .unwrap(),
-            NativeEvent::Ship(ShipFrame::TaskStarted {
-                task_id: "t1".to_owned(),
+            NativeEvent::Run(RunFrame::StepStarted {
+                step_id: "t1".to_owned(),
             }),
         ),
         (
@@ -230,20 +230,20 @@ async fn a_live_broadcaster_line_decodes_with_its_stamps() {
 
 #[test]
 fn a_publisher_without_stamps_decodes_without_a_cursor() {
-    let line = r#"{"family":"ship","type":"task_started","task_id":"t1"}"#;
+    let line = r#"{"family":"run","type":"step_started","step_id":"t1"}"#;
     let (event, cursor) = NativeFrame::parse_line(line).unwrap().decode().unwrap();
     assert_eq!(
         event,
-        NativeEvent::Ship(ShipFrame::TaskStarted {
-            task_id: "t1".to_owned()
+        NativeEvent::Run(RunFrame::StepStarted {
+            step_id: "t1".to_owned()
         })
     );
     assert_eq!(cursor, None);
     // Half a stamp is no stamp, and a zero epoch is one no owner minted.
     for partial in [
-        r#"{"family":"ship","type":"task_started","task_id":"t1","seq":4}"#,
-        r#"{"family":"ship","type":"task_started","task_id":"t1","epoch":2}"#,
-        r#"{"family":"ship","type":"task_started","task_id":"t1","epoch":0,"seq":4}"#,
+        r#"{"family":"run","type":"step_started","step_id":"t1","seq":4}"#,
+        r#"{"family":"run","type":"step_started","step_id":"t1","epoch":2}"#,
+        r#"{"family":"run","type":"step_started","step_id":"t1","epoch":0,"seq":4}"#,
     ] {
         let (_, cursor) = NativeFrame::parse_line(partial).unwrap().decode().unwrap();
         assert_eq!(cursor, None, "{partial}");
@@ -255,15 +255,15 @@ fn unknown_families_kinds_and_malformed_payloads_are_dropped_not_half_read() {
     for line in [
         // A family this build does not know.
         r#"{"family":"workspace","type":"journal","seq":1}"#,
-        // A kind the ship family does not have (what gate output used to
+        // A kind the run family does not have (what gate output used to
         // ride as).
-        r#"{"family":"ship","type":"gate_output","gate":"check","bytes":[1]}"#,
+        r#"{"family":"run","type":"gate_output","gate":"check","bytes":[1]}"#,
         // The right kind with the wrong shape.
         r#"{"family":"magistr","type":"gate_output","gate":"check","bytes":"not an array"}"#,
         r#"{"family":"magistr","type":"phase_set","phase":"nowhere"}"#,
         r#"{"family":"roadmap","type":"chunk_changed","chunk":{"id":"a"}}"#,
         // No kind at all.
-        r#"{"family":"ship"}"#,
+        r#"{"family":"run"}"#,
     ] {
         assert!(
             NativeFrame::parse_line(line).unwrap().decode().is_none(),

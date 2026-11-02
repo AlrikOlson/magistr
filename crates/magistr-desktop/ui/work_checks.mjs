@@ -1,8 +1,8 @@
 import { element,inlineFacts } from "./work_dom.mjs";
 import { renderSourceDetail } from "./source_details.mjs";
 export const checkNote="These results describe the recorded checks. They do not confirm that the files are unchanged today.";
-export function renderCheck(run,task,check,index,copy){
-  const identity=JSON.stringify([run.run_id,run.task_instances[task.id],check.receipt_id??[check.timestamp,check.name,index]]);
+export function renderCheck(run,step,check,index,copy){
+  const identity=JSON.stringify([run.run_id,run.step_instances[step.id],check.check_result_id??[check.timestamp,check.name,index]]);
   const details=element("details","","work-check"),summary=element("summary");
   details.dataset.readingKey=identity;summary.dataset.focusKey=identity;
   details.dataset.verified=String(check.verified);details.dataset.passed=String(check.passed);
@@ -21,10 +21,10 @@ export function renderCheck(run,task,check,index,copy){
   const output=element("section");renderSourceDetail(output,{label:"Check output",source:check.details},copy);details.append(output);
   return details;
 }
-export function renderChecks(run,task,copy){
-  if(!task.checks.length)return null;
-  const section=element("section","","work-checks");section.setAttribute("aria-label","Checks for "+task.title);
+export function renderChecks(run,step,copy){
+  if(!step.checks.length)return null;
+  const section=element("section","","work-checks");section.setAttribute("aria-label","Checks for "+step.title);
   section.append(element("h4","Checks"),element("p",checkNote,"work-check-note"));
-  for(const [index,check] of task.checks.entries())section.append(renderCheck(run,task,check,index,copy));
+  for(const [index,check] of step.checks.entries())section.append(renderCheck(run,step,check,index,copy));
   return section;
 }

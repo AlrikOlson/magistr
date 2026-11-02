@@ -6,7 +6,7 @@ async function open(app){
 }
 test("current work preserves its complete requirements and conversation draft",async({app})=>{
   await open(app);
-  await expect(app.locator(".work-tasks>li")).toHaveCount(3);
+  await expect(app.locator(".work-steps>li")).toHaveCount(3);
   await expect(app.locator("#work-browser-content")).toContainText("the previous build remains available");
   await app.keyboard.press("Escape");
   await expect(app.getByRole("tab",{name:"Conversation",exact:true})).toBeFocused();
@@ -20,30 +20,30 @@ test("work refresh follows owner revision and keeps stale records explicitly sta
   expect(await calls()).toBe(1);
   await app.evaluate(()=>{
     const fixture=window.__fixture;
-    fixture.workflow.ship={state:"stale",data:{last:fixture.workflow.ship.data,error:{kind:"io",message:"The work file cannot be read."}}};
+    fixture.workflow.run={state:"stale",data:{last:fixture.workflow.run.data,error:{kind:"io",message:"The work file cannot be read."}}};
     fixture.publish("release",{workflow_revision:1});
   });
   await expect(app.locator("#work-browser-state")).toContainText("Showing the last saved records.");
-  await expect(app.locator(".work-tasks>li")).toHaveCount(3);
+  await expect(app.locator(".work-steps>li")).toHaveCount(3);
   expect(await calls()).toBe(2);
   await app.evaluate(()=>{
-    const fixture=window.__fixture;fixture.workflow.ship={state:"current",data:fixture.workflow.ship.data.last};
-    fixture.workflow.ship.data.value.current.tasks[1].status="completed";
+    const fixture=window.__fixture;fixture.workflow.run={state:"current",data:fixture.workflow.run.data.last};
+    fixture.workflow.run.data.value.current.steps[1].status="done";
     fixture.publish("release",{workflow_revision:2});
   });
-  await expect(app.locator(".work-tasks>li").nth(1)).toHaveAttribute("data-status","completed");
+  await expect(app.locator(".work-steps>li").nth(1)).toHaveAttribute("data-status","done");
   await expect(app.locator("#work-browser-state")).toHaveText("Up to date.");
 });
 test("missing, unreadable and failed refresh remain distinct",async({app})=>{
   await open(app);
   await app.evaluate(()=>{
-    window.__fixture.workflow.ship={state:"current",data:{source:{kind:"missing"},value:{current:null,retained:[]}}};
+    window.__fixture.workflow.run={state:"current",data:{source:{kind:"missing"},value:{current:null,retained:[]}}};
     window.__fixture.publish("release",{workflow_revision:1});
   });
   await expect(app.locator("#work-browser-state")).toHaveText("No saved work yet.");
   await expect(app.getByRole("heading",{name:"No current work",exact:true})).toBeVisible();
   await app.evaluate(()=>{
-    window.__fixture.workflow.ship={state:"unavailable",data:{kind:"decode",message:"The work file cannot be read."}};
+    window.__fixture.workflow.run={state:"unavailable",data:{kind:"decode",message:"The work file cannot be read."}};
     window.__fixture.publish("release",{workflow_revision:2});
   });
   await expect(app.locator("#work-browser-content")).toHaveText("Work records are unavailable. Use Refresh to try again.");
@@ -52,26 +52,26 @@ test("missing, unreadable and failed refresh remain distinct",async({app})=>{
   await expect(app.locator("#work-browser-state")).toContainText("Could not read work records.");
   await expect(app.getByRole("button",{name:"Refresh",exact:true})).toBeEnabled();
 });
-test("saved work keeps its own tasks across new current work and deletion",async({app})=>{
+test("saved work keeps its own steps across new current work and deletion",async({app})=>{
   await open(app);
   const picker=app.getByLabel("Work to inspect",{exact:true});
   await picker.selectOption("run:previous-run");
   await expect(app.getByRole("heading",{name:"Improve project reopening",exact:true})).toBeVisible();
-  await expect(app.locator(".work-tasks>li").first()).toHaveAttribute("data-task","earlier-review");
+  await expect(app.locator(".work-steps>li").first()).toHaveAttribute("data-step","earlier-review");
   await expect(app.locator("#work-browser-content")).toContainText("Finished");
   await app.evaluate(()=>{
-    const fixture=window.__fixture,ship=fixture.workflow.ship.data.value;
-    ship.retained.push(ship.current);ship.current=structuredClone(ship.current);
-    ship.current.run_id="new-run";ship.current.objective.description="A new objective";
+    const fixture=window.__fixture,run=fixture.workflow.run.data.value;
+    run.retained.push(run.current);run.current=structuredClone(run.current);
+    run.current.run_id="new-run";run.current.goal.description="A new goal";
     fixture.publish("release",{workflow_revision:1});
   });
   await expect(app.getByRole("heading",{name:"Improve project reopening",exact:true})).toBeVisible();
   await expect(picker).toHaveValue("run:previous-run");
   await picker.selectOption("current");
-  await expect(app.getByRole("heading",{name:"A new objective",exact:true})).toBeVisible();
+  await expect(app.getByRole("heading",{name:"A new goal",exact:true})).toBeVisible();
   await picker.selectOption("run:previous-run");
   await app.evaluate(()=>{
-    window.__fixture.workflow.ship.data.value.retained=[];
+    window.__fixture.workflow.run.data.value.retained=[];
     window.__fixture.publish("release",{workflow_revision:2});
   });
   await expect(app.locator("#work-browser-content")).toContainText("This saved work is no longer available.");
@@ -80,7 +80,7 @@ test("saved work keeps its own tasks across new current work and deletion",async
   // WebKit headless does not drive the OS select popup. Use DOM selection here.
   await picker.selectOption("current");
   await expect(picker).toHaveValue("current");
-  await expect(app.getByRole("heading",{name:"A new objective",exact:true})).toBeVisible();
+  await expect(app.getByRole("heading",{name:"A new goal",exact:true})).toBeVisible();
 });
 test("closed readers ignore late responses",async({app})=>{
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();

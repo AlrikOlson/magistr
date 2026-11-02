@@ -1,14 +1,14 @@
 //! Git-native trace sync.
 //!
-//! Mirrors think/ship trace records into the repository under
+//! Mirrors think/run trace records into the repository under
 //! `.magistr/traces/` as a strict superset of the Agent Trace v0.1.0 standard
 //! (see `docs/SCHEMA.md`): every line is a valid Agent Trace record, and the
-//! full think/ship payload rides in `metadata["dev.magistr"]`. One JSONL
+//! full think/run payload rides in `metadata["dev.magistr"]`. One JSONL
 //! file per session; `shared` records are committed to git (one commit per
 //! session on close), `local` records go to a gitignored partition.
 //!
 //! This module is the **generic core**. It is parameterised over an opaque
-//! [`serde_json::Value`] payload and knows nothing about the think/ship domain
+//! [`serde_json::Value`] payload and knows nothing about the think/run domain
 //! types — keeping `infra` at the bottom of the dependency graph (DIP). The
 //! domain → record mapping (which `kind`, which `files_touched`) lives in the
 //! engines.
@@ -121,7 +121,7 @@ impl RecordCtx {
 
     /// Build one Agent Trace v0.1.0 record wrapping `payload`.
     ///
-    /// `family` is `"think"` or `"ship"`; `kind` is `"step" | "objective" |
+    /// `family` is `"think"` or `"run"`; `kind` is `"step" | "goal" |
     /// "task" | "action" | "check"`. `files` is the Agent Trace `files[]`
     /// attribution (build entries with [`file_attribution`]); pass an empty
     /// vec for records that attribute no code.
@@ -319,10 +319,10 @@ impl RepoSink {
     ///
     /// When `step` is `Some(n)`, only records whose
     /// `metadata.dev.magistr.record.step_number == n` are promoted (the
-    /// per-step curation path, think-only since ship records have no step
+    /// per-step curation path, think-only since run records have no step
     /// number). When `kind` is `Some(k)`, only records whose
     /// `metadata.dev.magistr.kind == k` are promoted (`step`/`task`/
-    /// `objective`/`action`/`check`) — the selector for ship records. The two
+    /// `goal`/`action`/`check`) — the selector for run records. The two
     /// filters AND together; both `None` promotes every record in the session.
     /// Kept records are rewritten atomically (tmp + rename); the local file is
     /// removed when empty. Does **not** commit — the promoted records are now in
@@ -488,9 +488,9 @@ fn is_index_lock_contention(e: &std::io::Error) -> bool {
 /// Agent Trace record (which shells `git rev-parse HEAD`), the `fsync`'d append,
 /// and any commit all happen on the worker thread — never on the caller's.
 pub struct MirrorJob {
-    /// `"think" | "ship" | "roadmap"`.
+    /// `"think" | "run" | "roadmap"`.
     pub family: &'static str,
-    /// Record kind (`"step" | "objective" | "task" | "action" | "check" | …`).
+    /// Record kind (`"step" | "goal" | "task" | "action" | "check" | …`).
     pub kind: &'static str,
     /// Trace session id (one JSONL file per session).
     pub session_id: String,
@@ -760,15 +760,15 @@ mod tests {
     }
 
     #[test]
-    fn ship_code_action_record_carries_files_attribution() {
+    fn run_code_action_record_carries_files_attribution() {
         let payload = json!({ "id": 2, "type": "code", "files_touched": ["Cargo.toml"] });
         let files = vec![file_attribution(
             "Cargo.toml",
             Some("anthropic/claude-opus-4-8"),
         )];
-        let rec = ctx().build_record("ship", "action", "proj-abc", true, payload, files);
+        let rec = ctx().build_record("run", "action", "proj-abc", true, payload, files);
         assert_eq!(rec["files"][0]["path"], "Cargo.toml");
-        assert_eq!(rec["metadata"]["dev.magistr"]["family"], "ship");
+        assert_eq!(rec["metadata"]["dev.magistr"]["family"], "run");
     }
 
     // ── Partition routing + append ───────────────────────────────────────
@@ -863,7 +863,7 @@ mod tests {
         sink.append(
             "s1",
             true,
-            &c.build_record("ship", "action", "s1", true, json!({"n": 2}), vec![]),
+            &c.build_record("run", "action", "s1", true, json!({"n": 2}), vec![]),
         )
         .unwrap();
         sink.append(
@@ -1063,11 +1063,11 @@ mod tests {
         );
     }
 
-    /// Seed a mixed ship session: objective, two actions, one check.
-    fn seed_local_ship(sink: &RepoSink) {
-        let kinds = ["objective", "action", "action", "check"];
+    /// Seed a mixed run session: goal, two actions, one check.
+    fn seed_local_run(sink: &RepoSink) {
+        let kinds = ["goal", "action", "action", "check"];
         for (i, k) in kinds.iter().enumerate() {
-            let rec = ctx().build_record("ship", k, "s2", false, json!({ "n": i }), vec![]);
+            let rec = ctx().build_record("run", k, "s2", false, json!({ "n": i }), vec![]);
             sink.append("s2", false, &rec).unwrap();
         }
     }
@@ -1076,9 +1076,9 @@ mod tests {
     fn promote_by_kind_moves_matching_records() {
         let tmp = TempDir::new().unwrap();
         let sink = RepoSink::new(tmp.path());
-        seed_local_ship(&sink);
+        seed_local_run(&sink);
 
-        // Ship records have no step_number, so --kind is the selector.
+        // Run records have no step_number, so --kind is the selector.
         let out = sink.promote("s2", None, Some("action")).unwrap();
         assert_eq!(
             out,
@@ -1095,13 +1095,13 @@ mod tests {
                 && r["metadata"]["dev.magistr"]["shared"] == true
         }));
 
-        // objective + check stay local.
+        // goal + check stay local.
         let local = read_lines(&tmp.path().join(".magistr/traces/local/s2.jsonl"));
         let kept: Vec<&str> = local
             .iter()
             .map(|r| r["metadata"]["dev.magistr"]["kind"].as_str().unwrap())
             .collect();
-        assert_eq!(kept, vec!["objective", "check"]);
+        assert_eq!(kept, vec!["goal", "check"]);
     }
 
     #[test]

@@ -1,5 +1,5 @@
 //! Roadmap domain and the `roadmap_*` tool family — the long-horizon
-//! plan-of-plans that sits above `ship_*` objectives and links to `think_*`
+//! plan-of-plans that sits above `run_*` goals and links to `think_*`
 //! reasoning. The foundation is the domain + engine + persistence; the rmcp
 //! wire adapter (`mcp::RoadmapService`) puts `roadmap_*` on the live MCP wire.
 

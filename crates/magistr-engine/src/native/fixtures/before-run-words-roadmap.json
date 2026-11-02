@@ -1,0 +1,120 @@
+{
+  "project_id": "magistr-5a5bc6",
+  "preamble": "AI-powered development toolkit for the terminal. Auto-detects your stack, scaffolds agent configs, and orchestrates autonomous plan-execute-verify iterations via ACP with a polished ratatui TUI.",
+  "chunks": [
+    {
+      "id": "public-surface-rewrite",
+      "title": "Rewrite the public README and replace the visual system with accurate, aligned diagrams that explain how Magistr is used.",
+      "name": "Public surface rewrite",
+      "status": "done",
+      "priority": 90,
+      "description": "Ground the public story in the shipped code and real user workflow, then replace the current generated visuals with a small set of readable, accessible SVG diagrams.",
+      "content": {
+        "version": 1,
+        "summary": "Make the public surface explain the workflow users actually run and show it with clean, deterministic diagrams.",
+        "facts": [
+          {
+            "label": "Scope",
+            "value": "README, public diagrams, website references, release-facing copy"
+          },
+          {
+            "label": "Visual format",
+            "value": "Hand-authored accessible SVG"
+          },
+          {
+            "label": "Grounding",
+            "value": "Shipped code plus anonymized usage-pattern inference from native traces"
+          }
+        ],
+        "sections": [
+          {
+            "heading": "Research",
+            "list": [
+              {
+                "text": "Audit code contracts, setup instructions, skills, and native usage patterns.",
+                "done": false
+              }
+            ]
+          },
+          {
+            "heading": "Build",
+            "list": [
+              {
+                "text": "Rewrite README and replace the visual assets and website cards.",
+                "done": false
+              }
+            ]
+          },
+          {
+            "heading": "Verify",
+            "list": [
+              {
+                "text": "Render and inspect SVGs, run focused checks, record evidence, and commit.",
+                "done": false
+              }
+            ]
+          }
+        ]
+      },
+      "notes": "",
+      "group": "Public release",
+      "acceptance": [
+        "README explains Magistr as a local workflow layer for coding agents, including the persistent roadmap, user-directed roadmap changes, one-chunk execution, recorded evidence, and the Workbench/MCP boundary.",
+        "README names the supported /next ($next) and /roadmap-refresh ($roadmap-refresh) skills and describes their actual roles without claiming autonomous roadmap reordering.",
+        "Public visuals use hand-authored SVG only: no Blender renderer, Mermaid source, or generated-image annotation remains in the README or website.",
+        "README and website use the same aligned visual system with accessible titles/descriptions, readable labels, and no production meta commentary.",
+        "Focused docs, website build, SVG parsing, and link/reference checks pass; the active chunk records final verification and is committed atomically."
+      ],
+      "deps": [],
+      "cross_refs": [
+        "think:834",
+        "task:rewrite-public-surface",
+        "task:replace-public-visuals",
+        "task:verify-public-surface",
+        "action:4",
+        "action:5"
+      ],
+      "shared": true,
+      "project_id": "magistr-5a5bc6",
+      "created_at": "2026-09-14T22:37:16.373795+00:00",
+      "updated_at": "2026-09-14T23:21:27.998234+00:00"
+    },
+    {
+      "id": "sd1",
+      "title": "Stack Detection Engine",
+      "name": "Sd1",
+      "status": "done",
+      "priority": 200,
+      "description": "Intelligent filesystem scanning to detect every language, framework, and project boundary in a repo. Magistr's existing `magistr detect` / `magistr init` (crates/magistr-core/src/detection) assume a single-stack project; real repos contain React inside .NET APIs, Cargo workspaces with Tauri GUIs, Python services beside Node backends. Extend the existing detection module (do not replace it) into a ProjectTree builder with parent/child hierarchy and relationship inference. Prior art (2026): Nx, moon, Turborepo and Bazel all model the repo as a project graph and infer per-project tooling \u2014 their workspace manifests are first-class topology signals.",
+      "notes": "",
+      "group": "Scaffold & Init",
+      "acceptance": [
+        "Define `StackMarker` enum \u2014 one variant per detectable marker file type (PackageJson, CargoToml, Csproj, GoMod, PyprojectToml, RequirementsTxt, Gemfile, ComposerJson, MixExs, PubspecYaml, DockerCompose, etc.) with associated metadata: file glob pattern, parse strategy, priority weight for specificity ordering",
+        "Treat monorepo-tool manifests as topology signals \u2014 nx.json / project.json (Nx), moon.yml, turbo.json, pnpm-workspace.yaml, lerna.json, *.sln, Cargo workspace members \u2014 and read their project lists before falling back to directory walking",
+        "Implement `scan_directory()` \u2014 recursive filesystem walker that collects all marker files in a repo, respecting .gitignore and configurable ignore patterns (node_modules, target, bin/obj, __pycache__, .venv). Returns `Vec<(PathBuf, StackMarker)>` sorted by depth then specificity",
+        "Build framework-specific parsers \u2014 parse package.json dependencies to distinguish React/Next.js/Vue/Svelte/Angular/Express/Nest, parse Cargo.toml for workspace members and key dependencies (ratatui, actix, tauri), parse *.csproj for target framework and project type (web, console, lib), parse go.mod for module path and key imports",
+        "Define `DetectedProject` struct \u2014 path (relative to repo root), language, framework (Option), role (frontend/backend/library/cli/service/unknown), marker files found, parsed metadata (versions, dependencies). Define `ProjectTree` struct \u2014 root path, `Vec<DetectedProject>` with parent/child indices, workspace type enum (Cargo/Npm/Pnpm/Yarn/Lerna/Rush/Nx/DotnetSln/None)",
+        "Implement hierarchy inference \u2014 detect parent/child relationships between projects: SPA nested inside API (React in ASP.NET ClientApp/ or wwwroot/), workspace members (Cargo workspace, pnpm-workspace.yaml, lerna.json packages), docker-compose service directories, .sln file project references. Classify topology as: flat-monorepo, nested-fullstack, workspace, single-project",
+        "Implement relationship detection \u2014 infer inter-project dependencies: package.json workspace references, Cargo workspace path dependencies, .csproj ProjectReference elements, import/require statements referencing sibling projects, shared directory detection (e.g., shared/ or packages/common). Output as edges in the ProjectTree",
+        "Implement role classification heuristics \u2014 classify each DetectedProject role: frontend (has React/Vue/Svelte + no server framework), backend (has Express/ASP.NET/Actix/Django + no SPA framework), fullstack (has both), library (is workspace member with no binary target), CLI (has clap/commander/argparse), service (referenced in docker-compose). Use marker + dependency combination scoring",
+        "Extend the existing `magistr detect` CLI command \u2014 print the ProjectTree as a formatted tree view showing detected stack per node; keep the existing `--json` output backward compatible (single-project repos produce a one-node tree). Wire as a Tauri command for GUI usage",
+        "Build detection test suite \u2014 test against fixture directories representing common layouts: ASP.NET + React (nested ClientApp), Cargo workspace + Tauri GUI (this repo is one), pnpm monorepo (apps/web + apps/api + packages/shared), Python Django + React (sibling), standalone single-project, Go microservices with docker-compose, Nx workspace. Use tempdir-based fixtures with realistic marker files"
+      ],
+      "deps": [],
+      "cross_refs": [
+        "think:2",
+        "task:verify-gates"
+      ],
+      "shared": false,
+      "project_id": "magistr-5a5bc6",
+      "created_at": "2026-05-30T20:15:10.793007+00:00",
+      "updated_at": "2026-08-27T05:14:59.943159+00:00"
+    }
+  ],
+  "notes": [],
+  "refreshes": [],
+  "links": [],
+  "tracker_opt_ins": [],
+  "container_links": [],
+  "focuses": []
+}

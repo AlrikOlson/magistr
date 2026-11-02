@@ -1,7 +1,7 @@
 //! Liveness progress for long tool calls.
 //!
 //! Several tools do real work behind a single silent `tools/call`:
-//! `ship_check` with a `command` runs an actual gate, `tracker push` walks a
+//! `check_step` with a `command` runs an actual gate, `tracker push` walks a
 //! network under a rate budget, the sweep reconciles, sync back-fills a corpus.
 //! From outside, every one of them is byte-for-byte indistinguishable from a
 //! wedged server. The failure that causes is not incorrectness — it is a human
@@ -49,7 +49,7 @@
 //! that are easy to mistake for duplicates. **Tasks change how long the call
 //! stays open; progress changes what the human sees while it is open.** The
 //! tasks side must *not* rebuild emission: a task-augmented
-//! `ship_check` still receives the caller's `progressToken` in the same request
+//! `check_step` still receives the caller's `progressToken` in the same request
 //! `_meta`, so it should hold this same [`Heartbeat`] across the task's
 //! lifetime and let the augmented tick text name the task id. The one thing
 //! that must not happen is a second, parallel progress mechanism hanging off
@@ -200,12 +200,12 @@ mod tests {
     #[test]
     fn tick_message_names_the_tool_and_the_elapsed_time() {
         assert_eq!(
-            tick_message("ship_check", 1),
-            "ship_check still running (2s elapsed)"
+            tick_message("check_step", 1),
+            "check_step still running (2s elapsed)"
         );
         assert_eq!(
-            tick_message("ship_check", 45),
-            "ship_check still running (90s elapsed)"
+            tick_message("check_step", 45),
+            "check_step still running (90s elapsed)"
         );
     }
 

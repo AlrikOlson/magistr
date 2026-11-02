@@ -13,8 +13,8 @@ fn guide_uses_public_catalog_and_explains_advanced_authorization() {
         "never replay",
         "verification: \"focused\"",
         "roadmap_exports",
-        "check_work",
-        "ship_finalize",
+        "check_step",
+        "run_finish",
     ] {
         assert!(guide.contains(required), "missing {required}");
     }
@@ -22,8 +22,9 @@ fn guide_uses_public_catalog_and_explains_advanced_authorization() {
         "magistr_delete",
         "magistr_list",
         "workspace-mcp",
-        "ship_plan",
-        "ship_start",
+        "plan_work",
+        "start_work",
+        "ship_status",
     ] {
         assert!(
             !guide.contains(obsolete),

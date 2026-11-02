@@ -1,6 +1,6 @@
 //! One owned-process mechanism for every command Magistr runs on a caller's
 //! behalf: the quality gates on their pty, the workflow's verified
-//! `ship_check` commands, and the workspace's declared commands.
+//! `check_step` commands, and the workspace's declared commands.
 //!
 //! What is shared is the mechanism, never the admission. A [`ProcessSpec`]
 //! names what to launch — a shell line ([`Launch::Shell`]) or one literal

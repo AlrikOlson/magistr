@@ -110,9 +110,9 @@ fn save_then_load_round_trip() {
 fn workflow_use_disjoint_subdirs() {
     let tmp = TempDir::new().unwrap();
     let t = Persistence::new(&cfg(&tmp), Domain::Think);
-    let s = Persistence::new(&cfg(&tmp), Domain::Ship);
+    let s = Persistence::new(&cfg(&tmp), Domain::Run);
     assert!(t.sessions_dir().ends_with("think/sessions"));
-    assert!(s.sessions_dir().ends_with("ship/sessions"));
+    assert!(s.sessions_dir().ends_with("run/sessions"));
     assert_ne!(t.sessions_dir(), s.sessions_dir());
 }
 
@@ -121,7 +121,7 @@ fn roadmap_uses_its_own_subdir() {
     let tmp = TempDir::new().unwrap();
     let r = Persistence::new(&cfg(&tmp), Domain::Roadmap);
     let t = Persistence::new(&cfg(&tmp), Domain::Think);
-    let s = Persistence::new(&cfg(&tmp), Domain::Ship);
+    let s = Persistence::new(&cfg(&tmp), Domain::Run);
     assert!(r.sessions_dir().ends_with("roadmap/sessions"));
     assert_ne!(r.sessions_dir(), t.sessions_dir());
     assert_ne!(r.sessions_dir(), s.sessions_dir());
@@ -130,7 +130,7 @@ fn roadmap_uses_its_own_subdir() {
 #[test]
 fn atomic_write_leaves_no_tmp_behind() {
     let tmp = TempDir::new().unwrap();
-    let p = Persistence::new(&cfg(&tmp), Domain::Ship);
+    let p = Persistence::new(&cfg(&tmp), Domain::Run);
     p.save(
         "beta",
         &Sample {

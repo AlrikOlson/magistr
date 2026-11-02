@@ -151,8 +151,8 @@ admission and settlement inside this module and the writer itself.
 | --- | --- | --- | --- |
 | `magistr_gate` in `magistr mcp` | `NativeEngines` (Service role, the same writer the MCP session serves) | `WorkspaceEvidence` attached in `MagistrService::new` | `AdmittedCheck::admit` before the pty run, `settle` with the run's `CheckExecution` after; the answer carries the receipt id, source revision and freshness |
 | Hosted loop driver gates | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set; the set is `required_gates()` of the same capability | the same capability on the host's config | `AdmittedCheck` per gate, refusing a superseded verification target |
-| Native `check_work` (agent) | `ShipUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
-| `roadmap_complete_chunk` (MCP, owner command, cockpit Complete, loop judge) | `RoadmapUseCases` with the ship family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
+| Native `check_step` (agent) | `RunUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
+| `roadmap_complete_chunk` (MCP, owner command, cockpit Complete, loop judge) | `RoadmapUseCases` with the run family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
 | Cockpit `start` and the cockpit loops | `NativeEngines` or an attached `OwnerClient` | the [`HostedWorkspace`](#the-hosted-workspace) this process admits for the run — the agent's bridge and the cockpit's port attach to it | engine port; `magistr workspace journal` for the journal model |
 | ACP `fs/write_text_file` | none | the host's `SourceRoute`: `WorkspaceSourceWriter` over the hosted workspace's `write` verb after session authorization, or a `SourceRefusal` | `LocalEffectPort` routes the authorized write through the pipeline (journal intent, `MutationReceipt`) and stamps the `fs_write` event `route: workspace`; with a refusal it advertises no write capability and refuses the call before authorization (`route: refused`) — there is no direct write |
 | ACP `fs/read_text_file`, `terminal/*` | none | direct host I/O after session authorization | `LocalEffectPort` |
@@ -196,7 +196,7 @@ revision remain three distinct facts.
 ### One process mechanism
 
 Every command Magistr runs for a caller — a quality gate on its pty, a
-workflow `check_work` command, a workspace declared command — is a
+workflow `check_step` command, a workspace declared command — is a
 `magistr_process::OwnedProcess`: its own session and process group, stdin
 closed, both streams under a bounded head+tail capture, a timeout and a
 cancel that end the whole group (gracefully with a `SIGTERM` grace, or at
@@ -233,7 +233,7 @@ byte is hashed when there is no task — which publishes the durable receipt and
 observes the workspace through the evidence capability the writer was admitted
 with; an unobservable workspace refuses the admission, so an unobservable gate
 is never recorded as evidence. Named gates run in the selected project root;
-server-executed `check_work` commands run in the workspace named by their
+server-executed `check_step` commands run in the workspace named by their
 admitted source observation, and relative report paths resolve there too.
 The process directory never selects a different tree for that receipt.
 The command runs outside every lock with the owner's edits still flowing.
@@ -243,7 +243,7 @@ passing retry's exit) and settles the check under the captured admission: the
 workflow re-observes the source first, then `SettledCheck` carries the
 `CheckSettlement` (`Applied` with the recorded check, or `Stale` with the
 admission and outcome intact when the run or task was superseded) and, either
-way, the settled `CheckReceipt` with its freshness. A nextest junit report is
+way, the settled `CheckResult` with its freshness. A nextest junit report is
 parsed additively from the project's `target/nextest/<profile>` path; only an
 exit decides `passed`.
 
@@ -262,14 +262,14 @@ workflow writer; HostedWork supplies its writer explicitly to LoopDriver.
 | --- | --- | --- | --- |
 | Project | native workflow store (`.magistr/project.json`) | `project_id` on `TaskAdmission`; domain `ProjectId` | never for a project |
 | Execution | project owner's execution registry | `ExecutionContext { working_copy, execution_id }`, `ExecutionBinding` on admissions | another working copy or task session is selected |
-| Run | contextual ship objective | `run_id` on `TaskAdmission` | a fresh objective after finalize |
-| Task and task instance | ship plan | `task_id`, `task_instance` on `TaskAdmission` | the same name in a later run is a new instance |
+| Run | contextual run goal | `run_id` on `TaskAdmission` | a fresh goal after finalize |
+| Task and task instance | run plan | `task_id`, `task_instance` on `TaskAdmission` | the same name in a later run is a new instance |
 | Attempt | loop operation ledger | domain `AttemptId` (command plus attempt number) | each retry of one command |
 | Workflow owner generation | project lease (`ProjectAuthority`) | `OwnerGeneration`; `epoch` on every feed line | a new project writer is admitted |
 | Workflow event sequence | the owner's broadcaster | `seq` on every feed line, `EventCursor { epoch, sequence }` decoded | every frame that owner emits, whatever its family |
 | Workflow read provenance | the opened family persistence owner | `ReadSource::File(StoreStamp { inode, modified, length })`, `Missing` or `Memory` within a successful observation | that family's source is observed; it does not certify another family |
-| Workflow record stamp | the family engine | `updated_at` on chunks and signals; ids and timestamps on ship actions and checks | that record is written |
-| Workflow schema version | the think history file | `schema_version` (1) | the file format changes; roadmap, signal and ship files carry none |
+| Workflow record stamp | the family engine | `updated_at` on chunks and signals; ids and timestamps on run actions and checks | that record is written |
+| Workflow schema version | the think history file | `schema_version` (1) | the file format changes; roadmap, signal and run files carry none |
 | Workspace | admitted `WorkspaceService` | `WorkspaceIdentity { root, generation }` | the canonical root never; the generation on every owner admission |
 | Source revision | the selected bytes | `SourceSnapshot::revision()` (content-addressed) | any selected byte, mode, kind or explicit input |
 | Mutation receipt revision | the journal's resolved intent | `MutationReceipt::revision` | per applied intent, over the applied files only |
@@ -292,7 +292,7 @@ executor. Scope regressions were observed failing before their guards were added
 The composition boundary's companion tests admit against a real Host writer on
 the production writer config and a disposable root: an external edit during
 the run is reported at settlement with its path, a missing task is refused
-before hashing, a rolled-over objective settles `Stale` with the target, exit
+before hashing, a rolled-over goal settles `Stale` with the target, exit
 code and receipt intact, a timeout and a cancel are recorded as what they were,
 and a missing root is a typed source refusal at admission. The
 `application_composition` integration suite composes a real Host writer with a
@@ -305,9 +305,9 @@ accepts once every gate re-ran; completion refuses after an owner edit, a
 gate-configuration edit and an in-flight acceptance edit until the gates
 re-run; a reused task name in a later run cannot collect the late result and
 has no evidence of its own; the cockpit's Complete action refuses in words and,
-with current evidence, completes naming `task:verify` while the finalize report
+with current evidence, completes naming `step:verify` while the finalize report
 separates the recovered failure from outstanding ones; `roadmap_set_status`
-cannot reach `done` and a foreign-scoped objective is refused.
+cannot reach `done` and a foreign-scoped goal is refused.
 
 The CLI `application_boundary` integration suite checks Cargo declarations,
 workspace membership, the library target and application Rust syntax, including

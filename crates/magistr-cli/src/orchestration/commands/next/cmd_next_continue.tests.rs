@@ -22,7 +22,7 @@ async fn absent_and_finished_work_do_not_launch_and_unreadable_work_is_refused()
         .unwrap()
         .open();
     writer
-        .ship_set_objective_with_verification(
+        .run_open_with_verification(
             "Finished".into(),
             vec![],
             vec![],
@@ -30,14 +30,14 @@ async fn absent_and_finished_work_do_not_launch_and_unreadable_work_is_refused()
             VerificationMode::Focused,
         )
         .unwrap();
-    writer.ship_finalize(vec![], None).unwrap();
+    writer.run_finish(vec![], None).unwrap();
     let reader = NativeReader::open(native);
-    let finished = reader.ship_snapshot().unwrap();
+    let finished = reader.run_snapshot().unwrap();
     run().await.unwrap();
-    assert_eq!(reader.ship_snapshot().unwrap(), finished);
+    assert_eq!(reader.run_snapshot().unwrap(), finished);
     let path = native
         .data_dir()
-        .join("ship")
+        .join("run")
         .join("executions")
         .join(native.execution_context().key())
         .join("sessions")

@@ -168,7 +168,7 @@ mod tests {
     /// The base case: we wrote it, it came straight back untouched.
     #[test]
     fn our_own_write_bouncing_back_is_an_echo() {
-        let ours = item("ship the thing", Some("7"));
+        let ours = item("run the thing", Some("7"));
         let l = link(&ours.content_hash(), Some("7"));
         assert_eq!(classify(&ours, Some(&l)), Verdict::Echo);
     }
@@ -178,10 +178,10 @@ mod tests {
     /// Every actor-based filter sees our bot and discards their work silently.
     #[test]
     fn a_human_editing_through_our_own_token_is_remote() {
-        let ours = item("ship the thing", Some("7"));
+        let ours = item("run the thing", Some("7"));
         let l = link(&ours.content_hash(), Some("7"));
 
-        let theirs = item("ship the thing (Q3)", Some("8"));
+        let theirs = item("run the thing (Q3)", Some("8"));
         assert_eq!(
             classify(&theirs, Some(&l)),
             Verdict::Remote,
@@ -227,10 +227,10 @@ mod tests {
     /// content into a remote change — that is the other way to build the loop.
     #[test]
     fn a_version_bump_over_identical_content_is_still_an_echo() {
-        let ours = item("ship the thing", Some("7"));
+        let ours = item("run the thing", Some("7"));
         let l = link(&ours.content_hash(), Some("7"));
 
-        let bumped = item("ship the thing", Some("9"));
+        let bumped = item("run the thing", Some("9"));
         assert_eq!(classify(&bumped, Some(&l)), Verdict::Echo);
     }
 
@@ -238,7 +238,7 @@ mod tests {
     /// consult, the hash is all there is — and it must still work.
     #[test]
     fn with_no_version_on_either_side_the_hash_decides() {
-        let ours = item("ship the thing", None);
+        let ours = item("run the thing", None);
         let l = link(&ours.content_hash(), None);
         assert_eq!(classify(&ours, Some(&l)), Verdict::Echo);
 
@@ -259,7 +259,7 @@ mod tests {
     /// an item that moved id but kept its content is still recognisably ours.
     #[test]
     fn the_verdict_does_not_depend_on_identity() {
-        let mut ours = item("ship the thing", Some("7"));
+        let mut ours = item("run the thing", Some("7"));
         let l = link(&ours.content_hash(), Some("7"));
         ours.external_id = Some("ENG-999".into());
         assert_eq!(classify(&ours, Some(&l)), Verdict::Echo);

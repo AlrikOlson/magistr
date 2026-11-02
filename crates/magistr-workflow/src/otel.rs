@@ -7,19 +7,19 @@
 //!
 //! Mapping (one deterministic trace per project):
 //! - root span `workspace <project>`;
-//! - the ship cycle nests `objective → task → action/check` (a failed check
-//!   sets span status ERROR — the gate failed, not the task);
-//! - think steps become reasoning spans parented to the task named by their
-//!   `execution_ref` (`task:<id>`) when present, else to the root.
+//! - the run cycle nests `goal → step → progress/check` (a failed check
+//!   sets span status ERROR — the gate failed, not the step);
+//! - think steps become reasoning spans parented to the step named by their
+//!   `execution_ref` (`step:<id>`) when present, else to the root.
 //!
 //! Attribute policy: `gen_ai.operation.name` is set only where a semconv
-//! value genuinely fits (`invoke_agent` for objective/tasks, `execute_tool`
-//! for actions/checks); domain truth rides namespaced `magistr.workflow.*`
+//! value genuinely fits (`invoke_agent` for goal/steps, `execute_tool`
+//! for progress/checks); domain truth rides namespaced `magistr.workflow.*`
 //! attributes. Ids are sha256-derived from record identities — the same
 //! corpus always exports the same trace.
 //!
-//! Honest limits: the local ship store holds the CURRENT cycle only (one
-//! objective tree per export); think steps without timestamps are skipped
+//! Honest limits: the local run store holds the CURRENT cycle only (one
+//! goal tree per export); think steps without timestamps are skipped
 //! and counted, never fabricated; checks are zero-duration spans at their
 //! recorded instant.
 
@@ -27,8 +27,8 @@ use chrono::DateTime;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
-use crate::ship::domain::objective::Objective;
-use crate::ship::domain::task::Task;
+use crate::run::domain::goal::Goal;
+use crate::run::domain::step::Step;
 use crate::think::domain::step::ThinkStep;
 use crate::trace_context::InboundTrace;
 
@@ -111,7 +111,7 @@ pub(crate) fn span(
 /// exporter.
 pub fn build_otel<'a>(
     project: &str,
-    ship: Option<(&Objective, &[Task])>,
+    run: Option<(&Goal, &[Step])>,
     steps: impl Iterator<Item = &'a ThinkStep>,
     inbound: Option<&InboundTrace>,
 ) -> OtelExport {
@@ -129,101 +129,98 @@ pub fn build_otel<'a>(
         *max_end = (*max_end).max(e);
     };
 
-    // Ship cycle: objective → task → action/check.
-    if let Some((objective, tasks)) = ship {
-        let obj_start = objective.created_at.as_deref().and_then(nanos).unwrap_or(0);
-        let obj_end = objective
+    // Run cycle: goal → step → progress/check.
+    if let Some((goal, steps)) = run {
+        let obj_start = goal.created_at.as_deref().and_then(nanos).unwrap_or(0);
+        let obj_end = goal
             .completed_at
             .as_deref()
             .and_then(nanos)
             .unwrap_or(obj_start + 1_000_000);
         bump(obj_start, obj_end, &mut min_start, &mut max_end);
-        let obj_id = span_id(
-            "objective",
-            objective.created_at.as_deref().unwrap_or("current"),
-        );
+        let obj_id = span_id("goal", goal.created_at.as_deref().unwrap_or("current"));
         spans.push(span(
             &trace,
             obj_id.clone(),
             Some(&root_id),
-            "invoke_agent objective",
+            "invoke_agent goal",
             obj_start,
             obj_end,
             vec![
                 attr("gen_ai.operation.name", "invoke_agent"),
                 attr("gen_ai.agent.name", project),
-                attr("magistr.workflow.family", "ship"),
-                attr("magistr.workflow.kind", "objective"),
-                attr("magistr.workflow.title", &objective.description),
+                attr("magistr.workflow.family", "run"),
+                attr("magistr.workflow.kind", "goal"),
+                attr("magistr.workflow.title", &goal.description),
             ],
             false,
         ));
 
-        for task in tasks {
-            let t_start = task
+        for step in steps {
+            let t_start = step
                 .started_at
                 .as_deref()
                 .and_then(nanos)
                 .unwrap_or(obj_start);
-            let t_end = task
+            let t_end = step
                 .completed_at
                 .as_deref()
                 .and_then(nanos)
                 .unwrap_or(t_start + 1_000_000);
             bump(t_start, t_end, &mut min_start, &mut max_end);
-            let t_id = span_id("task", &task.id);
+            let t_id = span_id("step", &step.id);
             spans.push(span(
                 &trace,
                 t_id.clone(),
                 Some(&obj_id),
-                &format!("invoke_agent task {}", task.id),
+                &format!("invoke_agent step {}", step.id),
                 t_start,
                 t_end,
                 vec![
                     attr("gen_ai.operation.name", "invoke_agent"),
                     attr("gen_ai.agent.name", project),
-                    attr("magistr.workflow.family", "ship"),
-                    attr("magistr.workflow.kind", "task"),
-                    attr("magistr.workflow.id", &task.id),
-                    attr("magistr.workflow.title", &task.title),
+                    attr("magistr.workflow.family", "run"),
+                    attr("magistr.workflow.kind", "step"),
+                    attr("magistr.workflow.id", &step.id),
+                    attr("magistr.workflow.title", &step.title),
                 ],
                 false,
             ));
 
-            for action in &task.actions {
-                let a_start = nanos(&action.timestamp).unwrap_or(t_start);
+            for progress in &step.progress {
+                let a_start = nanos(&progress.timestamp).unwrap_or(t_start);
                 let a_end = a_start + 1_000_000;
                 bump(a_start, a_end, &mut min_start, &mut max_end);
                 spans.push(span(
                     &trace,
-                    span_id("action", &action.id.to_string()),
+                    span_id("progress", &progress.id.to_string()),
                     Some(&t_id),
-                    &format!("execute_tool action {}", action.id),
+                    &format!("execute_tool progress {}", progress.id),
                     a_start,
                     a_end,
                     vec![
                         attr("gen_ai.operation.name", "execute_tool"),
-                        attr("magistr.workflow.family", "ship"),
-                        attr("magistr.workflow.kind", "action"),
-                        attr("magistr.workflow.id", &action.id.to_string()),
+                        attr("magistr.workflow.family", "run"),
+                        attr("magistr.workflow.kind", "progress"),
+                        attr("magistr.workflow.id", &progress.id.to_string()),
                     ],
                     false,
                 ));
             }
-            for (seq, check) in task.checks.iter().enumerate() {
+            for (seq, check) in step.checks.iter().enumerate() {
                 // Zero-duration at the check's own recorded instant.
                 let c_at = nanos(&check.timestamp).unwrap_or(t_end);
                 bump(c_at, c_at, &mut min_start, &mut max_end);
                 spans.push(span(
                     &trace,
-                    span_id("check", &format!("{}:{seq}", task.id)),
+                    span_id("check", &format!("{}:{seq}", step.id)),
                     Some(&t_id),
                     &format!("execute_tool check {}", check.name),
                     c_at,
                     c_at,
                     vec![
                         attr("gen_ai.operation.name", "execute_tool"),
-                        attr("magistr.workflow.family", "ship"),
+                        attr("magistr.workflow.family", "run"),
                         attr("magistr.workflow.kind", "check"),
                         attr("magistr.workflow.check.name", &check.name),
                         attr_bool("magistr.workflow.check.passed", check.passed),
@@ -234,10 +231,10 @@ pub fn build_otel<'a>(
         }
     }
 
-    // Think steps: reasoning spans, parented via execution_ref when it names a task.
-    let task_span_of = |exec: Option<&str>| -> Option<String> {
-        exec.and_then(|e| e.strip_prefix("task:"))
-            .map(|t| span_id("task", t))
+    // Think steps: reasoning spans, parented via execution_ref when it names a step.
+    let step_span_of = |exec: Option<&str>| -> Option<String> {
+        exec.and_then(|e| e.strip_prefix("step:"))
+            .map(|t| span_id("step", t))
     };
     for step in steps {
         let Some(start) = step.timestamp.as_deref().and_then(nanos) else {
@@ -246,9 +243,9 @@ pub fn build_otel<'a>(
         };
         let end = start + step.duration_ms.unwrap_or(1).max(1) * 1_000_000;
         bump(start, end, &mut min_start, &mut max_end);
-        // Parent only to spans that exist in THIS export (the current ship
-        // cycle's tasks); historical execution_refs fall back to the root.
-        let parent = task_span_of(step.execution_ref.as_deref())
+        // Parent only to spans that exist in THIS export (the current run
+        // cycle's steps); historical execution_refs fall back to the root.
+        let parent = step_span_of(step.execution_ref.as_deref())
             .filter(|p| spans.iter().any(|s| s["spanId"] == *p))
             .unwrap_or_else(|| root_id.clone());
         let mut attrs = vec![
@@ -400,9 +397,9 @@ mod tests {
         s
     }
 
-    fn cycle() -> (Objective, Vec<Task>) {
-        let objective: Objective = serde_json::from_value(serde_json::json!({
-            "description": "ship the thing",
+    fn cycle() -> (Goal, Vec<Step>) {
+        let goal: Goal = serde_json::from_value(serde_json::json!({
+            "description": "run the thing",
             "acceptance_criteria": [],
             "constraints": [],
             "scope": "",
@@ -410,17 +407,17 @@ mod tests {
             "project_id": "proj",
             "created_at": "2026-06-10T10:00:00Z",
         }))
-        .expect("objective");
-        let task: Task = serde_json::from_value(serde_json::json!({
+        .expect("goal");
+        let step: Step = serde_json::from_value(serde_json::json!({
             "id": "implement",
             "title": "Implement",
             "type": "implement",
-            "status": "completed",
+            "status": "done",
             "estimate": null,
             "started_at": "2026-06-10T10:05:00Z",
             "completed_at": "2026-06-10T11:00:00Z",
-            "actions": [{
-                "id": 1, "task_id": "implement", "timestamp": "2026-06-10T10:10:00Z",
+            "progress": [{
+                "id": 1, "step_id": "implement", "timestamp": "2026-06-10T10:10:00Z",
                 "type": "code", "description": "did it", "result": ""
             }],
             "checks": [{
@@ -429,15 +426,15 @@ mod tests {
                 "timestamp": "2026-06-10T10:55:00Z"
             }],
         }))
-        .expect("task");
-        (objective, vec![task])
+        .expect("step");
+        (goal, vec![step])
     }
 
     #[test]
-    fn exports_a_valid_objective_task_action_check_tree() {
-        let (obj, tasks) = cycle();
-        let steps = [step(7, "2026-06-10T10:06:00Z", Some("task:implement"))];
-        let out = build_otel("proj", Some((&obj, &tasks)), steps.iter(), None);
+    fn exports_a_valid_goal_step_progress_check_tree() {
+        let (obj, run_steps) = cycle();
+        let steps = [step(7, "2026-06-10T10:06:00Z", Some("step:implement"))];
+        let out = build_otel("proj", Some((&obj, &run_steps)), steps.iter(), None);
         assert_eq!(validate_otlp(&out.body), Vec::<String>::new());
         assert_eq!(out.skipped_steps, 0);
 
@@ -445,7 +442,7 @@ mod tests {
             .as_array()
             .unwrap()
             .clone();
-        // root + objective + task + action + check + step
+        // root + goal + step + progress + check + step
         assert_eq!(spans.len(), 6);
         let by_name = |n: &str| {
             spans
@@ -453,27 +450,27 @@ mod tests {
                 .find(|s| s["name"].as_str().unwrap().contains(n))
                 .unwrap()
         };
-        let task_span = by_name("task implement");
-        let action = by_name("action 1");
+        let step_span = by_name("step implement");
+        let progress = by_name("progress 1");
         let check = by_name("check cargo test");
         let reasoning = by_name("reasoning step 7");
-        assert_eq!(action["parentSpanId"], task_span["spanId"]);
-        assert_eq!(check["parentSpanId"], task_span["spanId"]);
-        // execution_ref task:implement parents the reasoning span to the task.
-        assert_eq!(reasoning["parentSpanId"], task_span["spanId"]);
+        assert_eq!(progress["parentSpanId"], step_span["spanId"]);
+        assert_eq!(check["parentSpanId"], step_span["spanId"]);
+        // execution_ref step:implement parents the reasoning span to the step.
+        assert_eq!(reasoning["parentSpanId"], step_span["spanId"]);
         // Failed gate → ERROR status on the check span only.
         assert_eq!(check["status"]["code"], 2);
-        assert_eq!(task_span["status"]["code"], 0);
+        assert_eq!(step_span["status"]["code"], 0);
     }
 
     #[test]
     fn ids_are_deterministic_and_steps_without_timestamps_are_counted_not_fabricated() {
-        let (obj, tasks) = cycle();
+        let (obj, run_steps) = cycle();
         let mut no_ts: ThinkStep = serde_json::from_str("{\"step_number\":9}").unwrap();
         no_ts.timestamp = None;
         let steps = [step(7, "2026-06-10T10:06:00Z", None), no_ts];
-        let a = build_otel("proj", Some((&obj, &tasks)), steps.iter(), None);
-        let b = build_otel("proj", Some((&obj, &tasks)), steps.iter(), None);
+        let a = build_otel("proj", Some((&obj, &run_steps)), steps.iter(), None);
+        let b = build_otel("proj", Some((&obj, &run_steps)), steps.iter(), None);
         assert_eq!(a.body, b.body, "same inputs must export identical bytes");
         assert_eq!(a.skipped_steps, 1);
         assert_ne!(
@@ -511,9 +508,14 @@ mod tests {
     /// CLAIM 1: an adopted caller context replaces OUR trace id on EVERY span.
     #[test]
     fn joined_export_carries_the_callers_trace_id_on_every_span() {
-        let (obj, tasks) = cycle();
+        let (obj, run_steps) = cycle();
         let ctx = caller_context();
-        let out = build_otel("proj", Some((&obj, &tasks)), std::iter::empty(), Some(&ctx));
+        let out = build_otel(
+            "proj",
+            Some((&obj, &run_steps)),
+            std::iter::empty(),
+            Some(&ctx),
+        );
         let spans = spans_of(&out);
         assert!(!spans.is_empty(), "fixture must produce spans");
         for s in &spans {
@@ -535,9 +537,14 @@ mod tests {
     /// the two trees ONE tree rather than two roots sharing an id.
     #[test]
     fn joined_export_parents_the_root_to_the_callers_span() {
-        let (obj, tasks) = cycle();
+        let (obj, run_steps) = cycle();
         let ctx = caller_context();
-        let out = build_otel("proj", Some((&obj, &tasks)), std::iter::empty(), Some(&ctx));
+        let out = build_otel(
+            "proj",
+            Some((&obj, &run_steps)),
+            std::iter::empty(),
+            Some(&ctx),
+        );
         let spans = spans_of(&out);
         let root = spans
             .iter()
@@ -551,10 +558,15 @@ mod tests {
     /// the export deterministic.
     #[test]
     fn joining_leaves_every_span_id_untouched() {
-        let (obj, tasks) = cycle();
+        let (obj, run_steps) = cycle();
         let ctx = caller_context();
-        let plain = build_otel("proj", Some((&obj, &tasks)), std::iter::empty(), None);
-        let joined = build_otel("proj", Some((&obj, &tasks)), std::iter::empty(), Some(&ctx));
+        let plain = build_otel("proj", Some((&obj, &run_steps)), std::iter::empty(), None);
+        let joined = build_otel(
+            "proj",
+            Some((&obj, &run_steps)),
+            std::iter::empty(),
+            Some(&ctx),
+        );
         let ids = |o: &OtelExport| -> Vec<String> {
             spans_of(o)
                 .iter()
@@ -568,8 +580,8 @@ mod tests {
     /// before SEP-414 — our own trace id, and a root that parents to nothing.
     #[test]
     fn unjoined_export_is_unchanged_by_the_sep414_work() {
-        let (obj, tasks) = cycle();
-        let out = build_otel("proj", Some((&obj, &tasks)), std::iter::empty(), None);
+        let (obj, run_steps) = cycle();
+        let out = build_otel("proj", Some((&obj, &run_steps)), std::iter::empty(), None);
         let spans = spans_of(&out);
         let root = spans
             .iter()
@@ -589,9 +601,14 @@ mod tests {
     /// CLI would bail on every joined export.
     #[test]
     fn strict_validator_rejects_a_joined_export() {
-        let (obj, tasks) = cycle();
+        let (obj, run_steps) = cycle();
         let ctx = caller_context();
-        let out = build_otel("proj", Some((&obj, &tasks)), std::iter::empty(), Some(&ctx));
+        let out = build_otel(
+            "proj",
+            Some((&obj, &run_steps)),
+            std::iter::empty(),
+            Some(&ctx),
+        );
         let problems = validate_otlp(&out.body);
         assert!(
             problems.iter().any(|p| p.contains("dangling parentSpanId")),
@@ -602,9 +619,14 @@ mod tests {
     /// CLAIM 6: declaring the caller's span id makes the same body valid.
     #[test]
     fn declaring_the_external_parent_accepts_the_joined_export() {
-        let (obj, tasks) = cycle();
+        let (obj, run_steps) = cycle();
         let ctx = caller_context();
-        let out = build_otel("proj", Some((&obj, &tasks)), std::iter::empty(), Some(&ctx));
+        let out = build_otel(
+            "proj",
+            Some((&obj, &run_steps)),
+            std::iter::empty(),
+            Some(&ctx),
+        );
         assert_eq!(
             validate_otlp_with_external_parent(&out.body, Some(CALLER_SPAN)),
             Vec::<String>::new()
@@ -642,8 +664,8 @@ mod tests {
 
     #[test]
     fn gen_ai_attributes_ride_the_agent_spans() {
-        let (obj, tasks) = cycle();
-        let out = build_otel("proj", Some((&obj, &tasks)), std::iter::empty(), None);
+        let (obj, run_steps) = cycle();
+        let out = build_otel("proj", Some((&obj, &run_steps)), std::iter::empty(), None);
         let text = out.body.to_string();
         assert!(text.contains("gen_ai.operation.name"));
         assert!(text.contains("invoke_agent"));

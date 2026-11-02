@@ -1,6 +1,6 @@
 //! `magistr mcp` over a real rmcp client on an in-memory duplex:
 //! one tool list carrying both the `magistr_*` tools and the magistr
-//! families, gates recorded through `ship_check`, phases recorded on the
+//! families, gates recorded through `check_step`, phases recorded on the
 //! active task — all against a temporary store.
 
 use std::path::Path;
@@ -20,11 +20,11 @@ impl ClientHandler for TestClient {}
 type Client = rmcp::service::RunningService<rmcp::RoleClient, TestClient>;
 
 /// The gate commands are written for two shells at once: magistr runs a
-/// gate through `sh -c`, and magistr's `ship_check` (which runs a
+/// gate through `sh -c`, and magistr's `check_step` (which runs a
 /// recorded gate itself) uses `cmd /C` on Windows, where any quote in
 /// the command is mangled on the way in. So no quotes: a diagnostic that
 /// needs them lives in `diag.sh` and the gate is `sh <root>/diag.sh` —
-/// by absolute path, since `ship_check` runs in the server's own cwd.
+/// by absolute path, since `check_step` runs in the server's own cwd.
 fn write_fixture(root: &Path) {
     std::fs::create_dir_all(root.join(".magistr")).expect("mkdir .magistr");
     std::fs::write(
@@ -127,8 +127,8 @@ async fn check_keeps_its_admitted_run(tool: &str) {
             while !started.exists() {
                 tokio::time::sleep(Duration::from_millis(5)).await;
             }
-            call(&client, "ship_complete", json!({"task_id": "reused"})).await;
-            call(&client, "ship_finalize", json!({})).await;
+            call(&client, "finish_step", json!({"step_id": "reused"})).await;
+            call(&client, "run_finish", json!({})).await;
             begin_reused_task(&client, "second").await;
         })
         .await
@@ -140,18 +140,18 @@ async fn check_keeps_its_admitted_run(tool: &str) {
     if tool == "magistr_gate" {
         assert_eq!(result["passed"], true, "{result}");
         assert_eq!(result["recorded"], false, "{result}");
-        assert_eq!(result["task_id"], "reused");
+        assert_eq!(result["step_id"], "reused");
         assert_eq!(result["execution"]["code"], 0);
-        assert!(result["receipt"].as_str().is_some());
+        assert!(result["check_result"].as_str().is_some());
         assert!(result.get("saved_receipt").is_none());
     } else {
         assert_eq!(result["settlement"], "stale", "{result}");
-        assert_eq!(result["receipt"]["task_id"], "reused");
-        assert_eq!(result["receipt"]["execution"]["code"], 0);
-        assert!(result["receipt"]["id"].as_str().is_some());
+        assert_eq!(result["check_result"]["step_id"], "reused");
+        assert_eq!(result["check_result"]["execution"]["code"], 0);
+        assert!(result["check_result"]["id"].as_str().is_some());
     }
-    let status = text_json(&call(&client, "ship_status", json!({})).await);
-    assert_eq!(status["objective"]["description"], "second", "{status}");
+    let status = text_json(&call(&client, "run_status", json!({})).await);
+    assert_eq!(status["goal"]["description"], "second", "{status}");
     assert!(
         status["checks"].as_array().expect("checks").is_empty(),
         "{status}"
@@ -161,20 +161,15 @@ async fn check_keeps_its_admitted_run(tool: &str) {
 }
 
 #[cfg(unix)]
-async fn begin_reused_task(client: &Client, objective: &str) {
+async fn begin_reused_task(client: &Client, goal: &str) {
+    call(client, "run_open", json!({"description": goal})).await;
     call(
         client,
-        "ship_set_objective",
-        json!({"description": objective}),
+        "arrange_steps",
+        json!({"action": "add", "step_id": "reused", "title": "Verify"}),
     )
     .await;
-    call(
-        client,
-        "ship_plan",
-        json!({"action": "add", "task_id": "reused", "title": "Verify"}),
-    )
-    .await;
-    let started = call(client, "ship_start", json!({"task_id": "reused"})).await;
+    let started = call(client, "start_step", json!({"step_id": "reused"})).await;
     assert_eq!(
         text_json(&started)["value"]["status"],
         "active",
@@ -190,8 +185,8 @@ async fn magistr_gate_cannot_land_on_a_reused_task_in_a_later_run() {
 
 #[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn native_ship_check_cannot_land_on_a_reused_task_in_a_later_run() {
-    check_keeps_its_admitted_run("ship_check").await;
+async fn native_run_check_cannot_land_on_a_reused_task_in_a_later_run() {
+    check_keeps_its_admitted_run("check_step").await;
 }
 
 #[tokio::test]
@@ -372,7 +367,7 @@ async fn roadmap_export_never_follows_a_destination_symlink() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn one_server_serves_both_surfaces_and_records_gates_through_ship() {
+async fn one_server_serves_both_surfaces_and_records_gates_through_run() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
@@ -388,7 +383,7 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_ship() {
         "magistr_set_phase",
         "magistr_format",
         "think_record_step",
-        "ship_check",
+        "check_step",
         "roadmap_next",
         "roadmap_status",
         "signal_capture",
@@ -411,20 +406,15 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_ship() {
     assert_eq!(body["passed"], true, "{body}");
     assert_eq!(body["recorded"], false, "{body}");
 
-    // Objective → plan → start, then the gate is recorded through ship_check.
+    // Goal → plan → start, then the gate is recorded through check_step.
+    call(&client, "run_open", json!({"description": "ts2 duplex"})).await;
     call(
         &client,
-        "ship_set_objective",
-        json!({"description": "ts2 duplex"}),
+        "arrange_steps",
+        json!({"action": "add", "step_id": "gate-task", "title": "run gates"}),
     )
     .await;
-    call(
-        &client,
-        "ship_plan",
-        json!({"action": "add", "task_id": "gate-task", "title": "run gates"}),
-    )
-    .await;
-    let started = call(&client, "ship_start", json!({"task_id": "gate-task"})).await;
+    let started = call(&client, "start_step", json!({"step_id": "gate-task"})).await;
     assert_ne!(started.is_error, Some(true), "{started:?}");
 
     let recorded = call(&client, "magistr_gate", json!({"gate": "all"})).await;
@@ -478,16 +468,16 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_ship() {
     let phase = call(&client, "magistr_set_phase", json!({"phase": "verify"})).await;
     assert_ne!(phase.is_error, Some(true), "{phase:?}");
 
-    let ship = text_json(&call(&client, "ship_status", json!({})).await);
-    let task = ship["task_list"]
+    let run = text_json(&call(&client, "run_status", json!({})).await);
+    let task = run["step_list"]
         .as_array()
         .and_then(|t| t.iter().find(|t| t["id"] == "gate-task"))
         .cloned()
-        .unwrap_or(ship.clone());
-    let checks = ship["checks"].as_array().cloned().unwrap_or_default();
-    assert_eq!(checks.len(), 4, "four verified checks: {ship}");
+        .unwrap_or(run.clone());
+    let checks = run["checks"].as_array().cloned().unwrap_or_default();
+    assert_eq!(checks.len(), 4, "four verified checks: {run}");
     assert!(checks.iter().all(|c| c["verified"] == true), "{checks:?}");
-    // ship_status summarises checks (name/passed/verified); the exit code was
+    // run_status summarises checks (name/passed/verified); the exit code was
     // asserted on the gate response above.
     assert!(
         checks
@@ -495,7 +485,7 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_ship() {
             .any(|c| c["name"] == "lint" && c["passed"] == false && c["verified"] == true),
         "{checks:?}"
     );
-    let actions = ship["recent_actions"]
+    let actions = run["recent_progress"]
         .as_array()
         .cloned()
         .unwrap_or_default();
@@ -510,14 +500,14 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_ship() {
     // Work persists under this execution's partition and declared project identity.
     let context = magistr_engine::native::ExecutionContext::new(
         &root,
-        ship["execution"]["execution_id"]
+        run["execution"]["execution_id"]
             .as_str()
             .expect("execution id"),
     )
     .expect("admitted context");
     assert!(
         data_dir
-            .join("ship/executions")
+            .join("run/executions")
             .join(context.key())
             .join("sessions/mcp-serve-fixture.json")
             .exists()
@@ -617,7 +607,7 @@ async fn a_modern_client_is_negotiated_down_and_tools_list_carries_no_result_typ
         .iter()
         .filter_map(|t| t["name"].as_str())
         .collect();
-    for expected in ["magistr_gate", "roadmap_next", "ship_check"] {
+    for expected in ["magistr_gate", "roadmap_next", "check_step"] {
         assert!(names.contains(&expected), "{expected} in {names:?}");
     }
 
@@ -721,7 +711,7 @@ async fn a_client_that_discovers_before_initialize_still_lists_tools() {
         .iter()
         .filter_map(|t| t["name"].as_str())
         .collect();
-    for expected in ["magistr_gate", "roadmap_next", "ship_check"] {
+    for expected in ["magistr_gate", "roadmap_next", "check_step"] {
         assert!(names.contains(&expected), "{expected} in {names:?}");
     }
     assert!(
@@ -743,10 +733,10 @@ fn write_green_fixture(root: &Path) {
     std::fs::write(&path, serde_json::to_string_pretty(&config).expect("json")).expect("write");
 }
 
-/// The acceptance of magistr-gate-forwards-ship-check, verbatim: with an
+/// The acceptance of magistr-gate-forwards-run-check, verbatim: with an
 /// active task, a green `magistr_gate(all)` leaves one verified check per
 /// gate on that task, and `magistr_set_phase(done)` is open right after it
-/// with no manual `ship_check`.
+/// with no manual `check_step`.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_green_gate_run_is_the_only_check_the_done_phase_needs() {
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -758,17 +748,17 @@ async fn a_green_gate_run_is_the_only_check_the_done_phase_needs() {
 
     call(
         &client,
-        "ship_set_objective",
-        json!({"description": "gate → ship_check"}),
+        "run_open",
+        json!({"description": "gate → check_step"}),
     )
     .await;
     call(
         &client,
-        "ship_plan",
-        json!({"action": "add", "task_id": "gate-task", "title": "run gates"}),
+        "arrange_steps",
+        json!({"action": "add", "step_id": "gate-task", "title": "run gates"}),
     )
     .await;
-    let started = call(&client, "ship_start", json!({"task_id": "gate-task"})).await;
+    let started = call(&client, "start_step", json!({"step_id": "gate-task"})).await;
     assert_ne!(started.is_error, Some(true), "{started:?}");
 
     // Before any gate ran, `done` is refused for want of a check.
@@ -792,25 +782,25 @@ async fn a_green_gate_run_is_the_only_check_the_done_phase_needs() {
     }
 
     // One verified, command-run check per gate, all on the active task.
-    let ship = text_json(&call(&client, "ship_status", json!({})).await);
-    let checks = ship["checks"].as_array().cloned().unwrap_or_default();
-    assert_eq!(checks.len(), gates.len(), "{ship}");
+    let run = text_json(&call(&client, "run_status", json!({})).await);
+    let checks = run["checks"].as_array().cloned().unwrap_or_default();
+    assert_eq!(checks.len(), gates.len(), "{run}");
     for gate in gates {
         let name = gate["gate"].as_str().expect("gate name");
         let matching: Vec<&Value> = checks.iter().filter(|c| c["name"] == name).collect();
         assert_eq!(matching.len(), 1, "one check for {name}: {checks:?}");
-        assert_eq!(matching[0]["task_id"], "gate-task", "{checks:?}");
+        assert_eq!(matching[0]["step_id"], "gate-task", "{checks:?}");
         assert_eq!(matching[0]["verified"], true, "{checks:?}");
         assert_eq!(matching[0]["passed"], true, "{checks:?}");
     }
-    let task = ship["task_list"]
+    let task = run["step_list"]
         .as_array()
         .and_then(|t| t.iter().find(|t| t["id"] == "gate-task"))
         .cloned()
         .expect("gate-task");
     assert_eq!(task["checks_count"], gates.len(), "{task}");
 
-    // And `done` opens on those checks alone — no ship_check by hand.
+    // And `done` opens on those checks alone — no check_step by hand.
     let done = call(&client, "magistr_set_phase", json!({"phase": "done"})).await;
     assert_ne!(done.is_error, Some(true), "{done:?}");
 
@@ -818,11 +808,11 @@ async fn a_green_gate_run_is_the_only_check_the_done_phase_needs() {
     server.abort();
 }
 
-/// When ship_check refuses — here, no active task — the gate still runs, and
-/// the result says why it was not recorded in ship_check's own words rather
+/// When check_step refuses — here, no active step — the gate still runs, and
+/// the result says why it was not recorded in check_step's own words rather
 /// than a guessed cause, at the gate and at the top of an `all` run.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_unrecorded_gate_names_ship_checks_refusal() {
+async fn an_unrecorded_gate_names_run_checks_refusal() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
@@ -836,15 +826,15 @@ async fn an_unrecorded_gate_names_ship_checks_refusal() {
     let note = one["note"].as_str().expect("note");
     assert!(note.starts_with("not recorded: "), "{note}");
     assert!(
-        note.contains("no active task"),
-        "ship_check's words: {note}"
+        note.contains("no active step"),
+        "check_step's words: {note}"
     );
 
     let all = text_json(&call(&client, "magistr_gate", json!({"gate": "all"})).await);
     assert_eq!(all["passed"], true, "{all}");
     assert_eq!(all["recorded"], false, "{all}");
     let note = all["note"].as_str().expect("top-level note");
-    assert!(note.contains("no active task"), "{note}");
+    assert!(note.contains("no active step"), "{note}");
     for gate in ["check", "test", "lint", "structure"] {
         assert!(note.contains(gate), "names every unrecorded gate: {note}");
     }
@@ -877,9 +867,9 @@ fn runs(counter: &Path) -> usize {
 }
 
 /// A gate command runs **once** per `magistr_gate` call, whether or not there
-/// is a ship task to record it on.
+/// is a run task to record it on.
 ///
-/// The regression: `ship_check` executes the command *before* it discovers it
+/// The regression: `check_step` executes the command *before* it discovers it
 /// has nowhere to record the result, so forwarding a gate to it with no active
 /// task ran the command, threw the run away with a refusal, and left
 /// `magistr_gate` to run it a second time. Two `cargo nextest` runs, two
@@ -895,27 +885,27 @@ async fn a_gate_runs_its_command_exactly_once_with_or_without_a_task() {
     let data_dir = tmp.path().join("data");
     let (client, server) = pair(&root, &data_dir).await;
 
-    // No objective, no plan, no active task: ship_check has nowhere to put
+    // No goal, no plan, no active task: check_step has nowhere to put
     // the result, and the gate must still run exactly once.
     let one = text_json(&call(&client, "magistr_gate", json!({"gate": "check"})).await);
     assert_eq!(one["passed"], true, "{one}");
     assert_eq!(one["recorded"], false, "{one}");
     assert_eq!(runs(&counter), 1, "unrecorded gate ran more than once");
 
-    // And once more with a task, where the run happens inside ship_check.
+    // And once more with a task, where the run happens inside check_step.
     call(
         &client,
-        "ship_set_objective",
+        "run_open",
         json!({"description": "count the runs"}),
     )
     .await;
     call(
         &client,
-        "ship_plan",
-        json!({"action": "add", "task_id": "t1", "title": "gate"}),
+        "arrange_steps",
+        json!({"action": "add", "step_id": "t1", "title": "gate"}),
     )
     .await;
-    call(&client, "ship_start", json!({"task_id": "t1"})).await;
+    call(&client, "start_step", json!({"step_id": "t1"})).await;
 
     let two = text_json(&call(&client, "magistr_gate", json!({"gate": "check"})).await);
     assert_eq!(two["recorded"], true, "{two}");
@@ -990,7 +980,7 @@ async fn a_polyglot_gate_runs_every_stack_once() {
 
 /// A gate `magistr mcp` runs directly is live on the feed socket the
 /// cockpit attaches to: what the command writes goes out, raw, as
-/// `ship`/`gate_output` frames keyed by the gate — on the pty the runner
+/// `run`/`gate_output` frames keyed by the gate — on the pty the runner
 /// spawns it on, so a line ends in the tty's `\r\n`.
 #[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -1070,7 +1060,7 @@ async fn context_reads_owner_phase_and_canonical_evidence_without_mutation() {
     let (client, server) = pair(&root, &tmp.path().join("data")).await;
     let listed = client.peer().list_all_tools().await.expect("tools");
     assert!(listed.iter().any(|t| t.name == "magistr_context"));
-    let before = text_json(&call(&client, "ship_status", json!({})).await);
+    let before = text_json(&call(&client, "run_status", json!({})).await);
     let empty = text_json(&call(&client, "magistr_context", json!({})).await);
     assert_eq!(empty["version"], 1);
     assert_eq!(
@@ -1087,7 +1077,7 @@ async fn context_reads_owner_phase_and_canonical_evidence_without_mutation() {
     );
     assert_eq!(
         before,
-        text_json(&call(&client, "ship_status", json!({})).await)
+        text_json(&call(&client, "run_status", json!({})).await)
     );
     assert!(
         empty["checks"]
@@ -1098,45 +1088,45 @@ async fn context_reads_owner_phase_and_canonical_evidence_without_mutation() {
     );
     call(
         &client,
-        "ship_set_objective",
+        "run_open",
         json!({"description": "Inspect evidence", "verification": "focused", "scope": "context:first"}),
     )
     .await;
     call(
         &client,
-        "ship_plan",
-        json!({"action": "add", "task_id": "inspect", "title": "Inspect"}),
+        "arrange_steps",
+        json!({"action": "add", "step_id": "inspect", "title": "Inspect"}),
     )
     .await;
-    call(&client, "ship_start", json!({"task_id": "inspect"})).await;
+    call(&client, "start_step", json!({"step_id": "inspect"})).await;
     call(&client, "magistr_set_phase", json!({"phase": "verify"})).await;
     let context = text_json(
         &call(
             &client,
             "magistr_context",
-            json!({"task_id": "inspect", "receipt_id": "absent"}),
+            json!({"step_id": "inspect", "check_result_id": "absent"}),
         )
         .await,
     );
     assert_eq!(context["phase"], "verifying");
-    assert_eq!(context["phase_task"], "inspect");
-    assert_eq!(context["task"]["record"]["id"], "inspect");
-    assert_eq!(context["task"]["detail_limit"], 6000);
-    assert!(context["receipt"].is_null());
-    // Selecting another scope invalidates its observation, even if a task id is reused.
+    assert_eq!(context["phase_step"], "inspect");
+    assert_eq!(context["step"]["record"]["id"], "inspect");
+    assert_eq!(context["step"]["detail_limit"], 6000);
+    assert!(context["check_result"].is_null());
+    // Selecting another scope invalidates its observation, even if a step id is reused.
     call(
         &client,
-        "ship_set_objective",
+        "run_open",
         json!({"description": "Another cycle", "verification": "focused", "scope": "context:second"}),
     )
     .await;
     call(
         &client,
-        "ship_plan",
-        json!({"action": "add", "task_id": "inspect", "title": "Inspect"}),
+        "arrange_steps",
+        json!({"action": "add", "step_id": "inspect", "title": "Inspect"}),
     )
     .await;
-    call(&client, "ship_start", json!({"task_id": "inspect"})).await;
+    call(&client, "start_step", json!({"step_id": "inspect"})).await;
     let changed = text_json(&call(&client, "magistr_context", json!({})).await);
     assert!(changed["phase"].is_null());
     client.cancel().await.expect("cancel");
@@ -1151,9 +1141,9 @@ async fn context_refuses_malformed_and_unknown_task_requests_over_mcp() {
     write_fixture(&root);
     let (client, server) = pair(&root, &tmp.path().join("data")).await;
     for args in [
-        json!({"task_id": 1}),
+        json!({"step_id": 1}),
         json!({"run": true}),
-        json!({"task_id": "absent"}),
+        json!({"step_id": "absent"}),
     ] {
         let mut request = CallToolRequestParams::new("magistr_context");
         request.arguments = args.as_object().cloned();

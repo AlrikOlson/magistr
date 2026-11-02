@@ -77,7 +77,7 @@ pub(super) fn build_gate_tool(project_root: PathBuf) -> SdkMcpTool {
          In polyglot projects, pass 'archetype' to target a specific sub-project; \
          omit it to run gates for all archetypes. Returns structured results \
          with pass/fail status, output, duration, and exit code. Each gate is \
-         recorded through ship_check (verified, real exit code) when a ship task \
+         recorded through check_step (verified, real exit code) when a run task \
          is active in this server; otherwise the gate still runs and `recorded: \
          false` + `note` say why it was not recorded (`all` carries both at the \
          top level too).",

@@ -32,7 +32,7 @@ fn preview(root: &Path, args: &[&str]) -> serde_json::Value {
 }
 
 #[test]
-fn native_previews_share_options_and_never_start_work() {
+fn native_previews_share_options_and_never_start_step() {
     let dir = tempfile::tempdir().unwrap();
     for args in [
         vec![

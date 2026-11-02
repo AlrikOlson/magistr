@@ -2,7 +2,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Identifies which family emitted a frame. Wire form is the lowercase
-/// name (`"think"` / `"ship"` / `"roadmap"` / `"signal"` / `"magistr"`).
+/// name (`"think"` / `"run"` / `"roadmap"` / `"signal"` / `"magistr"`).
 ///
 /// `Magistr` is the host's own family: what the process serving the
 /// socket says about itself — a running gate's bytes, the phase the agent
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "snake_case")]
 pub enum Family {
     Think,
-    Ship,
+    Run,
     Roadmap,
     Signal,
     Magistr,
@@ -21,7 +21,7 @@ impl Family {
     /// Every family, in declaration order.
     pub const ALL: [Family; 5] = [
         Family::Think,
-        Family::Ship,
+        Family::Run,
         Family::Roadmap,
         Family::Signal,
         Family::Magistr,
@@ -30,7 +30,7 @@ impl Family {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Think => "think",
-            Self::Ship => "ship",
+            Self::Run => "run",
             Self::Roadmap => "roadmap",
             Self::Signal => "signal",
             Self::Magistr => "magistr",

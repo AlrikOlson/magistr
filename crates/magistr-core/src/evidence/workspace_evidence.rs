@@ -15,7 +15,7 @@ use crate::types::ProjectConfig;
 /// layer, resolved from the inputs captured at composition) observed
 /// beside it, and gate contracts resolved from the project configuration
 /// as it is at the moment of asking. Source and configuration observations
-/// are lock-free. Receipt retention reads the loop checkpoint under the caller's
+/// are lock-free. CheckResult retention reads the loop checkpoint under the caller's
 /// ledger lock, without acquiring another lock or writing any file.
 #[derive(Debug, Clone)]
 pub struct WorkspaceEvidence {
@@ -109,7 +109,7 @@ impl EvidencePort for WorkspaceEvidence {
         Ok(std::sync::Arc::new(evidence))
     }
 
-    fn retained_receipts(&self) -> Result<std::collections::BTreeSet<String>, String> {
+    fn retained_check_results(&self) -> Result<std::collections::BTreeSet<String>, String> {
         use crate::workflow::iteration::IterationState;
         use magistr_domain::workflow::OperationKind;
         let path = self.root.join(".magistr/loop-state.json");
@@ -131,12 +131,14 @@ impl EvidencePort for WorkspaceEvidence {
             .operations
             .records()
             .iter()
-            .filter(|record| record.kind == OperationKind::Receipt && !record.outcome.is_settled())
+            .filter(|record| {
+                record.kind == OperationKind::CheckResult && !record.outcome.is_settled()
+            })
             .filter_map(|record| {
                 record
                     .external
                     .as_deref()?
-                    .strip_prefix("receipt:")
+                    .strip_prefix("check_result:")
                     .map(str::to_owned)
             })
             .collect())
@@ -208,7 +210,7 @@ impl EvidencePort for WorkspaceEvidence {
         let (Some(old), Some(current)) = (old, current) else {
             return Ok(false);
         };
-        // A receipt cannot substitute a different archived scope or manifest.
+        // A check_result cannot substitute a different archived scope or manifest.
         if old.manifest.digest() != before.source_digest
             || old.policy_digest != before.policy_digest
             || old.policy.source_roots != before.inputs

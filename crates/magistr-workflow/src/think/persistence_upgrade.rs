@@ -22,14 +22,18 @@ impl Persistence {
             let value: Value = serde_json::from_slice(bytes).map_err(schema)?;
             match value["schema_version"].as_u64() {
                 Some(1) => legacy.push((session, value)),
-                Some(version)
-                    if version == u64::from(SCHEMA_VERSION) && session == &self.project_id =>
-                {
+                Some(version @ (2 | 3)) if session == &self.project_id => {
+                    // Version 2 still spells run references `task:` and `action:`.
+                    let mut value = value;
+                    if version == 2 {
+                        crate::infra::CrossRef::upgrade_stored_refs(&mut value);
+                        value["schema_version"] = json!(SCHEMA_VERSION);
+                    }
                     let saved: PersistedProject =
                         serde_json::from_value(value.clone()).map_err(schema)?;
                     self.validate(&saved)?;
+                    current = (version == u64::from(SCHEMA_VERSION)).then_some(bytes);
                     project = value;
-                    current = Some(bytes);
                 }
                 _ => {
                     return Err(schema(
@@ -39,9 +43,16 @@ impl Persistence {
             }
         }
         if legacy.is_empty() {
-            return current
-                .cloned()
-                .ok_or_else(|| schema("No saved reasoning was selected."));
+            if let Some(current) = current {
+                return Ok(current.clone());
+            }
+            if project["histories"]
+                .as_object()
+                .is_some_and(|h| !h.is_empty())
+            {
+                return serde_json::to_vec(&project).map_err(schema);
+            }
+            return Err(schema("No saved reasoning was selected."));
         }
         for (session, value) in legacy {
             let mut history = value["history"].clone();
@@ -88,6 +99,7 @@ impl Persistence {
                 histories.insert(session.clone(), history);
             }
         }
+        crate::infra::CrossRef::upgrade_stored_refs(&mut project["histories"]);
         let saved: PersistedProject = serde_json::from_value(project.clone()).map_err(schema)?;
         self.validate(&saved)?;
         serde_json::to_vec(&project).map_err(schema)

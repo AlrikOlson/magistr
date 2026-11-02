@@ -9,7 +9,7 @@ historical behavior does not impose compatibility requirements.
 | --- | --- | --- |
 | Project workflow | ProjectAuthority and its admitted NativeEngines | NativeReader, attached OwnerClient and native MCP families |
 | Workspace source | One WorkspaceService per canonical working-copy root | Typed source tools, admitted SourceWriter and lock-free evidence |
-| Execution plan and checks | Native ship scope and AdmittedCheck | Agent tools, loop verification and recorded check receipts |
+| Execution plan and checks | Native run scope and AdmittedCheck | Agent tools, loop verification and recorded check results |
 | Run and attempts | IterationLoop and operation ledger | LoopDriver, recovery and diagnostics |
 | Provider session and turn | SessionSupervisor | Application session handles and bounded observations |
 | Resident application session | SessionRegistry | SessionClient and SessionSubscription, addressed by project/workspace/session |

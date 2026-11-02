@@ -106,7 +106,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await app.getByRole("button",{name:"Work paused",exact:true}).click();
   await capture("work-paused-dark.png");
   await workScene(app,capture);
-  checks["current objective, requirements and tasks remain readable in both appearances and the minimum window"]=true;
+  checks["current goal, requirements and steps remain readable in both appearances and the minimum window"]=true;
   await app.locator('.detail-section[aria-label="Agent settings"]').evaluate(node=>node.scrollIntoView({block:"start"}));
   await expect(app.locator("#context-value")).toHaveText("9%");
   await capture("inspector-dark.png");
@@ -344,7 +344,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
   await outlineScene(app,capture,expect);
   checks["reply contents derive from real headings and land keyboard focus on the chosen section"]=true;
   await editorialScene(app,capture,expect);
-  checks["editorial quotes and nested task lists retain semantic source and authored order"]=true;
+  checks["editorial quotes and nested step lists retain semantic source and authored order"]=true;
   await galleryScene(app,capture,expect);
   checks["sent attachments form a contact sheet with source previews and native image inspection"]=true;
   await viewerScene(app,capture,expect);
@@ -368,7 +368,7 @@ test("workspace composition, appearances and narrow Details",async({app,browser}
     const file=resolve(root,"crates/magistr-desktop",name);
     sources[relative(root,file)]=createHash("sha256").update(await readFile(file)).digest("hex");
   }
-  await writeFile(resolve(evidence,"receipt.json"),JSON.stringify({
+  await writeFile(resolve(evidence,"check_result.json"),JSON.stringify({
     renderer:"headless WebKit",version:browser.version(),captured_at:new Date().toISOString(),
     scope:"Production desktop HTML, CSS and JavaScript with isolated observation fixtures; no native OS input or Rust owner integration.",
     checks,source_hashes:sources,images,viewports,

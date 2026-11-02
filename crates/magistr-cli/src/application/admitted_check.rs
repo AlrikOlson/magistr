@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use magistr_engine::native::{
-    CheckAdmission, CheckExecution, NativeEngines, SourceObservation, TaskAdmission,
+    CheckAdmission, CheckExecution, NativeEngines, SourceObservation, StepAdmission,
 };
 
 use super::{CheckEvidenceError, CheckIdentities, SettledCheck};
@@ -11,11 +11,11 @@ use crate::utils::gate::nextest_junit_report_path;
 
 /// One gate, admitted by the workflow before its command runs.
 ///
-/// Admission captures the concrete task instance the check belongs to and
-/// publishes its durable receipt, and — through the evidence capability
+/// Admission captures the concrete step instance the check belongs to and
+/// publishes its durable check_result, and — through the evidence capability
 /// the writer was admitted with — observes the workspace's selected source
-/// at that moment, so a task started while the gate ran can never collect
-/// the result and the receipt names the bytes it certifies. The command
+/// at that moment, so a step started while the gate ran can never collect
+/// the result and the check_result names the bytes it certifies. The command
 /// then runs with the owner's edits still flowing and nothing waiting on
 /// it. Settlement re-observes the source, then settles through the same
 /// admitted writer, in that order: the validation is taken as close to the
@@ -27,19 +27,19 @@ pub struct AdmittedCheck {
 }
 
 impl AdmittedCheck {
-    /// Admit `gate` on `task_id` (the active task when `None`) through the
-    /// admitted writer. The workflow is asked first: a check with no task
+    /// Admit `gate` on `step_id` (the active step when `None`) through the
+    /// admitted writer. The workflow is asked first: a check with no step
     /// to land on is refused before any byte is hashed; a workspace that
     /// cannot be observed refuses the admission too, so an unobservable
     /// gate is never recorded as evidence.
     ///
     /// # Errors
-    /// `Admission` when the workflow names no task or refuses the request;
+    /// `Admission` when the workflow names no step or refuses the request;
     /// `Source` when the workspace cannot be observed.
     pub fn admit(
         engines: &NativeEngines,
         root: &Path,
-        task_id: Option<&str>,
+        step_id: Option<&str>,
         gate: &str,
         command: String,
         required: bool,
@@ -47,7 +47,7 @@ impl AdmittedCheck {
         Self::admit_with_options(
             engines,
             root,
-            task_id,
+            step_id,
             gate,
             command,
             required,
@@ -60,16 +60,16 @@ impl AdmittedCheck {
     pub fn admit_with_options(
         engines: &NativeEngines,
         root: &Path,
-        task_id: Option<&str>,
+        step_id: Option<&str>,
         gate: &str,
         command: String,
         required: bool,
         options: magistr_engine::native::CheckOptions,
     ) -> Result<Self, CheckEvidenceError> {
         let admission = engines
-            .ship_admit_check(magistr_engine::native::CheckRequest {
+            .run_admit_check(magistr_engine::native::CheckRequest {
                 options,
-                task_id: task_id.map(str::to_owned),
+                step_id: step_id.map(str::to_owned),
                 check_type: magistr_engine::native::check_type_for(gate),
                 name: gate.into(),
                 passed: None,
@@ -85,14 +85,14 @@ impl AdmittedCheck {
         })
     }
 
-    /// Reuse matching evidence and settle it under this task, preserving the
-    /// original execution and parsed report through the receipt reference.
+    /// Reuse matching evidence and settle it under this step, preserving the
+    /// original execution and parsed report through the check_result reference.
     pub fn reuse(
         &self,
         engines: &NativeEngines,
     ) -> Result<Option<SettledCheck>, CheckEvidenceError> {
         let outcome = engines
-            .ship_reuse_gate(&self.admission.value)
+            .run_reuse_gate(&self.admission.value)
             .map_err(CheckEvidenceError::Settlement)?;
         outcome
             .map(|outcome| {
@@ -104,21 +104,21 @@ impl AdmittedCheck {
 
     /// The workflow identity the result will be settled against.
     #[must_use]
-    pub fn target(&self) -> &TaskAdmission {
+    pub fn target(&self) -> &StepAdmission {
         &self.admission.value.target
     }
 
-    /// The full admission: target, request, receipt id, acceptance
+    /// The full admission: target, request, check_result id, acceptance
     /// revision and the source observed.
     #[must_use]
     pub fn admission(&self) -> &CheckAdmission {
         &self.admission.value
     }
 
-    /// The durable receipt this check runs under.
+    /// The durable check_result this check runs under.
     #[must_use]
-    pub fn receipt_id(&self) -> &str {
-        &self.admission.value.receipt_id
+    pub fn check_result_id(&self) -> &str {
+        &self.admission.value.check_result_id
     }
 
     /// The source observed at admission, when the writer carries the
@@ -143,9 +143,9 @@ impl AdmittedCheck {
     /// `passed`, and a missing report is "not parsed".
     ///
     /// # Errors
-    /// `Settlement` when the workflow refuses. A superseded run or task is
+    /// `Settlement` when the workflow refuses. A superseded run or step is
     /// not an error: it is a `Stale` settlement carrying the admission,
-    /// the outcome and the settled receipt intact.
+    /// the outcome and the settled check_result intact.
     pub fn settle(
         self,
         engines: &NativeEngines,
@@ -161,7 +161,7 @@ impl AdmittedCheck {
             .and_then(nextest_junit_report_path)
             .map(|relative| self.root.join(relative).to_string_lossy().into_owned());
         let settlement = engines
-            .ship_settle_gate(
+            .run_settle_gate(
                 self.admission.value,
                 execution,
                 details,

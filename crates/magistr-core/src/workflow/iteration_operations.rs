@@ -46,8 +46,8 @@ impl IterationLoop {
 
     /// The effect was dispatched: `attempt` is `Running`, and `external` is
     /// the effect's own identity, kept apart from the command — a
-    /// [`RuntimeHandle`] for a provider dispatch, `receipt:<id>` for a
-    /// receipt. Persist after it, so recovery knows what to ask.
+    /// [`RuntimeHandle`] for a provider dispatch, `check_result:<id>` for a
+    /// check_result. Persist after it, so recovery knows what to ask.
     pub fn start_operation(&mut self, attempt: &AttemptId, external: Option<String>) -> Result<()> {
         self.state
             .operations
@@ -101,7 +101,7 @@ impl IterationLoop {
     ///
     /// - a reservation is established by the checkpoint that carries it;
     /// - a native mutation by the chunk's state in the native store;
-    /// - a receipt by its own durable receipt, read by the id the record
+    /// - a check_result by its own durable check_result, read by the id the record
     ///   carries: applied → `Completed`; unsettled, stale or never
     ///   published → `Failed`. No check of the same name stands in for it;
     /// - a publication is cancelled — attached surfaces reseed from the store
@@ -124,10 +124,10 @@ impl IterationLoop {
                     .native
                     .as_ref()
                     .and_then(|engines| native_mutation_outcome(engines, &record.target)),
-                OperationKind::Receipt => self
+                OperationKind::CheckResult => self
                     .native
                     .as_ref()
-                    .and_then(|engines| receipt_outcome(engines, &record)),
+                    .and_then(|engines| check_result_outcome(engines, &record)),
                 OperationKind::ProviderDispatch => self.dispatch_outcome(&record),
             };
             match established {
@@ -210,35 +210,38 @@ fn native_mutation_outcome(engines: &NativeReader, target: &str) -> Option<Opera
     })
 }
 
-/// `gate:<name>@task:<id>` against the durable receipt the record names
-/// (`receipt:<id>`), never against a same-named check on the task.
+/// `gate:<name>@step:<id>` against the durable check_result the record names
+/// (`check_result:<id>`), never against a same-named check on the step.
 ///
 /// A result is applied only at settlement, and the loop settles only after
-/// it has persisted the record as running under the receipt's id; so a
-/// record with no id, or whose receipt the ledger never saw or never
+/// it has persisted the record as running under the check_result's id; so a
+/// record with no id, or whose check_result the ledger never saw or never
 /// settled, had nothing applied: `Failed`, and the next set admits a new
-/// attempt. A settlement kept stale was not applied either. A receipt that
-/// names another gate or task than the record does is not this record's,
+/// attempt. A settlement kept stale was not applied either. A check_result that
+/// names another gate or step than the record does is not this record's,
 /// and the record stays open.
-fn receipt_outcome(engines: &NativeReader, record: &OperationRecord) -> Option<OperationOutcome> {
-    use magistr_engine::native::ReceiptSettlement;
-    let (gate, task) = record.target.strip_prefix("gate:")?.split_once("@task:")?;
+fn check_result_outcome(
+    engines: &NativeReader,
+    record: &OperationRecord,
+) -> Option<OperationOutcome> {
+    use magistr_engine::native::CheckResultSettlement;
+    let (gate, step) = record.target.strip_prefix("gate:")?.split_once("@step:")?;
     let Some(id) = record
         .external
         .as_deref()
-        .and_then(|handle| handle.strip_prefix("receipt:"))
+        .and_then(|handle| handle.strip_prefix("check_result:"))
     else {
         return Some(OperationOutcome::Failed);
     };
-    let Some(receipt) = engines.ship_receipt(id).ok()? else {
+    let Some(check_result) = engines.run_check_result(id).ok()? else {
         return Some(OperationOutcome::Failed);
     };
-    if receipt.gate != gate || receipt.target.task_id != task {
+    if check_result.gate != gate || check_result.target.step_id != step {
         return None;
     }
-    Some(match receipt.settlement {
-        Some(ReceiptSettlement::Applied) => OperationOutcome::Completed,
-        Some(ReceiptSettlement::Stale { .. }) | None => OperationOutcome::Failed,
+    Some(match check_result.settlement {
+        Some(CheckResultSettlement::Applied) => OperationOutcome::Completed,
+        Some(CheckResultSettlement::Stale { .. }) | None => OperationOutcome::Failed,
     })
 }
 

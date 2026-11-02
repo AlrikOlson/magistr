@@ -356,12 +356,12 @@ fn tool_title(name: &str, input: &Value) -> String {
             "Finding: {}",
             input["purpose"].as_str().unwrap_or("Record finding")
         ),
-        "ship_check" => format!("Check: {}", input["name"].as_str().unwrap_or("Run check")),
+        "check_step" => format!("Check: {}", input["name"].as_str().unwrap_or("Run check")),
         "magistr_gate" => format!("Check: {}", input["gate"].as_str().unwrap_or("Run check")),
-        "ship_plan" => format!("Plan: {}", input["title"].as_str().unwrap_or("Update plan")),
-        "ship_start" => "Start planned work".into(),
-        "ship_complete" => "Finish planned work".into(),
-        "ship_finalize" => "Finish work".into(),
+        "arrange_steps" => format!("Plan: {}", input["title"].as_str().unwrap_or("Update plan")),
+        "start_step" => "Start planned work".into(),
+        "finish_step" => "Finish planned work".into(),
+        "run_finish" => "Finish work".into(),
         "roadmap_complete_chunk" => "Complete roadmap item".into(),
         _ => {
             let detail = ["file", "path", "query"]

@@ -31,7 +31,7 @@ fn section_is_bounded_by_the_shared_markers() {
     assert!(section.starts_with(CLAUDE_MD_MARKER));
     assert!(section.trim_end().ends_with(CLAUDE_MD_END_MARKER));
     assert!(section.contains("# magistr"));
-    for family in ["think_*", "ship_*", "roadmap_*", "signal_*"] {
+    for family in ["think_*", "run_*", "roadmap_*", "signal_*"] {
         assert!(section.contains(family), "names the {family} family");
     }
 }
@@ -124,8 +124,8 @@ fn the_section_names_the_public_catalog_and_native_owners() {
         "magistr mcp --dir .",
         "discover",
         "execute",
-        "plan_work",
-        "check_work",
+        "arrange_steps",
+        "check_step",
         "One workflow owner",
     ] {
         assert!(section.contains(name), "{name}");

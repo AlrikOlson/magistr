@@ -12,7 +12,7 @@ mod family;
 mod mutation_error;
 pub use mutation_error::WorkflowMutationError;
 pub mod roadmap;
-pub mod ship;
+pub mod run;
 pub mod signal;
 pub mod think;
 pub use family::Family;
@@ -41,7 +41,7 @@ pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
 pub use magistr_frame::MagistrFrame;
 pub use native_event::NativeEvent;
-pub use native_snapshot::{NativeSnapshot, RoadmapData, ShipData, ShipRun, ThinkData};
+pub use native_snapshot::{NativeSnapshot, RoadmapData, Run, RunData, ThinkData};
 pub use owner_generation::OwnerGeneration;
 pub use read_state::{Observed, ReadError, ReadErrorKind, ReadSource, ReadState};
 pub use roadmap_progress::RoadmapProgress;
@@ -52,9 +52,9 @@ pub use roadmap::{
     BlockedBy, BlockerKind, Chunk, ChunkStatus, ReprioritizeProposal, RoadmapFrame, StatusProposal,
     TitleProposal,
 };
-pub use ship::{
-    Action, ActionType, Artifact, ArtifactType, Check, CheckType, Objective, ObjectiveStatus,
-    ShipFrame, Task, TaskStatus, TaskType, VerificationMode,
+pub use run::{
+    Artifact, ArtifactType, Check, CheckType, Goal, GoalStatus, Progress, ProgressType, RunFrame,
+    Step, StepStatus, StepType, VerificationMode,
 };
 pub use signal::{Enrichment, Signal, SignalFrame, SignalKind, SignalStatus};
 pub use think::{BranchStatus, DepEdge, NextAction, ThinkFrame, ThinkStep};

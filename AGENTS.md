@@ -72,7 +72,7 @@ Match verification to the changed behavior, affected dependencies, and acceptanc
 criteria before committing, including during `$next`/`/next` roadmap chunks.
 Explicitly choose `verification: "focused"` for bounded changes, including code.
 Run formatting and the relevant crate, interface, architecture, and visual checks;
-record them through named `magistr_gate` calls or server-executed `check_work`.
+record them through named `magistr_gate` calls or server-executed `check_step`.
 Use `verification: "full"` and `magistr_gate(gate: "all")` only for an explicit
 full-suite request or a concrete cross-cutting risk that requires every gate.
 State that reason before starting. A roadmap chunk does not by itself justify
@@ -104,7 +104,7 @@ crossings and branch/merge clarity. Inspect compact and desktop sizes, both
 appearances, relevant dense/empty/selected states, and transitions that affect
 focus or placement. Unreadable default zoom, clipping, overlap, ambiguous lines
 or excessive empty geometry are blocking defects. Record a required
-`check_work(name: "GUI visual review", type: "review")` as failed while any such
+`check_step(name: "GUI visual review", type: "review")` as failed while any such
 defect is open; do not complete the affected work or start its next visual
 iteration. Fix, recapture and inspect again before recording a pass. A hash,
 test assertion or screenshot file proves neither inspection nor visual quality.
@@ -122,7 +122,7 @@ Keep shared session and workflow contracts independent of terminal protocols.
 The desktop owns native editing and layout. Motion respects reduced motion.
 Preserve contrast, icon, screenshot, and architecture-index checks. Update
 goldens only for intended visual changes. The `crates/magistr-gui` ratchet may
-only decrease; changes require a `legacy-gui` or `delete` objective.
+only decrease; changes require a `legacy-gui` or `delete` goal.
 Read the relevant terminal or desktop architecture guide before changing it.
 
 ## Tools and state
@@ -132,7 +132,7 @@ navigation and edits. Follow [Workspace routing](crates/magistr-cli/templates/sk
 Git, development, and diagnostics may use the shell. Explain focused fallbacks.
 Do not kill a Workspace lock owner or start a competing workspace or workflow server.
 
-Read existing native state before resuming work. Keep plans in `plan_work` and
+Read existing native state before resuming work. Keep plans in `arrange_steps` and
 roadmaps in native Magistr state. Never export or generate `ROADMAP.md` or
 `ROADMAP.json`; preserve `roadmap_exports = false` and export-tool deny settings.
 During roadmap work, announce phases with `magistr_set_phase`, record verification,
@@ -160,5 +160,5 @@ Use the nine project skills: $next, $next-loop, $validate, $roadmap, $roadmap-re
 
 This project stores its roadmap only in native Magistr state. Never create or regenerate ROADMAP.md or ROADMAP.json, invoke roadmap_export, or redirect an export into the checkout. Preserve roadmap_exports=false and the project export-tool deny settings.
 
-Preserve existing objectives and worktree changes. Follow the requested scope; setup, review and planning do not authorize starting a roadmap chunk. $next implements one ready chunk; $next-loop is bounded. Recovery, acceptance, recorded checks and an atomic commit are required before completing work.
+Preserve existing goals and worktree changes. Follow the requested scope; setup, review and planning do not authorize starting a roadmap chunk. $next implements one ready chunk; $next-loop is bounded. Recovery, acceptance, recorded checks and an atomic commit are required before completing work.
 <!-- /magistr:codex -->

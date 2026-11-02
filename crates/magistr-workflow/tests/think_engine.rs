@@ -1500,7 +1500,7 @@ fn search_is_case_insensitive_and_returns_empty_for_no_query() {
 fn execution_ref_stored_and_searchable() {
     let mut s = ReasoningServer::new(quiet_config());
     let mut step = step_n(1);
-    step.execution_ref = Some("task:auth-refactor".into());
+    step.execution_ref = Some("step:auth-refactor".into());
     let _ = s.process_step_native(step);
 
     let stored = s
@@ -1509,7 +1509,7 @@ fn execution_ref_stored_and_searchable() {
         .iter()
         .find(|s| s.step_number == 1)
         .unwrap();
-    assert_eq!(stored.execution_ref, Some("task:auth-refactor".into()));
+    assert_eq!(stored.execution_ref, Some("step:auth-refactor".into()));
 
     let hits = s.search_steps("auth-refactor", 10);
     assert_eq!(hits.len(), 1);
@@ -2482,7 +2482,7 @@ fn xml_injection_bare_tag_form_recovers_from_thought() {
     step.thought = "Real reasoning content about the migration design.</thought>\n\
         <outcome>Phase XXXIX closes the migration limitation. AsyncUdpListener routes by addr with cid fallback.</outcome>\n\
         <next_action>Update ROADMAP.md and commit.</next_action>\n\
-        <rationale>To document and ship the phase.</rationale>\n\
+        <rationale>To document and run the phase.</rationale>\n\
         <confidence>0.95</confidence>\n\
         <pinned>true</pinned>\n\
         <tools_used>[\"ministr_survey\", \"cargo build\"]</tools_used>\n\
@@ -2525,7 +2525,7 @@ fn xml_injection_bare_tag_form_recovers_from_thought() {
         stored.outcome
     );
     assert!(
-        stored.rationale.contains("To document and ship"),
+        stored.rationale.contains("To document and run"),
         "rationale should be recovered; got: {:?}",
         stored.rationale
     );

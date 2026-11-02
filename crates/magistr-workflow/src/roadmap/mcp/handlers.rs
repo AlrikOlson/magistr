@@ -196,7 +196,7 @@ pub struct BlockedByArgs {
     #[serde(default)]
     #[schemars(required, !default)]
     pub reason: String,
-    /// Optional proof — a cross-ref (think:N | chunk:id | task:X).
+    /// Optional proof — a cross-ref (think:N | chunk:id | step:X).
     #[serde(default)]
     pub evidence: Option<String>,
 }
@@ -278,10 +278,10 @@ pub struct StartChunkArgs {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct CompleteChunkArgs {
     pub id: String,
-    /// Optional proof-of-ship cross-ref to attach (e.g. `task:<id>`,
+    /// Optional proof-of-run cross-ref to attach (e.g. `step:<id>`,
     /// `check:<name>`).
     #[serde(default)]
-    pub ship_ref: Option<String>,
+    pub step_ref: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -289,7 +289,7 @@ pub struct LinkArgs {
     #[serde(default)]
     #[schemars(required, !default)]
     pub id: String,
-    /// A cross-ref string: `think:N`, `task:X`, `action:N`, `check:X`, `chunk:X`.
+    /// A cross-ref string: `think:N`, `step:X`, `progress:N`, `check:X`, `chunk:X`.
     /// `ref`/`crossref` are accepted as forgiving aliases.
     #[serde(default, alias = "ref", alias = "crossref")]
     #[schemars(required, !default)]
@@ -416,7 +416,7 @@ fn native_patch(args: UpdateChunkArgs) -> Result<(String, ChunkPatch), RoadmapEr
 impl RoadmapService {
     #[tool(
         name = "roadmap_add_chunk",
-        description = "Add a chunk (phase/item) to the roadmap.\n\nInputs: id (required, stable slug), title (required — the full claim, a sentence is fine), name (the short label a canvas node wears, max 24 chars, e.g. 'Quota ceiling'; omit it and one is derived from the id, send a sentence and the call is REJECTED), status ('backlog'|'pending'|'in_progress'|'blocked'|'done'|'obsoleted', default 'pending'), priority (integer OR a named level 'critical'|'high'|'medium'|'low' → 100/200/300/400; lower sorts earlier), description, acceptance (string[]), deps (string[] of chunk ids), shared (bool — committed vs gitignored partition), group (the workstream — PASS IT AT BIRTH; an ungrouped chunk is invisible to every focused read), content (RECOMMENDED — structured body: {version:1, summary, facts?[{label,value}], sections?[{heading, prose?, list?[{text,done?}]}]}; write the detail here so the webapp renders it as UI, and keep description to a short plain-prose fallback).\n\nReturns: the created chunk.\n\nPitfalls: id must be unique; malformed content is rejected with the exact field named; an unusable group refuses the whole call rather than creating an ungrouped chunk. roadmap_* is the long-horizon plan above ship_* objectives.",
+        description = "Add a chunk (phase/item) to the roadmap.\n\nInputs: id (required, stable slug), title (required — the full claim, a sentence is fine), name (the short label a canvas node wears, max 24 chars, e.g. 'Quota ceiling'; omit it and one is derived from the id, send a sentence and the call is REJECTED), status ('backlog'|'pending'|'in_progress'|'blocked'|'done'|'obsoleted', default 'pending'), priority (integer OR a named level 'critical'|'high'|'medium'|'low' → 100/200/300/400; lower sorts earlier), description, acceptance (string[]), deps (string[] of chunk ids), shared (bool — committed vs gitignored partition), group (the workstream — PASS IT AT BIRTH; an ungrouped chunk is invisible to every focused read), content (RECOMMENDED — structured body: {version:1, summary, facts?[{label,value}], sections?[{heading, prose?, list?[{text,done?}]}]}; write the detail here so the webapp renders it as UI, and keep description to a short plain-prose fallback).\n\nReturns: the created chunk.\n\nPitfalls: id must be unique; malformed content is rejected with the exact field named; an unusable group refuses the whole call rather than creating an ungrouped chunk. roadmap_* is the long-horizon plan above run_* goals.",
         annotations(
             title = "Add roadmap chunk",
             read_only_hint = false,
@@ -622,7 +622,7 @@ impl RoadmapService {
 
     #[tool(
         name = "roadmap_start_chunk",
-        description = "Begin work on a chunk: marks it in_progress and returns the `chunk:<id>` backref. Wire that backref into ship_set_objective (as the objective's scope/ref) and into a think step's execution_ref, then roadmap_link the resulting task:/think: refs back to close the loop.\n\nInputs: id (required).\n\nReturns: { chunk, backref, hint }.\n\nPitfalls: only pending work with no recorded blocker and all dependencies completed can start. The writer rechecks current records.",
+        description = "Begin work on a chunk: marks it in_progress and returns the `chunk:<id>` backref. Wire that backref into run_open (as the goal's scope/ref) and into a think step's execution_ref, then roadmap_link the resulting task:/think: refs back to close the loop.\n\nInputs: id (required).\n\nReturns: { chunk, backref, hint }.\n\nPitfalls: only pending work with no recorded blocker and all dependencies completed can start. The writer rechecks current records.",
         annotations(
             title = "Start chunk",
             read_only_hint = false,
@@ -637,13 +637,13 @@ impl RoadmapService {
     ) -> Result<CallToolResult, ErrorData> {
         Self::present(self.application.start_chunk(&args.id).map(|observed| observed.map(|chunk| serde_json::json!({
             "chunk": chunk, "backref": CrossRef::RoadmapChunk(args.id).to_wire(),
-            "hint": "pass `backref` to ship_set_objective and a think execution_ref, then roadmap_link the resulting task:/think: refs back",
+            "hint": "pass `backref` to run_open and a think execution_ref, then roadmap_link the resulting task:/think: refs back",
         }))))
     }
 
     #[tool(
         name = "roadmap_complete_chunk",
-        description = "Mark a chunk done on the current run's evidence: the objective is scoped chunk:<id> and its verification task (ship_ref task:<id>, else where the receipts landed) holds current passing verified receipts for every required gate.\n\nInputs: id (required), ship_ref (optional).\n\nReturns: the completed chunk.\n\nPitfalls: a refusal names each outstanding gate; re-run and retry. Only InProgress chunks go done.",
+        description = "Mark a chunk done on the current run's evidence: the goal is scoped chunk:<id> and its verification task (step_ref step:<id>, else where the receipts landed) holds current passing verified receipts for every required gate.\n\nInputs: id (required), step_ref (optional).\n\nReturns: the completed chunk.\n\nPitfalls: a refusal names each outstanding gate; re-run and retry. Only InProgress chunks go done.",
         annotations(
             title = "Complete chunk",
             read_only_hint = false,
@@ -658,13 +658,13 @@ impl RoadmapService {
     ) -> Result<CallToolResult, ErrorData> {
         Self::present(
             self.application
-                .complete_chunk(&args.id, args.ship_ref.as_deref()),
+                .complete_chunk(&args.id, args.step_ref.as_deref()),
         )
     }
 
     #[tool(
         name = "roadmap_link",
-        description = "Attach a cross-reference to a chunk, fusing the three families into one graph. Validated against the CrossRef wire format; duplicates are ignored.\n\nInputs: id (required), cross_ref (required — think:N | task:X | action:N | check:X | chunk:X).\n\nReturns: the updated chunk.",
+        description = "Attach a cross-reference to a chunk, fusing the three families into one graph. Validated against the CrossRef wire format; duplicates are ignored.\n\nInputs: id (required), cross_ref (required — think:N | step:X | progress:N | check:X | chunk:X).\n\nReturns: the updated chunk.",
         annotations(
             title = "Link chunk",
             read_only_hint = false,
@@ -917,10 +917,10 @@ impl RoadmapService {
 mod tests {
     use super::*;
 
-    /// The ship family every roadmap under test completes against; nothing
+    /// The run family every roadmap under test completes against; nothing
     /// here completes a chunk, so it carries no evidence capability.
-    fn completion() -> crate::ship::ShipUseCases {
-        crate::ship::ShipService::new(crate::ship::engine::ShipEngine::new("p".into())).use_cases()
+    fn completion() -> crate::run::RunUseCases {
+        crate::run::RunService::new(crate::run::engine::RunEngine::new("p".into())).use_cases()
     }
 
     // Priority *parsing* is unit-tested in infra::coerce. Here we only prove
@@ -1248,8 +1248,8 @@ mod tests {
         let aliased: LinkArgs = serde_json::from_str(r#"{"id":"x","ref":"think:5"}"#).unwrap();
         assert_eq!(aliased.cross_ref, "think:5");
 
-        let aliased2: LinkArgs = serde_json::from_str(r#"{"id":"x","crossref":"task:y"}"#).unwrap();
-        assert_eq!(aliased2.cross_ref, "task:y");
+        let aliased2: LinkArgs = serde_json::from_str(r#"{"id":"x","crossref":"step:y"}"#).unwrap();
+        assert_eq!(aliased2.cross_ref, "step:y");
     }
 
     // ── Focus at the wire seam ─────────────────────────────────────────

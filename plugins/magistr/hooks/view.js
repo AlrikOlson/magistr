@@ -43,9 +43,9 @@ export function pane(E, m, width, handlers) {
     Button({ key, label: name, onPress: fn, ...(hotkey ? { hotkey } : {}) })
   const row = (children) =>
     Box({ flexDirection: width < 48 ? 'column' : 'row', gap: 1, children })
-  const ship = m.slots.ship?.value
+  const run = m.slots.run?.value
   const slot =
-    m.slots[m.tab === 'current' || m.tab === 'checks' ? 'ship' : m.tab]
+    m.slots[m.tab === 'current' || m.tab === 'checks' ? 'run' : m.tab]
   const body = []
   if (m.pending) body.push(text(m.pending, true))
   if (m.notice) body.push(text(m.notice))
@@ -73,26 +73,26 @@ export function pane(E, m, width, handlers) {
     )
     if (m.detailStatus) body.push(text(m.detailStatus))
     const d = m.detail
-    if (d?.task) {
-      const t = d.task.record
+    if (d?.step) {
+      const t = d.step.record
       body.push(text(label(t.status)))
-      if (t.blocked_reason) body.push(text('Waiting: ' + t.blocked_reason))
+      if (t.waiting_reason) body.push(text('Waiting: ' + t.waiting_reason))
       if (
-        ['planned', 'blocked'].includes(t.status) &&
+        ['planned', 'waiting'].includes(t.status) &&
         !m.pending &&
         !m.uncertain
       ) {
         body.push(
           button(
-            'start-task',
-            'Start this task',
-            () => handlers.action('task', t),
+            'start-step',
+            'Start this step',
+            () => handlers.action('step', t),
             's',
           ),
         )
       }
       if (t.status === 'active')
-        body.push(text('Continue this task with your coding workflow.'))
+        body.push(text('Continue this step with your coding workflow.'))
       for (const c of (t.checks ?? []).slice(-LIMIT)) {
         body.push(
           text(
@@ -116,25 +116,25 @@ export function pane(E, m, width, handlers) {
         body.push(text(c.details || 'No further details recorded.'))
       }
       if (!t.checks?.length)
-        body.push(text('No checks recorded for this task.'))
-      if (d.task.omitted_checks || d.task.omitted_actions)
+        body.push(text('No checks recorded for this step.'))
+      if (d.step.omitted_checks || d.step.omitted_progress)
         body.push(
           text(
             'Earlier evidence was omitted: ' +
-              d.task.omitted_checks +
+              d.step.omitted_checks +
               ' checks and ' +
-              d.task.omitted_actions +
+              d.step.omitted_progress +
               ' actions.',
           ),
         )
       body.push(
         text(
           'Details show up to ' +
-            d.task.detail_limit +
-            ' characters per check. The files may have changed since the check. Inspect its receipt to see whether they did.',
+            d.step.detail_limit +
+            ' characters per check. The files may have changed since the check. Inspect its check_result to see whether they did.',
         ),
       )
-      for (const a of (t.actions ?? []).slice(-20)) {
+      for (const a of (t.progress ?? []).slice(-20)) {
         body.push(text(a.description, true), text(a.result))
         for (const file of (a.files_touched ?? []).slice(0, 5))
           body.push(
@@ -246,44 +246,44 @@ export function pane(E, m, width, handlers) {
       }
       if (d.uncertainty_notes)
         body.push(text('Still uncertain: ' + d.uncertainty_notes))
-    } else if (d?.receipt) {
-      const receipt = d.receipt
+    } else if (d?.check_result) {
+      const check_result = d.check_result
       body.push(
-        text('Check receipt', true),
-        text(receipt.gate),
-        text(receipt.command || 'No command recorded.'),
+        text('Check check_result', true),
+        text(check_result.gate),
+        text(check_result.command || 'No command recorded.'),
       )
       body.push(
         text(
           'Requested: ' +
-            receipt.admitted_at +
+            check_result.admitted_at +
             ' · Finished: ' +
-            (receipt.settled_at || 'Still waiting'),
+            (check_result.settled_at || 'Still waiting'),
         ),
       )
-      if (receipt.execution)
+      if (check_result.execution)
         body.push(
-          text('Exit: ' + (receipt.execution.exit_code ?? 'Not reported')),
+          text('Exit: ' + (check_result.execution.exit_code ?? 'Not reported')),
         )
-      for (const file of (receipt.freshness?.paths || []).slice(0, 12))
+      for (const file of (check_result.freshness?.paths || []).slice(0, 12))
         body.push(text(file))
       body.push(
         text(
           'Files at the time of the check: ' +
-            label(receipt.freshness?.freshness || 'Unknown'),
+            label(check_result.freshness?.freshness || 'Unknown'),
         ),
       )
       body.push(
         text(
           'Recorded result: ' +
-            label(receipt.settlement?.settlement || 'Unknown'),
+            label(check_result.settlement?.settlement || 'Unknown'),
         ),
       )
-      if (receipt.check)
+      if (check_result.check)
         body.push(
           text(
-            receipt.check.details ||
-              receipt.check.command ||
+            check_result.check.details ||
+              check_result.check.command ||
               'No additional check details.',
           ),
         )
@@ -309,33 +309,33 @@ export function pane(E, m, width, handlers) {
     const focus = focusSummary(m.slots.focus?.value)
     if (focus) body.push(text(focus))
     body.push(
-      text(titles(ship), true),
-      text(phase(m.slots.context?.value, ship) + ' · ' + verification(ship)),
+      text(titles(run), true),
+      text(phase(m.slots.context?.value, run) + ' · ' + verification(run)),
     )
-    for (const a of (ship.objective?.acceptance_criteria ?? []).slice(0, 12))
+    for (const a of (run.goal?.acceptance_criteria ?? []).slice(0, 12))
       body.push(text('• ' + a))
-    const tasks = filtered(ship.task_list ?? [], m.filter)
+    const steps = filtered(run.step_list ?? [], m.filter)
     body.push(
       Input({
         key: 'filter',
-        label: 'Find a task',
+        label: 'Find a step',
         value: m.filter,
         onInput: (value) => handlers.filter(value),
         onSubmit: (value) => handlers.filter(value),
       }),
     )
-    for (const t of tasks.slice(0, LIMIT))
+    for (const t of steps.slice(0, LIMIT))
       body.push(
         button(
-          'task-' + t.id,
+          'step-' + t.id,
           clean(t.title, 180) + ' · ' + label(t.status),
-          () => handlers.select('task', t),
+          () => handlers.select('step', t),
         ),
       )
-    if (!tasks.length)
-      body.push(text(m.filter ? 'No tasks match.' : 'No tasks planned.'))
-    if (tasks.length > LIMIT)
-      body.push(text('More tasks are available. Narrow your search.'))
+    if (!steps.length)
+      body.push(text(m.filter ? 'No steps match.' : 'No steps planned.'))
+    if (steps.length > LIMIT)
+      body.push(text('More steps are available. Narrow your search.'))
   } else if (m.tab === 'roadmap') {
     const v = slot.value
     const focus = focusSummary(m.slots.focus?.value)
@@ -378,13 +378,13 @@ export function pane(E, m, width, handlers) {
       ),
     )
   } else if (m.tab === 'checks') {
-    body.push(text(verification(ship), true))
-    for (const t of (ship.task_list ?? []).slice(0, LIMIT))
+    body.push(text(verification(run), true))
+    for (const t of (run.step_list ?? []).slice(0, LIMIT))
       body.push(
         button(
           'evidence-' + t.id,
           'Inspect evidence for ' + clean(t.title, 160),
-          () => handlers.select('task', t),
+          () => handlers.select('step', t),
         ),
       )
     const choices = m.slots.context?.value?.checks ?? []
@@ -394,7 +394,7 @@ export function pane(E, m, width, handlers) {
           'Available checks could not be loaded. Update Magistr and reconnect to show them.',
         ),
       )
-    if (ship.active_task && !m.pending && !m.uncertain) {
+    if (run.active_step && !m.pending && !m.uncertain) {
       body.push(text('Choose only the checks needed for this change.', true))
       body.push(
         Input({
@@ -420,7 +420,7 @@ export function pane(E, m, width, handlers) {
         )
         body.push(text(c.commands.map((s) => s.command).join('; ')))
       }
-    } else body.push(text('Start a chosen task to record checks against it.'))
+    } else body.push(text('Start a chosen step to record checks against it.'))
     if (m.detail?.gate) {
       for (const g of (m.detail.gate.gates || [m.detail.gate]).slice(0, 30)) {
         body.push(
@@ -432,10 +432,10 @@ export function pane(E, m, width, handlers) {
           ),
         )
         body.push(text(g.output || g.note || 'No further output.'))
-        if (g.receipt)
+        if (g.check_result)
           body.push(
-            button('receipt-' + g.receipt, 'Inspect this check receipt', () =>
-              handlers.select('receipt', g.receipt),
+            button('check_result-' + g.check_result, 'Inspect this check check_result', () =>
+              handlers.select('check_result', g.check_result),
             ),
           )
       }
@@ -536,17 +536,17 @@ export function pane(E, m, width, handlers) {
 }
 export function band(E, m, others, open, width) {
   const { Box, Text, Button } = E
-  const ship = m.slots.ship
+  const run = m.slots.run
   const words =
     width < 55
-      ? status(ship) + ' · ' + phase(m.slots.context?.value, ship?.value)
-      : clean(titles(ship?.value), 65) +
+      ? status(run) + ' · ' + phase(m.slots.context?.value, run?.value)
+      : clean(titles(run?.value), 65) +
         ' · ' +
-        phase(m.slots.context?.value, ship?.value) +
+        phase(m.slots.context?.value, run?.value) +
         ' · ' +
-        verification(ship?.value) +
+        verification(run?.value) +
         ' · ' +
-        status(ship)
+        status(run)
   return Box({
     flexDirection: 'column',
     children: [

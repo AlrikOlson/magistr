@@ -29,5 +29,5 @@ scope authorizes it; otherwise surface the concrete recommendation. Respect
 native confidence/lifecycle gates. Promotion never starts implementation.
 
 Report signal, evidence, recorded transition, and next candidate. Do not repeat
-unchanged non-actionable feedback, reset ship state, open another store, or
+unchanged non-actionable feedback, reset run state, open another store, or
 build the feature as part of this skill.

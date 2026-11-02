@@ -7,8 +7,8 @@ use std::path::PathBuf;
 use tempfile::TempDir;
 
 use magistr_workflow::infra::PersistenceConfig as ThinkPersistenceConfig;
-use magistr_workflow::ship::persistence::Persistence as ShipPersistence;
-use magistr_workflow::ship::persistence::PersistenceConfig as ShipPersistenceConfig;
+use magistr_workflow::run::persistence::Persistence as RunPersistence;
+use magistr_workflow::run::persistence::PersistenceConfig as RunPersistenceConfig;
 use magistr_workflow::think::persistence::Persistence as ThinkPersistence;
 
 #[test]
@@ -23,16 +23,16 @@ fn workflow_persistence_live_in_disjoint_subdirs() {
         },
         "project",
     );
-    let ship = ShipPersistence::new(&ShipPersistenceConfig {
+    let run = RunPersistence::new(&RunPersistenceConfig {
         enabled: true,
         data_dir: data_dir.clone(),
     });
 
-    // think exposes its sessions_dir; ship does not, so we reconstruct
+    // think exposes its sessions_dir; run does not, so we reconstruct
     // the expected path and assert both physical directories were
     // created (the constructors mkdir on demand when enabled=true).
     let think_dir = think.sessions_dir();
-    let ship_dir = data_dir.join("ship").join("sessions");
+    let run_dir = data_dir.join("run").join("sessions");
 
     assert!(
         think_dir.ends_with("think/sessions"),
@@ -40,21 +40,21 @@ fn workflow_persistence_live_in_disjoint_subdirs() {
         think_dir.display()
     );
     assert!(
-        ship_dir.exists(),
-        "ship sessions dir should be created at {}",
-        ship_dir.display()
+        run_dir.exists(),
+        "run sessions dir should be created at {}",
+        run_dir.display()
     );
     assert_ne!(
         think_dir,
-        ship_dir.as_path(),
+        run_dir.as_path(),
         "Magistr workflow persistence must not share a directory; \
-         think_dir={} ship_dir={}",
+         think_dir={} run_dir={}",
         think_dir.display(),
-        ship_dir.display()
+        run_dir.display()
     );
 
-    // Keep ship borrowed so the test exercises both handles, not just
+    // Keep run borrowed so the test exercises both handles, not just
     // think. The constructor side effects (mkdir) are the load-bearing
     // observation here.
-    let _ = &ship;
+    let _ = &run;
 }

@@ -19,7 +19,7 @@ warning: unused variable: `elapsed`
 warning: this `if` has identical blocks
    --> src/tui/sidebar/task_list.rs:280:17
     |
-280 |                 ShipTaskStatus::Active => self.theme.text,
+280 |                 RunStepStatus::Active => self.theme.text,
     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#if_same_then_else

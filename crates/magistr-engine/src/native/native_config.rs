@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use magistr_workflow::infra::{PersistenceConfig, project_id_for_path};
-use magistr_workflow::ship::application::EvidencePort;
+use magistr_workflow::run::application::EvidencePort;
 use magistr_workflow::think::config::ThinkConfig;
 use magistr_workflow::think::{ConfigSource, ThinkConfigResolution};
 
@@ -51,7 +51,7 @@ pub struct NativeConfig {
     /// project root: `XDG_RUNTIME_DIR`, else `TMPDIR`, else `/tmp`.
     pub(super) runtime_dir: PathBuf,
     /// The host's verification evidence capability — source observation and
-    /// the required gate contracts — composed into the ship family of every
+    /// the required gate contracts — composed into the run family of every
     /// writer opened on this configuration. A writer opened without one
     /// records checks with no source and cannot complete a chunk; the host
     /// attaches it at every production admission.

@@ -11,7 +11,7 @@
 //! checkout of the same tree and independent of where that tree lives.
 //!
 //! The digested set is each crate's manifest and its `src/` tree less the
-//! unit-test files, which never ship. Each file is its own rerun trigger:
+//! unit-test files, which never run. Each file is its own rerun trigger:
 //! a change to any of them already recompiles this crate, while a test,
 //! bench, document or stray file under those crates reruns nothing — a
 //! directory-level trigger would re-check this crate and every dependent
@@ -130,7 +130,7 @@ fn collect_path_dependencies(crate_dir: &Path, seen: &mut BTreeSet<PathBuf>) {
     }
 }
 
-/// Whether a `[...]` table header opens a table whose entries ship in the
+/// Whether a `[...]` table header opens a table whose entries run in the
 /// binary: `[dependencies]`, `[dependencies.<name>]` and the
 /// target-specific forms. `dev-` and `build-` tables do not match.
 fn is_dependency_table(header: &str) -> bool {

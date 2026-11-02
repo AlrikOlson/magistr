@@ -57,15 +57,15 @@ function setup(
       return {
         result: {
           answers: {
-            [e.questions[0].question]: options.cancel ? 'Cancel' : 'Start task',
+            [e.questions[0].question]: options.cancel ? 'Cancel' : 'Start step',
           },
         },
       }
     calls.push(e)
     if (options.refusal) return { deny: 'Permission denied.' }
-    f.task.status = 'active'
-    f.ship.active_task = f.task
-    return { result: { id: f.task.id, status: 'active' } }
+    f.step.status = 'active'
+    f.run.active_step = f.step
+    return { result: { id: f.step.id, status: 'active' } }
   })
   return { f, calls, clock }
 }
@@ -82,11 +82,11 @@ test('entry command and supported terminal and Desktop controls inspect evidence
     expect(
       await ui.find({ type: 'Text', text: 'Finish the search feature' }),
     ).toBeDefined()
-    await ui.press({ key: 'task-review' })
+    await ui.press({ key: 'step-review' })
     expect(
       await ui.find({
         type: 'Text',
-        text: 'No checks recorded for this task.',
+        text: 'No checks recorded for this step.',
       }),
     ).toBeDefined()
     await ui.press({ key: 'tab-roadmap' })
@@ -103,7 +103,7 @@ test('entry command and supported terminal and Desktop controls inspect evidence
     await ui.unmount()
   }
 })
-test('confirmed task start uses the normal tool path with named consent', async ($, on) => {
+test('confirmed step start uses the normal tool path with named consent', async ($, on) => {
   const { calls } = setup(on)
   await $.session.start({
     surface: 'terminal',
@@ -112,15 +112,15 @@ test('confirmed task start uses the normal tool path with named consent', async 
   })
   await $.command.run({ command: 'magistr', args: '' })
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  await ui.press({ key: 'task-review' })
-  await ui.press({ key: 'start-task' })
+  await ui.press({ key: 'step-review' })
+  await ui.press({ key: 'start-step' })
   expect(calls.length).toBe(1)
-  expect(calls[0].tool).toBe('mcp__magistr__start_work')
-  expect(calls[0].consent).toContain('confirmed "Start task"')
+  expect(calls[0].tool).toBe('mcp__magistr__start_step')
+  expect(calls[0].consent).toContain('confirmed "Start step"')
   expect(
     await ui.find({
       type: 'Text',
-      text: 'Task started. Continue it with your coding workflow.',
+      text: 'Step started. Continue it with your coding workflow.',
     }),
   ).toBeDefined()
   await ui.unmount()
@@ -134,8 +134,8 @@ test('cancelling confirmation submits no mutation', async ($, on) => {
   })
   await $.command.run({ command: 'magistr', args: '' })
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  await ui.press({ key: 'task-review' })
-  await ui.press({ key: 'start-task' })
+  await ui.press({ key: 'step-review' })
+  await ui.press({ key: 'start-step' })
   expect(calls.length).toBe(0)
   expect(
     await ui.find({ type: 'Text', text: 'Cancelled. Nothing was requested.' }),
@@ -151,12 +151,12 @@ test('host permission refusal is visible and cannot become success', async ($, o
   })
   await $.command.run({ command: 'magistr', args: '' })
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  await ui.press({ key: 'task-review' })
-  await ui.press({ key: 'start-task' })
+  await ui.press({ key: 'step-review' })
+  await ui.press({ key: 'start-step' })
   expect(
     await ui.find({ type: 'Text', text: /Permission denied/ }),
   ).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /^Task started/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^Step started/ })).toBeUndefined()
   await ui.unmount()
 })
 test('restricted MCP calls leave honest unavailable states', async ($, on) => {

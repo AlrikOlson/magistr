@@ -6,14 +6,14 @@ use magistr_workflow::content::StructuredContent;
 use magistr_workflow::roadmap::application::RoadmapError;
 use magistr_workflow::roadmap::application::{BlockerDraft, ChunkDraft, ChunkPatch};
 use magistr_workflow::roadmap::domain::{BlockerKind, Chunk, ChunkStatus};
-use magistr_workflow::ship::application::ShipError;
-use magistr_workflow::ship::application::{
-    CheckAdmission, CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, ShipReport,
+use magistr_workflow::run::application::RunError;
+use magistr_workflow::run::application::{
+    CheckAdmission, CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, RunReport,
 };
-use magistr_workflow::ship::domain::action::{Action, ActionType};
-use magistr_workflow::ship::domain::artifact::Artifact;
-use magistr_workflow::ship::domain::check::Check;
-use magistr_workflow::ship::domain::task::{Task, TaskType};
+use magistr_workflow::run::domain::artifact::Artifact;
+use magistr_workflow::run::domain::check::Check;
+use magistr_workflow::run::domain::progress::{Progress, ProgressType};
+use magistr_workflow::run::domain::step::{Step, StepType};
 use magistr_workflow::signal::application::{SignalError, SignalPromotion};
 use magistr_workflow::signal::domain::{Signal, SignalKind};
 use magistr_workflow::think::domain::{RecordedStep, StepError, ThinkStep};
@@ -36,9 +36,9 @@ use super::project_authority::ProjectAuthority;
 ///
 /// Every clone retains the project lease. Readers share the same engine handles
 /// without extending write admission. Long-running checks capture native run and
-/// task identity before execution, then settle against that identity.
+/// step identity before execution, then settle against that identity.
 ///
-/// The native stores remain authoritative. Contextual evidence, task admission
+/// The native stores remain authoritative. Contextual evidence, step admission
 /// and current-source completion checks are owned by the workflow use cases.
 #[derive(Clone)]
 pub struct NativeEngines {
@@ -111,7 +111,7 @@ impl NativeEngines {
     }
 
     /// Bind an execution view to a registered working copy of this project.
-    /// Shared planning stays on this authority; selected tasks, receipts and source evidence
+    /// Shared planning stays on this authority; selected steps, check_results and source evidence
     /// belong to the context and are reused only by that exact context.
     pub fn for_working_copy(
         &self,
@@ -144,31 +144,30 @@ impl NativeEngines {
         } else {
             if executions.len() >= 128 {
                 return Err(std::io::Error::other(
-                    "Close some task sessions before opening more.",
+                    "Close some step sessions before opening more.",
                 ));
             }
             let services = Arc::new({
-                let mut ship =
-                    super::open_engines::open_ship(&config, self.authority.project_id().to_owned());
+                let mut run =
+                    super::open_engines::open_run(&config, self.authority.project_id().to_owned());
                 if let Some(feed) = self.authority.feed() {
-                    ship = ship.with_broadcaster(
-                        magistr_workflow::ship::broadcast::Broadcaster::from_engine(
+                    run = run.with_broadcaster(
+                        magistr_workflow::run::broadcast::Broadcaster::from_engine(
                             feed.clone().with_execution(context.key()),
                         ),
                     );
                 }
-                self.services
-                    .for_execution(ship, config.evidence().cloned())
+                self.services.for_execution(run, config.evidence().cloned())
             });
             executions.insert(key, Arc::downgrade(&services));
             services
         };
-        let (think, ship, roadmap, signal) = services.engines();
+        let (think, run, roadmap, signal) = services.engines();
         let reader = NativeReader::from_shared(
             self.authority.project_id().to_owned(),
             config,
             think,
-            ship,
+            run,
             roadmap,
             signal,
         );
@@ -218,9 +217,9 @@ impl NativeEngines {
     pub fn roadmap_complete_chunk(
         &self,
         id: &str,
-        ship_ref: Option<&str>,
+        step_ref: Option<&str>,
     ) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.complete_chunk(id, ship_ref)
+        self.services.roadmap.complete_chunk(id, step_ref)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -423,94 +422,94 @@ impl NativeEngines {
         self.services.think.checkpoint(None)
     }
 
-    // ── Ship ───────────────────────────────────────────────────────────
+    // ── Run ───────────────────────────────────────────────────────────
 
-    /// Define the objective (the `ship_set_objective` verb); answers how
-    /// many tasks a fresh cycle retained from the preceding objective.
-    pub fn ship_set_objective(
+    /// Define the goal (the `run_open` verb); answers how
+    /// many steps a fresh cycle retained from the preceding goal.
+    pub fn run_open(
         &self,
         description: String,
         acceptance_criteria: Vec<String>,
         constraints: Vec<String>,
         scope: String,
-    ) -> Result<Observed<usize>, ShipError> {
+    ) -> Result<Observed<usize>, RunError> {
         self.services
-            .ship
-            .set_objective(description, acceptance_criteria, constraints, scope)
-            .map(|result| result.map(|value| value.retained_tasks))
+            .run
+            .set_goal(description, acceptance_criteria, constraints, scope)
+            .map(|result| result.map(|value| value.retained_steps))
     }
 
-    /// Define the objective with an explicit verification scope.
-    pub fn ship_set_objective_with_verification(
+    /// Define the goal with an explicit verification scope.
+    pub fn run_open_with_verification(
         &self,
         description: String,
         acceptance_criteria: Vec<String>,
         constraints: Vec<String>,
         scope: String,
-        verification: magistr_workflow::ship::domain::objective::VerificationMode,
-    ) -> Result<Observed<usize>, ShipError> {
+        verification: magistr_workflow::run::domain::goal::VerificationMode,
+    ) -> Result<Observed<usize>, RunError> {
         self.services
-            .ship
-            .set_objective_with_verification(
+            .run
+            .set_goal_with_verification(
                 description,
                 acceptance_criteria,
                 constraints,
                 scope,
                 verification,
             )
-            .map(|result| result.map(|value| value.retained_tasks))
+            .map(|result| result.map(|value| value.retained_steps))
     }
 
-    /// Validate existing receipts against current source and acceptance without
-    /// running commands or requiring the verification task to remain active.
-    pub fn ship_verify_completion(
+    /// Validate existing check_results against current source and acceptance without
+    /// running commands or requiring the verification step to remain active.
+    pub fn run_verify_completion(
         &self,
         scope: &str,
-        task_id: Option<&str>,
+        step_id: Option<&str>,
     ) -> Result<
-        magistr_workflow::ship::application::CompletionEvidence,
-        magistr_workflow::ship::application::CompletionRefusal,
+        magistr_workflow::run::application::CompletionEvidence,
+        magistr_workflow::run::application::CompletionRefusal,
     > {
-        self.services.ship.verify_completion(scope, task_id)
+        self.services.run.verify_completion(scope, step_id)
     }
 
-    /// Explicitly prune older settled check receipts through the shared use case.
-    pub fn ship_compact_receipts(&self) -> Result<super::ReceiptCompaction, ShipError> {
-        self.services.ship.compact_receipts()
+    /// Explicitly prune older settled check check_results through the shared use case.
+    pub fn run_compact_checks(&self) -> Result<super::CheckResultCompaction, RunError> {
+        self.services.run.compact_check_results()
     }
 
-    /// Add a task to the plan (the `ship_plan` verb's `add`).
-    pub fn ship_add_task(
+    /// Add a step to the plan (the `arrange_steps` verb's `add`).
+    pub fn add_step(
         &self,
         id: String,
         title: String,
-        task_type: TaskType,
+        step_type: StepType,
         estimate: Option<String>,
-    ) -> Result<Observed<()>, ShipError> {
+    ) -> Result<Observed<()>, RunError> {
         self.services
-            .ship
-            .add_task(id, title, task_type, estimate, None)
+            .run
+            .add_step(id, title, step_type, estimate, None)
     }
 
-    /// Begin a task (the `ship_start` verb).
-    pub fn ship_start_task(&self, task_id: &str) -> Result<Observed<Task>, ShipError> {
-        self.services.ship.start_task(task_id)
+    /// Begin a step (the `start_step` verb).
+    pub fn start_step(&self, step_id: &str) -> Result<Observed<Step>, RunError> {
+        self.services.run.start_step(step_id)
     }
 
-    /// Log an action within a task (the `ship_record` verb; the active
-    /// task when `task_id` is `None`).
-    pub fn ship_record_action(
+    /// Record progress on a step (the `record_progress` verb; the active
+    /// step when `step_id` is `None`).
+    pub fn record_progress(
         &self,
-        task_id: Option<&str>,
-        action_type: ActionType,
+        step_id: Option<&str>,
+        progress_type: ProgressType,
         description: String,
         files_touched: Vec<String>,
         tools_used: Vec<String>,
         think_step: Option<u32>,
-    ) -> Result<Observed<Action>, ShipError> {
-        self.services.ship.record_action(
-            task_id,
-            action_type,
+    ) -> Result<Observed<Progress>, RunError> {
+        self.services.run.record_progress(
+            step_id,
+            progress_type,
             description,
             files_touched,
             tools_used,
@@ -520,57 +519,55 @@ impl NativeEngines {
     }
 
     /// Record an immediately available result against its captured owner.
-    /// Async runners must capture `ship_admit_gate` before execution and pass
-    /// that identity to `ship_settle_gate` afterward. They must not admit an
-    /// already-running command against whichever task is current on return.
+    /// Async runners must capture `run_admit_gate` before execution and pass
+    /// that identity to `run_settle_gate` afterward. They must not admit an
+    /// already-running command against whichever step is current on return.
     /// Reports are additive; the process exit code alone determines `passed`.
     #[allow(clippy::too_many_arguments)]
-    pub fn ship_record_gate(
+    pub fn run_record_gate(
         &self,
-        task_id: Option<&str>,
+        step_id: Option<&str>,
         gate: &str,
         command: String,
         exit_code: i32,
         details: String,
         required: bool,
         report: Option<(&str, &str)>,
-    ) -> Result<Observed<Check>, ShipError> {
-        let admission = self
-            .ship_admit_gate(task_id, gate, command, required)?
-            .value;
-        match self.ship_settle_gate(
+    ) -> Result<Observed<Check>, RunError> {
+        let admission = self.run_admit_gate(step_id, gate, command, required)?.value;
+        match self.run_settle_gate(
             admission,
             CheckExecution::Exited { code: exit_code },
             details,
             report,
         )? {
             CheckSettlement::Applied { check, .. } => Ok(check),
-            CheckSettlement::Stale { .. } => Err(ShipError::Refused {
+            CheckSettlement::Stale { .. } => Err(RunError::Refused {
                 kind: "stale_check",
-                message: "This result belongs to earlier work. Read the saved check receipt before continuing.".into(),
+                message: "This result belongs to earlier work. Read the saved check check_result before continuing.".into(),
             }),
         }
     }
 
-    /// Capture the concrete task instance for a sequence of native operations.
-    pub fn ship_admit_task(
+    /// Capture the concrete step instance for a sequence of native operations.
+    pub fn run_admit_step(
         &self,
-        task_id: Option<&str>,
-    ) -> Result<magistr_workflow::ship::application::TaskAdmission, ShipError> {
-        self.services.ship.admit_task(task_id)
+        step_id: Option<&str>,
+    ) -> Result<magistr_workflow::run::application::StepAdmission, RunError> {
+        self.services.run.admit_step(step_id)
     }
 
-    /// Capture native project/run/task identity before a host starts a gate.
-    pub fn ship_admit_gate(
+    /// Capture native project/run/step identity before a host starts a gate.
+    pub fn run_admit_gate(
         &self,
-        task_id: Option<&str>,
+        step_id: Option<&str>,
         gate: &str,
         command: String,
         required: bool,
-    ) -> Result<Observed<CheckAdmission>, ShipError> {
-        self.services.ship.admit_check(CheckRequest {
+    ) -> Result<Observed<CheckAdmission>, RunError> {
+        self.services.run.admit_check(CheckRequest {
             options: Default::default(),
-            task_id: task_id.map(str::to_owned),
+            step_id: step_id.map(str::to_owned),
             check_type: check_type_for(gate),
             name: gate.to_owned(),
             passed: None,
@@ -581,49 +578,49 @@ impl NativeEngines {
         })
     }
 
-    /// Find current evidence for this command under its new task admission.
-    pub fn ship_reuse_gate(
+    /// Find current evidence for this command under its new step admission.
+    pub fn run_reuse_gate(
         &self,
         admission: &CheckAdmission,
-    ) -> Result<Option<CheckOutcome>, ShipError> {
-        self.services.ship.reuse_check(admission)
+    ) -> Result<Option<CheckOutcome>, RunError> {
+        self.services.run.reuse_check(admission)
     }
 
     /// Admit a caller's bounded check through the canonical policy owner.
-    pub fn ship_admit_check(
+    pub fn run_admit_check(
         &self,
         request: CheckRequest,
-    ) -> Result<Observed<CheckAdmission>, ShipError> {
-        self.services.ship.admit_check(request)
+    ) -> Result<Observed<CheckAdmission>, RunError> {
+        self.services.run.admit_check(request)
     }
 
     /// Settle only against the captured native identity. A stale result retains
-    /// its admission and execution data for recovery, never another task; the
-    /// receipt is settled under its original identity either way. Only an
+    /// its admission and execution data for recovery, never another step; the
+    /// check_result is settled under its original identity either way. Only an
     /// exit decides `passed`: a timeout, a cancel or a launch failure is
     /// recorded as what it was.
-    pub fn ship_settle_gate(
+    pub fn run_settle_gate(
         &self,
         admission: CheckAdmission,
         execution: CheckExecution,
         details: String,
         report: Option<(&str, &str)>,
-    ) -> Result<CheckSettlement, ShipError> {
+    ) -> Result<CheckSettlement, RunError> {
         if matches!(execution, CheckExecution::Reused { .. }) {
             let outcome = self
                 .services
-                .ship
+                .run
                 .reuse_check(&admission)?
                 .filter(|outcome| outcome.execution == execution)
                 .ok_or_else(|| {
-                    ShipError::from("The earlier result no longer matches; run the check again.")
+                    RunError::from("The earlier result no longer matches; run the check again.")
                 })?;
-            return self.services.ship.settle_check(admission, outcome);
+            return self.services.run.settle_check(admission, outcome);
         }
         let verified = execution.verified();
         let (report, results) = match report.filter(|_| verified) {
             Some((format, path)) => {
-                let (record, results) = magistr_workflow::ship::report::read_report(format, path);
+                let (record, results) = magistr_workflow::run::report::read_report(format, path);
                 (Some(record), results)
             }
             None => (None, None),
@@ -638,25 +635,25 @@ impl NativeEngines {
             report,
             results,
         };
-        self.services.ship.settle_check(admission, outcome)
+        self.services.run.settle_check(admission, outcome)
     }
 
-    /// Close a task (the `ship_complete` verb).
-    pub fn ship_complete_task(
+    /// Close a step (the `finish_step` verb).
+    pub fn finish_step(
         &self,
-        task_id: &str,
+        step_id: &str,
         artifacts: Vec<Artifact>,
-    ) -> Result<Observed<Task>, ShipError> {
-        self.services.ship.complete_task(task_id, artifacts)
+    ) -> Result<Observed<Step>, RunError> {
+        self.services.run.complete_step(step_id, artifacts)
     }
 
-    /// Finalize the objective (the `ship_finalize` verb); answers the report.
-    pub fn ship_finalize(
+    /// Finalize the goal (the `run_finish` verb); answers the report.
+    pub fn run_finish(
         &self,
         artifacts: Vec<Artifact>,
         summary: Option<String>,
-    ) -> Result<Observed<ShipReport>, ShipError> {
-        self.services.ship.finalize(artifacts, summary)
+    ) -> Result<Observed<RunReport>, RunError> {
+        self.services.run.finalize(artifacts, summary)
     }
 
     // ── Signal ─────────────────────────────────────────────────────────

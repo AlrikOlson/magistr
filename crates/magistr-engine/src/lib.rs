@@ -13,7 +13,7 @@
 //! - **Roadmap tracking** — `RoadmapManager`, `RoadmapProgress`, `RoadmapEvent`
 //! - **Engine handle** — `EngineHandle` (thread-safe entry point composing all services)
 //! - **Quality gates** — `GateKind`, `GateStatus`, `GateOutcome`
-//! - **Workflow guards** — `WorkflowGuard`, `GuardResult`, `GuardsConfig`, `ShipGuardState`
+//! - **Workflow guards** — `WorkflowGuard`, `GuardResult`, `GuardsConfig`, `RunGuardState`
 //! - **Spec parsing** — `SpecSummary`
 //! - **Prompt building** — `PromptConfig`
 //! - **Error handling** — `EngineError`
@@ -48,7 +48,7 @@ pub use cost::{
 pub use error::EngineError;
 pub use gate::{GateKind, GateOutcome, GateStatus};
 pub use guard::{
-    GuardAction, GuardContext, GuardResult, GuardsConfig, ShipGuardState, WorkflowGuard,
+    GuardAction, GuardContext, GuardResult, GuardsConfig, RunGuardState, WorkflowGuard,
 };
 pub use handle::{EngineEvent, EngineHandle, WorkflowEvent};
 pub use native::{
@@ -57,8 +57,8 @@ pub use native::{
     NativeFrame, NativeReader, NativeRoadmapSnapshot, NativeSnapshot, Observed, OwnerClient,
     OwnerCommand, OwnerEndpoint, OwnerGeneration, OwnerReply, ProjectAuthority, ReadError,
     ReadErrorKind, ReadSource, ReadState, RoadmapBackend, RoadmapCommand, RoadmapData,
-    RoadmapFrame, ShipCommand, ShipData, ShipFrame, ShipRun, SignalCommand, SignalFrame,
-    StoreStamp, ThinkCommand, ThinkData, ThinkFrame, WriterRole,
+    RoadmapFrame, Run, RunCommand, RunData, RunFrame, SignalCommand, SignalFrame, StoreStamp,
+    ThinkCommand, ThinkData, ThinkFrame, WriterRole,
 };
 pub use policy::{
     GovernancePolicy, ModelTier, ModelTierRule, PolicyCondition, PolicyDecision, PolicyEffect,
@@ -75,9 +75,9 @@ pub use spec::SpecSummary;
 // so engine hosts (the interface, the GUI) can drive them without depending on
 // magistr directly.
 pub use magistr_workflow::roadmap::domain::ChunkStatus;
-pub use magistr_workflow::ship::domain::action::ActionType;
-pub use magistr_workflow::ship::domain::check::CheckType;
-pub use magistr_workflow::ship::domain::task::TaskType;
+pub use magistr_workflow::run::domain::check::CheckType;
+pub use magistr_workflow::run::domain::progress::ProgressType;
+pub use magistr_workflow::run::domain::step::StepType;
 pub use magistr_workflow::signal::domain::SignalKind;
 pub use magistr_workflow::think::domain::ThinkStep;
 pub use workflow::{

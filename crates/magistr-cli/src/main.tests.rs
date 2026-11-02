@@ -795,28 +795,32 @@ fn cli_parses_costs_summary_monthly() {
 }
 
 #[test]
-fn cli_parses_plans() {
-    let cli = parse_cli(["magistr", "plans"]).unwrap();
-    assert!(matches!(cli.command, Some(cli::Command::Plans { .. })));
+fn cli_parses_runs_and_refuses_plans() {
+    let cli = parse_cli(["magistr", "runs"]).unwrap();
+    assert!(matches!(cli.command, Some(cli::Command::Runs { .. })));
+    let refused = parse_cli(["magistr", "plans"]).unwrap_err();
+    assert_eq!(refused.kind(), clap::error::ErrorKind::InvalidSubcommand);
+    let old_status = parse_cli(["magistr", "runs", "--status", "completed"]).unwrap_err();
+    assert_eq!(old_status.kind(), clap::error::ErrorKind::InvalidValue);
 }
 
 #[test]
-fn cli_parses_plans_with_status_filter() {
-    let cli = parse_cli(["magistr", "plans", "--status", "completed"]).unwrap();
-    if let cli::Command::Plans { status, .. } = cli.command.unwrap() {
-        assert_eq!(status, Some(cli::PlanStatusFilter::Completed));
+fn cli_parses_runs_with_status_filter() {
+    let cli = parse_cli(["magistr", "runs", "--status", "finished"]).unwrap();
+    if let cli::Command::Runs { status, .. } = cli.command.unwrap() {
+        assert_eq!(status, Some(cli::RunStatusFilter::Finished));
     } else {
-        panic!("expected Plans command");
+        panic!("expected Runs command");
     }
 }
 
 #[test]
-fn cli_parses_plans_with_limit() {
-    let cli = parse_cli(["magistr", "plans", "-n", "5"]).unwrap();
-    if let cli::Command::Plans { limit, .. } = cli.command.unwrap() {
+fn cli_parses_runs_with_limit() {
+    let cli = parse_cli(["magistr", "runs", "-n", "5"]).unwrap();
+    if let cli::Command::Runs { limit, .. } = cli.command.unwrap() {
         assert_eq!(limit, 5);
     } else {
-        panic!("expected Plans command");
+        panic!("expected Runs command");
     }
 }
 

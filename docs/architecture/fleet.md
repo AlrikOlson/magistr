@@ -209,7 +209,7 @@ itself stays opt-in and is not the owner.
 
 ### Decision: the approval record is not plan approval
 
-The existing approval record (`ship_gate_open` / `ship_gate_wait`, after the
+The existing approval record (`approval_open` / `approval_wait`, after the
 cutover `approval_open` / `approval_wait`) was evaluated as the plan-approval
 mechanism and **rejected**:
 

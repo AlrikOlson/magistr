@@ -147,7 +147,7 @@ The iteration view follows a ready chunk through selection, preparation, workspa
 
 **Question:** “What will still be there when I return?”
 
-The state view connects the project checkout, roadmap/reasoning/ship records, and agent/workspace clients through the local service. The README describes the records in plain language so the image is not required to understand the model.
+The state view connects the project checkout, roadmap/reasoning/run records, and agent/workspace clients through the local service. The README describes the records in plain language so the image is not required to understand the model.
 
 ## Visual rules
 

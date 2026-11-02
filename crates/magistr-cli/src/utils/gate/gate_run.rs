@@ -27,7 +27,7 @@ fn tail(text: &str, max_bytes: usize) -> String {
 /// One gate's run, whole.
 ///
 /// This is the evidence both callers keep: the MCP path renders it as JSON
-/// and forwards it to `ship_check`, and the loop driver carries it as its
+/// and forwards it to `check_step`, and the loop driver carries it as its
 /// `GateOutcome`. It replaces the driver's old three-field record, whose
 /// `passed: bool` was the whole account of a 153-second `cargo nextest`.
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -1,9 +1,20 @@
 use super::*;
 use crate::native::{NativeReader, ProjectAuthority, WriterRole};
-use magistr_workflow::{roadmap::domain::ChunkStatus, ship::domain::task::TaskType};
+use magistr_workflow::{roadmap::domain::ChunkStatus, run::domain::step::StepType};
 use std::fs::File;
 
 fn fixture() -> (tempfile::TempDir, NativeConfig, NativeConfig) {
+    let (dir, current, old, _) = fixture_and_snapshot();
+    (dir, current, old)
+}
+
+/// The older store plus the run it held, read before it took the older layout.
+fn fixture_and_snapshot() -> (
+    tempfile::TempDir,
+    NativeConfig,
+    NativeConfig,
+    magistr_workflow_contracts::RunData,
+) {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().join("project");
     fs::create_dir_all(root.join(".magistr")).unwrap();
@@ -22,10 +33,10 @@ fn fixture() -> (tempfile::TempDir, NativeConfig, NativeConfig) {
             .unwrap()
             .open();
     writer
-        .ship_set_objective("Keep this work".into(), vec![], vec![], "saved".into())
+        .run_open("Keep this work".into(), vec![], vec![], "saved".into())
         .unwrap();
     writer
-        .ship_add_task("one".into(), "Saved task".into(), TaskType::Implement, None)
+        .add_step("one".into(), "Saved step".into(), StepType::Implement, None)
         .unwrap();
     writer
         .roadmap_add_chunk(
@@ -42,7 +53,47 @@ fn fixture() -> (tempfile::TempDir, NativeConfig, NativeConfig) {
         )
         .unwrap();
     drop(writer);
-    (dir, current, old)
+    let snapshot = NativeReader::open(&old).run_snapshot().unwrap();
+    as_older_store(old.data_dir());
+    (dir, current, old, snapshot)
+}
+
+/// Give a store written by the current writer the layout and spelling the
+/// standalone writer used: the run family under `ship/` with its check results
+/// under `receipts/`, and version 2 documents keyed `objective`, `tasks`,
+/// `actions`.
+fn as_older_store(data: &Path) {
+    fn rename_dirs(dir: &Path) {
+        for entry in fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                rename_dirs(&path);
+                if path.file_name().unwrap() == "check_results" {
+                    fs::rename(&path, path.with_file_name("receipts")).unwrap();
+                }
+            } else if path.extension().is_some_and(|e| e == "json")
+                && path.parent().unwrap().ends_with("sessions")
+            {
+                let mut doc: serde_json::Value =
+                    serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+                let text = serde_json::to_string(&doc).unwrap();
+                let text = text
+                    .replace("\"goal\":", "\"objective\":")
+                    .replace("\"steps\":", "\"tasks\":")
+                    .replace("\"progress\":", "\"actions\":")
+                    .replace("\"step_id\":", "\"task_id\":")
+                    .replace("\"next_progress_id\":", "\"next_action_id\":");
+                doc = serde_json::from_str(&text).unwrap();
+                doc["schema_version"] = serde_json::json!(2);
+                fs::write(&path, serde_json::to_vec(&doc).unwrap()).unwrap();
+            }
+        }
+    }
+    let run = data.join("run");
+    if run.exists() {
+        rename_dirs(&run);
+        fs::rename(&run, data.join("ship")).unwrap();
+    }
 }
 
 fn request(config: &NativeConfig) {
@@ -53,21 +104,20 @@ fn request(config: &NativeConfig) {
 
 #[test]
 fn admission_restores_saved_execution_and_plan_and_retains_originals_once() {
-    let (_dir, current, old) = fixture();
-    let paths = records(old.data_dir(), "saved-project").unwrap();
+    let (_dir, current, old, snapshot) = fixture_and_snapshot();
+    let paths = records(old.data_dir(), "saved-project", OLDER_FAMILIES).unwrap();
     let originals: Vec<_> = paths
         .iter()
         .map(|p| fs::read(old.data_dir().join(p)).unwrap())
         .collect();
-    let snapshot = NativeReader::open(&old).ship_snapshot().unwrap();
     request(&current);
     assert!(
-        NativeReader::open(&current).ship_snapshot().is_err(),
+        NativeReader::open(&current).run_snapshot().is_err(),
         "pending upgrade never appears as an empty project"
     );
     let owner = ProjectAuthority::admit(&current, WriterRole::Host).unwrap();
     assert_eq!(
-        NativeReader::open(&current).ship_snapshot().unwrap(),
+        NativeReader::open(&current).run_snapshot().unwrap(),
         snapshot
     );
     assert_eq!(
@@ -76,18 +126,20 @@ fn admission_restores_saved_execution_and_plan_and_retains_originals_once() {
     );
     for (path, original) in paths.iter().zip(originals.iter()) {
         assert_eq!(fs::read(old.data_dir().join(path)).unwrap(), *original);
-        assert_eq!(fs::read(current.data_dir().join(path)).unwrap(), *original);
+        if !path.starts_with("ship") {
+            assert_eq!(fs::read(current.data_dir().join(path)).unwrap(), *original);
+        }
     }
     drop(owner);
     let next = ProjectAuthority::admit(&current, WriterRole::Host)
         .unwrap()
         .open();
-    next.ship_add_task("two".into(), "New work".into(), TaskType::Implement, None)
+    next.add_step("two".into(), "New work".into(), StepType::Implement, None)
         .unwrap();
     drop(next);
     drop(ProjectAuthority::admit(&current, WriterRole::Host).unwrap());
     assert_eq!(
-        NativeReader::open(&current).ship_tasks().unwrap().len(),
+        NativeReader::open(&current).run_steps().unwrap().len(),
         2,
         "later work is never overwritten by another import"
     );
@@ -97,7 +149,7 @@ fn admission_restores_saved_execution_and_plan_and_retains_originals_once() {
 fn a_partial_copy_retries_but_a_different_destination_is_never_overwritten() {
     let (_dir, current, old) = fixture();
     request(&current);
-    let paths = records(old.data_dir(), "saved-project").unwrap();
+    let paths = records(old.data_dir(), "saved-project", OLDER_FAMILIES).unwrap();
     let first = &paths[0];
     publish(
         &current.data_dir().join(first),
@@ -106,7 +158,7 @@ fn a_partial_copy_retries_but_a_different_destination_is_never_overwritten() {
     )
     .unwrap();
     drop(ProjectAuthority::admit(&current, WriterRole::Host).unwrap());
-    assert_eq!(NativeReader::open(&current).ship_tasks().unwrap().len(), 1);
+    assert_eq!(NativeReader::open(&current).run_steps().unwrap().len(), 1);
     // Simulate an unfinished upgrade that encounters independently changed work.
     request(&current);
     fs::write(current.data_dir().join(first), b"conflicting work").unwrap();
@@ -146,7 +198,7 @@ fn another_project_and_a_live_older_owner_are_left_alone() {
         io::ErrorKind::WouldBlock
     );
     assert!(
-        records(current.data_dir(), "saved-project")
+        records(current.data_dir(), "saved-project", CURRENT_FAMILIES)
             .unwrap()
             .is_empty()
     );
@@ -155,7 +207,7 @@ fn another_project_and_a_live_older_owner_are_left_alone() {
     assert!(
         !current
             .data_dir()
-            .join("ship/sessions/other-project.json")
+            .join("run/sessions/other-project.json")
             .exists()
     );
     assert_eq!(fs::read(other).unwrap(), b"unrelated");
@@ -164,15 +216,22 @@ fn another_project_and_a_live_older_owner_are_left_alone() {
 #[test]
 fn no_record_lock_outlives_the_upgrade_that_took_it() {
     let (_dir, current, old) = fixture();
-    let paths = records(old.data_dir(), "saved-project").unwrap();
+    let paths = records(old.data_dir(), "saved-project", OLDER_FAMILIES).unwrap();
     request(&current);
     let owner = ProjectAuthority::admit(&current, WriterRole::Host).unwrap();
     for relative in &paths {
-        for store in [old.data_dir(), current.data_dir()] {
+        let renamed = relative
+            .to_string_lossy()
+            .replacen("ship/", "run/", 1)
+            .replace("/receipts/", "/check_results/");
+        for (store, relative) in [
+            (old.data_dir(), relative.clone()),
+            (current.data_dir(), PathBuf::from(renamed)),
+        ] {
             let lock = File::options()
                 .read(true)
                 .write(true)
-                .open(store.join(relative).with_extension("json.lock"))
+                .open(store.join(&relative).with_extension("json.lock"))
                 .unwrap();
             assert!(
                 lock.try_lock().is_ok(),
@@ -194,7 +253,7 @@ fn the_owner_that_ran_the_upgrade_can_save_new_work() {
     let (done, finished) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
         let saved = writer
-            .ship_add_task("two".into(), "New work".into(), TaskType::Implement, None)
+            .add_step("two".into(), "New work".into(), StepType::Implement, None)
             .is_ok();
         let _ = done.send(saved);
     });
@@ -208,7 +267,7 @@ fn the_owner_that_ran_the_upgrade_can_save_new_work() {
 #[test]
 fn an_older_owner_is_fenced_even_before_its_first_record() {
     let (_dir, current, old) = fixture();
-    for path in records(old.data_dir(), "saved-project").unwrap() {
+    for path in records(old.data_dir(), "saved-project", OLDER_FAMILIES).unwrap() {
         fs::remove_file(old.data_dir().join(path)).unwrap();
     }
     request(&current);
@@ -242,23 +301,23 @@ fn a_linked_destination_is_refused_before_copying() {
     fs::create_dir_all(current.data_dir()).unwrap();
     let external = dir.path().join("external");
     fs::create_dir(&external).unwrap();
-    std::os::unix::fs::symlink(&external, current.data_dir().join("ship")).unwrap();
+    std::os::unix::fs::symlink(&external, current.data_dir().join("run")).unwrap();
     assert!(ProjectAuthority::admit(&current, WriterRole::Host).is_err());
     assert_eq!(fs::read_dir(external).unwrap().count(), 0);
 }
-const SHIP_V1: &[u8] = include_bytes!("fixtures/older-ship.json");
+const RUN_V1: &[u8] = include_bytes!("fixtures/older-run.json");
 const THINK_V1: &[u8] = include_bytes!("fixtures/older-think.json");
 
 fn older_fixture() -> (tempfile::TempDir, NativeConfig, NativeConfig) {
     let fixture = fixture();
     let (_, current, old) = &fixture;
-    for path in records(old.data_dir(), "saved-project").unwrap() {
+    for path in records(old.data_dir(), "saved-project", OLDER_FAMILIES).unwrap() {
         if path.starts_with("ship") {
             fs::remove_file(old.data_dir().join(path)).unwrap();
         }
     }
     for (path, bytes) in [
-        ("ship/sessions/saved-project.json", SHIP_V1),
+        ("ship/sessions/saved-project.json", RUN_V1),
         ("think/sessions/saved-project.json", THINK_V1),
         (
             "roadmap/sessions/saved-project.json",
@@ -278,7 +337,7 @@ fn older_fixture() -> (tempfile::TempDir, NativeConfig, NativeConfig) {
 #[test]
 fn old_work_and_reasoning_are_converted_into_the_records_current_readers_use() {
     let (_dir, current, old) = older_fixture();
-    let before = records(old.data_dir(), "saved-project")
+    let before = records(old.data_dir(), "saved-project", OLDER_FAMILIES)
         .unwrap()
         .into_iter()
         .map(|path| {
@@ -288,16 +347,13 @@ fn old_work_and_reasoning_are_converted_into_the_records_current_readers_use() {
         .collect::<Vec<_>>();
     let owner = ProjectAuthority::admit(&current, WriterRole::Host).unwrap();
     let reader = NativeReader::open(&current);
-    let work = reader.ship_snapshot().unwrap();
+    let work = reader.run_snapshot().unwrap();
     assert_eq!(
-        reader.ship_tasks().unwrap()[0].actions[0].think_step,
+        reader.run_steps().unwrap()[0].progress[0].think_step,
         Some(7)
     );
-    assert_eq!(reader.ship_tasks().unwrap()[0].id, "one");
-    assert_eq!(
-        reader.ship_tasks().unwrap()[0].checks[0].name,
-        "Saved check"
-    );
+    assert_eq!(reader.run_steps().unwrap()[0].id, "one");
+    assert_eq!(reader.run_steps().unwrap()[0].checks[0].name, "Saved check");
     assert_eq!(
         reader.think_step(7).unwrap().unwrap().record_id.as_deref(),
         Some("retained-step")
@@ -313,7 +369,7 @@ fn old_work_and_reasoning_are_converted_into_the_records_current_readers_use() {
     assert!(
         !current
             .data_dir()
-            .join("ship/sessions/saved-project.json")
+            .join("run/sessions/saved-project.json")
             .exists()
     );
     for (path, bytes) in &before {
@@ -323,23 +379,23 @@ fn old_work_and_reasoning_are_converted_into_the_records_current_readers_use() {
     let next = ProjectAuthority::admit(&current, WriterRole::Host)
         .unwrap()
         .open();
-    assert_eq!(NativeReader::open(&current).ship_snapshot().unwrap(), work);
-    next.ship_add_task(
+    assert_eq!(NativeReader::open(&current).run_snapshot().unwrap(), work);
+    next.add_step(
         "two".into(),
         "Continue saved work".into(),
-        TaskType::Implement,
+        StepType::Implement,
         None,
     )
     .unwrap();
     drop(next);
     drop(ProjectAuthority::admit(&current, WriterRole::Host).unwrap());
-    assert_eq!(NativeReader::open(&current).ship_tasks().unwrap().len(), 2);
+    assert_eq!(NativeReader::open(&current).run_steps().unwrap().len(), 2);
 }
 
 #[test]
 fn interrupted_old_format_conversion_reuses_exact_published_identities() {
     let (_dir, current, old) = older_fixture();
-    let source = records(old.data_dir(), "saved-project")
+    let source = records(old.data_dir(), "saved-project", OLDER_FAMILIES)
         .unwrap()
         .into_iter()
         .map(|path| {
@@ -350,12 +406,12 @@ fn interrupted_old_format_conversion_reuses_exact_published_identities() {
     let planned = converted_records(&current, "saved-project", source).unwrap();
     let (relative, bytes) = planned
         .iter()
-        .find(|(path, _)| path.starts_with("ship"))
+        .find(|(path, _)| path.starts_with("run"))
         .unwrap();
     publish(&current.data_dir().join(relative), bytes, false).unwrap();
     drop(ProjectAuthority::admit(&current, WriterRole::Host).unwrap());
     assert_eq!(fs::read(current.data_dir().join(relative)).unwrap(), *bytes);
-    assert_eq!(NativeReader::open(&current).ship_tasks().unwrap().len(), 1);
+    assert_eq!(NativeReader::open(&current).run_steps().unwrap().len(), 1);
     assert!(
         NativeReader::open(&current)
             .think_step(7)
@@ -374,7 +430,7 @@ fn invalid_old_history_refuses_the_whole_copy_and_keeps_the_request_pending() {
     fs::write(&path, &bytes).unwrap();
     assert!(ProjectAuthority::admit(&current, WriterRole::Host).is_err());
     assert!(
-        records(current.data_dir(), "saved-project")
+        records(current.data_dir(), "saved-project", CURRENT_FAMILIES)
             .unwrap()
             .is_empty()
     );
@@ -404,7 +460,7 @@ fn a_live_older_document_owner_blocks_conversion_before_any_copy() {
         io::ErrorKind::WouldBlock
     );
     assert!(
-        records(current.data_dir(), "saved-project")
+        records(current.data_dir(), "saved-project", CURRENT_FAMILIES)
             .unwrap()
             .is_empty()
     );
@@ -452,7 +508,7 @@ fn work_saved_under_another_store_of_the_same_user_refuses_instead_of_completing
     .unwrap()
     .open();
     writer
-        .ship_set_objective("Keep this work".into(), vec![], vec![], "saved".into())
+        .run_open("Keep this work".into(), vec![], vec![], "saved".into())
         .unwrap();
     drop(writer);
     request(&launch);
@@ -463,11 +519,15 @@ fn work_saved_under_another_store_of_the_same_user_refuses_instead_of_completing
     assert!(message.contains("MAGISTR_WORKFLOW_DATA_DIR"), "{message}");
     assert_eq!(request_state(&launch)["complete"], false);
     assert!(
-        records(launch.data_dir(), "saved-project")
+        records(launch.data_dir(), "saved-project", CURRENT_FAMILIES)
             .unwrap()
             .is_empty()
     );
-    assert!(!records(&older, "saved-project").unwrap().is_empty());
+    assert!(
+        !records(&older, "saved-project", CURRENT_FAMILIES)
+            .unwrap()
+            .is_empty()
+    );
 }
 
 #[test]

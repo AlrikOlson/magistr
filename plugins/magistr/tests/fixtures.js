@@ -1,25 +1,25 @@
 // Examples follow the canonical MCP responses; no native service runs here.
 export function fixture() {
-  const task = {
+  const step = {
     id: 'review',
     title: 'Review changes',
     type: 'implement',
     status: 'planned',
     checks: [],
-    actions: [],
+    progress: [],
     artifacts: [],
   }
-  const ship = {
+  const run = {
     project_id: 'example',
-    objective: {
+    goal: {
       description: 'Finish the search feature',
       created_at: 'cycle-one',
       acceptance_criteria: ['Search finds matching pages'],
     },
-    task_list: [task],
-    active_task: null,
+    step_list: [step],
+    active_step: null,
     checks: [],
-    recent_actions: [],
+    recent_progress: [],
   }
   const work = {
     id: 'search',
@@ -45,9 +45,9 @@ export function fixture() {
     owner_epoch: '42',
     phase: 'planning',
     phase_cycle: 'cycle-one',
-    phase_task: null,
-    task: null,
-    receipt: null,
+    phase_step: null,
+    step: null,
+    check_result: null,
     checks: [
       {
         key: 'check',
@@ -56,8 +56,8 @@ export function fixture() {
     ],
   }
   return {
-    task,
-    ship,
+    step,
+    run,
     work,
     roadmap,
     context,
@@ -107,7 +107,7 @@ export function compositionReply(operation, raw) {
     structuredContent: {
       ok: true,
       automaticReplay: false,
-      receipts: [
+      check_results: [
         {
           operation,
           result: raw.structuredContent ?? raw.result ?? raw,
@@ -138,8 +138,8 @@ export function answer(f, server, tool, args) {
     return f.changes
   }
   switch (tool) {
-    case 'ship_status':
-      return f.ship
+    case 'run_status':
+      return f.run
     case 'roadmap_status':
       return f.roadmap
     case 'roadmap_focus_get': {
@@ -200,11 +200,11 @@ export function answer(f, server, tool, args) {
     case 'context':
       return {
         ...f.context,
-        task: args.task_id
+        step: args.step_id
           ? {
-              record: { ...f.task },
+              record: { ...f.step },
               omitted_checks: 0,
-              omitted_actions: 0,
+              omitted_progress: 0,
               detail_limit: 6000,
             }
           : null,

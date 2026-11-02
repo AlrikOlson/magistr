@@ -123,7 +123,7 @@ async fn timer_retries_failure_and_unchanged_stamp_repair_while_feed_stays_attac
         failed.roadmap.last_successful().unwrap().value.chunks[0].id,
         "retained"
     );
-    assert!(failed.ship.current().is_ok());
+    assert!(failed.run.current().is_ok());
     assert!(next_seed(&mut rx, TICK * 3).await.is_none());
 
     std::fs::write(&path, original).unwrap();
@@ -147,7 +147,7 @@ async fn timer_retries_failure_and_unchanged_stamp_repair_while_feed_stays_attac
 }
 
 #[tokio::test]
-async fn scoped_ship_only_and_signal_changes_reach_the_snapshot() {
+async fn scoped_run_only_and_signal_changes_reach_the_snapshot() {
     let tmp = tempfile::tempdir().unwrap();
     let root = engines(&tmp);
     let engines = root
@@ -157,20 +157,20 @@ async fn scoped_ship_only_and_signal_changes_reach_the_snapshot() {
     let (inbox, mut rx) = Inbox::channel();
     let task = spawn_reseed(reads, FeedLink::new(), inbox, TICK);
     engines
-        .ship_set_objective(
+        .run_open(
             "Only this execution".into(),
             vec![],
             vec![],
             "chunk:work".into(),
         )
         .unwrap();
-    let ship = next_seed(&mut rx, Duration::from_secs(5)).await.unwrap();
+    let run = next_seed(&mut rx, Duration::from_secs(5)).await.unwrap();
     assert_eq!(
-        ship.ship
+        run.run
             .current()
             .unwrap()
             .value
-            .objective()
+            .goal()
             .as_ref()
             .unwrap()
             .description,

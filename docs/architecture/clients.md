@@ -38,14 +38,14 @@ parallel writer, catalog or provider registry.
 ## Workflow consistency model
 
 One project writer owns the shared roadmap, reasoning and signals. Its registry
-owns ship engines per canonical working-copy root and execution id. Identical
+owns run engines per canonical working-copy root and execution id. Identical
 live contexts share handles; different contexts retain their own selected
-objective, tasks, checks and receipts. Persistence reopens the same context
+goal, tasks, checks and receipts. Persistence reopens the same context
 without replacing another context's selected scope. This is an ownership
 contract, not a timestamp-based merge between competing workflow writers.
 
-Every family persists atomically under its data partition. Ship is partitioned
-under `ship/executions/<context-key>`; project planning stays under its existing
+Every family persists atomically under its data partition. Run is partitioned
+under `run/executions/<context-key>`; project planning stays under its existing
 project identity. Family use cases hold their engine locks while validating and
 mutating. A long-running check captures root, execution, workflow generation,
 run and task instance before running and settles against that admission.

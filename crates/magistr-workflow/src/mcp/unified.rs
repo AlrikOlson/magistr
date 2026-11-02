@@ -1,7 +1,7 @@
 //! `UnifiedService` — the single MCP server that exposes every tool family.
 //!
 //! Routes an incoming `tools/call` to the family that CLAIMS its name prefix:
-//! [`ThinkService`], [`ShipService`], [`RoadmapService`] or [`SignalService`].
+//! [`ThinkService`], [`RunService`], [`RoadmapService`] or [`SignalService`].
 //! Which of them a given deployment actually serves is decided once at startup
 //! by [`FamilySelection`]; this layer only dispatches.
 //!
@@ -40,7 +40,7 @@ use super::resources::{
 use super::tasks::{Eligibility, HeartbeatSeed};
 
 use crate::roadmap::RoadmapService;
-use crate::ship::ShipService;
+use crate::run::RunService;
 use crate::signal::SignalService;
 use crate::think::ThinkService;
 use crate::usage::CallCounter;
@@ -54,24 +54,24 @@ for the namespace it mirrors itself through:
   tracker_* (2 tools)    roadmap's mirroring namespace — project the plan into an
                          issue tracker through one provider-agnostic port
   think_*   (13 tools)   reasoning trace
-  ship_*    (14 tools)   execution trace (incl. approval gates: gate_open/gate_wait)
+  run_*      (7 tools)  run history: open a run, read its status, finish it
+  approval_* (2 tools)  the run family's approvals: ask a person, wait for the answer
+  step verbs (5 tools)  arrange_steps, start_step, record_progress, check_step, finish_step
   signal_*  (10 tools)   stakeholder signals (capture/research/surface/promote + inbox verbs)
 
-roadmap_* sits above ship_*: a roadmap chunk is realized by a ship objective,
-which is motivated by think reasoning. Cross-reference reasoning to execution
-via execution_ref on think_record_step (e.g. "task:auth-refactor"); execution
-to reasoning via the think_step field on ship_record. All families resolve
-the same project identity from the working directory so traces auto-correlate.
-
-The verb that closes an objective is ship_finalize, not ship_ship.
+roadmap_* sits above run_*: a roadmap chunk is realized by a run, which is
+motivated by think reasoning. Link reasoning to a run through execution_ref on
+think_record_step (e.g. "step:auth-refactor"), and progress back to reasoning
+through the think_step field on record_progress. All families resolve the same
+project identity from the working directory so their records correlate.
 "#;
 
-/// Single MCP server exposing the `think_*`, `ship_*`, `roadmap_*`, and
+/// Single MCP server exposing the `think_*`, `run_*`, `roadmap_*`, and
 /// `signal_*` families.
 #[derive(Clone)]
 pub struct UnifiedService {
     think: Arc<ThinkService>,
-    ship: Arc<ShipService>,
+    run: Arc<RunService>,
     roadmap: Arc<RoadmapService>,
     signal: Arc<SignalService>,
     /// The last `traceparent` written to the otel partition. A tool call is a
@@ -97,7 +97,7 @@ pub struct UnifiedService {
 impl UnifiedService {
     pub fn new(
         think: ThinkService,
-        ship: ShipService,
+        run: RunService,
         roadmap: RoadmapService,
         signal: SignalService,
     ) -> Self {
@@ -108,14 +108,14 @@ impl UnifiedService {
         let known: Vec<String> = think
             .list_tools_view()
             .into_iter()
-            .chain(ship.list_tools_view())
+            .chain(run.list_tools_view())
             .chain(roadmap.list_tools_view())
             .chain(signal.list_tools_view())
             .map(|t| t.name.to_string())
             .collect();
         Self {
             think: Arc::new(think),
-            ship: Arc::new(ship),
+            run: Arc::new(run),
             roadmap: Arc::new(roadmap),
             signal: Arc::new(signal),
             last_traceparent: Arc::new(Mutex::new(None)),
@@ -190,7 +190,7 @@ impl UnifiedService {
     /// inside a spawned future — so "a gate run as a task and the same gate run
     /// inline produce the same envelope" is not a property to be reviewed for,
     /// it is the absence of a second implementation. `verified`, `exit_code`
-    /// and the recorded check all come from the one `ship_check` handler either
+    /// and the recorded check all come from the one `check_step` handler either
     /// way.
     async fn route(
         &self,
@@ -251,12 +251,12 @@ impl UnifiedService {
         let dispatch = async {
             let outcome = match Self::route_of(&request.name) {
                 Some(Family::Think) => self.think.call_tool(request, context).await,
-                Some(Family::Ship) => self.ship.call_tool(request, context).await,
+                Some(Family::Run) => self.run.call_tool(request, context).await,
                 Some(Family::Roadmap) => self.roadmap.call_tool(request, context).await,
                 Some(Family::Signal) => self.signal.call_tool(request, context).await,
                 None => Err(ErrorData::invalid_params(
                     format!(
-                        "unknown tool '{}'; expected a think_*, ship_*, roadmap_*, or signal_* \
+                        "unknown tool '{}'; expected a think_*, run_*, roadmap_*, or signal_* \
                          name",
                         request.name
                     ),
@@ -353,8 +353,8 @@ impl UnifiedService {
         if self.families.contains(Family::Think) {
             tools.extend(self.think.list_tools_view());
         }
-        if self.families.contains(Family::Ship) {
-            tools.extend(self.ship.list_tools_view());
+        if self.families.contains(Family::Run) {
+            tools.extend(self.run.list_tools_view());
         }
         if self.families.contains(Family::Roadmap) {
             tools.extend(self.roadmap.list_tools_view());
@@ -363,21 +363,6 @@ impl UnifiedService {
             tools.extend(self.signal.list_tools_view());
         }
         tools
-    }
-
-    /// The canonical replacement for a name a caller plausibly reaches for but
-    /// that this server does not serve, or `None` if the name was never ours.
-    ///
-    /// `ship_ship` is the one that keeps earning its place: the family prefix is
-    /// `ship_` and the verb it finalizes with is not `ship`, so a model that
-    /// derives the name rather than reading it lands here. Answering with the
-    /// real name costs one branch; a bare "unknown tool" costs a retry.
-    pub fn replacement_for_retired(name: &str) -> Option<String> {
-        use crate::ship::mcp::service::MISDERIVED_FINALIZE_NAMES;
-
-        MISDERIVED_FINALIZE_NAMES
-            .contains(&name)
-            .then(|| "ship_finalize".to_string())
     }
 
     /// Which underlying family a tool name routes to. Returns `None` for
@@ -400,7 +385,7 @@ impl UnifiedService {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Family {
     Think,
-    Ship,
+    Run,
     Roadmap,
     Signal,
 }
@@ -409,7 +394,7 @@ impl Family {
     /// Every family this server serves. Callers that describe the surface —
     /// the instructions block, the generated CLAUDE.md — iterate this instead
     /// of hand-listing families, so adding a fifth can't leave a doc behind.
-    pub const ALL: [Family; 4] = [Family::Think, Family::Ship, Family::Roadmap, Family::Signal];
+    pub const ALL: [Family; 4] = [Family::Think, Family::Run, Family::Roadmap, Family::Signal];
 
     /// Every tool-name prefix this family CLAIMS, without trailing
     /// underscores, canonical one first.
@@ -431,7 +416,7 @@ impl Family {
     pub fn prefixes(self) -> &'static [&'static str] {
         match self {
             Family::Think => &["think"],
-            Family::Ship => &["ship"],
+            Family::Run => &["run", "approval"],
             Family::Roadmap => &["roadmap", "tracker"],
             Family::Signal => &["signal"],
         }
@@ -453,13 +438,25 @@ impl Family {
             .map_or(&[][..], |(_, rest)| rest)
     }
 
-    /// Whether `tool_name` sits under one of this family's prefixes.
+    /// The direct verbs this family serves under their own names. A step
+    /// verb names what it acts on (`start_step`, `check_step`), not the family,
+    /// so it is claimed by exact name rather than by prefix.
+    pub fn verbs(self) -> &'static [&'static str] {
+        match self {
+            Family::Run => &crate::run::mcp::STEP_VERBS,
+            Family::Think | Family::Roadmap | Family::Signal => &[],
+        }
+    }
+
+    /// Whether `tool_name` sits under one of this family's prefixes or is
+    /// one of its direct verbs.
     pub fn claims(self, tool_name: &str) -> bool {
-        self.prefixes().iter().any(|p| {
-            tool_name
-                .strip_prefix(p)
-                .is_some_and(|v| v.starts_with('_'))
-        })
+        self.verbs().contains(&tool_name)
+            || self.prefixes().iter().any(|p| {
+                tool_name
+                    .strip_prefix(p)
+                    .is_some_and(|v| v.starts_with('_'))
+            })
     }
 
     /// Parse an operator-written family token (case- and space-insensitive).
@@ -509,7 +506,7 @@ impl Family {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FamilySelection {
     think: bool,
-    ship: bool,
+    run: bool,
     roadmap: bool,
     signal: bool,
 }
@@ -605,7 +602,7 @@ impl FamilySelection {
     pub const fn all() -> Self {
         Self {
             think: true,
-            ship: true,
+            run: true,
             roadmap: true,
             signal: true,
         }
@@ -616,7 +613,7 @@ impl FamilySelection {
     pub fn parse(raw: &str) -> Result<Self, FamilySelectionError> {
         let mut sel = Self {
             think: false,
-            ship: false,
+            run: false,
             roadmap: false,
             signal: false,
         };
@@ -648,7 +645,7 @@ impl FamilySelection {
     fn set(&mut self, family: Family) {
         match family {
             Family::Think => self.think = true,
-            Family::Ship => self.ship = true,
+            Family::Run => self.run = true,
             Family::Roadmap => self.roadmap = true,
             Family::Signal => self.signal = true,
         }
@@ -659,7 +656,7 @@ impl FamilySelection {
     pub fn contains(self, family: Family) -> bool {
         match family {
             Family::Think => self.think,
-            Family::Ship => self.ship,
+            Family::Run => self.run,
             Family::Roadmap => self.roadmap,
             Family::Signal => self.signal,
         }
@@ -861,20 +858,8 @@ impl ServerHandler for UnifiedService {
         // before dispatch, so this one seam covers every tool in all five
         // families.
         self.adopt_trace_context(&context.meta);
-        // A retired name is answered before routing: it would otherwise reach a
-        // family that no longer knows it and fail as a generic unknown tool,
-        // which tells the caller nothing about what to use instead.
-        if let Some(replacement) = Self::replacement_for_retired(&request.name) {
-            return Err(ErrorData::invalid_params(
-                format!(
-                    "'{}' was removed in v0.3.0; use '{replacement}' instead",
-                    request.name
-                ),
-                None,
-            ));
-        }
         // Liveness progress rides the SAME seam as the trace context above:
-        // one place covers every tool in every family, so `ship_check`'s gate,
+        // one place covers every tool in every family, so `check_step`'s gate,
         // a tracker push and a sync back-fill all report without any of them
         // knowing this exists. The handle is held only for the duration of the
         // inner call and aborts on drop, so a call that finishes inside
@@ -942,16 +927,16 @@ mod tests {
     use super::*;
 
     fn service() -> UnifiedService {
-        let ship = ShipService::new(crate::ship::engine::ShipEngine::new("p".into()));
+        let run = RunService::new(crate::run::engine::RunEngine::new("p".into()));
         let roadmap = RoadmapService::new(
             crate::roadmap::engine::RoadmapEngine::new("p".into()),
-            ship.use_cases(),
+            run.use_cases(),
         );
         UnifiedService::new(
             ThinkService::new(crate::think::engine::core::ReasoningServer::new(
                 crate::think::config::ThinkConfig::default(),
             )),
-            ship,
+            run,
             roadmap,
             SignalService::new(crate::signal::engine::SignalEngine::new("p".into())),
         )
@@ -976,10 +961,7 @@ mod tests {
             UnifiedService::route_of("think_record_step"),
             Some(Family::Think)
         );
-        assert_eq!(
-            UnifiedService::route_of("ship_set_objective"),
-            Some(Family::Ship)
-        );
+        assert_eq!(UnifiedService::route_of("run_open"), Some(Family::Run));
         assert_eq!(
             UnifiedService::route_of("roadmap_add_chunk"),
             Some(Family::Roadmap)
@@ -1022,10 +1004,7 @@ mod tests {
         );
         let orphans: Vec<&String> = listed
             .iter()
-            .filter(|n| {
-                UnifiedService::route_of(n).is_none()
-                    && UnifiedService::replacement_for_retired(n).is_none()
-            })
+            .filter(|n| UnifiedService::route_of(n).is_none())
             .collect();
         assert!(
             orphans.is_empty(),
@@ -1035,19 +1014,24 @@ mod tests {
         );
     }
 
-    /// `ship_ship` is answered by name before routing, so it must NOT also be
-    /// claimed by a family — a name that routes never reaches the interception,
-    /// and the caller gets a blind failure from a family that has no such tool.
+    /// The step verbs carry no family prefix, so the run family claims them
+    /// by exact name. Retired names are not claimed by anyone and are refused
+    /// as unknown tools.
     #[test]
-    fn the_misderived_finalize_name_is_intercepted_rather_than_routed() {
-        assert_eq!(
-            UnifiedService::replacement_for_retired("ship_ship").as_deref(),
-            Some("ship_finalize")
-        );
-        assert_eq!(
-            UnifiedService::route_of("think_record_step"),
-            Some(Family::Think)
-        );
+    fn step_verbs_route_to_the_run_family_and_retired_names_route_nowhere() {
+        for verb in crate::run::mcp::STEP_VERBS {
+            assert_eq!(UnifiedService::route_of(verb), Some(Family::Run), "{verb}");
+        }
+        assert_eq!(UnifiedService::route_of("approval_open"), Some(Family::Run));
+        for retired in [
+            "ship_status",
+            "ship_check",
+            "plan_work",
+            "check_work",
+            "ship_ship",
+        ] {
+            assert_eq!(UnifiedService::route_of(retired), None, "{retired}");
+        }
     }
 
     /// Every prefix a family claims must route back to that family, and must be

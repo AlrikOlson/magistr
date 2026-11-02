@@ -284,7 +284,7 @@ async fn unreadable_work_records_are_reported_without_preventing_chat_startup() 
         seed.snapshot.roadmap.current().unwrap_err().kind,
         ReadErrorKind::Decode
     );
-    assert!(seed.snapshot.ship.current().is_ok());
+    assert!(seed.snapshot.run.current().is_ok());
     sender.send(Cmd::Prompt("Chat still works".into())).unwrap();
     tokio::time::timeout(Duration::from_secs(2), async {
         loop {
@@ -547,19 +547,13 @@ async fn same_copy_sessions_share_source_owner_and_keep_separate_workflow_execut
     let first = writer.for_working_copy(&config.cwd, "first").unwrap();
     let second = writer.for_working_copy(&config.cwd, "second").unwrap();
     first
-        .ship_set_objective("First".into(), vec![], vec![], "chunk:first".into())
+        .run_open("First".into(), vec![], vec![], "chunk:first".into())
         .unwrap();
     second
-        .ship_set_objective("Second".into(), vec![], vec![], "chunk:second".into())
+        .run_open("Second".into(), vec![], vec![], "chunk:second".into())
         .unwrap();
-    assert_eq!(
-        first.ship_objective().unwrap().unwrap().scope,
-        "chunk:first"
-    );
-    assert_eq!(
-        second.ship_objective().unwrap().unwrap().scope,
-        "chunk:second"
-    );
+    assert_eq!(first.run_goal().unwrap().unwrap().scope, "chunk:first");
+    assert_eq!(second.run_goal().unwrap().unwrap().scope, "chunk:second");
     let first_resources = resources.fork(EngineClient::attach(first));
     let second_resources = resources.fork(EngineClient::attach(second));
     assert!(Arc::ptr_eq(

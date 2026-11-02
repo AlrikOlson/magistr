@@ -12,14 +12,14 @@ use crate::roadmap::domain::{BlockerKind, FocusMode, FocusState};
 use crate::roadmap::mcp::handlers::{
     FocusGetArgs, FocusSetArgs, ProposeGroupsArgs, UpdateChunkArgs,
 };
-use crate::ship::engine::ShipEngine;
+use crate::run::engine::RunEngine;
 
-/// A roadmap over a ship family with no evidence capability: nothing here
+/// A roadmap over a run family with no evidence capability: nothing here
 /// completes a chunk.
 fn application() -> RoadmapUseCases {
     RoadmapUseCases::new(
         Arc::new(Mutex::new(RoadmapEngine::new("project".into()))),
-        ShipUseCases::new(Arc::new(Mutex::new(ShipEngine::new("project".into())))),
+        RunUseCases::new(Arc::new(Mutex::new(RunEngine::new("project".into())))),
     )
 }
 
@@ -465,7 +465,7 @@ fn focus_read_refreshes_catalog_saved_selection_and_frontier_from_one_store_obse
                 RoadmapEngine::new("project".into())
                     .with_persistence(Persistence::new(&config, Domain::Roadmap)),
             )),
-            ShipUseCases::new(Arc::new(Mutex::new(ShipEngine::new("project".into())))),
+            RunUseCases::new(Arc::new(Mutex::new(RunEngine::new("project".into())))),
         )
     };
     let writer = application();

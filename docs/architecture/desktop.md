@@ -344,7 +344,7 @@ copy complete work histories. Only changed workflow reads or actual family
 invalidation replace the shared value; duplicate and phase events retain it.
 Held observations remain unchanged when a newer snapshot is published. Conversation switches preserve
 that owner revision. Saved work uses each execution's stable run identity;
-selecting current work follows new objectives, while selecting a saved run stays
+selecting current work follows new goals, while selecting a saved run stays
 on that run. A removed selection remains explicitly unavailable. The reader
 keeps drafts in place, rejects late responses
 from another address and presents stale, unavailable and missing states from
@@ -373,7 +373,7 @@ The reader retains item identity, text selection, track return position and
 focus across updates, and ignores late reads after navigation.
 The reader never computes a second persisted plan.
 
-Execution search spans current and retained objectives, requirements, task actions,
+Execution search spans current and retained goals, requirements, task actions,
 check output and artifact references. An exact run selection stays on its stable
 identity when new work starts. Task, check-attempt and activity views page at 50
 matching entries and retain original task positions and receipt identities; a
@@ -423,7 +423,7 @@ content. Short windows retain a useful reading area.
 The [thirty-chunk delivery index](../evidence/desktop-layout/desktop-roadmap-delivery.md)
 records the delivered scope, commits and verification limits.
 
-The desktop opens conversations, reads current objectives and tasks, starts planned work and prepares projects. The CLI retains
+The desktop opens conversations, reads current goals and tasks, starts planned work and prepares projects. The CLI retains
 headless runs, initialization, validation and administrative commands; MCP
 roles serve workflow and source tools. Roadmap editing and browsing arbitrary working-copy changes remain later desktop work.
 

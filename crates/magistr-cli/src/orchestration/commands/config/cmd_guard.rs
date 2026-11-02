@@ -2,7 +2,7 @@
 //! behind the scaffolded `.claude/hooks/magistr-guard.sh`.
 //!
 //! Reads the hook's JSON on stdin (only when stdin is not a terminal), the
-//! ship/roadmap state through the in-process magistr engines, the
+//! run/roadmap state through the in-process magistr engines, the
 //! project's frozen-tree declaration
 //! (`.magistr/legacy-gui-ratchet.json`) and whether `.mcp.json` declares
 //! magistr, then exits 2 with the reason on stderr to block the event.
@@ -218,34 +218,34 @@ fn read_engine_state(
     input: &mut GuardInput,
     engines: &magistr_engine::NativeReader,
 ) -> Result<(), String> {
-    let ship = engines.ship_snapshot()?;
+    let run = engines.run_snapshot()?;
     let chunks = engines.roadmap_chunks()?;
-    apply_engine_state(input, &ship, &chunks);
+    apply_engine_state(input, &run, &chunks);
     Ok(())
 }
 
 /// Fold validated typed records into the guard input.
 pub(crate) fn apply_engine_state(
     input: &mut GuardInput,
-    ship: &magistr_engine::ShipData,
+    run: &magistr_engine::RunData,
     chunks: &[magistr_workflow::roadmap::domain::Chunk],
 ) {
-    use magistr_workflow::ship::domain::objective::ObjectiveStatus;
-    input.objective_status = ship.objective().map(|objective| {
-        match objective.status {
-            ObjectiveStatus::Defined => "defined",
-            ObjectiveStatus::Active => "active",
-            ObjectiveStatus::Completed => "completed",
-            ObjectiveStatus::Abandoned => "abandoned",
+    use magistr_workflow::run::domain::goal::GoalStatus;
+    input.goal_status = run.goal().map(|goal| {
+        match goal.status {
+            GoalStatus::Open => "open",
+            GoalStatus::Active => "active",
+            GoalStatus::Finished => "finished",
+            GoalStatus::Abandoned => "abandoned",
         }
         .to_owned()
     });
-    input.objective_scope = ship.objective().map(|objective| objective.scope.clone());
-    input.tasks_total = ship.tasks().len();
-    input.checks = ship
-        .tasks()
+    input.goal_scope = run.goal().map(|goal| goal.scope.clone());
+    input.steps_total = run.steps().len();
+    input.checks = run
+        .steps()
         .iter()
-        .flat_map(|task| &task.checks)
+        .flat_map(|step| &step.checks)
         .map(|check| CheckSummary {
             name: check.name.clone(),
             required: check.required,
@@ -254,7 +254,7 @@ pub(crate) fn apply_engine_state(
         })
         .collect();
     input.chunk_in_progress = input
-        .objective_scope
+        .goal_scope
         .as_deref()
         .and_then(|scope| scope.strip_prefix("chunk:"))
         .is_some_and(|id| {

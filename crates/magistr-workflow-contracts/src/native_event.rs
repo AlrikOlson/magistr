@@ -3,7 +3,7 @@
 use crate::Family;
 
 use super::magistr_frame::MagistrFrame;
-use super::{RoadmapFrame, ShipFrame, SignalFrame, ThinkFrame};
+use super::{RoadmapFrame, RunFrame, SignalFrame, ThinkFrame};
 
 /// One thing that happened, as the engines say it: the workflow's own
 /// typed frame for each of its four families — the very values the
@@ -17,8 +17,8 @@ use super::{RoadmapFrame, ShipFrame, SignalFrame, ThinkFrame};
 /// one of these directly and never serialized on the way.
 ///
 /// Roadmap and signal frames carry the whole record, so folding one is
-/// idempotent; think frames carry the whole step; ship frames are deltas
-/// over the objective (a task started, a check recorded), so a gap in the
+/// idempotent; think frames carry the whole step; run frames are deltas
+/// over the goal (a task started, a check recorded), so a gap in the
 /// feed is repaired by a fresh [`NativeSnapshot`](super::NativeSnapshot),
 /// not by replaying.
 // The roadmap variant carries the whole `Chunk` on purpose — a fold over
@@ -30,8 +30,8 @@ use super::{RoadmapFrame, ShipFrame, SignalFrame, ThinkFrame};
 pub enum NativeEvent {
     /// The reasoning trace changed.
     Think(ThinkFrame),
-    /// The execution trace changed.
-    Ship(ShipFrame),
+    /// The run history changed.
+    Run(RunFrame),
     /// A roadmap chunk changed, or a refresh was recorded.
     Roadmap(RoadmapFrame),
     /// A stakeholder signal changed.
@@ -46,7 +46,7 @@ impl NativeEvent {
     pub const fn family(&self) -> Family {
         match self {
             Self::Think(_) => Family::Think,
-            Self::Ship(_) => Family::Ship,
+            Self::Run(_) => Family::Run,
             Self::Roadmap(_) => Family::Roadmap,
             Self::Signal(_) => Family::Signal,
             Self::Magistr(_) => Family::Magistr,

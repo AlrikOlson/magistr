@@ -1,11 +1,11 @@
 //! The answer to settling an admitted check.
 
-use magistr_engine::native::{Check, CheckReceipt, CheckSettlement, SourceFreshness};
+use magistr_engine::native::{Check, CheckResult, CheckSettlement, SourceFreshness};
 
 /// One settled check: the workflow's settlement — `Applied` with the
 /// recorded check, or `Stale` with the admission and outcome intact when
-/// the run or task was superseded while the gate ran — and, either way,
-/// the durable receipt settled under the admitted identity, carrying the
+/// the run or step was superseded while the gate ran — and, either way,
+/// the durable check_result settled under the admitted identity, carrying the
 /// execution, the timing and whether the source still matched.
 #[derive(Clone, Debug)]
 pub struct SettledCheck {
@@ -22,16 +22,16 @@ impl SettledCheck {
         }
     }
 
-    /// The receipt, applied or stale.
+    /// The check_result, applied or stale.
     #[must_use]
-    pub fn receipt(&self) -> &CheckReceipt {
-        &self.settlement.receipt().value
+    pub fn check_result(&self) -> &CheckResult {
+        &self.settlement.check_result().value
     }
 
     /// Whether the workspace still held the admitted bytes at settlement.
     #[must_use]
     pub fn freshness(&self) -> Option<&SourceFreshness> {
-        self.receipt().freshness.as_ref()
+        self.check_result().freshness.as_ref()
     }
 
     /// Whether the workflow accepted the result under its captured identity.

@@ -16,11 +16,11 @@ PROMPT = """Work only in this disposable project using its configured MCP tools.
 Do not use subagents, other servers or external services. This is an authorized evaluation.
 Investigate names.py and its test using source tools, identify the defect, and fix it
 with a current content hash. Run the actual unittest command through recorded workflow
-verification. Create a focused objective with a small plan, start the task, record
+verification. Create a focused goal with a small plan, start the task, record
 a concise design decision and the change, and capture the observed defect as feedback. Add one
 small future improvement to the native roadmap (create a phase if needed).
 Save a concise factual checkpoint for a fresh session, with observed evidence and\na decision summary. Do not record private chain-of-thought or hidden model reasoning. Finish the task after the check
-passes, but leave the objective open for a second session to inspect and finalize.
+passes, but leave the goal open for a second session to inspect and finalize.
 Use discover for schemas if it is present; use execute with synchronous
 magistr.call(name, args) for advanced operations. Inspect failures and recover
 from current state; do not replay completed changes. Do not change the tests.
@@ -30,7 +30,7 @@ RESUME = """Resume the existing work in this disposable project through its MCP 
 Do not use subagents, other servers or external services. Read context, saved execution,
 feedback, roadmap and the saved decision summary. Confirm the earlier task and its recorded
 check completed; preserve its source change and all existing records. Finalize that
-objective if its required checks pass. Do not create a new objective or repeat a
+goal if its required checks pass. Do not create a new goal or repeat a
 completed edit/check. Report what was recovered and the outcome. Advanced operations
 use discover and execute with magistr.call when those tools are present.
 """
@@ -53,12 +53,12 @@ def verify_saved_work(root):
         paths=list((root/"state"/family).rglob("sessions/*.json"))
         if len(paths)!=1:raise AssertionError(f"{family}: expected one isolated project, found {len(paths)}")
         return json.loads(paths[0].read_text())
-    ship=saved("ship");think=saved("think");signals=saved("signal");roadmap=saved("roadmap")
-    checks=[c for task in ship["tasks"] for c in task.get("checks",[])]
+    run=saved("run");think=saved("think");signals=saved("signal");roadmap=saved("roadmap")
+    checks=[c for task in run["tasks"] for c in task.get("checks",[])]
     proof=subprocess.run(["python3","-m","unittest","-q"],cwd=root,capture_output=True,text=True)
     result={
-        "objectiveCompleted":ship["objective"]["status"]=="completed",
-        "tasksCompleted":bool(ship["tasks"]) and all(t["status"]=="completed" for t in ship["tasks"]),
+        "goalCompleted":run["goal"]["status"]=="completed",
+        "tasksCompleted":bool(run["tasks"]) and all(t["status"]=="completed" for t in run["tasks"]),
         "recordedCheckPassed":required_checks_passed(checks),
         "feedbackSaved":bool(signals["signals"]),
         "futureRoadmapSaved":any(c["status"] in ("backlog","pending") for c in roadmap["chunks"]),
@@ -68,7 +68,7 @@ def verify_saved_work(root):
         "sourceSha256":hashlib.sha256((root/"names.py").read_bytes()).hexdigest(),
         "testSha256":hashlib.sha256((root/"test_names.py").read_bytes()).hexdigest(),
         "verificationCommands":[c["command"] for c in checks],
-        "taskCount":len(ship["tasks"])
+        "taskCount":len(run["tasks"])
     }
     result["passed"]=all(v for v in result.values() if isinstance(v,bool))
     return result

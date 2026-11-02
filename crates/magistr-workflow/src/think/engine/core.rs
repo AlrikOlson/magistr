@@ -166,7 +166,7 @@ impl ReasoningServer {
 
     /// Construct the engine with an explicit project identity. The default
     /// history persists to `<project_id>.json` (think-trace-durability), so
-    /// the caller should pass the same id it gives the ship/roadmap/signal
+    /// the caller should pass the same id it gives the run/roadmap/signal
     /// engines — `new` resolves it from the environment for convenience.
     pub fn new_for_project(config: ThinkConfig, project_id: String) -> Self {
         let persistence = Persistence::for_project(&config.persistence, &project_id);

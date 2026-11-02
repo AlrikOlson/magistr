@@ -39,8 +39,8 @@ impl From<crate::signal::application::SignalError> for WorkflowMutationError {
     }
 }
 
-impl From<crate::ship::application::ShipError> for WorkflowMutationError {
-    fn from(error: crate::ship::application::ShipError) -> Self {
+impl From<crate::run::application::RunError> for WorkflowMutationError {
+    fn from(error: crate::run::application::RunError) -> Self {
         Self {
             code: error.kind().into(),
             message: error.to_string(),

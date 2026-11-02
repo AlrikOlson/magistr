@@ -297,7 +297,7 @@ fn every_advertised_required_field_has_actionable_admission() {
     use magistr_workflow::infra::tool_input::ToolInput;
     use magistr_workflow::{
         roadmap::{RoadmapEngine, RoadmapService},
-        ship::{ShipService, engine::ShipEngine},
+        run::{RunService, engine::RunEngine},
         signal::{SignalEngine, SignalService},
     };
     let mut config = ThinkConfig::default();
@@ -308,11 +308,11 @@ fn every_advertised_required_field_has_actionable_admission() {
     ))
     .list_tools_view()
     .into_iter()
-    .chain(ShipService::new(ShipEngine::new("schema-contract".into())).list_tools_view())
+    .chain(RunService::new(RunEngine::new("schema-contract".into())).list_tools_view())
     .chain(
         RoadmapService::new(
             RoadmapEngine::new("schema-contract".into()),
-            ShipService::new(ShipEngine::new("schema-contract".into())).use_cases(),
+            RunService::new(RunEngine::new("schema-contract".into())).use_cases(),
         )
         .list_tools_view(),
     )

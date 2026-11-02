@@ -218,13 +218,13 @@ mod tests {
     #[test]
     fn latest_only_per_key_keeps_the_newest_envelope() {
         let outbox = Outbox::new(None);
-        outbox.enqueue("ship/task/a".into(), json!({"v": 1}));
+        outbox.enqueue("run/task/a".into(), json!({"v": 1}));
         outbox.enqueue("think/step/9".into(), json!({"v": 1}));
-        outbox.enqueue("ship/task/a".into(), json!({"v": 2}));
+        outbox.enqueue("run/task/a".into(), json!({"v": 2}));
 
         assert_eq!(outbox.len(), 2);
         let snap = outbox.snapshot();
-        let a = snap.iter().find(|e| e.key == "ship/task/a").unwrap();
+        let a = snap.iter().find(|e| e.key == "run/task/a").unwrap();
         assert_eq!(a.envelope, json!({"v": 2}));
     }
 
@@ -241,10 +241,10 @@ mod tests {
     #[test]
     fn remove_only_drops_the_exact_envelope() {
         let outbox = Outbox::new(None);
-        outbox.enqueue("ship/task/a".into(), json!({"v": 1}));
+        outbox.enqueue("run/task/a".into(), json!({"v": 1}));
         let stale = outbox.snapshot()[0].clone();
         // A fresher enqueue lands while the flush is in flight…
-        outbox.enqueue("ship/task/a".into(), json!({"v": 2}));
+        outbox.enqueue("run/task/a".into(), json!({"v": 2}));
         // …so removing the replayed (stale) entry must keep the fresh one.
         outbox.remove(&stale);
         assert_eq!(outbox.len(), 1);

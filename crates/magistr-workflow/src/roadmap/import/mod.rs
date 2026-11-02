@@ -408,8 +408,8 @@ mod tests {
 
     #[test]
     fn derive_id_keeps_phase_tokens_else_slugs() {
-        assert_eq!(derive_id("phase 26e — Ship the importer"), "phase-26e");
-        assert_eq!(derive_id("Milestone 3: Ship it"), "milestone-3");
+        assert_eq!(derive_id("phase 26e — Run the importer"), "phase-26e");
+        assert_eq!(derive_id("Milestone 3: Run it"), "milestone-3");
         // "v1.2" is not one of the phase-like kinds → falls through to a slug.
         assert_eq!(derive_id("v1.2 — Hardening"), "v1-2-hardening");
     }

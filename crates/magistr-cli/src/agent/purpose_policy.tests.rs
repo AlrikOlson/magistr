@@ -24,7 +24,7 @@ fn roadmap_purpose_is_a_ceiling_even_under_yolo() {
     );
     for name in [
         "mcp__magistr__roadmap_start_chunk",
-        "mcp__magistr__ship_start",
+        "mcp__magistr__start_step",
         "Bash",
         "Write",
         "mcp__workspace_mcp__edit",

@@ -36,6 +36,6 @@ statement so later steps keep it in view. Every JSON-returning tool
 advertises an outputSchema and emits structuredContent — prefer parsing
 that over the text content.
 
-When using the ship_* family alongside this one, pass `execution_ref` on
+When using the run_* family alongside this one, pass `execution_ref` on
 think_record_step to link reasoning to execution (e.g.
-"task:auth-refactor", "action:42"). Search finds execution_ref values."#;
+"step:auth-refactor", "progress:42"). Search finds execution_ref values."#;

@@ -154,7 +154,7 @@ fn engines_with_work(dir: &Path) -> NativeEngines {
 /// The store [`engines_with_work`] opens — on the writer config production
 /// admits the loop on, carrying the fixture's evidence capability, so a
 /// gate the loop or the agent records certifies the tree and a judged
-/// completion has receipts to stand on.
+/// completion has check_results to stand on.
 fn work_config(dir: &Path) -> NativeConfig {
     magistr_core::evidence::writer_config(dir, |_| None).with_data_dir(dir.join("workflow-data"))
 }
@@ -163,26 +163,26 @@ fn work_config(dir: &Path) -> NativeConfig {
 fn agent_starts_work(agent_side: &NativeEngines) {
     agent_side.roadmap_start_chunk("work").expect("start");
     agent_side
-        .ship_set_objective_with_verification(
+        .run_open_with_verification(
             "do the work".into(),
             vec![],
             vec![],
             "chunk:work".into(),
             magistr_engine::native::VerificationMode::Full,
         )
-        .expect("objective");
+        .expect("goal");
     agent_side
-        .ship_add_task(
+        .add_step(
             "verify".into(),
             "verify".into(),
-            magistr_workflow::ship::domain::task::TaskType::Test,
+            magistr_workflow::run::domain::step::StepType::Test,
             None,
         )
-        .expect("task");
-    agent_side.ship_start_task("verify").expect("active");
+        .expect("step");
+    agent_side.start_step("verify").expect("active");
 }
 
-/// Complete work on admitted receipts before returning control to the loop.
+/// Complete work on admitted check_results before returning control to the loop.
 fn agent_completes_work(agent_side: &NativeEngines, root: &Path, gates: [(&str, &str); 3]) {
     agent_starts_work(agent_side);
     for (gate, command) in gates {
@@ -203,8 +203,8 @@ fn agent_completes_work(agent_side: &NativeEngines, root: &Path, gates: [(&str, 
         .expect("settled");
     }
     agent_side
-        .roadmap_complete_chunk("work", Some("task:verify"))
-        .expect("the agent completes its own chunk on its receipts");
+        .roadmap_complete_chunk("work", Some("step:verify"))
+        .expect("the agent completes its own chunk on its check_results");
 }
 
 /// The loop's own writer role on `config`.
@@ -324,13 +324,13 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
     .persisting(false)
     .checkpoints(port)
     .keep_open(true);
-    let task = driver.spawn();
+    let step = driver.spawn();
     next_matching(&mut events, |event| {
         matches!(event, Msg::Loop(LoopEvent::Ended(_)))
     })
     .await;
     assert!(
-        !task.is_finished(),
+        !step.is_finished(),
         "the completed loop still owns message delivery"
     );
     commands
@@ -379,7 +379,7 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
     }
     // Quit must close both retained connections even while its sender lives.
     commands.send(Cmd::Quit).unwrap();
-    let report = tokio::time::timeout(Duration::from_secs(10), task)
+    let report = tokio::time::timeout(Duration::from_secs(10), step)
         .await
         .unwrap()
         .unwrap();
@@ -425,7 +425,7 @@ async fn conversation_messages_during_checks_are_rejected_with_the_original_draf
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
     let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("Done."));
-    let task = LoopDriver::new(
+    let step = LoopDriver::new(
         iteration,
         None,
         WorkflowConfig::load(dir.path()).unwrap(),
@@ -452,7 +452,7 @@ async fn conversation_messages_during_checks_are_rejected_with_the_original_draf
         matches!(rejected, Msg::Agent(AgentEvent::PromptRejected { input, error })
         if input.text == "Keep this question" && error.contains("draft is kept"))
     );
-    let report = tokio::time::timeout(Duration::from_secs(20), task)
+    let report = tokio::time::timeout(Duration::from_secs(20), step)
         .await
         .unwrap()
         .unwrap();
@@ -489,7 +489,7 @@ async fn roadmap_requests_wait_for_work_verification_and_can_be_cancelled_while_
         commands
             .send(Cmd::RoadmapPrompt("Add testing work".into()))
             .unwrap();
-        let task = driver.spawn();
+        let step = driver.spawn();
         next_matching(&mut events, |event| {
             matches!(event, Msg::RoadmapRequestQueued)
         })
@@ -510,7 +510,7 @@ async fn roadmap_requests_wait_for_work_verification_and_can_be_cancelled_while_
             })
             .await;
         }
-        let report = tokio::time::timeout(Duration::from_secs(20), task)
+        let report = tokio::time::timeout(Duration::from_secs(20), step)
             .await
             .unwrap()
             .unwrap();
@@ -750,7 +750,7 @@ fn fake_connector(agent: FakeAcpAgent) -> (Connector, Arc<Mutex<Vec<Arc<AcpObser
         let seen = Arc::clone(&seen);
         Connector::new(move |config| {
             let history_root = Arc::clone(&history_root);
-            let (client_end, observed, _agent_task) = agent.clone().spawn();
+            let (client_end, observed, _agent_step) = agent.clone().spawn();
             seen.lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .push(observed);
@@ -1608,9 +1608,9 @@ async fn a_target_the_agent_blocked_is_not_sent_to_the_judge() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines() {
     let dir = project("true", "true", "true");
-    // The objective and its task are the agent's to set; the chunk itself
+    // The goal and its step are the agent's to set; the chunk itself
     // is never started by anyone but the driver.
-    let engines = engines_with_active_task(dir.path());
+    let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
     let script = Actions::new();
     let (model, report, _) = run_with(
@@ -1652,7 +1652,7 @@ async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines(
 
     // The completion frame reached the cockpit's roadmap view.
 
-    // A completion always names the task its evidence sits on: the one
+    // A completion always names the step its evidence sits on: the one
     // the loop's gates were recorded on.
     assert_eq!(
         engines
@@ -1660,18 +1660,18 @@ async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines(
             .unwrap()
             .expect("the chunk")
             .cross_refs,
-        vec!["task:impl".to_owned()]
+        vec!["step:impl".to_owned()]
     );
 }
 
-/// With a task active in the trace, the loop's gates are recorded on that
-/// task by name, and the judged completion names the same task as its
-/// proof-of-ship reference — the evidence and the completion point at
+/// With a step active in the trace, the loop's gates are recorded on that
+/// step by name, and the judged completion names the same step as its
+/// proof-of-run reference — the evidence and the completion point at
 /// each other.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_judged_completion_names_the_task_its_gates_were_recorded_on() {
+async fn a_judged_completion_names_the_step_its_gates_were_recorded_on() {
     let dir = project("true", "true", "true");
-    let engines = engines_with_active_task(dir.path());
+    let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
     let script = Actions::new();
     let (_, report, _) = run_with(
@@ -1690,27 +1690,27 @@ async fn a_judged_completion_names_the_task_its_gates_were_recorded_on() {
     assert_eq!(checks.len(), 3, "check, test, lint: {checks:?}");
     assert!(
         engines
-            .ship_tasks()
+            .run_steps()
             .unwrap()
             .iter()
             .find(|t| t.id == "impl")
             .is_some_and(|t| t.checks.len() == 3),
-        "every gate landed on the named task"
+        "every gate landed on the named step"
     );
     let done = engines.roadmap_chunk("work").unwrap().expect("the chunk");
     assert_eq!(done.status, ChunkStatus::Done);
-    assert_eq!(done.cross_refs, vec!["task:impl".to_owned()]);
+    assert_eq!(done.cross_refs, vec!["step:impl".to_owned()]);
 }
 
 /// On a polyglot project the loop runs the set completion verifies: one
 /// spec per archetype command in the archetype's directory, the project's
 /// own command once however many archetypes name it, and the required
 /// custom gates — under the names and commands the contracts carry, so
-/// the judged completion stands on the loop's own receipts.
+/// the judged completion stands on the loop's own check_results.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_two_archetype_project_completes_through_the_loops_own_receipts() {
+async fn a_two_archetype_project_completes_through_the_loops_own_check_results() {
     let dir = polyglot_project("test -f web.marker", "true");
-    let engines = engines_with_active_task(dir.path());
+    let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
     let script = Actions::new();
     let (model, report, _) = run_with(
@@ -1750,9 +1750,9 @@ async fn a_two_archetype_project_completes_through_the_loops_own_receipts() {
     assert_eq!(
         done.status,
         ChunkStatus::Done,
-        "completion accepted the loop's receipts as its contracts"
+        "completion accepted the loop's check_results as its contracts"
     );
-    assert_eq!(done.cross_refs, vec!["task:impl".to_owned()]);
+    assert_eq!(done.cross_refs, vec!["step:impl".to_owned()]);
     assert!(
         !notes(&model).iter().any(|n| n.contains("not recorded")),
         "nothing said it could not record"
@@ -1764,7 +1764,7 @@ async fn a_two_archetype_project_completes_through_the_loops_own_receipts() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_red_required_custom_gate_refuses_the_judged_completion() {
     let dir = polyglot_project("test -f web.marker", "exit 3");
-    let engines = engines_with_active_task(dir.path());
+    let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("looks done to me")]);
     let script = Actions::new();
     let (model, _, _) = run_with(
@@ -1809,7 +1809,7 @@ async fn a_red_required_custom_gate_refuses_the_judged_completion() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_set_that_cannot_be_resolved_fails_the_iteration_instead_of_passing_empty() {
     let dir = project("true", "true", "true");
-    let engines = engines_with_active_task(dir.path());
+    let engines = engines_with_active_step(dir.path());
     let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("broke the config"));
     let inner = Arc::new(inner);
     let config = dir.path().join(".magistr/project.json");
@@ -1848,7 +1848,7 @@ async fn a_set_that_cannot_be_resolved_fails_the_iteration_instead_of_passing_em
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_required_archetype_gate_cannot_disappear_behind_a_green_top_level_command() {
     let dir = polyglot_project("exit 5", "true");
-    let engines = engines_with_active_task(dir.path());
+    let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("looks done to me")]);
     let script = Actions::new();
     let (model, _, _) = run_with(
@@ -2005,12 +2005,12 @@ async fn extension_mode_sets_the_goal_through_the_advertised_method_and_skips_th
     let goals = goals_seen(&agents);
     assert_eq!(goals.len(), 1, "{goals:?}");
     assert_eq!(goals[0].0, "set");
-    let objective = goals[0].1.as_deref().expect("an objective");
+    let goal = goals[0].1.as_deref().expect("a goal");
     assert!(
-        objective.starts_with("Done means: roadmap chunk `work` is complete (Chunk work)"),
-        "{objective}"
+        goal.starts_with("Done means: roadmap chunk `work` is complete (Chunk work)"),
+        "{goal}"
     );
-    assert!(objective.contains("print its verdict line"), "{objective}");
+    assert!(goal.contains("print its verdict line"), "{goal}");
     assert!(
         agents[0].prompts().is_empty(),
         "the extension is the turn — no session/prompt was sent"
@@ -2068,7 +2068,7 @@ async fn command_mode_composes_the_discovered_turn_and_is_confirmed_by_the_echo(
     );
     assert!(
         prompts[0].starts_with("/goal Done means: roadmap chunk `work` is complete"),
-        "the turn is the discovered name plus the objective: {}",
+        "the turn is the discovered name plus the goal: {}",
         prompts[0]
     );
     let goals = goals_seen(&agents);
@@ -2166,7 +2166,7 @@ async fn a_mute_agent_is_reported_cleared_and_the_native_judge_takes_over() {
     );
     assert!(
         !agents[1].prompts()[0].starts_with("/goal") && agents[1].prompts()[0].contains("work"),
-        "with the iteration prompt, not the objective: {}",
+        "with the iteration prompt, not the goal: {}",
         agents[1].prompts()[0]
     );
     let asked = judge.asked();
@@ -2190,7 +2190,7 @@ async fn a_mute_agent_is_reported_cleared_and_the_native_judge_takes_over() {
 }
 
 /// The driver reads nothing off a goal snapshot beyond the echo's
-/// objective: the only vocabulary it uses is the vendored file's, and
+/// goal: the only vocabulary it uses is the vendored file's, and
 /// that file models one field.
 #[test]
 fn the_driver_relies_on_nothing_beyond_the_optimistic_echo() {
@@ -2303,35 +2303,35 @@ fn the_loop_resolves_its_gates_through_the_evidence_capability() {
     );
 }
 
-/// A ship trace with one active task, the way the agent's own
+/// A run trace with one active step, the way the agent's own
 /// `magistr mcp` leaves one behind for the loop's gates to record
 /// into.
-fn engines_with_active_task(dir: &Path) -> NativeEngines {
+fn engines_with_active_step(dir: &Path) -> NativeEngines {
     let engines = engines_with_work(dir);
     engines
-        .ship_set_objective_with_verification(
+        .run_open_with_verification(
             "do the work".into(),
             vec![],
             vec![],
             "chunk:work".into(),
             magistr_engine::native::VerificationMode::Full,
         )
-        .expect("objective");
+        .expect("goal");
     engines
-        .ship_add_task(
+        .add_step(
             "impl".into(),
             "implement".into(),
-            magistr_workflow::ship::domain::task::TaskType::Implement,
+            magistr_workflow::run::domain::step::StepType::Implement,
             None,
         )
-        .expect("add task");
-    engines.ship_start_task("impl").expect("start the task");
+        .expect("add step");
+    engines.start_step("impl").expect("start the step");
     engines
 }
 
-fn recorded(engines: &NativeEngines) -> Vec<magistr_workflow::ship::domain::check::Check> {
+fn recorded(engines: &NativeEngines) -> Vec<magistr_workflow::run::domain::check::Check> {
     engines
-        .ship_tasks()
+        .run_steps()
         .unwrap()
         .into_iter()
         .flat_map(|t| t.checks)
@@ -2345,7 +2345,7 @@ fn recorded(engines: &NativeEngines) -> Vec<magistr_workflow::ship::domain::chec
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn every_gate_the_loop_runs_reaches_the_trace_as_a_verified_check() {
     let dir = project("true", "echo ran-the-tests", "exit 4");
-    let engines = engines_with_active_task(dir.path());
+    let engines = engines_with_active_step(dir.path());
     let script = Actions::new();
     let (model, _, _) = run_with(
         dir.path(),
@@ -2388,7 +2388,7 @@ async fn every_gate_the_loop_runs_reaches_the_trace_as_a_verified_check() {
 async fn the_original_failed_execution_is_recorded_and_later_gates_do_not_run() {
     let flake = "if [ -e flake.marker ]; then exit 0; else touch flake.marker; exit 9; fi";
     let dir = project("true", flake, "true");
-    let engines = engines_with_active_task(dir.path());
+    let engines = engines_with_active_step(dir.path());
     let script = Actions::new();
     let (_, _, _) = run_with(
         dir.path(),
@@ -2428,7 +2428,7 @@ async fn a_passing_gate_does_not_persist_its_whole_output_and_a_red_one_does() {
         &format!("{noisy}; exit 0"),
         &format!("{noisy}; exit 1"),
     );
-    let engines = engines_with_active_task(dir.path());
+    let engines = engines_with_active_step(dir.path());
     let script = Actions::new();
     let (_, _, _) = run_with(
         dir.path(),
@@ -2486,10 +2486,10 @@ async fn a_loop_without_the_engines_says_the_gates_were_not_recorded() {
     );
 }
 
-/// The engines are there but nobody opened a task to record against: the
+/// The engines are there but nobody opened a step to record against: the
 /// refusal reaches the stage instead of being swallowed.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_store_with_no_active_task_says_why_the_gates_were_not_recorded() {
+async fn a_store_with_no_active_step_says_why_the_gates_were_not_recorded() {
     let dir = project("true", "true", "true");
     let engines = engines_with_work(dir.path());
     let script = Actions::new().command(MS(3_000), Cmd::Quit);
@@ -2611,8 +2611,8 @@ async fn green_gates_leave_a_self_completed_chunk_done() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn recorded_verification_survives_finalization_without_running_unrelated_gates() {
-    use magistr_workflow::ship::domain::objective::VerificationMode;
-    use magistr_workflow::ship::domain::task::TaskType;
+    use magistr_workflow::run::domain::goal::VerificationMode;
+    use magistr_workflow::run::domain::step::StepType;
 
     for case in [
         "focused-completed",
@@ -2643,7 +2643,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
         let connector = Connector::new(move |config| {
             agent_side.roadmap_start_chunk("work").unwrap();
             agent_side
-                .ship_set_objective_with_verification(
+                .run_open_with_verification(
                     "do the work".into(),
                     vec![],
                     vec![],
@@ -2661,9 +2661,9 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                 )
                 .unwrap();
             agent_side
-                .ship_add_task("verify".into(), "verify".into(), TaskType::Test, None)
+                .add_step("verify".into(), "verify".into(), StepType::Test, None)
                 .unwrap();
-            agent_side.ship_start_task("verify").unwrap();
+            agent_side.start_step("verify").unwrap();
             let names = if case == "missing" {
                 vec![]
             } else if full {
@@ -2691,11 +2691,11 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                 .unwrap();
             }
             if case != "focused-active" {
-                agent_side.ship_complete_task("verify", vec![]).unwrap();
-                agent_side.ship_finalize(vec![], None).unwrap();
+                agent_side.finish_step("verify", vec![]).unwrap();
+                agent_side.run_finish(vec![], None).unwrap();
                 if valid {
                     agent_side
-                        .roadmap_complete_chunk("work", Some("task:verify"))
+                        .roadmap_complete_chunk("work", Some("step:verify"))
                         .unwrap();
                 }
             }
@@ -2754,7 +2754,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
             assert_eq!(
                 recorded(&engines).len(),
                 expected_checks,
-                "{case}: no duplicate receipts"
+                "{case}: no duplicate check_results"
             );
             if case == "focused-active" {
                 let asked = judge.asked();
@@ -2767,7 +2767,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                     judge.asked().is_empty(),
                     "{case}: completed work is not judged twice"
                 );
-                assert!(engines.ship_active_task_id().unwrap().is_none(), "{case}");
+                assert!(engines.run_active_step_id().unwrap().is_none(), "{case}");
             }
         } else {
             assert!(
@@ -2789,13 +2789,13 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
             );
             if case == "stale" {
                 // Said once, for a person: which checks and what to do, with
-                // no receipt, run or task identifier on the screen.
+                // no check_result, run or step identifier on the screen.
                 let said = "The project's files changed after these checks ran, so they no longer prove this work: document links. Run them again, then continue.";
                 assert_eq!(stage.matches("error:").count(), 1, "{stage}");
                 assert!(stage.contains(&format!("error: {said}")), "{stage}");
                 assert_eq!(stage.matches(said).count(), 1, "said once: {stage}");
                 assert!(stage.ends_with("Work stopped."), "{stage}");
-                for internal in ["receipt", "(run ", "task `"] {
+                for internal in ["check_result", "(run ", "step `"] {
                     assert!(!stage.contains(internal), "{internal}: {stage}");
                 }
             }
@@ -2803,15 +2803,15 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
     }
 }
 
-/// An agent may split the item it was given and ship one part (`/next`
+/// An agent may split the item it was given and run one part (`/next`
 /// tells it to when the item is too large). The iteration's work is then
 /// the part the feed saw completed: its recorded checks verify it, and the
 /// judge is not asked whether the remaining item is met on the part's
 /// evidence.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
-    use magistr_workflow::ship::domain::objective::VerificationMode;
-    use magistr_workflow::ship::domain::task::TaskType;
+    use magistr_workflow::run::domain::goal::VerificationMode;
+    use magistr_workflow::run::domain::step::StepType;
 
     let unexpected = "echo unexpected > unexpected-gate; exit 9";
     let dir = project(unexpected, unexpected, unexpected);
@@ -2836,7 +2836,7 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
             .unwrap();
         agent_side.roadmap_start_chunk("work-part").unwrap();
         agent_side
-            .ship_set_objective_with_verification(
+            .run_open_with_verification(
                 "do the first part".into(),
                 vec![],
                 vec![],
@@ -2845,9 +2845,9 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
             )
             .unwrap();
         agent_side
-            .ship_add_task("verify".into(), "verify".into(), TaskType::Test, None)
+            .add_step("verify".into(), "verify".into(), StepType::Test, None)
             .unwrap();
-        agent_side.ship_start_task("verify").unwrap();
+        agent_side.start_step("verify").unwrap();
         crate::application::AdmittedCheck::admit(
             &agent_side,
             &root,
@@ -2863,10 +2863,10 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
             String::new(),
         )
         .unwrap();
-        agent_side.ship_complete_task("verify", vec![]).unwrap();
-        agent_side.ship_finalize(vec![], None).unwrap();
+        agent_side.finish_step("verify", vec![]).unwrap();
+        agent_side.run_finish(vec![], None).unwrap();
         agent_side
-            .roadmap_complete_chunk("work-part", Some("task:verify"))
+            .roadmap_complete_chunk("work-part", Some("step:verify"))
             .unwrap();
         let inner = inner.clone();
         async move { inner.connect(config).await }
@@ -3093,7 +3093,7 @@ fn checkpoint(dir: &Path) -> crate::workflow::iteration::IterationState {
 }
 
 /// Every operation the iteration dispatched — the attempt's reservation,
-/// the provider dispatch, one receipt per gate, the two native mutations
+/// the provider dispatch, one check_result per gate, the two native mutations
 /// the judged completion needs and the frame that announced it — is in
 /// the checkpoint with a settled outcome, scoped to one run, so a crash
 /// at any point between them would have left recovery a record to ask
@@ -3102,7 +3102,7 @@ fn checkpoint(dir: &Path) -> crate::workflow::iteration::IterationState {
 async fn a_judged_iteration_leaves_every_operation_settled_in_the_checkpoint() {
     use crate::workflow::iteration::{OperationKind, OperationOutcome};
     let dir = project("true", "true", "true");
-    let engines = engines_with_active_task(dir.path());
+    let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
     let script = Actions::new();
     let (_, report, _) = run_with(
@@ -3126,13 +3126,13 @@ async fn a_judged_iteration_leaves_every_operation_settled_in_the_checkpoint() {
         .collect();
     seen.sort_by(|a, b| (a.0.as_str(), &a.1).cmp(&(b.0.as_str(), &b.1)));
     let expected = [
+        (OperationKind::CheckResult, "gate:check@step:impl"),
+        (OperationKind::CheckResult, "gate:lint@step:impl"),
+        (OperationKind::CheckResult, "gate:test@step:impl"),
         (OperationKind::NativeMutation, "complete_chunk:work"),
         (OperationKind::NativeMutation, "start_chunk:work"),
         (OperationKind::ProviderDispatch, "dispatch"),
         (OperationKind::Publication, "frame:chunk_completed:work"),
-        (OperationKind::Receipt, "gate:check@task:impl"),
-        (OperationKind::Receipt, "gate:lint@task:impl"),
-        (OperationKind::Receipt, "gate:test@task:impl"),
         (OperationKind::Reservation, "attempt:0"),
     ];
     assert_eq!(
@@ -3143,20 +3143,26 @@ async fn a_judged_iteration_leaves_every_operation_settled_in_the_checkpoint() {
     );
     for (kind, target, outcome, external) in &seen {
         assert_eq!(*outcome, OperationOutcome::Completed, "{kind} {target}");
-        if *kind == OperationKind::Receipt {
-            // The record names the durable receipt it recorded, and that
-            // receipt is settled and applied on the task the target names.
+        if *kind == OperationKind::CheckResult {
+            // The record names the durable check_result it recorded, and that
+            // check_result is settled and applied on the step the target names.
             let id = external
                 .as_deref()
-                .and_then(|handle| handle.strip_prefix("receipt:"))
-                .unwrap_or_else(|| panic!("{kind} {target} carries no receipt id: {external:?}"));
-            let receipt = engines
-                .ship_receipt(id)
+                .and_then(|handle| handle.strip_prefix("check_result:"))
+                .unwrap_or_else(|| {
+                    panic!("{kind} {target} carries no check_result id: {external:?}")
+                });
+            let check_result = engines
+                .run_check_result(id)
                 .expect("the ledger reads")
-                .unwrap_or_else(|| panic!("receipt {id} for {target} is in the ledger"));
-            assert_eq!(receipt.target.task_id, "impl");
-            assert!(target.starts_with(&format!("gate:{}@", receipt.gate)));
-            assert!(receipt.is_applied(), "{target}: {:?}", receipt.settlement);
+                .unwrap_or_else(|| panic!("check_result {id} for {target} is in the ledger"));
+            assert_eq!(check_result.target.step_id, "impl");
+            assert!(target.starts_with(&format!("gate:{}@", check_result.gate)));
+            assert!(
+                check_result.is_applied(),
+                "{target}: {:?}",
+                check_result.settlement
+            );
         } else {
             assert_eq!(
                 external.as_deref(),
@@ -3743,7 +3749,7 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
         serde_json::from_slice(&std::fs::read(&path).expect("project.json")).expect("json");
     declared["roadmap_backend"] = serde_json::json!("native");
     std::fs::write(&path, declared.to_string()).expect("project.json");
-    let engines = engines_with_active_task(dir.path());
+    let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
     let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("did the thing"));
     let history_root = tempfile::tempdir().unwrap();
@@ -3808,7 +3814,7 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
             native.then(|| Arc::clone(&scripted) as Arc<dyn Judge>)
         }))
         .observing(Some(observation.clone()));
-    let task = tokio::spawn(work.run(session, receiver));
+    let step = tokio::spawn(work.run(session, receiver));
 
     commands
         .send(Cmd::ForConversation {
@@ -3869,7 +3875,7 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
         "the judged completion went through the operation ledger"
     );
     assert_eq!(state.operations.unsettled().count(), 0);
-    assert!(!task.is_finished(), "the session outlives the run");
+    assert!(!step.is_finished(), "the session outlives the run");
 
     let c = connected.recv().await.unwrap();
     let d_id = connected.recv().await.unwrap();
@@ -3940,7 +3946,7 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
         "{refused:?}"
     );
     drop(commands);
-    tokio::time::timeout(Duration::from_secs(10), task)
+    tokio::time::timeout(Duration::from_secs(10), step)
         .await
         .expect("the host phase loop ends with its commands")
         .unwrap()
@@ -4003,7 +4009,7 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
         captured.lock().unwrap().push(config);
         async { Err(MagistrError::Workflow("Test provider stopped".into())) }
     });
-    let task = LoopDriver::new(
+    let step = LoopDriver::new(
         iteration,
         Some(engines),
         wf,
@@ -4029,7 +4035,7 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
             "Chosen track".into(),
         ))))
         .unwrap();
-    let report = tokio::time::timeout(Duration::from_secs(10), task)
+    let report = tokio::time::timeout(Duration::from_secs(10), step)
         .await
         .unwrap()
         .unwrap();
@@ -4047,7 +4053,7 @@ async fn closing_the_track_picker_session_starts_no_work() {
         IterationLoop::open(dir.path(), dir.path().join("ROADMAP.md"), 1, None).unwrap();
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
-    let task = LoopDriver::new(
+    let step = LoopDriver::new(
         iteration,
         None,
         WorkflowConfig::load(dir.path()).unwrap(),
@@ -4066,7 +4072,7 @@ async fn closing_the_track_picker_session_starts_no_work() {
     })
     .await;
     commands.send(Cmd::Quit).unwrap();
-    let report = tokio::time::timeout(Duration::from_secs(3), task)
+    let report = tokio::time::timeout(Duration::from_secs(3), step)
         .await
         .unwrap()
         .unwrap();

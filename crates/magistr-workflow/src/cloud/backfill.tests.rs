@@ -10,9 +10,9 @@ fn roadmap_of(chunks: Vec<Chunk>) -> Roadmap {
         ..Roadmap::default()
     }
 }
-use crate::ship::domain::action::{Action, ActionType};
-use crate::ship::domain::objective::{ObjectiveStatus, VerificationMode};
-use crate::ship::domain::task::{TaskStatus, TaskType};
+use crate::run::domain::goal::{GoalStatus, VerificationMode};
+use crate::run::domain::progress::{Progress, ProgressType};
+use crate::run::domain::step::{StepStatus, StepType};
 use crate::signal::domain::{SignalKind, SignalStatus};
 use serde_json::json;
 
@@ -26,13 +26,13 @@ fn step(n: u32) -> ThinkStep {
     .unwrap()
 }
 
-fn action(id: u32, task: &str) -> Action {
-    Action {
+fn progress(id: u32, step: &str) -> Progress {
+    Progress {
         id,
-        task_id: task.into(),
+        step_id: step.into(),
         timestamp: "2026-06-09T00:00:00Z".into(),
-        action_type: ActionType::Code,
-        description: format!("action {id}"),
+        progress_type: ProgressType::Code,
+        description: format!("progress {id}"),
         files_touched: vec![],
         tools_used: vec![],
         result: String::new(),
@@ -40,33 +40,33 @@ fn action(id: u32, task: &str) -> Action {
     }
 }
 
-fn ship_cycle(actions: Vec<Action>) -> (Objective, Vec<Task>) {
-    let objective = Objective {
-        description: "test objective chunk:test-chunk".into(),
+fn run_cycle(progress: Vec<Progress>) -> (Goal, Vec<Step>) {
+    let goal = Goal {
+        description: "test goal chunk:test-chunk".into(),
         acceptance_criteria: vec![],
         constraints: vec![],
         scope: String::new(),
         verification: VerificationMode::Full,
-        status: ObjectiveStatus::Defined,
+        status: GoalStatus::Open,
         project_id: "t".into(),
         created_at: Some("2026-06-09T00:00:00+00:00".into()),
         completed_at: None,
     };
-    let task = Task {
+    let step = Step {
         id: "t1".into(),
-        title: "task one".into(),
-        task_type: TaskType::Implement,
-        status: TaskStatus::Active,
+        title: "step one".into(),
+        step_type: StepType::Implement,
+        status: StepStatus::Active,
         estimate: None,
         started_at: Some("2026-06-09T00:01:00Z".into()),
         completed_at: None,
         artifacts: vec![],
         checks: vec![],
-        actions,
-        blocked_reason: None,
+        progress,
+        waiting_reason: None,
         think_branch: None,
     };
-    (objective, vec![task])
+    (goal, vec![step])
 }
 
 fn chunk(id: &str) -> Chunk {
@@ -116,45 +116,45 @@ fn signal(id: &str) -> Signal {
 #[test]
 fn collects_one_envelope_per_record_in_family_order() {
     let steps = [step(1), step(2)];
-    let (objective, tasks) = ship_cycle(vec![action(1, "t1")]);
+    let (goal, run_steps) = run_cycle(vec![progress(1, "t1")]);
     let chunks = [chunk("c1"), chunk("c2"), chunk("c3")];
     let signals = [signal("s1")];
 
     let envelopes = collect_envelopes(
         "tenant-x",
         steps.iter(),
-        Some((&objective, tasks.as_slice())),
+        Some((&goal, run_steps.as_slice())),
         &roadmap_of(chunks.to_vec()),
         &signals,
     )
     .unwrap();
 
-    // One envelope per record: 2 think + (1 objective + 1 task + 1 action) + 3 + 1.
+    // One envelope per record: 2 think + (1 goal + 1 step + 1 progress) + 3 + 1.
     assert_eq!(envelopes.len(), 9);
-    // Stable family order: think, ship, roadmap, signal.
+    // Stable family order: think, run, roadmap, signal.
     let families: Vec<Family> = envelopes.iter().map(|e| e.family).collect();
     assert_eq!(
         families,
         vec![
             Family::Think,
             Family::Think,
-            Family::Ship,
-            Family::Ship,
-            Family::Ship,
+            Family::Run,
+            Family::Run,
+            Family::Run,
             Family::Roadmap,
             Family::Roadmap,
             Family::Roadmap,
             Family::Signal,
         ]
     );
-    // Kinds + cycle-scoped ship identities carried through.
-    assert_eq!(envelopes[0].kind, Kind::Step);
-    assert_eq!(envelopes[2].kind, Kind::Objective);
+    // Kinds + cycle-scoped run identities carried through.
+    assert_eq!(envelopes[0].kind, Kind::ThinkStep);
+    assert_eq!(envelopes[2].kind, Kind::Goal);
     assert_eq!(envelopes[2].id, "obj-2026-06-09T00:00:00-00:00");
-    assert_eq!(envelopes[3].kind, Kind::Task);
+    assert_eq!(envelopes[3].kind, Kind::RunStep);
     assert_eq!(envelopes[3].id, "obj-2026-06-09T00:00:00-00:00.t1");
-    assert_eq!(envelopes[4].kind, Kind::Action);
-    assert_eq!(envelopes[4].id, "obj-2026-06-09T00:00:00-00:00.action-1");
+    assert_eq!(envelopes[4].kind, Kind::Progress);
+    assert_eq!(envelopes[4].id, "obj-2026-06-09T00:00:00-00:00.progress-1");
     assert_eq!(envelopes[5].kind, Kind::Chunk);
     assert_eq!(envelopes[8].kind, Kind::Signal);
     assert!(envelopes.iter().all(|e| e.tenant_id == "tenant-x"));
@@ -180,7 +180,7 @@ fn counts_match_the_collected_envelopes() {
         counts,
         BackfillCounts {
             think: 1,
-            ship: 0,
+            run: 0,
             roadmap: 2,
             signal: 3,
         }

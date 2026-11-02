@@ -25,7 +25,7 @@ implementation of unrelated roadmap items.
 Choose focused verification for bounded changes, including code. Run formatting
 and checks for the affected behavior, dependencies and acceptance criteria.
 Record actual results through named Magistr gates or server-executed
-`check_work`. Use the full configured suite only for an explicit request or
+`check_step`. Use the full configured suite only for an explicit request or
 a concrete cross-cutting risk; state the reason first.
 
 For website changes, run `npm test` in `apps/website` and the affected browser

@@ -49,7 +49,7 @@ impl NativeFrame {
     /// only the execution that produced them. Unbound task events are refused.
     #[must_use]
     pub fn is_for_execution(&self, key: &str) -> bool {
-        !matches!(self.family.as_str(), "ship" | "magistr")
+        !matches!(self.family.as_str(), "run" | "magistr")
             || self
                 .payload
                 .get("execution_key")
@@ -68,7 +68,7 @@ impl NativeFrame {
         let cursor = cursor_of(&self.payload);
         let event = match Family::parse(&self.family)? {
             Family::Think => NativeEvent::Think(serde_json::from_value(self.payload).ok()?),
-            Family::Ship => NativeEvent::Ship(serde_json::from_value(self.payload).ok()?),
+            Family::Run => NativeEvent::Run(serde_json::from_value(self.payload).ok()?),
             Family::Roadmap => NativeEvent::Roadmap(serde_json::from_value(self.payload).ok()?),
             Family::Signal => NativeEvent::Signal(serde_json::from_value(self.payload).ok()?),
             Family::Magistr => NativeEvent::Magistr(serde_json::from_value(self.payload).ok()?),

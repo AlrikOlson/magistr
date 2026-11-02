@@ -4,7 +4,7 @@
 //!
 //! Nothing in this system recorded that a tool was *invoked*. `corpus` records
 //! artifacts (chunks, think steps, signals); the roadmap records plan state;
-//! the ship trace records what an agent said it did. None of them answer "which
+//! the run trace records what an agent said it did. None of them answer "which
 //! verbs are actually hot?" — a question the tool-surface work needs before it
 //! can retire anything.
 //!
@@ -15,7 +15,7 @@
 //! distribution and a flattering headline — "25 of 48 tools never used, 54.6%
 //! of model-facing bytes retirable". Then check it against reality:
 //! `think_record_step` appears **3** times against **9,999** persisted steps, a
-//! ~3,000x undercount on the hottest verb in the system, and `ship_start` reads
+//! ~3,000x undercount on the hottest verb in the system, and `start_step` reads
 //! 0 minutes after being called. The field records what an agent chose to
 //! *mention*, and agents omit both the tool they are currently calling and the
 //! procedure verbs they run on autopilot — which is exactly the hot path.
@@ -497,14 +497,14 @@ mod tests {
     #[test]
     fn n_calls_reads_n() {
         let cfg = scratch("exact");
-        let c = counter(&cfg, &["think_record_step", "ship_check"]);
+        let c = counter(&cfg, &["think_record_step", "check_step"]);
         for _ in 0..7 {
             c.record("think_record_step", "2026-07-28T00:00:00Z");
         }
-        c.record("ship_check", "2026-07-28T00:00:01Z");
+        c.record("check_step", "2026-07-28T00:00:01Z");
         let got = c.snapshot();
         assert_eq!(got.counts.get("think_record_step"), Some(&7));
-        assert_eq!(got.counts.get("ship_check"), Some(&1));
+        assert_eq!(got.counts.get("check_step"), Some(&1));
         assert_eq!(got.total(), 8);
     }
 

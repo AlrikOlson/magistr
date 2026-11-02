@@ -196,7 +196,7 @@ async fn every_loop_entry_refuses_a_concurrent_checkpoint_owner() {
 }
 
 const PLAN: &str = "Continue the saved implementation plan.\n";
-const TASK: &str = "Finish the interrupted task.\n";
+const STEP: &str = "Finish the interrupted step.\n";
 
 fn project() -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
@@ -223,17 +223,17 @@ fn project() -> tempfile::TempDir {
         .unwrap()
         .open();
     writer
-        .ship_set_objective(PLAN.into(), vec![], vec![], "saved-work".into())
+        .run_open(PLAN.into(), vec![], vec![], "saved-work".into())
         .unwrap();
     writer
-        .ship_add_task(
-            "saved-task".into(),
-            TASK.into(),
-            magistr_engine::TaskType::Implement,
+        .add_step(
+            "saved-step".into(),
+            STEP.into(),
+            magistr_engine::StepType::Implement,
             None,
         )
         .unwrap();
-    writer.ship_start_task("saved-task").unwrap();
+    writer.start_step("saved-step").unwrap();
     dir
 }
 
@@ -254,13 +254,13 @@ fn context_inputs(dir: &Path) -> ProjectInputs {
 
 fn assert_context_kept(dir: &Path) {
     let reader = magistr_engine::NativeReader::open(context_inputs(dir).workflow());
-    let run = reader.ship_snapshot().unwrap().current.unwrap();
-    assert_eq!(run.objective.description, PLAN);
-    assert_eq!(run.tasks.len(), 1);
-    assert_eq!(run.tasks[0].title, TASK);
+    let run = reader.run_snapshot().unwrap().current.unwrap();
+    assert_eq!(run.goal.description, PLAN);
+    assert_eq!(run.steps.len(), 1);
+    assert_eq!(run.steps[0].title, STEP);
     assert_eq!(
-        run.tasks[0].status,
-        magistr_engine::native::TaskStatus::Active
+        run.steps[0].status,
+        magistr_engine::native::StepStatus::Active
     );
 }
 
@@ -386,7 +386,7 @@ async fn settled_cancellation_archives_and_starts_with_the_requested_limit() {
         let archived: IterationState =
             serde_json::from_slice(&std::fs::read(&history[0]).unwrap()).unwrap();
         assert_eq!(&archived, previous.state(), "{entry}");
-        // Cancellation settles the run, not necessarily its saved task.
+        // Cancellation settles the run, not necessarily its saved step.
         assert_context_kept(dir.path());
     }
 }

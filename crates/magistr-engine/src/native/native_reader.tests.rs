@@ -122,19 +122,19 @@ fn selection_refuses_an_unreadable_store_and_recovers_without_cached_success() {
 
 #[test]
 fn family_failures_retain_exact_records_across_clones_and_recover_independently() {
-    use crate::native::{SignalKind, TaskType};
+    use crate::native::{SignalKind, StepType};
     use magistr_workflow::infra::{Domain, Persistence};
 
     let (_temp, config, writer) = fixture();
     add(&writer, "work", 1, Some("Current"));
     writer
-        .ship_set_objective("Keep the plan".into(), vec![], vec![], "chunk:work".into())
+        .run_open("Keep the plan".into(), vec![], vec![], "chunk:work".into())
         .unwrap();
     writer
-        .ship_add_task(
+        .add_step(
             "review".into(),
             "Review the change".into(),
-            TaskType::Test,
+            StepType::Test,
             None,
         )
         .unwrap();
@@ -162,10 +162,10 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
             Persistence::new(&persistence, Domain::Roadmap).path_for("workstream-read"),
         ),
         (
-            "ship",
+            "run",
             persistence
                 .data_dir
-                .join("ship")
+                .join("run")
                 .join("executions")
                 .join(config.execution_context().key())
                 .join("sessions")
@@ -196,7 +196,7 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
                 failed[family]["data"]["last"], good[family]["data"],
                 "{family}"
             );
-            for other in ["roadmap", "ship", "signals", "think"] {
+            for other in ["roadmap", "run", "signals", "think"] {
                 if other != family {
                     assert_eq!(
                         failed[other], good[other],
@@ -369,10 +369,10 @@ fn failed_session_reads_retain_the_previous_sessions_identity_until_recovery() {
 
 #[test]
 fn complete_execution_history_survives_new_work_and_failed_reads() {
-    use crate::native::{TaskType, VerificationMode};
+    use crate::native::{StepType, VerificationMode};
     let (_temp, config, writer) = fixture();
     writer
-        .ship_set_objective_with_verification(
+        .run_open_with_verification(
             "Finished work".into(),
             vec![],
             vec![],
@@ -381,11 +381,11 @@ fn complete_execution_history_survives_new_work_and_failed_reads() {
         )
         .unwrap();
     writer
-        .ship_add_task("verify".into(), "Verify it".into(), TaskType::Test, None)
+        .add_step("verify".into(), "Verify it".into(), StepType::Test, None)
         .unwrap();
-    writer.ship_start_task("verify").unwrap();
+    writer.start_step("verify").unwrap();
     let check = writer
-        .ship_record_gate(
+        .run_record_gate(
             Some("verify"),
             "focused",
             "true".into(),
@@ -396,12 +396,12 @@ fn complete_execution_history_survives_new_work_and_failed_reads() {
         )
         .unwrap()
         .value;
-    writer.ship_complete_task("verify", vec![]).unwrap();
-    writer.ship_finalize(vec![], None).unwrap();
+    writer.finish_step("verify", vec![]).unwrap();
+    writer.run_finish(vec![], None).unwrap();
     let reader = NativeReader::open_for_project(&config, "workstream-read".into());
-    let previous = reader.ship_snapshot().unwrap().current.unwrap();
+    let previous = reader.run_snapshot().unwrap().current.unwrap();
     writer
-        .ship_set_objective_with_verification(
+        .run_open_with_verification(
             "Next work".into(),
             vec![],
             vec![],
@@ -411,29 +411,34 @@ fn complete_execution_history_survives_new_work_and_failed_reads() {
         .unwrap();
     let reopened = NativeReader::open_for_project(&config, "workstream-read".into());
     assert_eq!(
-        reopened.ship_run(&previous.run_id).unwrap(),
+        reopened.run_run(&previous.run_id).unwrap(),
         Some(previous.clone())
     );
-    assert!(reopened.ship_run("absent").unwrap().is_none());
-    assert_eq!(reopened.ship_tasks().unwrap().len(), 0);
-    let receipt = reopened
-        .ship_receipt(check.receipt_id.as_ref().unwrap())
+    assert!(reopened.run_run("absent").unwrap().is_none());
+    assert_eq!(reopened.run_steps().unwrap().len(), 0);
+    let check_result = reopened
+        .run_check_result(check.check_result_id.as_ref().unwrap())
         .unwrap()
         .unwrap();
-    assert_eq!(receipt.target.run_id, previous.run_id);
+    assert_eq!(check_result.target.run_id, previous.run_id);
     let path = config
         .persistence_config()
         .data_dir
-        .join("ship")
+        .join("run")
         .join("executions")
         .join(config.execution_context().key())
         .join("sessions")
         .join("workstream-read.json");
     let bytes = std::fs::read(&path).unwrap();
     std::fs::write(&path, b"invalid").unwrap();
-    assert!(reopened.ship_run(&previous.run_id).is_err());
-    assert!(reopened.ship_run("absent").is_err());
-    assert!(reopened.ship_receipt(&receipt.id).unwrap().is_some());
+    assert!(reopened.run_run(&previous.run_id).is_err());
+    assert!(reopened.run_run("absent").is_err());
+    assert!(
+        reopened
+            .run_check_result(&check_result.id)
+            .unwrap()
+            .is_some()
+    );
     std::fs::write(&path, bytes).unwrap();
-    assert_eq!(reopened.ship_run(&previous.run_id).unwrap(), Some(previous));
+    assert_eq!(reopened.run_run(&previous.run_id).unwrap(), Some(previous));
 }

@@ -1,6 +1,25 @@
 # https://nexte.st/docs/configuration/
 # Select ignored tests with --run-ignored. CI archives are shared by all partitions.
 
+experimental = ["setup-scripts"]
+
+# Every test process reads and writes a fresh workflow store for the run,
+# never the developer's own saved work (scripts/nextest-isolated-store.sh).
+[scripts.setup.isolated-store]
+command = "scripts/nextest-isolated-store.sh"
+
+[[profile.default.scripts]]
+filter = "all()"
+setup = "isolated-store"
+
+[[profile.ci.scripts]]
+filter = "all()"
+setup = "isolated-store"
+
+[[profile.diagnostic.scripts]]
+filter = "all()"
+setup = "isolated-store"
+
 [profile.default]
 status-level = "fail"
 final-status-level = "slow"

@@ -19,7 +19,7 @@ pub enum MagistrFrame {
     GateOutput(GateOutput),
     /// The agent announced a workflow phase (`magistr_set_phase`). The
     /// phase travels typed; the action the service also records on the
-    /// ship trace is narrative, and nothing reads the phase back out of
+    /// run trace is narrative, and nothing reads the phase back out of
     /// its words.
     PhaseSet {
         /// The phase entered.

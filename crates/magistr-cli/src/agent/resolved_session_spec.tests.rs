@@ -436,7 +436,7 @@ fn application_execution_binds_every_tool_child_instead_of_configured_stale_ids(
 
 #[test]
 fn native_work_context_is_fresh_addressed_and_failure_is_not_absence() {
-    use magistr_engine::native::{NativeReader, ProjectAuthority, TaskType, WriterRole};
+    use magistr_engine::native::{NativeReader, ProjectAuthority, StepType, WriterRole};
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().join("project");
     std::fs::create_dir(&root).unwrap();
@@ -471,7 +471,7 @@ fn native_work_context_is_fresh_addressed_and_failure_is_not_absence() {
             .contains("\"current\": null")
     );
     writer
-        .ship_set_objective(
+        .run_open(
             "Read the selected plan".into(),
             vec!["Keep full authored requirements".into()],
             vec!["Preserve unrelated changes".into()],
@@ -479,16 +479,16 @@ fn native_work_context_is_fresh_addressed_and_failure_is_not_absence() {
         )
         .unwrap();
     writer
-        .ship_add_task(
+        .add_step(
             "edit".into(),
             "Implement native context".into(),
-            TaskType::Implement,
+            StepType::Implement,
             None,
         )
         .unwrap();
-    writer.ship_start_task("edit").unwrap();
+    writer.start_step("edit").unwrap();
     let run = NativeReader::open(native)
-        .ship_snapshot()
+        .run_snapshot()
         .unwrap()
         .current
         .unwrap();
@@ -500,10 +500,10 @@ fn native_work_context_is_fresh_addressed_and_failure_is_not_absence() {
         "Keep full authored requirements",
         "Preserve unrelated changes",
         "Implement native context",
-        "\"active_task\": \"edit\"",
+        "\"active_step\": \"edit\"",
         run.run_id.as_str(),
-        run.task_instances["edit"].as_str(),
-        "ship_status",
+        run.step_instances["edit"].as_str(),
+        "run_status",
     ] {
         assert!(prompt.contains(value), "missing {value}: {prompt}");
     }
@@ -518,17 +518,17 @@ fn native_work_context_is_fresh_addressed_and_failure_is_not_absence() {
             .contains("\"current\": null")
     );
 
-    writer.ship_complete_task("edit", vec![]).unwrap();
+    writer.finish_step("edit", vec![]).unwrap();
     let resumed = resolve(None).unwrap().config.system_prompt.unwrap();
-    assert!(resumed.contains("\"active_task\": null"));
-    assert!(resumed.contains("\"status\": \"completed\""));
+    assert!(resumed.contains("\"active_step\": null"));
+    assert!(resumed.contains("\"status\": \"done\""));
     assert!(
-        prompt.contains("\"active_task\": \"edit\""),
+        prompt.contains("\"active_step\": \"edit\""),
         "the earlier observation stays frozen"
     );
 
     let path = data
-        .join("ship")
+        .join("run")
         .join("executions")
         .join(native.execution_context().key())
         .join("sessions")
@@ -657,7 +657,7 @@ fn saved_purpose_applies_startup_restrictions_without_replacing_identity_or_resu
     for (name, expected) in [
         ("Write", PolicyDecision::Deny),
         ("mcp__magistr__edit", PolicyDecision::Deny),
-        ("mcp__magistr__start_work", PolicyDecision::Deny),
+        ("mcp__magistr__start_step", PolicyDecision::Deny),
         ("mcp__magistr__execute", PolicyDecision::Allow),
     ] {
         let (response_tx, _) = tokio::sync::oneshot::channel();

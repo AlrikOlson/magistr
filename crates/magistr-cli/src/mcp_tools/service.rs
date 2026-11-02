@@ -2,18 +2,18 @@
 //!
 //! [`super::build_server`] supplies the `magistr_*` handlers alongside the
 //! magistr tool families served by [`UnifiedService`]. Other tools,
-//! resources, and task methods delegate with the original request context.
+//! resources, and step methods delegate with the original request context.
 //!
 //! `magistr_gate` runs every gate on Magistr's own pty runner, streaming its
 //! output to the feed, and records the run through the composition
 //! boundary's [`AdmittedCheck`] — the same admission and settlement the loop
-//! driver uses for the gates it runs — on the task named as active at the
-//! time. Without a task the gate still runs and the answer says
+//! driver uses for the gates it runs — on the step named as active at the
+//! time. Without a step the gate still runs and the answer says
 //! `recorded: false` and why.
 //!
-//! `magistr_set_phase` validates ship state before transitioning, announces
-//! the phase typed on the feed's `magistr` family and records an action
-//! afterward. Execute and verify require an objective and task; done
+//! `magistr_set_phase` validates run state before transitioning, announces
+//! the phase typed on the feed's `magistr` family and records a progress record
+//! afterward. Execute and verify require a goal and step; done
 //! requires a recorded check.
 //!
 //! Native engines open only through an admitted [`ProjectAuthority`] in the
@@ -29,11 +29,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use magistr_engine::native::{
-    ActionType, Check, CheckSettlement, NativeConfig, NativeEngines, ProjectAuthority, WriterRole,
+    Check, CheckSettlement, NativeConfig, NativeEngines, ProgressType, ProjectAuthority, WriterRole,
 };
 
 use crate::application::AdmittedCheck;
-use magistr_engine::{GateOutput, MagistrFrame, ShipGuardState, WorkflowPhase};
+use magistr_engine::{GateOutput, MagistrFrame, RunGuardState, WorkflowPhase};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
 use magistr_workflow::infra::Family;
 use magistr_workflow::mcp::UnifiedService;
@@ -51,9 +51,9 @@ use super::gate::{GateSpec, gate_json, resolve_gates};
 use super::roadmap_export::RoadmapExport;
 
 const INSTRUCTIONS: &str = "magistr — project workflow server. \
-`magistr_*` tools run quality gates (magistr_gate, recorded through ship_check), \
+`magistr_*` tools run quality gates (magistr_gate, recorded through check_step), \
 formatting, phase transitions, hooks and safe file operations for this project. \
-The think_*/ship_*/roadmap_*/signal_* families below are magistr, served \
+The think_*/run_*/roadmap_*/signal_* families below are magistr, served \
 in-process on the same store as Magistr's own views.";
 
 /// The rmcp server behind `magistr mcp`: the `magistr_*` tools plus the
@@ -165,12 +165,12 @@ impl MagistrService {
                 let Some(phase) = args.get("phase").and_then(Value::as_str) else {
                     return self.invoke(&name, args).await;
                 };
-                let ship = self
+                let run = self
                     .engines
-                    .ship_snapshot()
+                    .run_snapshot()
                     .map_err(|error| ErrorData::internal_error(error, None))?;
                 if let Some(reason) =
-                    ShipGuardState::from_ship(ship.objective(), ship.tasks()).phase_block(phase)
+                    RunGuardState::from_run(run.goal(), run.steps()).phase_block(phase)
                 {
                     return Ok(to_call_tool_result(ToolResult::error(reason)));
                 }
@@ -178,7 +178,7 @@ impl MagistrService {
                 if result.is_error != Some(true)
                     && let Some(phase) = WorkflowPhase::from_name(phase)
                 {
-                    self.record_phase(phase, &ship);
+                    self.record_phase(phase, &run);
                 }
                 Ok(result)
             }
@@ -193,45 +193,45 @@ impl MagistrService {
             .map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
         let choices = super::view_context::check_choices(&config)
             .map_err(|e| ErrorData::internal_error(e, None))?;
-        let ship = self
+        let run = self
             .engines
-            .ship_snapshot()
+            .run_snapshot()
             .map_err(|error| ErrorData::internal_error(error, None))?;
-        let cycle = ship.objective().and_then(|o| o.created_at.clone());
-        let task = ship.active_task().map(|task| task.id.clone());
+        let cycle = run.goal().and_then(|o| o.created_at.clone());
+        let step = run.active_step().map(|step| step.id.clone());
         let detail = args
-            .get("task_id")
+            .get("step_id")
             .and_then(Value::as_str)
             .map(|id| {
-                ship.tasks()
+                run.steps()
                     .iter()
                     .find(|t| t.id == id)
                     .cloned()
                     .ok_or_else(|| {
-                        ErrorData::invalid_params("That task is no longer available.", None)
+                        ErrorData::invalid_params("That step is no longer available.", None)
                     })
-                    .map(super::view_context::bounded_task)
+                    .map(super::view_context::bounded_step)
             })
             .transpose()?;
-        let receipt = args
-            .get("receipt_id")
+        let check_result = args
+            .get("check_result_id")
             .and_then(Value::as_str)
             .map(|id| {
                 self.engines
-                    .ship_receipt(id)
+                    .run_check_result(id)
                     .map_err(|e| ErrorData::internal_error(e, None))
             })
             .transpose()?
             .flatten();
         let body = json!({
             "version": 1,
-            "task": detail,
-            "receipt": receipt,
+            "step": detail,
+            "check_result": check_result,
             "project_id": self.authority.project_id(),
             "project_root": self.project_root.to_string_lossy(),
             "owner_epoch": self.authority.generation().get().to_string(),
-            "phase": self.context.phase(&cycle, &task),
-            "phase_task": task,
+            "phase": self.context.phase(&cycle, &step),
+            "phase_step": step,
             "phase_cycle": cycle,
             "checks": choices
         });
@@ -241,7 +241,7 @@ impl MagistrService {
     }
 
     /// `magistr_gate`: resolve the gate set from project.json, run each gate
-    /// on the pty runner and record it on the active task when there is one.
+    /// on the pty runner and record it on the active step when there is one.
     async fn gate(&self, args: &Value) -> Result<CallToolResult, ErrorData> {
         let Some(gate) = args.get("gate").and_then(Value::as_str) else {
             return Err(ErrorData::invalid_params("missing 'gate' parameter", None));
@@ -317,10 +317,10 @@ impl MagistrService {
         )))
     }
 
-    /// One gate: run on the pty runner, then recorded — on the task that is
+    /// One gate: run on the pty runner, then recorded — on the step that is
     /// active as the run starts, named explicitly — through the same
-    /// `ship_record_gate` the loop driver records its gates with. The
-    /// command runs exactly once whether or not there is a task to record
+    /// `run_record_gate` the loop driver records its gates with. The
+    /// command runs exactly once whether or not there is a step to record
     /// it on; without one the answer says so and why.
     async fn run_gate(
         &self,
@@ -329,8 +329,8 @@ impl MagistrService {
         options: magistr_engine::native::CheckOptions,
     ) -> Value {
         // Named *before* the run, so the record lands where the caller
-        // stood when it asked — never on a task started while the gate ran
-        // — and the receipt observes the source as it is at this moment.
+        // stood when it asked — never on a step started while the gate ran
+        // — and the check_result observes the source as it is at this moment.
         let admission = AdmittedCheck::admit_with_options(
             &self.engines,
             &self.project_root,
@@ -343,16 +343,16 @@ impl MagistrService {
         if let Ok(admission) = &admission {
             match admission.reuse(&self.engines) {
                 Ok(Some(settled)) => {
-                    let receipt = settled.receipt();
+                    let check_result = settled.check_result();
                     return json!({"gate":spec.name,"command":spec.command,"required":spec.required,
-                        "passed":receipt.passed(),"verdict":"reused","verified":receipt.verified(),
-                        "recorded":settled.is_applied(),"receipt":receipt.id,"execution":receipt.execution(),
-                        "source_revision":receipt.source.as_ref().map(|source| &source.revision),
-                        "source_freshness":receipt.freshness,"task_id":admission.target().task_id});
+                        "passed":check_result.passed(),"verdict":"reused","verified":check_result.verified(),
+                        "recorded":settled.is_applied(),"check_result":check_result.id,"execution":check_result.execution(),
+                        "source_revision":check_result.source.as_ref().map(|source| &source.revision),
+                        "source_freshness":check_result.freshness,"step_id":admission.target().step_id});
                 }
                 Err(error) => {
                     return json!({"gate":spec.name,"required":spec.required,"passed":false,
-                    "recorded":false,"receipt":admission.receipt_id(),"note":error.to_string()});
+                    "recorded":false,"check_result":admission.check_result_id(),"note":error.to_string()});
                 }
                 Ok(None) => {}
             }
@@ -400,14 +400,17 @@ impl MagistrService {
                 return result;
             }
         };
-        let task = admission.target().task_id.clone();
+        let step = admission.target().step_id.clone();
         // A nextest junit report is parsed into the record additively by
         // the boundary (a missing report never fails the check).
         match admission
             .settle(&self.engines, run.execution(), run.details())
             .map(|settled| settled.settlement)
         {
-            Ok(CheckSettlement::Applied { check, receipt }) => {
+            Ok(CheckSettlement::Applied {
+                check,
+                check_result,
+            }) => {
                 // Rows from the captured output, plus the junit failures the
                 // record parsed (the report names tests the panic scan may
                 // not).
@@ -416,24 +419,24 @@ impl MagistrService {
                 result["rows"] = json!(rows);
                 result["recorded"] = json!(true);
                 result["verified"] = json!(check.value.verified);
-                result["task_id"] = json!(task);
-                result["receipt"] = json!(receipt.value.id);
+                result["step_id"] = json!(step);
+                result["check_result"] = json!(check_result.value.id);
                 result["source_revision"] =
-                    json!(receipt.value.source.as_ref().map(|s| &s.revision));
-                result["source_freshness"] = json!(receipt.value.freshness);
+                    json!(check_result.value.source.as_ref().map(|s| &s.revision));
+                result["source_freshness"] = json!(check_result.value.freshness);
             }
             Ok(CheckSettlement::Stale {
                 admission,
                 outcome,
-                receipt,
+                check_result,
             }) => {
                 result["recorded"] = json!(false);
                 result["note"] = json!(unrecorded_note(
-                    "the admitted workflow run or task was superseded"
+                    "the admitted workflow run or step was superseded"
                 ));
-                result["task_id"] = json!(admission.target.task_id);
+                result["step_id"] = json!(admission.target.step_id);
                 result["execution"] = json!(outcome.execution);
-                result["receipt"] = json!(receipt.value.id);
+                result["check_result"] = json!(check_result.value.id);
             }
             Err(why) => {
                 result["recorded"] = json!(false);
@@ -446,14 +449,14 @@ impl MagistrService {
 
     /// `magistr_set_phase` side effects: the phase announced typed on the
     /// feed's `magistr` family — what the cockpit reads the phase from —
-    /// and, when a task is active, a `ship_record` action on it naming the
+    /// and, when a step is active, a `record_progress` action on it naming the
     /// transition as trace narrative. Both are best effort: a feed nobody
-    /// listens to drops the frame, and without an active task there is
+    /// listens to drops the frame, and without an active step there is
     /// nothing to record on.
-    fn record_phase(&self, phase: WorkflowPhase, ship: &magistr_engine::ShipData) {
+    fn record_phase(&self, phase: WorkflowPhase, run: &magistr_engine::RunData) {
         self.context.observe(
-            ship.objective().and_then(|o| o.created_at.clone()),
-            ship.active_task().map(|task| task.id.clone()),
+            run.goal().and_then(|o| o.created_at.clone()),
+            run.active_step().map(|step| step.id.clone()),
             phase,
         );
         if let Some(feed) = self.authority.feed() {
@@ -462,12 +465,12 @@ impl MagistrService {
                 .with_execution(self.engines.config().execution_context().key())
                 .emit(Family::Magistr, &MagistrFrame::PhaseSet { phase });
         }
-        let Some(task) = ship.active_task() else {
+        let Some(step) = run.active_step() else {
             return;
         };
-        let _ = self.engines.ship_record_action(
-            Some(&task.id),
-            ActionType::Config,
+        let _ = self.engines.record_progress(
+            Some(&step.id),
+            ProgressType::Config,
             format!("workflow phase → {}", phase.label()),
             Vec::new(),
             vec!["magistr_set_phase".to_owned()],
@@ -503,13 +506,13 @@ fn junit_rows(check: &Check, rows: &mut Vec<magistr_core::GateFailureRow>) {
 }
 
 /// The note on a gate that ran but was not recorded: the reason in
-/// `ship_check`'s own words, and the remedy. The remedy names *this*
-/// server because a task started through another process's engine is
-/// invisible here until that process saves (tas-ship-state-two-servers).
+/// `check_step`'s own words, and the remedy. The remedy names *this*
+/// server because a step started through another process's engine is
+/// invisible here until that process saves (tas-run-state-two-servers).
 fn unrecorded_note(reason: &str) -> String {
     format!(
-        "not recorded: {reason} (a check needs an active ship task in this server: \
-         ship_set_objective → ship_plan → ship_start, then re-run the gate)"
+        "not recorded: {reason} (a check needs an active run step in this server: \
+         run_open → arrange_steps → start_step, then re-run the gate)"
     )
 }
 

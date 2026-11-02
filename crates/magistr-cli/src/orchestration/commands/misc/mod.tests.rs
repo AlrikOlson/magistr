@@ -35,15 +35,18 @@ fn cmd_detect_succeeds_with_unknown_on_empty_dir() {
 }
 
 #[test]
-fn cmd_plans_empty_returns_ok() {
+fn cmd_runs_empty_returns_ok() {
     // A missing native execution is empty, not an error.
     let tmp = tempfile::TempDir::new().unwrap();
     let renderer = SilentRenderer::new();
-    let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None);
-    let result = cmd_plans(tmp.path(), None, 10, &renderer, &inputs);
+    let data = tmp.path().join("data").display().to_string();
+    let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |key| {
+        (key == "MAGISTR_WORKFLOW_DATA_DIR").then(|| data.clone())
+    });
+    let result = cmd_runs(tmp.path(), None, 10, &renderer, &inputs);
     assert!(
         result.is_ok(),
-        "plans should succeed on empty dir: {result:?}"
+        "runs should succeed on an empty store: {result:?}"
     );
 }
 

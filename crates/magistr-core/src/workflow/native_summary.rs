@@ -4,8 +4,8 @@
 
 use magistr_engine::NativeReader;
 use magistr_engine::native::{
-    Chunk, ChunkStatus, FocusState, ObjectiveStatus, Readiness, WorkstreamResolution,
-    assess_readiness, next_ready, progress_from_chunks, workstream_catalog,
+    Chunk, ChunkStatus, FocusState, GoalStatus, Readiness, WorkstreamResolution, assess_readiness,
+    next_ready, progress_from_chunks, workstream_catalog,
 };
 
 use super::spec::SpecSummary;
@@ -37,8 +37,8 @@ pub fn native_spec_summary(engines: &NativeReader) -> Result<SpecSummary> {
     })
 }
 
-/// Select work for an admitted loop without changing roadmap or objective state.
-/// A saved target and an unfinished objective take precedence over ambiguity.
+/// Select work for an admitted loop without changing roadmap or goal state.
+/// A saved target and an unfinished goal take precedence over ambiguity.
 pub(crate) fn native_work_chunk(
     engines: &NativeReader,
     preferred: Option<&str>,
@@ -71,11 +71,11 @@ fn select_work_chunk(
         }
     }
     let in_track = |chunk: &&Chunk| track.is_none_or(|track| chunk.group.as_deref() == Some(track));
-    let objective = engines
-        .ship_objective()
+    let goal = engines
+        .run_goal()
         .map_err(MagistrError::Workflow)?
-        .filter(|objective| {
-            let settled_chunk = objective
+        .filter(|goal| {
+            let settled_chunk = goal
                 .scope
                 .trim()
                 .strip_prefix("chunk:")
@@ -83,10 +83,7 @@ fn select_work_chunk(
                 .is_some_and(|chunk| {
                     matches!(chunk.status, ChunkStatus::Done | ChunkStatus::Obsoleted)
                 });
-            matches!(
-                objective.status,
-                ObjectiveStatus::Defined | ObjectiveStatus::Active
-            ) && !settled_chunk
+            matches!(goal.status, GoalStatus::Open | GoalStatus::Active) && !settled_chunk
         });
     let saved = preferred.and_then(|id| chunks.iter().find(|chunk| chunk.id == id));
     if preferred.is_some() && saved.is_none() {
@@ -118,13 +115,13 @@ fn select_work_chunk(
     }
     let saved = saved
         .filter(|chunk| matches!(chunk.status, ChunkStatus::Pending | ChunkStatus::InProgress));
-    let objective_chunk = objective
+    let goal_chunk = goal
         .as_ref()
-        .and_then(|objective| objective.scope.trim().strip_prefix("chunk:"))
+        .and_then(|goal| goal.scope.trim().strip_prefix("chunk:"))
         .and_then(|id| chunks.iter().find(|chunk| chunk.id == id.trim()))
         .filter(|chunk| chunk.status == ChunkStatus::InProgress)
         .filter(in_track);
-    let selected = match saved.or(objective_chunk) {
+    let selected = match saved.or(goal_chunk) {
         Some(chunk) => Some(chunk.clone()),
         None => {
             let active: Vec<_> = chunks

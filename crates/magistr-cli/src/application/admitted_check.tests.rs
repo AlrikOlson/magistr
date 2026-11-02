@@ -15,7 +15,7 @@ async fn a_host_gate_reuses_its_actual_execution_and_explicit_reruns_still_run()
         "verification":{"gates":{"check":{"reuse":true,"inputs":["notes.txt"],"resources":[]}}}
     });
     std::fs::write(root.join(".magistr/project.json"), config.to_string()).unwrap();
-    objective(&engines, "verify");
+    goal(&engines, "verify");
     let admitted = AdmittedCheck::admit(
         &engines,
         &root,
@@ -50,7 +50,7 @@ async fn a_host_gate_reuses_its_actual_execution_and_explicit_reruns_still_run()
     .unwrap();
     let reused = second.reuse(&engines).unwrap().unwrap();
     assert!(
-        matches!(reused.receipt().execution(), Some(CheckExecution::Reused { receipt_id }) if receipt_id == &original.receipt().id)
+        matches!(reused.check_result().execution(), Some(CheckExecution::Reused { check_result_id }) if check_result_id == &original.check_result().id)
     );
     assert_eq!(reused.check().unwrap().exit_code, None);
     let forced = AdmittedCheck::admit_with_options(
@@ -81,7 +81,7 @@ async fn a_host_gate_reuses_its_actual_execution_and_explicit_reruns_still_run()
 }
 
 use magistr_engine::native::{
-    CheckSettlement, ProjectAuthority, ReceiptSettlement, SourceFreshness, TaskType, WriterRole,
+    CheckResultSettlement, CheckSettlement, ProjectAuthority, SourceFreshness, StepType, WriterRole,
 };
 
 /// A host writer admitted the way production admits one: on a writer
@@ -99,34 +99,34 @@ fn host(tmp: &tempfile::TempDir) -> (NativeEngines, PathBuf) {
     (engines, root)
 }
 
-fn objective(engines: &NativeEngines, task: &str) {
+fn goal(engines: &NativeEngines, step: &str) {
     engines
-        .ship_set_objective_with_verification(
+        .run_open_with_verification(
             "Compose".into(),
             vec![],
             vec![],
             "chunk:test".into(),
             magistr_engine::native::VerificationMode::Full,
         )
-        .expect("objective");
+        .expect("goal");
     engines
-        .ship_add_task(task.into(), "Verify".into(), TaskType::Test, None)
-        .expect("task");
-    engines.ship_start_task(task).expect("active task");
+        .add_step(step.into(), "Verify".into(), StepType::Test, None)
+        .expect("step");
+    engines.start_step(step).expect("active step");
 }
 
 #[test]
-fn admission_binds_the_task_and_the_source_before_the_run_and_settles_both() {
+fn admission_binds_the_step_and_the_source_before_the_run_and_settles_both() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (engines, root) = host(&tmp);
-    objective(&engines, "verify");
+    goal(&engines, "verify");
 
     let admitted = AdmittedCheck::admit(&engines, &root, None, "test", "true".into(), true)
         .expect("admitted with source");
     let identities = admitted.identities();
     assert_eq!(identities.project_id, engines.project_id());
-    assert_eq!(identities.task_id, "verify");
-    assert!(!identities.task_instance.is_empty());
+    assert_eq!(identities.step_id, "verify");
+    assert!(!identities.step_instance.is_empty());
     assert!(!identities.run_id.is_empty());
     let workspace = identities.workspace.expect("source identity");
     assert_eq!(workspace.root, root.canonicalize().expect("canonical"));
@@ -136,7 +136,7 @@ fn admission_binds_the_task_and_the_source_before_the_run_and_settles_both() {
     );
     assert_ne!(identities.run_id, workspace.root.to_string_lossy());
     let before = admitted.source().expect("observation").revision.clone();
-    assert!(!admitted.receipt_id().is_empty());
+    assert!(!admitted.check_result_id().is_empty());
 
     // An external edit while the "gate" runs: observed, never journaled.
     std::fs::write(root.join("notes.txt"), "beta\n").expect("external edit");
@@ -148,9 +148,15 @@ fn admission_binds_the_task_and_the_source_before_the_run_and_settles_both() {
     let check = settled.check().expect("recorded check");
     assert!(check.passed && check.verified);
     assert_eq!(check.exit_code, Some(0));
-    let receipt = settled.receipt();
-    assert_eq!(receipt.source.as_ref().expect("source").revision, before);
-    assert_eq!(receipt.settlement, Some(ReceiptSettlement::Applied));
+    let check_result = settled.check_result();
+    assert_eq!(
+        check_result.source.as_ref().expect("source").revision,
+        before
+    );
+    assert_eq!(
+        check_result.settlement,
+        Some(CheckResultSettlement::Applied)
+    );
     assert_eq!(
         settled.freshness(),
         Some(&SourceFreshness::Changed {
@@ -158,37 +164,37 @@ fn admission_binds_the_task_and_the_source_before_the_run_and_settles_both() {
         })
     );
     assert_eq!(
-        engines.ship_active_task_id().unwrap().as_deref(),
+        engines.run_active_step_id().unwrap().as_deref(),
         Some("verify")
     );
 }
 
 #[test]
-fn a_check_with_no_task_is_refused_before_any_bytes_are_hashed() {
+fn a_check_with_no_step_is_refused_before_any_bytes_are_hashed() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (engines, root) = host(&tmp);
     engines
-        .ship_set_objective_with_verification(
+        .run_open_with_verification(
             "Compose".into(),
             vec![],
             vec![],
             "chunk:test".into(),
             magistr_engine::native::VerificationMode::Full,
         )
-        .expect("objective");
+        .expect("goal");
     let refused = AdmittedCheck::admit(&engines, &root, None, "lint", "true".into(), true)
-        .expect_err("no active task");
+        .expect_err("no active step");
     assert!(
-        matches!(&refused, CheckEvidenceError::Admission(reason) if reason.to_string().contains("no active task")),
+        matches!(&refused, CheckEvidenceError::Admission(reason) if reason.to_string().contains("no active step")),
         "{refused}"
     );
 }
 
 #[test]
-fn a_superseded_objective_settles_stale_with_the_outcome_and_receipt_intact() {
+fn a_superseded_goal_settles_stale_with_the_outcome_and_check_result_intact() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (engines, root) = host(&tmp);
-    objective(&engines, "verify");
+    goal(&engines, "verify");
     let admitted = AdmittedCheck::admit(
         &engines,
         &root,
@@ -199,12 +205,12 @@ fn a_superseded_objective_settles_stale_with_the_outcome_and_receipt_intact() {
     )
     .expect("admitted");
     let original = admitted.target().clone();
-    let receipt_id = admitted.receipt_id().to_owned();
+    let check_result_id = admitted.check_result_id().to_owned();
 
-    // The agent shipped and rolled the objective over while the gate ran;
-    // the same task name in the new run is a different instance.
-    engines.ship_finalize(vec![], None).expect("shipped");
-    objective(&engines, "verify");
+    // The agent shipped and rolled the goal over while the gate ran;
+    // the same step name in the new run is a different instance.
+    engines.run_finish(vec![], None).expect("shipped");
+    goal(&engines, "verify");
 
     let settled = admitted
         .settle(&engines, CheckExecution::Exited { code: 1 }, "red".into())
@@ -214,28 +220,28 @@ fn a_superseded_objective_settles_stale_with_the_outcome_and_receipt_intact() {
         CheckSettlement::Stale {
             admission,
             outcome,
-            receipt,
+            check_result,
         } => {
             assert_eq!(admission.target, original);
             assert_eq!(outcome.exit_code, Some(1));
             assert!(!outcome.passed);
             assert!(outcome.verified);
-            assert_eq!(receipt.value.id, receipt_id);
-            assert_eq!(receipt.value.target, original);
+            assert_eq!(check_result.value.id, check_result_id);
+            assert_eq!(check_result.value.target, original);
             assert!(matches!(
-                receipt.value.settlement,
-                Some(ReceiptSettlement::Stale { .. })
+                check_result.value.settlement,
+                Some(CheckResultSettlement::Stale { .. })
             ));
         }
-        CheckSettlement::Applied { .. } => panic!("a superseded task must not collect the result"),
+        CheckSettlement::Applied { .. } => panic!("a superseded step must not collect the result"),
     }
     assert_eq!(settled.freshness(), Some(&SourceFreshness::Unchanged));
     assert!(
         engines
-            .ship_tasks()
+            .run_steps()
             .unwrap()
             .iter()
-            .all(|task| task.checks.is_empty()),
+            .all(|step| step.checks.is_empty()),
         "nothing lands on the new instance"
     );
 }
@@ -244,7 +250,7 @@ fn a_superseded_objective_settles_stale_with_the_outcome_and_receipt_intact() {
 fn a_timeout_and_a_cancel_are_recorded_as_what_they_were() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (engines, root) = host(&tmp);
-    objective(&engines, "verify");
+    goal(&engines, "verify");
     for execution in [CheckExecution::TimedOut, CheckExecution::Cancelled] {
         let admitted = AdmittedCheck::admit(&engines, &root, None, "test", "true".into(), true)
             .expect("admitted");
@@ -254,7 +260,7 @@ fn a_timeout_and_a_cancel_are_recorded_as_what_they_were() {
         let check = settled.check().expect("recorded");
         assert!(!check.passed && check.verified);
         assert_eq!(check.exit_code, None);
-        assert_eq!(settled.receipt().execution(), Some(&execution));
+        assert_eq!(settled.check_result().execution(), Some(&execution));
     }
 }
 
@@ -268,7 +274,7 @@ fn an_unobservable_root_is_a_source_refusal_at_admission() {
     let engines = ProjectAuthority::admit_for_project(&config, "absent".into(), WriterRole::Host)
         .expect("host admitted")
         .open();
-    objective(&engines, "verify");
+    goal(&engines, "verify");
     std::fs::remove_dir_all(&absent).expect("root disappears after host admission");
     let refused = AdmittedCheck::admit(&engines, &absent, None, "test", "true".into(), true)
         .expect_err("missing root");
@@ -278,10 +284,10 @@ fn an_unobservable_root_is_a_source_refusal_at_admission() {
     );
     assert!(
         engines
-            .ship_tasks()
+            .run_steps()
             .unwrap()
             .iter()
-            .all(|task| task.checks.is_empty()),
+            .all(|step| step.checks.is_empty()),
         "nothing was recorded"
     );
 }
@@ -355,13 +361,13 @@ fn outstanding(refusal: &CompletionRefusal) -> BTreeMap<String, String> {
 fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drift() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (engines, root, policy) = governed_host(&tmp);
-    objective(&engines, "verify");
+    goal(&engines, "verify");
     for name in ["check", "test", "lint"] {
         let settled = passing_gate(&engines, &root, name);
         assert_eq!(settled.freshness(), Some(&SourceFreshness::Unchanged));
     }
     let evidence = engines
-        .ship_verify_completion("chunk:test", Some("verify"))
+        .run_verify_completion("chunk:test", Some("verify"))
         .expect("every required gate has current evidence");
     assert!(evidence.is_complete());
     assert!(!evidence.config_digest.is_empty());
@@ -370,7 +376,7 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
     // moves. The evidence no longer applies, and says why.
     std::fs::write(&policy, "[security]\nredaction=false\n").expect("policy edit");
     let refusal = engines
-        .ship_verify_completion("chunk:test", Some("verify"))
+        .run_verify_completion("chunk:test", Some("verify"))
         .expect_err("a changed external layer invalidates the evidence");
     let CompletionRefusal::Outstanding(later) = &refusal else {
         panic!("{refusal}");
@@ -402,7 +408,7 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
         })
     );
     let refusal = engines
-        .ship_verify_completion("chunk:test", Some("verify"))
+        .run_verify_completion("chunk:test", Some("verify"))
         .expect_err("a reconfiguration during the run is not evidence");
     assert!(
         outstanding(&refusal)["check"]
@@ -416,23 +422,26 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
     }
     assert!(
         engines
-            .ship_verify_completion("chunk:test", Some("verify"))
+            .run_verify_completion("chunk:test", Some("verify"))
             .is_ok()
     );
 
     // The command scope widens after the gates: the gate configuration is a
-    // source input, so the old receipts read as a source change, and the
-    // new contract has no receipt at all.
+    // source input, so the old check_results read as a source change, and the
+    // new contract has no check_result at all.
     std::fs::write(
         root.join(".magistr/project.json"),
         gates_json(&["structure"]),
     )
     .expect("scope edit");
     let refusal = engines
-        .ship_verify_completion("chunk:test", Some("verify"))
+        .run_verify_completion("chunk:test", Some("verify"))
         .expect_err("a widened command scope invalidates the evidence");
     let reasons = outstanding(&refusal);
-    assert!(reasons["structure"].contains("no receipt"), "{refusal}");
+    assert!(
+        reasons["structure"].contains("no check_result"),
+        "{refusal}"
+    );
     assert!(
         reasons["check"].contains("the source changed since the gate ran"),
         "{refusal}"
@@ -442,7 +451,7 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
     }
     assert!(
         engines
-            .ship_verify_completion("chunk:test", Some("verify"))
+            .run_verify_completion("chunk:test", Some("verify"))
             .is_ok()
     );
 }
@@ -465,7 +474,7 @@ async fn real_host_reuses_narrowed_inputs_and_promotes_evidence_for_completion()
     });
     std::fs::write(root.join(".magistr/project.json"), config.to_string()).unwrap();
     engines
-        .ship_set_objective_with_verification(
+        .run_open_with_verification(
             "Reuse current evidence".into(),
             vec![],
             vec![],
@@ -474,9 +483,9 @@ async fn real_host_reuses_narrowed_inputs_and_promotes_evidence_for_completion()
         )
         .unwrap();
     engines
-        .ship_add_task("verify".into(), "Verify".into(), TaskType::Test, None)
+        .add_step("verify".into(), "Verify".into(), StepType::Test, None)
         .unwrap();
-    engines.ship_start_task("verify").unwrap();
+    engines.start_step("verify").unwrap();
     let first =
         AdmittedCheck::admit(&engines, &root, None, "check", command.into(), false).unwrap();
     let run = crate::utils::gate::run_gate(
@@ -513,12 +522,12 @@ async fn real_host_reuses_narrowed_inputs_and_promotes_evidence_for_completion()
         .unwrap()
         .expect("the runner must not be called twice");
     assert!(
-        matches!(reused.receipt().execution(), Some(CheckExecution::Reused { receipt_id })
-        if receipt_id == &original.receipt().id)
+        matches!(reused.check_result().execution(), Some(CheckExecution::Reused { check_result_id })
+        if check_result_id == &original.check_result().id)
     );
     assert!(
         engines
-            .ship_verify_completion("chunk:test", Some("verify"))
+            .run_verify_completion("chunk:test", Some("verify"))
             .unwrap()
             .is_complete()
     );
@@ -543,10 +552,10 @@ async fn real_host_reuses_narrowed_inputs_and_promotes_evidence_for_completion()
         .unwrap()
         .expect("settled non-execution");
     assert!(matches!(
-        refused.receipt().execution(),
+        refused.check_result().execution(),
         Some(CheckExecution::ReuseUnavailable { .. })
     ));
-    assert!(!refused.receipt().verified());
+    assert!(!refused.check_result().verified());
     assert!(!refused.check().unwrap().verified);
     let report = root.join("target/nextest/default/junit.xml");
     std::fs::create_dir_all(report.parent().unwrap()).unwrap();
@@ -580,7 +589,7 @@ async fn real_host_reuses_narrowed_inputs_and_promotes_evidence_for_completion()
     );
     assert!(
         engines
-            .ship_verify_completion("chunk:test", Some("verify"))
+            .run_verify_completion("chunk:test", Some("verify"))
             .is_err()
     );
 }

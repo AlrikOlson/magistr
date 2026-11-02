@@ -24,8 +24,8 @@ use magistr_workflow::infra::{Domain, Persistence, PersistenceConfig};
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::unified::{Family, FamilySelection};
 use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
-use magistr_workflow::ship::ShipService;
-use magistr_workflow::ship::engine::ShipEngine;
+use magistr_workflow::run::RunService;
+use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
 use magistr_workflow::think::ThinkService;
 use magistr_workflow::think::config::ThinkConfig;
@@ -60,13 +60,13 @@ fn build_unified(cfg: &PersistenceConfig, families: FamilySelection) -> UnifiedS
     let mut dcfg = ThinkConfig::default();
     dcfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(dcfg));
-    let ship = ShipService::new(ShipEngine::new("test-abc123".into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), ship.use_cases());
+    let run = RunService::new(RunEngine::new("test-abc123".into()));
+    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
 
     // Every registered name, taken the same way the service does — so the
     // counter under test knows exactly the names a real deployment knows.
-    let svc = UnifiedService::new(think, ship, roadmap, signal);
+    let svc = UnifiedService::new(think, run, roadmap, signal);
     let known: Vec<String> = svc
         .list_tools_view()
         .into_iter()

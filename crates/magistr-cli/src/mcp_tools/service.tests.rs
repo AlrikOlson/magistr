@@ -2,11 +2,11 @@ use super::*;
 
 #[test]
 fn the_unrecorded_note_carries_the_reason() {
-    let note = unrecorded_note("no task_id provided and no active task");
+    let note = unrecorded_note("no step_id provided and no active step");
     assert!(note.starts_with("not recorded: "), "{note}");
-    assert!(note.contains("no active task"), "{note}");
+    assert!(note.contains("no active step"), "{note}");
     // The remedy stays on the note — the agent must know what to do next.
-    assert!(note.contains("ship_start"), "{note}");
+    assert!(note.contains("start_step"), "{note}");
 }
 
 /// The junit failures a record parsed become rows once each: a test the

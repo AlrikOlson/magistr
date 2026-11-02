@@ -6,8 +6,8 @@
 //! body, and a joined SEP-414 tree has been read back out of a real backend.
 //! But it is a SNAPSHOT OF PRESENT STATE, and the thing an
 //! operator wants is a RECORD OF HISTORY. Those differ in a way no discipline
-//! closes: the ship store holds the CURRENT cycle only — one objective tree per
-//! export — so every objective that has already shipped is not merely
+//! closes: the run store holds the CURRENT cycle only — one goal tree per
+//! export — so every goal that has already shipped is not merely
 //! unexported, it is UNEXPORTABLE. The records it was built from were replaced
 //! when the next cycle started. A command run later cannot recover them.
 //!
@@ -18,7 +18,7 @@
 //! This lane and the offline lane do not emit the same spans twice:
 //!
 //! * OFFLINE ([`crate::otel`]) is a DOMAIN PROJECTION at record altitude —
-//!   `objective → task → action/check`, ids derived from record identities,
+//!   `goal → task → action/check`, ids derived from record identities,
 //!   durations reconstructed from stored timestamps.
 //! * LIVE (this module) is the RPC ALTITUDE — one span per MCP tool call, with
 //!   a duration that was actually MEASURED rather than reconstructed, emitted
@@ -991,7 +991,7 @@ mod tests {
     /// INTERNAL for the domain projection.
     #[test]
     fn the_offline_builder_still_emits_internal_spans() {
-        let span = crate::otel::span("t", "s".into(), None, "objective x", 1, 2, vec![], false);
+        let span = crate::otel::span("t", "s".into(), None, "goal x", 1, 2, vec![], false);
         assert_eq!(span["kind"], json!(1), "offline spans stay INTERNAL");
         assert!(span["status"].get("message").is_none());
     }

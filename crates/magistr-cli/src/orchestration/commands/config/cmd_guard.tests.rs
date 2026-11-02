@@ -1,21 +1,18 @@
 use super::*;
 use magistr_cockpit::harness::fixtures;
-use magistr_engine::{ChunkStatus, ShipData};
+use magistr_engine::{ChunkStatus, RunData};
 use serde_json::json;
 
-fn ship(
-    scope: &str,
-    status: magistr_workflow::ship::domain::objective::ObjectiveStatus,
-) -> ShipData {
-    let mut objective = fixtures::objective("work");
-    objective.scope = scope.into();
-    objective.status = status;
-    ShipData {
-        current: Some(magistr_engine::ShipRun {
+fn run_state(scope: &str, status: magistr_workflow::run::domain::goal::GoalStatus) -> RunData {
+    let mut goal = fixtures::goal("work");
+    goal.scope = scope.into();
+    goal.status = status;
+    RunData {
+        current: Some(magistr_engine::Run {
             run_id: "run".into(),
-            task_instances: Default::default(),
-            objective,
-            tasks: Vec::new(),
+            step_instances: Default::default(),
+            goal,
+            steps: Vec::new(),
         }),
         retained: Vec::new(),
     }
@@ -52,29 +49,29 @@ fn hook_fields_are_inert_on_null_or_foreign_json() {
 
 #[test]
 fn apply_engine_state_reads_validated_typed_records() {
-    use magistr_workflow::ship::domain::objective::ObjectiveStatus;
-    let mut ship = ship("chunk:b", ObjectiveStatus::Completed);
-    ship.current.as_mut().unwrap().tasks = (0..4)
-        .map(|id| fixtures::task(&id.to_string(), "work"))
+    use magistr_workflow::run::domain::goal::GoalStatus;
+    let mut run = run_state("chunk:b", GoalStatus::Finished);
+    run.current.as_mut().unwrap().steps = (0..4)
+        .map(|id| fixtures::run_step(&id.to_string(), "work"))
         .collect();
-    ship.current.as_mut().unwrap().tasks[0].checks = vec![
+    run.current.as_mut().unwrap().steps[0].checks = vec![
         fixtures::check("cargo check", true),
         fixtures::check("svelte-check", false),
         fixtures::check("manual", true),
     ];
-    ship.current.as_mut().unwrap().tasks[0].checks[1].required = false;
-    ship.current.as_mut().unwrap().tasks[0].checks[2].verified = false;
+    run.current.as_mut().unwrap().steps[0].checks[1].required = false;
+    run.current.as_mut().unwrap().steps[0].checks[2].verified = false;
     let mut input = GuardInput::default();
     apply_engine_state(
         &mut input,
-        &ship,
+        &run,
         &[
             chunk("a", ChunkStatus::Done),
             chunk("b", ChunkStatus::InProgress),
         ],
     );
-    assert_eq!(input.objective_status.as_deref(), Some("completed"));
-    assert_eq!(input.tasks_total, 4);
+    assert_eq!(input.goal_status.as_deref(), Some("finished"));
+    assert_eq!(input.steps_total, 4);
     assert_eq!(
         input
             .checks
@@ -96,24 +93,24 @@ fn apply_engine_state_reads_validated_typed_records() {
 }
 
 #[test]
-fn apply_engine_state_with_no_objective_and_no_chunks() {
+fn apply_engine_state_with_no_goal_and_no_chunks() {
     let mut input = GuardInput::default();
-    apply_engine_state(&mut input, &ShipData::default(), &[]);
-    assert_eq!(input.objective_status, None);
-    assert_eq!(input.tasks_total, 0);
+    apply_engine_state(&mut input, &RunData::default(), &[]);
+    assert_eq!(input.goal_status, None);
+    assert_eq!(input.steps_total, 0);
     assert!(input.checks.is_empty());
     assert!(!input.chunk_in_progress);
 }
 
 #[test]
-fn stop_ignores_other_chunks_and_unscoped_objectives() {
+fn stop_ignores_other_chunks_and_unscoped_goals() {
     for scope in ["chunk:finished", "chunk:ongoing-extra", "fix:hooks", ""] {
         let mut input = GuardInput::default();
         apply_engine_state(
             &mut input,
-            &ship(
+            &run_state(
                 scope,
-                magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed,
+                magistr_workflow::run::domain::goal::GoalStatus::Finished,
             ),
             &[
                 chunk("finished", ChunkStatus::Done),
@@ -159,9 +156,9 @@ fn stop_preserves_preexisting_and_untracked_files_after_completion() {
     let mut input = GuardInput::default();
     apply_engine_state(
         &mut input,
-        &ship(
+        &run_state(
             "chunk:work",
-            magistr_workflow::ship::domain::objective::ObjectiveStatus::Completed,
+            magistr_workflow::run::domain::goal::GoalStatus::Finished,
         ),
         &[chunk("work", ChunkStatus::Done)],
     );
@@ -322,15 +319,15 @@ fn workspace_declared_reads_the_mcp_declaration() {
 }
 
 #[test]
-fn apply_engine_state_reads_the_objective_scope() {
-    let ship = ship(
+fn apply_engine_state_reads_the_goal_scope() {
+    let run = run_state(
         "chunk:gui2-0-freeze-tauri — legacy-gui freeze",
-        magistr_workflow::ship::domain::objective::ObjectiveStatus::Active,
+        magistr_workflow::run::domain::goal::GoalStatus::Active,
     );
     let mut input = GuardInput::default();
-    apply_engine_state(&mut input, &ship, &[]);
+    apply_engine_state(&mut input, &run, &[]);
     assert_eq!(
-        input.objective_scope.as_deref(),
+        input.goal_scope.as_deref(),
         Some("chunk:gui2-0-freeze-tauri — legacy-gui freeze")
     );
 }

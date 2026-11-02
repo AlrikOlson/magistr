@@ -10,7 +10,7 @@ use tracing::debug;
 /// The agent calls this tool to announce which workflow phase it is entering.
 /// The tool validates the name against the domain's phases and answers a
 /// confirmation; the service that serves it guards the transition against
-/// the ship plan and announces the phase typed on the feed.
+/// the run plan and announces the phase typed on the feed.
 pub(super) fn build_set_phase_tool() -> SdkMcpTool {
     SdkMcpTool::new(
         "magistr_set_phase",

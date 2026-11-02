@@ -21,10 +21,10 @@
 //! one of them and reconciled back — carrying the thing that makes this system
 //! different from a generic sync tool: a chunk's acceptance criteria, its
 //! dependencies, and its cross-references into the `think_*` reasoning and
-//! `ship_*` proof that produced it.
+//! `run_*` proof that produced it.
 //!
 //! It is emphatically NOT an issue-CRUD surface. Linear, Atlassian and GitHub
-//! each ship an official MCP server that creates and updates issues, and they do
+//! each run an official MCP server that creates and updates issues, and they do
 //! it better than a third party could. Re-implementing that would spend the
 //! whole effort on commodity. What no vendor can offer is the provenance behind
 //! a plan, because they never see the reasoning.

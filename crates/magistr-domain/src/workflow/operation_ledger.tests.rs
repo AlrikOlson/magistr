@@ -33,7 +33,7 @@ fn an_operator_resolves_only_one_open_dispatch_and_keeps_the_explanation() {
     ] {
         let mut ledger = OperationLedger::new();
         let dispatch = accepted(&mut ledger, "dispatch", OperationKind::ProviderDispatch);
-        let other = accepted(&mut ledger, "receipt", OperationKind::Receipt);
+        let other = accepted(&mut ledger, "receipt", OperationKind::CheckResult);
         assert!(ledger.resolve_dispatch(&other, outcome, "checked").is_err());
         assert!(
             ledger
@@ -157,12 +157,12 @@ fn only_a_completed_outcome_deduplicates() {
 #[test]
 fn failed_and_cancelled_admit_the_next_attempt_number() {
     let mut ledger = OperationLedger::new();
-    let first = accepted(&mut ledger, "gate", OperationKind::Receipt);
+    let first = accepted(&mut ledger, "gate", OperationKind::CheckResult);
     ledger.settle(&first, OperationOutcome::Failed).unwrap();
-    let second = accepted(&mut ledger, "gate", OperationKind::Receipt);
+    let second = accepted(&mut ledger, "gate", OperationKind::CheckResult);
     assert_eq!(second, attempt("gate", 2));
     ledger.settle(&second, OperationOutcome::Cancelled).unwrap();
-    let third = accepted(&mut ledger, "gate", OperationKind::Receipt);
+    let third = accepted(&mut ledger, "gate", OperationKind::CheckResult);
     assert_eq!(third, attempt("gate", 3));
     assert_eq!(ledger.records().len(), 3);
     assert!(ledger.record(&first).unwrap().is_settled());
@@ -210,14 +210,14 @@ fn an_unsettled_attempt_refuses_another_admission_until_reconciled() {
 #[test]
 fn a_command_id_cannot_name_a_different_operation() {
     let mut ledger = OperationLedger::new();
-    let first = accepted(&mut ledger, "op", OperationKind::Receipt);
+    let first = accepted(&mut ledger, "op", OperationKind::CheckResult);
     ledger.settle(&first, OperationOutcome::Completed).unwrap();
     let other_kind = ledger
         .admit(command("op"), OperationKind::Publication, "target")
         .unwrap_err();
     assert!(matches!(other_kind, OperationError::Conflict(_)));
     let other_target = ledger
-        .admit(command("op"), OperationKind::Receipt, "elsewhere")
+        .admit(command("op"), OperationKind::CheckResult, "elsewhere")
         .unwrap_err();
     assert!(matches!(other_target, OperationError::Conflict(_)));
 }
@@ -317,9 +317,9 @@ fn restart_marks_every_in_flight_attempt_indeterminate_and_nothing_else() {
 #[test]
 fn persisted_ledgers_are_validated_before_installation() {
     let mut ledger = OperationLedger::new();
-    let first = accepted(&mut ledger, "op", OperationKind::Receipt);
+    let first = accepted(&mut ledger, "op", OperationKind::CheckResult);
     ledger.settle(&first, OperationOutcome::Failed).unwrap();
-    let second = accepted(&mut ledger, "op", OperationKind::Receipt);
+    let second = accepted(&mut ledger, "op", OperationKind::CheckResult);
     assert_eq!(ledger.validate(), Ok(()));
     let json = serde_json::to_string(&ledger).unwrap();
     let restored: OperationLedger = serde_json::from_str(&json).unwrap();
@@ -332,7 +332,7 @@ fn persisted_ledgers_are_validated_before_installation() {
     let mut two_open = ledger.clone();
     two_open.records.push(OperationRecord {
         attempt: attempt("op", 3),
-        kind: OperationKind::Receipt,
+        kind: OperationKind::CheckResult,
         target: "target".into(),
         outcome: OperationOutcome::Running,
         external: None,

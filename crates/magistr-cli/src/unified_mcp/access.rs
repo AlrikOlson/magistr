@@ -20,7 +20,7 @@ impl Access {
                 | "read"
                 | "map"
                 | "workspace_status"
-                | "ship_status"
+                | "run_status"
                 | "roadmap_status"
                 | "roadmap_next"
                 | "roadmap_get"

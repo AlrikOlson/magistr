@@ -37,7 +37,7 @@ invocation. Source tools are direct; `discover` and `execute` provide advanced
 operations. Shared conventions live in `.magistr/conventions.md`.
 
 Start a new trusted Codex session after setup. Inspect `context`, then discover
-`ship_status` and `workspace_status` as needed. Concurrent connections attach to
+`run_status` and `workspace_status` as needed. Concurrent connections attach to
 the existing owners; each working copy keeps its own workspace journal.
 
 For native `magistr next` and `magistr next-loop`, see
@@ -161,10 +161,10 @@ again only from a fresh Codex session; the bound defaults to ten iterations
 when none is supplied. Native `magistr next-loop`
 is the automatic host-owned loop; it starts a fresh provider session per
 iteration. After an interruption, run the same command again: in-progress
-work takes precedence over pending work. The matching objective, saved plan,
+work takes precedence over pending work. The matching goal, saved plan,
 task statuses, actions, and check results are retained. The agent re-reads the
 code and remaining tasks before continuing; it does not start the item again
-or replace another session's objective.
+or replace another session's goal.
 
 When `roadmap_exports` is false, setup adds native-only instructions and disables
 the export tool. Codex skills perform each workflow step directly. Reusable

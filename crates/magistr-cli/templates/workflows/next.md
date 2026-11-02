@@ -24,7 +24,7 @@ controls or include it in the fresh-session handoff.
 ## Research and plan
 
 On resume, validate the saved findings against the current code and continue
-at the first unfinished phase. Keep completed tasks and their evidence; the
+at the first unfinished phase. Keep completed steps and their evidence; the
 steps below create only missing planning records.
 
 1. Announce `magistr_set_phase(phase: "research")`. Ground affected code and
@@ -33,15 +33,15 @@ steps below create only missing planning records.
    with the host's web tools. Tie findings to the acceptance criteria.
 2. Announce `magistr_set_phase(phase: "plan")`. Select the authorized
    `chunk:<id>` scope through the recovery contract above, then read
-   `ship_status` and retain any restored objective, verification and plan.
+   `run_status` and retain any restored goal, verification and plan.
    For a new scope, use the chunk description and acceptance criteria with
    `verification: "focused"` for bounded changes, including code; choose
    `full` only for an explicit full-suite request or concrete cross-cutting
-   risk. Do not call `ship_set_objective` again on a matching unfinished scope.
+   risk. Do not call `run_open` again on a matching unfinished scope.
    Record the selected checks and their reason in the plan. Keep existing
-   tasks and add only missing work with `plan_work(action: "add", ...)`,
+   steps and add only missing work with `arrange_steps(action: "add", ...)`,
    using IDs prefixed by the chunk. Include a final `review`
-   or `test` verification task. Valid types are `research`, `implement`,
+   or `test` verification step. Valid types are `research`, `implement`,
    `test`, `review`, `config`, and `docs`.
 3. Record a new or materially changed plan with `think_record_step`, omitting
    `step_number`, and link the returned step to the chunk with `roadmap_link`.
@@ -49,16 +49,16 @@ steps below create only missing planning records.
    evidence. If too large for a coherent change, record a dependency-aware
    roadmap split first.
 
-Do not edit source before the objective and plan exist. Recover native records
+Do not edit source before the goal and plan exist. Recover native records
 instead of replacing the execution plan with Markdown.
 
 ## Execute
 
-Announce `magistr_set_phase(phase: "execute")`. Continue an already active task
-without calling `start_work` again. For the next pending task, call `start_work`,
-implement its bounded change, record significant actions with `record_progress`,
-and close it with `finish_work` and artifact references. Keep only one task
-active and do not restart completed tasks. Record evidence-backed findings with
+Announce `magistr_set_phase(phase: "execute")`. Continue an already active step
+without calling `start_step` again. For the next pending step, call `start_step`,
+implement its bounded change, record significant progress with `record_progress`,
+and close it with `finish_step` and artifact references. Keep only one step
+active and do not restart completed steps. Record evidence-backed findings with
 `think_record_step` during research, implementation, and verification: what was
 learned, what it changes, and the next useful check. Follow the shared runtime's
 guidance for real questions, branch membership, revisions, dependencies, and
@@ -67,17 +67,17 @@ when findings change the work; do not wait for a deviation or the final summary.
 For behavior changes, write meaningful failing tests, implement, and refactor
 with tests green. Follow project test placement. Do not add tests that merely
 mirror prose or reversible configuration. Follow the host and project rules
-for delegation; the coordinating session owns shared ship state and file scope.
+for delegation; the coordinating session owns shared run state and file scope.
 
 ## Verify, close, and commit
 
 1. Announce `magistr_set_phase(phase: "verify")`. Resume the active verification
-   task, or call `start_work` if that planned task is still pending. Choose
+   step, or call `start_step` if that planned step is still pending. Choose
    checks from the changed behavior, affected dependencies, and acceptance
-   criteria. New objectives explicitly use `verification: "focused"` for
-   bounded changes, including code; resuming does not recreate the objective.
+   criteria. New goals explicitly use `verification: "focused"` for
+   bounded changes, including code; resuming does not recreate the goal.
    Run formatting and the relevant crate, interface, and visual checks through
-   server-executed `check_work` or named `magistr_gate` calls. A roadmap chunk
+   server-executed `check_step` or named `magistr_gate` calls. A roadmap chunk
    alone does not require every project gate. Use `verification: "full"` and
    `magistr_gate(gate: "all")` only for an explicit full-suite request or when
    a concrete cross-cutting risk requires it; state that reason before running.
@@ -85,18 +85,18 @@ for delegation; the coordinating session owns shared ship state and file scope.
    `note`, exit codes, and native errors. Diagnose gate and test failures,
    repair their cause within authorized scope, and rerun affected checks.
    A recoverable failure is part of this iteration, not a reason to stop it.
-   Verify the integrated artifact against each acceptance criterion. If task
-   context was missing, recover the existing verification task and rerun the
+   Verify the integrated artifact against each acceptance criterion. If step
+   context was missing, recover the existing verification step and rerun the
    affected checks once to retry recording. If recording still fails, preserve
    the checkpoint and report the blocker; never repeatedly rerun green checks
    without recording or close the chunk anyway.
 3. Complete verification with artifact and check references. Complete the chunk
-   using `roadmap_complete_chunk` with its real `task:<verification-id>` ship
+   using `roadmap_complete_chunk` with its real `step:<verification-id>` run
    reference. Record discoveries as `backlog` unless the user authorized another
    status. Update descriptions if the delivered scope changed.
 4. Record the final synthesis with `think_record_step`, linking the findings
    and checks used and stating any remaining uncertainty. Finalize with
-   `ship_finalize`. Inspect both responses; any refusal leaves the iteration incomplete.
+   `run_finish`. Inspect both responses; any refusal leaves the iteration incomplete.
    Recover supported lifecycle context before treating a refusal as a blocker.
    Honor the runtime contract's native roadmap/export policy.
 5. Append `.magistr/iteration-log.md` with chunk, outcome, verification, and

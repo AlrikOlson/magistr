@@ -1,5 +1,5 @@
 //! `RoadmapService` — the rmcp `ServerHandler` for the `roadmap_*` family,
-//! mirroring `ShipService`. Unlike think/ship there are NO deprecated aliases:
+//! mirroring `RunService`. Unlike think/run there are NO deprecated aliases:
 //! `roadmap_*` is a brand-new family with no legacy names to carry.
 
 use std::path::PathBuf;
@@ -21,9 +21,9 @@ use crate::mcp::cache::catalog;
 use crate::roadmap::application::{RoadmapError, RoadmapUseCases};
 use crate::roadmap::engine::RoadmapEngine;
 use crate::roadmap::output_schemas;
-use crate::ship::ShipUseCases;
+use crate::run::RunUseCases;
 
-const SERVER_INSTRUCTIONS: &str = r#"roadmap-* drives the project roadmap: the long-horizon plan-of-plans that sits above ship_* objectives and links to think_* reasoning.
+const SERVER_INSTRUCTIONS: &str = r#"roadmap-* drives the project roadmap: the long-horizon plan-of-plans that sits above run_* goals and links to think_* reasoning.
 
 When to call which tool:
   - Add a phase/item to the plan          → roadmap_add_chunk
@@ -33,7 +33,7 @@ When to call which tool:
   - Suggest a reorder (human decides)      → roadmap_reprioritize
   - Pick the next ready chunk              → roadmap_next
   - Begin work on a chunk                  → roadmap_start_chunk
-  - Close a chunk with proof-of-ship       → roadmap_complete_chunk
+  - Close a chunk with proof-of-run       → roadmap_complete_chunk
   - Attach a think:/task: cross-reference  → roadmap_link
   - Record a research refresh + its steps  → roadmap_record_refresh
   - Reconstruct the plan / get state       → roadmap_status
@@ -58,9 +58,9 @@ pub struct RoadmapService {
 }
 
 impl RoadmapService {
-    /// Serve `engine` with `completion` — the ship family whose receipts
+    /// Serve `engine` with `completion` — the run family whose receipts
     /// govern every route to `done` — as its completion authority.
-    pub fn new(engine: RoadmapEngine, completion: ShipUseCases) -> Self {
+    pub fn new(engine: RoadmapEngine, completion: RunUseCases) -> Self {
         Self::from_use_cases(RoadmapUseCases::new(
             Arc::new(Mutex::new(engine)),
             completion,

@@ -8,7 +8,7 @@
 //! delegated `/goal` mode can report through the same type. And what
 //! the loop *does* is a [`Decision`], reconciled from the verdict and
 //! the gates in one pure function: a judge saying "met" over a red gate
-//! is a disagreement to report, never a completion — `ship_check`'s
+//! is a disagreement to report, never a completion — `check_step`'s
 //! exit codes are the authority, on every mode.
 //!
 //! [`SessionJudge`] is the one transport: a fresh, tool-less ACP session

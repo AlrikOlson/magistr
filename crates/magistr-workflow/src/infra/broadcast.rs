@@ -1,7 +1,7 @@
 //! NDJSON-over-Unix-socket fan-out, shared by every family.
 //!
 //! Every emitted frame carries a `family` tag so a single viewer can
-//! interleave `think_*` and `ship_*` events on one timeline without
+//! interleave `think_*` and `run_*` events on one timeline without
 //! maintaining two socket readers, a `seq` — the publisher's own counter,
 //! one per emitted frame across every family sharing the socket — and,
 //! when the publisher declared one, an `epoch`: which incarnation of the
@@ -379,7 +379,7 @@ mod tests {
             .with_epoch(7);
         assert_eq!(b.epoch(), Some(7));
         let think = b.clone();
-        let ship = b.clone();
+        let run = b.clone();
 
         let stream = UnixStream::connect(&sock).await.unwrap();
         assert!(
@@ -391,7 +391,7 @@ mod tests {
         think
             .emit(Family::Think, &Sample { kind: "step", n: 1 })
             .unwrap();
-        ship.emit(Family::Ship, &Sample { kind: "task", n: 2 })
+        run.emit(Family::Run, &Sample { kind: "task", n: 2 })
             .unwrap();
         b.emit(
             Family::Magistr,
@@ -420,7 +420,7 @@ mod tests {
             seen,
             vec![
                 ("think".to_owned(), 1),
-                ("ship".to_owned(), 2),
+                ("run".to_owned(), 2),
                 ("magistr".to_owned(), 3)
             ],
             "one counter across the families, in emission order",
@@ -437,7 +437,7 @@ mod tests {
             );
         }
         assert_eq!(Family::parse("workspace"), None);
-        assert_eq!(Family::parse("Ship"), None);
+        assert_eq!(Family::parse("Run"), None);
     }
 
     /// The reason `wait_for_subscribers` exists, stated as a property:
@@ -715,7 +715,7 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let sock = tmp.path().join("broadcast.sock");
         let b = Broadcaster::spawn(sock).expect("spawn");
-        let err = b.emit(Family::Ship, &NotAnObject(1)).unwrap_err();
+        let err = b.emit(Family::Run, &NotAnObject(1)).unwrap_err();
         assert!(matches!(err, EmitError::PayloadNotObject));
     }
 }

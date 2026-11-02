@@ -22,8 +22,8 @@ owners, including installed workspace plugins.
 ## Tools
 
 The direct surface is `context`, `search`, `read`, `edit`, `write`,
-`plan_work`, `start_work`, `record_progress`, `check_work` and
-`finish_work`, plus `discover` and `execute`.
+`arrange_steps`, `start_step`, `record_progress`, `check_step` and
+`finish_step`, plus `discover` and `execute`.
 
 `discover` lists matching operation names and short descriptions. A query
 matches any word; lists have a 1–50 item limit and explicit `nextOffset` and
@@ -36,7 +36,7 @@ Advanced operations include map, file operations, declared commands, undo,
 workspace health and scripting, plus the remaining workflow families.
 
 ```javascript
-const status = magistr.call("ship_status", {});
+const status = magistr.call("run_status", {});
 const source = magistr.call("read", {file: "src/lib.rs", budget: 2000});
 return {status, source};
 ```

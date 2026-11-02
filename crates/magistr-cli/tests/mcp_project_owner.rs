@@ -393,18 +393,18 @@ async fn owner_crash_during_a_check_refuses_once_and_does_not_replay_the_command
     owner.initialized().await;
     owner
         .call(
-            "ship_set_objective",
+            "run_open",
             json!({"description":"interruption fixture","verification":"focused"}),
         )
         .await;
     owner
         .call(
-            "ship_plan",
-            json!({"action":"add","task_id":"interrupted","title":"Wait for a check"}),
+            "arrange_steps",
+            json!({"action":"add","step_id":"interrupted","title":"Wait for a check"}),
         )
         .await;
     owner
-        .call("ship_start", json!({"task_id":"interrupted"}))
+        .call("start_step", json!({"step_id":"interrupted"}))
         .await;
     let mut survivor = Server::spawn(tmp.path(), &data, &tmp.path().join("survivor.sock")).await;
     assert!(survivor.response().await.is_some());
@@ -418,7 +418,7 @@ async fn owner_crash_during_a_check_refuses_once_and_does_not_replay_the_command
     .expect("script");
     survivor
         .send(json!({"jsonrpc":"2.0","id":77,"method":"tools/call",
-        "params":{"name":"check_work","arguments":{"type":"test","name":"interrupted-check",
+        "params":{"name":"check_step","arguments":{"type":"test","name":"interrupted-check",
             "command":format!("sh '{}'", script.display())}}}))
         .await;
     timeout(Duration::from_secs(10), async {
@@ -444,8 +444,8 @@ async fn owner_crash_during_a_check_refuses_once_and_does_not_replay_the_command
         interrupted["result"]["structuredContent"]["recovery"]["action"],
         "read_back"
     );
-    let recovered = survivor.call("ship_status", json!({})).await;
-    assert_eq!(recovered["active_task"]["id"], "interrupted");
+    let recovered = survivor.call("run_status", json!({})).await;
+    assert_eq!(recovered["active_step"]["id"], "interrupted");
     assert!(
         recovered["checks"].as_array().unwrap().is_empty(),
         "{recovered}"
@@ -607,17 +607,17 @@ async fn ready(server: &mut Server) {
 async fn begin_work(server: &mut Server, scope: &str) {
     server
         .call(
-            "ship_set_objective",
+            "run_open",
             json!({"description": scope, "scope": scope, "verification":"focused"}),
         )
         .await;
     server
         .call(
-            "ship_plan",
-            json!({"action":"add","task_id":"verify","title":"Verify source","task_type":"test"}),
+            "arrange_steps",
+            json!({"action":"add","step_id":"verify","title":"Verify source","step_type":"test"}),
         )
         .await;
-    server.call("ship_start", json!({"task_id":"verify"})).await;
+    server.call("start_step", json!({"step_id":"verify"})).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -662,10 +662,10 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     ready(&mut b).await;
     begin_work(&mut a, "chunk:a").await;
     begin_work(&mut b, "chunk:b").await;
-    let status_a = a.call("ship_status", json!({})).await;
-    let status_b = b.call("ship_status", json!({})).await;
-    assert_eq!(status_a["objective"]["scope"], "chunk:a");
-    assert_eq!(status_b["objective"]["scope"], "chunk:b");
+    let status_a = a.call("run_status", json!({})).await;
+    let status_b = b.call("run_status", json!({})).await;
+    assert_eq!(status_a["goal"]["scope"], "chunk:a");
+    assert_eq!(status_b["goal"]["scope"], "chunk:b");
     assert_eq!(status_a["execution"]["working_copy"], json!(main));
     assert_eq!(status_b["execution"]["working_copy"], json!(linked));
     assert_eq!(
@@ -722,7 +722,7 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     for (server, expected) in [(&mut a, "tree a"), (&mut b, "tree b")] {
         let check = server
             .call(
-                "ship_check",
+                "check_step",
                 json!({"type":"test","name":"source","command":"cat source.txt"}),
             )
             .await;
@@ -740,25 +740,40 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     assert_eq!(gate_a["passed"], true, "{gate_a}");
     assert_eq!(gate_b["passed"], true, "{gate_b}");
     let receipt_a = a
-        .call("magistr_context", json!({"receipt_id":gate_a["receipt"]}))
+        .call(
+            "magistr_context",
+            json!({"check_result_id":gate_a["check_result"]}),
+        )
         .await;
     let receipt_b = b
-        .call("magistr_context", json!({"receipt_id":gate_b["receipt"]}))
+        .call(
+            "magistr_context",
+            json!({"check_result_id":gate_b["check_result"]}),
+        )
         .await;
     for (receipt, status, root) in [
         (&receipt_a, &status_a, &main),
         (&receipt_b, &status_b, &linked),
     ] {
         assert_eq!(
-            receipt["receipt"]["target"]["execution"],
+            receipt["check_result"]["target"]["execution"],
             status["execution"]
         );
-        assert_eq!(receipt["receipt"]["target"]["run_id"], status["run_id"]);
-        assert_eq!(receipt["receipt"]["source"]["workspace_root"], json!(root));
+        assert_eq!(
+            receipt["check_result"]["target"]["run_id"],
+            status["run_id"]
+        );
+        assert_eq!(
+            receipt["check_result"]["source"]["workspace_root"],
+            json!(root)
+        );
     }
     assert!(
-        a.call("magistr_context", json!({"receipt_id":gate_b["receipt"]}))
-            .await["receipt"]
+        a.call(
+            "magistr_context",
+            json!({"check_result_id":gate_b["check_result"]})
+        )
+        .await["check_result"]
             .is_null(),
         "no receipt cross-delivery"
     );
@@ -766,12 +781,12 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     let witness_b =
         SourceSnapshot::capture(&linked, SelectionPolicy::default()).expect("b observation");
     assert_eq!(
-        receipt_b["receipt"]["source"]["revision"],
+        receipt_b["check_result"]["source"]["revision"],
         witness_b.revision(),
         "a does not invalidate b"
     );
     assert_ne!(
-        receipt_a["receipt"]["source"]["revision"],
+        receipt_a["check_result"]["source"]["revision"],
         SourceSnapshot::capture(&main, SelectionPolicy::default())
             .expect("a")
             .revision()
@@ -786,8 +801,8 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
         .expect("bounded reap")
         .expect("reap");
     // An existing bridge re-admits on its next call, with its own context.
-    let recovered_b = b.call("ship_status", json!({})).await;
-    assert_eq!(recovered_b["objective"]["scope"], "chunk:b");
+    let recovered_b = b.call("run_status", json!({})).await;
+    assert_eq!(recovered_b["goal"]["scope"], "chunk:b");
     assert_eq!(recovered_b["run_id"], status_b["run_id"]);
     assert!(
         recovered_b["execution"]["owner_generation"]
@@ -798,7 +813,7 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     let mut recovered_a = Server::spawn_as(&main, &data, &socket, "task-a", &["mcp"]).await;
     ready(&mut recovered_a).await;
     assert_eq!(
-        recovered_a.call("ship_status", json!({})).await["objective"]["scope"],
+        recovered_a.call("run_status", json!({})).await["goal"]["scope"],
         "chunk:a"
     );
     source_a.disconnect().await;

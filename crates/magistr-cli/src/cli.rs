@@ -168,7 +168,7 @@ pub enum Command {
         #[arg(default_value = ".")]
         dir: PathBuf,
 
-        /// Continue the selected unfinished objective and task plan
+        /// Continue the selected unfinished goal and task plan
         #[arg(long, short = 'c', conflicts_with = "headless")]
         r#continue: bool,
 
@@ -305,7 +305,7 @@ pub enum Command {
         dir: PathBuf,
     },
 
-    /// Claude Code hook guard: reads the hook JSON on stdin and the ship/roadmap
+    /// Claude Code hook guard: reads the hook JSON on stdin and the run/roadmap
     /// state, and exits 2 with the reason on stderr to block the event
     Guard {
         /// Which hook is asking: `stop` (end of turn) or `commit` (PreToolUse on Bash)
@@ -316,17 +316,17 @@ pub enum Command {
         dir: PathBuf,
     },
 
-    /// List current and retained work plans
-    Plans {
+    /// List the current run and retained runs
+    Runs {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,
 
-        /// Filter by status: active, completed, abandoned
+        /// Filter by status: open, active, finished, abandoned
         #[arg(long, short = 's')]
-        status: Option<PlanStatusFilter>,
+        status: Option<RunStatusFilter>,
 
-        /// Maximum number of plans to show
+        /// Maximum number of runs to show
         #[arg(long, short = 'n', default_value = "20")]
         limit: usize,
     },
@@ -1091,14 +1091,16 @@ pub enum SessionFormat {
     Json,
 }
 
-/// Filter for plan status in `magistr plans`.
+/// Filter for run status in `magistr runs`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum PlanStatusFilter {
-    /// Show only active plans
+pub enum RunStatusFilter {
+    /// Show only open runs
+    Open,
+    /// Show only active runs
     Active,
-    /// Show only completed plans
-    Completed,
-    /// Show only abandoned plans
+    /// Show only finished runs
+    Finished,
+    /// Show only abandoned runs
     Abandoned,
 }
 
@@ -1170,7 +1172,7 @@ mod tests;
 /// Which Claude Code hook `magistr guard` is answering.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 pub enum GuardEvent {
-    /// End of the assistant's turn (Stop hook): a shipped objective's own
+    /// End of the assistant's turn (Stop hook): a shipped goal's own
     /// roadmap chunk must be closed; unrelated worktree changes are preserved.
     Stop,
     /// A Bash tool call (PreToolUse hook): `git commit` needs green, verified
@@ -1179,7 +1181,7 @@ pub enum GuardEvent {
     Commit,
     /// A file-editing tool call (PreToolUse hook on Edit/Write/MultiEdit/
     /// NotebookEdit): a frozen tree (`.magistr/legacy-tui-ratchet.json`) is
-    /// only writable under an unlocking ship objective.
+    /// only writable under an unlocking run goal.
     Write,
 }
 

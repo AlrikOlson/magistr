@@ -73,7 +73,7 @@
       "items": { "$ref": "#/$defs/Enrichment" }
     },
     "cross_refs": {
-      "description": "Typed cross-references into the think/ship/roadmap graph, in the existing `prefix:value` wire form (infra/cross_ref.rs), extended with the `signal:` variant (Phase 29b). Bidirectional: promoting a signal writes `chunk:<id>` here and `signal:<id>` onto the chunk.",
+      "description": "Typed cross-references into the think/run/roadmap graph, in the existing `prefix:value` wire form (infra/cross_ref.rs), extended with the `signal:` variant (Phase 29b). Bidirectional: promoting a signal writes `chunk:<id>` here and `signal:<id>` onto the chunk.",
       "type": "array",
       "items": { "$ref": "#/$defs/CrossRef" }
     }
@@ -157,7 +157,7 @@
       }
     },
     "CrossRef": {
-      "description": "A cross-reference in the existing wire form `prefix:value`. `prefix` is one of the think/ship/roadmap families plus `signal`. Mirrors infra/cross_ref.rs::CrossRef::from_wire so the same parser accepts it.",
+      "description": "A cross-reference in the existing wire form `prefix:value`. `prefix` is one of the think/run/roadmap families plus `signal`. Mirrors infra/cross_ref.rs::CrossRef::from_wire so the same parser accepts it.",
       "type": "string",
       "pattern": "^(think|task|action|check|chunk|signal):.+$"
     }

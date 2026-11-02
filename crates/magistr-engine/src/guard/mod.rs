@@ -7,14 +7,14 @@ pub mod guard_action;
 pub mod guard_context;
 pub mod guard_result;
 pub mod guards_config;
-pub mod ship_guard_state;
+pub mod run_guard_state;
 pub mod workflow_guard;
 
 pub use guard_action::GuardAction;
 pub use guard_context::GuardContext;
 pub use guard_result::GuardResult;
 pub use guards_config::GuardsConfig;
-pub use ship_guard_state::ShipGuardState;
+pub use run_guard_state::RunGuardState;
 pub use workflow_guard::WorkflowGuard;
 
 #[cfg(test)]

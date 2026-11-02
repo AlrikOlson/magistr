@@ -68,7 +68,7 @@ workflow and workspace services Magistr-owned code. It defines
 workflow and workspace ownership, source certification and operation contracts. The accepted target is one Rust-native Magistr product. Workflow
 source and the adopted `magistr-workspace` engine belong to the root Cargo
 workspace. Typed
-reasoning, ship, roadmap, and signal use cases now own native behavior beneath
+reasoning, run, roadmap, and signal use cases now own native behavior beneath
 MCP and local owner adapters; command execution and tracker probes are explicit
 async effects. The complete Workspace reference source, contracts and tests are
 retained with pinned provenance under `subsystems/workspace/reference`; Bun and

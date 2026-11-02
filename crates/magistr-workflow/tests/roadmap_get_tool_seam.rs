@@ -27,8 +27,8 @@
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::roadmap::domain::{Chunk, ChunkStatus};
 use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
-use magistr_workflow::ship::ShipService;
-use magistr_workflow::ship::engine::ShipEngine;
+use magistr_workflow::run::RunService;
+use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
 use magistr_workflow::think::ThinkService;
 use magistr_workflow::think::config::ThinkConfig;
@@ -99,11 +99,11 @@ fn seeded_engine() -> RoadmapEngine {
 fn build_unified() -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
-    let ship = ShipService::new(ShipEngine::new("waterworks-seam".into()));
-    let roadmap = RoadmapService::new(seeded_engine(), ship.use_cases());
+    let run = RunService::new(RunEngine::new("waterworks-seam".into()));
+    let roadmap = RoadmapService::new(seeded_engine(), run.use_cases());
     UnifiedService::new(
         ThinkService::new(ReasoningServer::new(cfg)),
-        ship,
+        run,
         roadmap,
         SignalService::new(SignalEngine::new("waterworks-seam".into())),
     )

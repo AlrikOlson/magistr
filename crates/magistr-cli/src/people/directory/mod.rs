@@ -32,7 +32,7 @@
 //! the CI shortcut, because automation slipping past a directory outage
 //! is precisely the implicit grant being refused.
 //!
-//! # What does not ship here
+//! # What does not run here
 //!
 //! No XML signature verification: an assertion's conditions, audience
 //! and issuer are checked, and the signature is not. That is the identity resolver's

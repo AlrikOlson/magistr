@@ -9,7 +9,7 @@
 //! Four claims, one test each, so a single regression cannot hide behind
 //! another's failure:
 //!
-//! 1. a slow `ship_check` gate emits ticks against the caller's OWN token,
+//! 1. a slow `check_step` gate emits ticks against the caller's OWN token,
 //! 2. those ticks are liveness signals — rising counter, no fabricated `total`,
 //!    message by exact value,
 //! 3. a call shorter than the first-tick window stays silent (claim 3a), and
@@ -30,8 +30,8 @@ use std::sync::{Arc, Mutex};
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::progress::{FIRST_TICK, tick_message};
 use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
-use magistr_workflow::ship::ShipService;
-use magistr_workflow::ship::engine::ShipEngine;
+use magistr_workflow::run::RunService;
+use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
 use magistr_workflow::think::ThinkService;
 use magistr_workflow::think::config::ThinkConfig;
@@ -66,10 +66,10 @@ fn build_unified(project: &str) -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
-    let ship = ShipService::new(ShipEngine::new(project.into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), ship.use_cases());
+    let run = RunService::new(RunEngine::new(project.into()));
+    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(think, ship, roadmap, signal)
+    UnifiedService::new(think, run, roadmap, signal)
 }
 
 async fn pair(
@@ -106,7 +106,7 @@ fn call(
     req
 }
 
-/// Drive `ship_*` far enough that `ship_check` has an active task, so the slow
+/// Drive `run_*` far enough that `check_step` has an active task, so the slow
 /// call under test returns a REAL result rather than an `invalid_state`
 /// envelope. Progress that only shows up on an error path would prove nothing
 /// about the working path.
@@ -115,23 +115,23 @@ async fn open_an_active_task(
 ) {
     let peer = client.peer();
     peer.call_tool(call(
-        "ship_set_objective",
+        "run_open",
         args(json!({ "description": "progress e2e" })),
     ))
     .await
     .unwrap();
     peer.call_tool(call(
-        "ship_plan",
+        "arrange_steps",
         args(json!({
             "action": "add",
-            "task_id": "gate",
+            "step_id": "gate",
             "title": "run a slow gate",
-            "task_type": "test",
+            "step_type": "test",
         })),
     ))
     .await
     .unwrap();
-    peer.call_tool(call("ship_start", args(json!({ "task_id": "gate" }))))
+    peer.call_tool(call("start_step", args(json!({ "step_id": "gate" }))))
         .await
         .unwrap();
 }
@@ -139,7 +139,7 @@ async fn open_an_active_task(
 /// Claim 1: a genuinely slow tool call reports liveness against the caller's
 /// own progress token, and still returns its real result.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn a_slow_ship_check_emits_progress_against_the_callers_token() {
+async fn a_slow_run_check_emits_progress_against_the_callers_token() {
     let (client, seen, server_handle) = pair("test-progress-slow").await;
     open_an_active_task(&client).await;
     seen.lock().unwrap().clear();
@@ -156,7 +156,7 @@ async fn a_slow_ship_check_emits_progress_against_the_callers_token() {
         .peer()
         .send_request_with_option(
             ClientRequest::CallToolRequest(CallToolRequest::new(call(
-                "ship_check",
+                "check_step",
                 args(json!({
                     "type": "test",
                     "name": "slow gate",
@@ -171,7 +171,7 @@ async fn a_slow_ship_check_emits_progress_against_the_callers_token() {
     let response = handle
         .await_response()
         .await
-        .expect("ship_check should run");
+        .expect("check_step should run");
 
     let ticks = seen.lock().unwrap().clone();
     assert!(
@@ -219,7 +219,7 @@ async fn ticks_rise_carry_no_fake_total_and_name_the_tool_and_elapsed_time() {
     client
         .peer()
         .call_tool(call(
-            "ship_check",
+            "check_step",
             args(json!({
                 "type": "test",
                 "name": "slow gate",
@@ -246,17 +246,17 @@ async fn ticks_rise_carry_no_fake_total_and_name_the_tool_and_elapsed_time() {
         // notification a human learns nothing from, and would pass a shape check.
         assert_eq!(
             tick.message.as_deref(),
-            Some(tick_message("ship_check", n).as_str()),
+            Some(tick_message("check_step", n).as_str()),
             "tick {n} message"
         );
     }
     assert_eq!(
         ticks[0].message.as_deref(),
-        Some("ship_check still running (2s elapsed)")
+        Some("check_step still running (2s elapsed)")
     );
     assert_eq!(
         ticks[1].message.as_deref(),
-        Some("ship_check still running (4s elapsed)")
+        Some("check_step still running (4s elapsed)")
     );
 
     let _ = client.cancel().await;
@@ -283,7 +283,7 @@ async fn a_call_shorter_than_the_first_tick_stays_silent() {
     client
         .peer()
         .call_tool(call(
-            "ship_check",
+            "check_step",
             args(json!({
                 "type": "test",
                 "name": "quick gate",

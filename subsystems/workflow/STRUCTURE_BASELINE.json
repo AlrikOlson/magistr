@@ -351,119 +351,119 @@
       "longest_function": 52,
       "public_items": 11
     },
-    "crates/magistr-workflow/src/ship/broadcast.rs": {
-      "inline_test_modules": 0,
-      "long_function_excess_lines": 0,
-      "long_functions": 0,
-      "longest_function": 8,
-      "public_items": 2
-    },
-    "crates/magistr-workflow/src/ship/domain/action.rs": {
-      "inline_test_modules": 0,
-      "long_function_excess_lines": 0,
-      "long_functions": 0,
-      "longest_function": 0,
-      "public_items": 2
-    },
-    "crates/magistr-workflow/src/ship/domain/artifact.rs": {
-      "inline_test_modules": 0,
-      "long_function_excess_lines": 0,
-      "long_functions": 0,
-      "longest_function": 0,
-      "public_items": 2
-    },
-    "crates/magistr-workflow/src/ship/domain/check.rs": {
-      "inline_test_modules": 0,
-      "long_function_excess_lines": 0,
-      "long_functions": 0,
-      "longest_function": 0,
-      "public_items": 2
-    },
-    "crates/magistr-workflow/src/ship/domain/mod.rs": {
-      "inline_test_modules": 0,
-      "long_function_excess_lines": 0,
-      "long_functions": 0,
-      "longest_function": 0,
-      "public_items": 0
-    },
-    "crates/magistr-workflow/src/ship/domain/objective.rs": {
-      "inline_test_modules": 0,
-      "long_function_excess_lines": 0,
-      "long_functions": 0,
-      "longest_function": 0,
-      "public_items": 2
-    },
-    "crates/magistr-workflow/src/ship/domain/task.rs": {
-      "inline_test_modules": 0,
-      "long_function_excess_lines": 0,
-      "long_functions": 0,
-      "longest_function": 0,
-      "public_items": 3
-    },
-    "crates/magistr-workflow/src/ship/engine/mod.rs": {
-      "inline_test_modules": 0,
-      "long_function_excess_lines": 0,
-      "long_functions": 0,
-      "longest_function": 101,
-      "public_items": 1
-    },
-    "crates/magistr-workflow/src/ship/gate.rs": {
+    "crates/magistr-workflow/src/run/approval.rs": {
       "inline_test_modules": 1,
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 45,
       "public_items": 9
     },
-    "crates/magistr-workflow/src/ship/mcp/handlers.rs": {
+    "crates/magistr-workflow/src/run/broadcast.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 8,
+      "public_items": 2
+    },
+    "crates/magistr-workflow/src/run/domain/artifact.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 2
+    },
+    "crates/magistr-workflow/src/run/domain/check.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 2
+    },
+    "crates/magistr-workflow/src/run/domain/goal.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 2
+    },
+    "crates/magistr-workflow/src/run/domain/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 0
+    },
+    "crates/magistr-workflow/src/run/domain/progress.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 2
+    },
+    "crates/magistr-workflow/src/run/domain/step.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 0,
+      "public_items": 3
+    },
+    "crates/magistr-workflow/src/run/engine/mod.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 101,
+      "public_items": 1
+    },
+    "crates/magistr-workflow/src/run/mcp/handlers.rs": {
       "inline_test_modules": 1,
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 84,
       "public_items": 16
     },
-    "crates/magistr-workflow/src/ship/mcp/mod.rs": {
+    "crates/magistr-workflow/src/run/mcp/mod.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 0,
       "public_items": 0
     },
-    "crates/magistr-workflow/src/ship/mcp/service.rs": {
+    "crates/magistr-workflow/src/run/mcp/service.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 10,
       "public_items": 1
     },
-    "crates/magistr-workflow/src/ship/mod.rs": {
+    "crates/magistr-workflow/src/run/mod.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 0,
       "public_items": 0
     },
-    "crates/magistr-workflow/src/ship/output_schemas/mod.rs": {
+    "crates/magistr-workflow/src/run/output_schemas/mod.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 22,
       "public_items": 19
     },
-    "crates/magistr-workflow/src/ship/persistence.rs": {
+    "crates/magistr-workflow/src/run/persistence.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 49,
       "public_items": 2
     },
-    "crates/magistr-workflow/src/ship/report/junit.rs": {
+    "crates/magistr-workflow/src/run/report/junit.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 128,
       "public_items": 2
     },
-    "crates/magistr-workflow/src/ship/report/mod.rs": {
+    "crates/magistr-workflow/src/run/report/mod.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
@@ -1100,7 +1100,7 @@
       "longest_function": 44,
       "public_items": 0
     },
-    "crates/magistr-workflow/tests/cloud_ship_sync.rs": {
+    "crates/magistr-workflow/tests/cloud_run_sync.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
@@ -1205,7 +1205,7 @@
       "longest_function": 56,
       "public_items": 0
     },
-    "crates/magistr-workflow/tests/repo_sync_ship_e2e.rs": {
+    "crates/magistr-workflow/tests/repo_sync_run_e2e.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
@@ -1233,39 +1233,39 @@
       "longest_function": 68,
       "public_items": 0
     },
-    "crates/magistr-workflow/tests/schema_formats.rs": {
-      "inline_test_modules": 0,
-      "long_function_excess_lines": 0,
-      "long_functions": 0,
-      "longest_function": 25,
-      "public_items": 0
-    },
-    "crates/magistr-workflow/tests/ship_check_report.rs": {
+    "crates/magistr-workflow/tests/run_check_report.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 32,
       "public_items": 0
     },
-    "crates/magistr-workflow/tests/ship_engine.rs": {
+    "crates/magistr-workflow/tests/run_engine.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 32,
       "long_functions": 1,
       "longest_function": 182,
       "public_items": 0
     },
-    "crates/magistr-workflow/tests/ship_mcp.rs": {
+    "crates/magistr-workflow/tests/run_mcp.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 27,
       "public_items": 0
     },
-    "crates/magistr-workflow/tests/ship_persistence.rs": {
+    "crates/magistr-workflow/tests/run_persistence.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 50,
+      "public_items": 0
+    },
+    "crates/magistr-workflow/tests/schema_formats.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 25,
       "public_items": 0
     },
     "crates/magistr-workflow/tests/skill_evaluations.rs": {
@@ -1294,13 +1294,6 @@
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 54,
-      "public_items": 0
-    },
-    "crates/magistr-workflow/tests/workflow_e2e.rs": {
-      "inline_test_modules": 0,
-      "long_function_excess_lines": 0,
-      "long_functions": 0,
-      "longest_function": 88,
       "public_items": 0
     },
     "crates/magistr-workflow/tests/think_broadcast.rs": {
@@ -1497,6 +1490,13 @@
       "long_function_excess_lines": 0,
       "long_functions": 0,
       "longest_function": 72,
+      "public_items": 0
+    },
+    "crates/magistr-workflow/tests/workflow_e2e.rs": {
+      "inline_test_modules": 0,
+      "long_function_excess_lines": 0,
+      "long_functions": 0,
+      "longest_function": 88,
       "public_items": 0
     }
   },

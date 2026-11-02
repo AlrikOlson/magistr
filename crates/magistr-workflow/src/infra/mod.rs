@@ -24,7 +24,7 @@ pub mod transaction;
 
 pub use broadcast::{Broadcaster, EmitError, Family};
 pub use cross_ref::{
-    ActionId, CheckName, CrossRef, ExternalId, ParseError, ProviderId, StepNumber, TaskId,
+    CheckName, CrossRef, ExternalId, ParseError, ProgressId, ProviderId, StepId, StepNumber,
 };
 pub use epoch_key::EPOCH_KEY;
 pub use magistr_workflow_contracts::StoreStamp;

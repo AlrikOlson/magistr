@@ -1,5 +1,5 @@
 //! `outputSchema` definitions for the `roadmap_*` tools, mirroring the
-//! `ship` family's approach: each JSON-returning tool advertises a schema so
+//! `run` family's approach: each JSON-returning tool advertises a schema so
 //! 2026 clients can parse `structuredContent` instead of the text fallback.
 
 use magistr_workflow_contracts::Observed;
@@ -218,11 +218,11 @@ pub struct RoadmapGetOutput {
 }
 
 /// `roadmap_start_chunk`: the chunk plus the backref the agent wires into
-/// ship/think.
+/// run/think.
 #[derive(Serialize, JsonSchema)]
 pub struct StartChunkOutput {
     pub chunk: ChunkOutput,
-    /// `chunk:<id>` — pass to ship_set_objective + a think execution_ref.
+    /// `chunk:<id>` — pass to run_open + a think execution_ref.
     pub backref: String,
     pub hint: String,
 }

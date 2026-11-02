@@ -5,7 +5,7 @@ use super::verdict::Verdict;
 
 /// The loop's next move, reconciled from the judge's [`Verdict`] and the
 /// real gates. This is the one place the authority rule lives:
-/// `ship_check`'s exit codes complete a chunk, a verdict never does.
+/// `check_step`'s exit codes complete a chunk, a verdict never does.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Decision {
     /// The judge says met and every gate passed: complete the chunk.

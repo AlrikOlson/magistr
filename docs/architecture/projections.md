@@ -46,7 +46,7 @@ The full-record read remains available for those IDs.
 | Family | Value | Persistence owner |
 | --- | --- | --- |
 | Roadmap | `RoadmapData`: chunks and progress from the same read | `RoadmapEngine` |
-| Execution | `ShipData`: selected and retained runs from the same read | `ShipEngine` |
+| Execution | `RunData`: selected and retained runs from the same read | `RunEngine` |
 | Signals | `Vec<Signal>` | `SignalEngine` |
 | Reasoning | `ThinkData`: complete saved sessions, steps and branches | `ReasoningServer` |
 
@@ -73,26 +73,26 @@ after reading and refuses an observed in-place change. It does not pair bytes
 from one open with a pathname stamp from another. Atomic replacement may leave
 an already opened descriptor on the preceding file; the next read opens the
 replacement. The execution owner reads the file selected by its canonical
-working copy and execution identity, not a guessed project-wide ship path.
+working copy and execution identity, not a guessed project-wide run path.
 
-`ShipData` exposes the selected `current` run and `retained` runs. Each `ShipRun`
-keeps its run ID, task-instance identities, objective and complete tasks, including
-actions, check details and artifacts. Selecting another objective retains the
+`RunData` exposes the selected `current` run and `retained` runs. Each `Run`
+keeps its run ID, task-instance identities, goal and complete tasks, including
+actions, check details and artifacts. Selecting another goal retains the
 previous run in the same locked execution aggregate, whether unfinished or closed.
 Returning to an unfinished scope resumes its original run; returning to a closed
 scope starts another run without overwriting history. Reused task names never
-identify historical work on their own. `NativeReader::ship_run` resolves an exact
+identify historical work on their own. `NativeReader::run_run` resolves an exact
 run from a validated read and distinguishes missing work from a failed read.
 Historical checks retain their receipt IDs; the existing receipt reader resolves
 the actual command, source and acceptance evidence independently. A historical
 pass does not certify the source currently being edited. Receipt compaction keeps
 receipts belonging to retained runs. Explicit execution reset clears this aggregate;
-ordinary objective selection does not.
+ordinary goal selection does not.
 
-`magistr plans` reads current and retained runs through that same reader, including
+`magistr runs` reads current and retained runs through that same reader, including
 their full task details in machine output. `next --continue` requires selected
 unfinished work and leaves completion to the workflow owner. Overall roadmap
-counts cannot complete an objective. File-plan archives and their cleanup are
+counts cannot complete a goal. File-plan archives and their cleanup are
 not part of the execution lifecycle.
 
 Reasoning observations read every saved session from the one validated project
@@ -121,12 +121,12 @@ views preserve the roadmap's read state and source.
 Attaching a native reader does not itself read workflow files. Shared session
 resolution reads current work before provider startup using the workflow inputs
 captured in `ProjectInputs`, the canonical working copy and the selected execution.
-The same execution is bound into tool subprocesses. One ship observation supplies
-the objective, authored requirements and complete task plan with stable identities;
+The same execution is bound into tool subprocesses. One run observation supplies
+the goal, authored requirements and complete task plan with stable identities;
 missing work is explicit and a failed read refuses startup. Fresh and resumed
 sessions get a new observation, while an already resolved session keeps its snapshot.
 Purpose policy continues to restrict planning conversations. Recovery instructions
-require a fresh `ship_status` read after provider compaction; the current transport
+require a fresh `run_status` read after provider compaction; the current transport
 has no compaction callback that refreshes instructions automatically.
 
 Direct decision readers require a current successful read and return errors otherwise. Work selection, status decisions and

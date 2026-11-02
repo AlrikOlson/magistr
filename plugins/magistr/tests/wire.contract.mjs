@@ -15,9 +15,9 @@ import { answer, fixture } from './fixtures.js'
 import { elements, flatten, textOf } from './host.mjs'
 
 test('wire decoding accepts canonical MCP and normal tool replies and rejects incompatible data', () => {
-  const value = fixture().ship
+  const value = fixture().run
   assert.throws(() =>
-    validate('ship', {
+    validate('run', {
       structuredContent: {
         ...value,
         checks: [{ name: 'check', passed: true, verified: 'false' }],
@@ -28,9 +28,9 @@ test('wire decoding accepts canonical MCP and normal tool replies and rejects in
     validate('context', {
       structuredContent: {
         ...fixture().context,
-        task: {
+        step: {
           record: {
-            ...fixture().task,
+            ...fixture().step,
             checks: [{ name: 'check', passed: true, verified: 'false' }],
           },
         },
@@ -65,16 +65,16 @@ test('wire decoding accepts canonical MCP and normal tool replies and rejects in
     }),
   )
   assert.throws(() =>
-    validate('ship', { structuredContent: { project_id: 'example' } }),
+    validate('run', { structuredContent: { project_id: 'example' } }),
   )
   assert.throws(() =>
     validate('source', { structuredContent: { v: 2, ok: true, results: [] } }),
   )
   assert.throws(() =>
     validateAction(
-      'task',
+      'step',
       { status: 'active', id: 'different' },
-      fixture().task,
+      fixture().step,
     ),
   )
 })
@@ -97,7 +97,7 @@ test('focus replies preserve closed and missing choices without claiming current
       value.frontier = { state, group: focus.group, history }
     } else value.frontier = { state, query: focus.group }
     const m = initial()
-    m.slots.ship = { value: f.ship }
+    m.slots.run = { value: f.run }
     m.slots.roadmap = { value: f.roadmap }
     m.slots.focus = { value: validate('focus', { structuredContent: value }) }
     for (const tab of ['current', 'roadmap']) {
@@ -117,15 +117,15 @@ test('focus replies preserve closed and missing choices without claiming current
     assert.throws(() => validate('focus', { structuredContent: bad }))
 })
 
-test('phase requires matching work and task; checks distinguish recorded evidence and optional failure', () => {
+test('phase requires matching work and step; checks distinguish recorded evidence and optional failure', () => {
   const f = fixture()
-  assert.equal(phase(f.context, f.ship), 'Planning')
+  assert.equal(phase(f.context, f.run), 'Planning')
   assert.equal(
-    phase({ ...f.context, phase_cycle: 'other' }, f.ship),
+    phase({ ...f.context, phase_cycle: 'other' }, f.run),
     'Phase not reported',
   )
   assert.equal(
-    phase({ ...f.context, phase_task: 'other' }, f.ship),
+    phase({ ...f.context, phase_step: 'other' }, f.run),
     'Phase not reported',
   )
   assert.equal(
@@ -151,7 +151,7 @@ test('phase requires matching work and task; checks distinguish recorded evidenc
 test('rendering is deterministic, bounded, narrow and composes an existing band', () => {
   const f = fixture(),
     m = initial()
-  m.slots.ship = { value: f.ship }
+  m.slots.run = { value: f.run }
   m.slots.context = { value: f.context }
   const h = {
     tab() {},
@@ -171,14 +171,14 @@ test('rendering is deterministic, bounded, narrow and composes an existing band'
     assert.ok(e.props.key && e.props.onPress)
   const other = elements.Text({ children: ['Another plugin'] })
   assert.equal(band(elements, m, other, () => {}, 40).children[0], other)
-  f.ship.task_list = Array.from({ length: 1000 }, (_, i) => ({
+  f.run.step_list = Array.from({ length: 1000 }, (_, i) => ({
     id: String(i),
-    title: 'Task ' + i,
+    title: 'Step ' + i,
     status: 'planned',
   }))
   const many = pane(elements, m, 100, h)
   assert.equal(
-    flatten(many).filter((x) => x?.props?.key?.startsWith('task-')).length,
+    flatten(many).filter((x) => x?.props?.key?.startsWith('step-')).length,
     80,
   )
   assert.match(textOf(many), /Narrow your search/)
@@ -204,13 +204,13 @@ test('runtime effects stay in the entry module and exclude models, files, proces
   )
   assert.doesNotMatch(
     source,
-    /\$\.(model|process|fs|prompt|permission)|fetch\(|node:|finish_work|ship_finalize|roadmap_complete|next-loop/,
+    /\$\.(model|process|fs|prompt|permission)|fetch\(|node:|finish_step|run_finish|roadmap_complete|next-loop/,
   )
   const reads = source.slice(
     source.indexOf('const READS'),
     source.indexOf('function redraw'),
   )
-  assert.doesNotMatch(reads, /start_work|magistr_gate|focus_set|start_chunk/)
+  assert.doesNotMatch(reads, /start_step|magistr_gate|focus_set|start_chunk/)
   assert.match(source, /consent:/)
   assert.match(source, /reads\.size >= 2/)
   assert.match(source, /actionInFlight/)
@@ -222,14 +222,14 @@ test('wire validation covers every rendered collection and preserves Windows and
       'context',
       {
         ...f.context,
-        task: { record: { ...f.task, actions: [{ files_touched: 'bad' }] } },
+        step: { record: { ...f.step, progress: [{ files_touched: 'bad' }] } },
       },
     ],
     [
       'context',
       {
         ...f.context,
-        receipt: { gate: 'check', target: {}, freshness: { paths: 'bad' } },
+        check_result: { gate: 'check', target: {}, freshness: { paths: 'bad' } },
       },
     ],
     ['work', { records: [{ ...f.work, acceptance: 'bad' }] }],

@@ -130,7 +130,7 @@ impl EnginePort for AttachedEnginePort {
     fn complete_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
         self.chunk(RoadmapCommand::CompleteChunk {
             id: id.to_owned(),
-            ship_ref: None,
+            step_ref: None,
         })
     }
 

@@ -1,5 +1,5 @@
 //! `magistr guard write` end to end: the frozen tree declared in
-//! `.magistr/legacy-gui-ratchet.json` is only writable under a ship objective
+//! `.magistr/legacy-gui-ratchet.json` is only writable under a run goal
 //! whose scope carries an unlock word. Drives the real binary and the
 //! scaffolded hook script against a temp project on a temp magistr
 //! store.
@@ -65,10 +65,10 @@ impl Project {
             .open()
     }
 
-    fn set_objective(&self, scope: &str) {
+    fn set_goal(&self, scope: &str) {
         self.engines()
-            .ship_set_objective("objective".into(), vec![], vec![], scope.into())
-            .expect("objective");
+            .run_open("goal".into(), vec![], vec![], scope.into())
+            .expect("goal");
     }
 
     fn hook_json(&self, rel: &str) -> String {
@@ -172,14 +172,14 @@ fn stop_hook_allows_completed_work_with_unrelated_changes_and_exports_disabled()
     {
         let engines = project.engines();
         engines
-            .ship_set_objective(
+            .run_open(
                 "finished work".into(),
                 vec![],
                 vec![],
                 "fix:finished".into(),
             )
             .unwrap();
-        engines.ship_finalize(vec![], None).unwrap();
+        engines.run_finish(vec![], None).unwrap();
     }
     // Establish the baseline after the writer has created its ownership files.
     // The stop hook itself must not change project files or Git status.
@@ -210,9 +210,9 @@ fn stderr(out: &Output) -> String {
 }
 
 #[test]
-fn a_write_under_the_frozen_tree_is_denied_under_an_unrelated_objective() {
+fn a_write_under_the_frozen_tree_is_denied_under_an_unrelated_goal() {
     let project = Project::new(true);
-    project.set_objective("chunk:acp-reconnect — src/acp/*.rs");
+    project.set_goal("chunk:acp-reconnect — src/acp/*.rs");
     let out = project.guard("crates/magistr-gui/src/App.svelte");
     assert_eq!(out.status.code(), Some(2), "{}", stderr(&out));
     let err = stderr(&out);
@@ -223,25 +223,25 @@ fn a_write_under_the_frozen_tree_is_denied_under_an_unrelated_objective() {
 }
 
 #[test]
-fn a_write_under_the_frozen_tree_is_denied_without_an_objective() {
+fn a_write_under_the_frozen_tree_is_denied_without_an_goal() {
     let project = Project::new(true);
     let out = project.guard("crates/magistr-gui/src/NewPanel.svelte");
     assert_eq!(out.status.code(), Some(2), "{}", stderr(&out));
 }
 
 #[test]
-fn a_legacy_gui_scoped_objective_unlocks_the_tree() {
+fn a_legacy_gui_scoped_goal_unlocks_the_tree() {
     let project = Project::new(true);
-    project.set_objective("chunk:gui2-0-freeze-tauri — legacy-gui freeze");
+    project.set_goal("chunk:gui2-0-freeze-tauri — legacy-gui freeze");
     let out = project.guard("crates/magistr-gui/src/App.svelte");
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     assert!(stderr(&out).contains("admitted"), "{}", stderr(&out));
 }
 
 #[test]
-fn a_delete_scoped_objective_unlocks_the_tree() {
+fn a_delete_scoped_goal_unlocks_the_tree() {
     let project = Project::new(true);
-    project.set_objective("chunk:gui2-4-cutover: delete crates/magistr-gui");
+    project.set_goal("chunk:gui2-4-cutover: delete crates/magistr-gui");
     let out = project.guard("crates/magistr-gui/src-tauri/src/main.rs");
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }
@@ -249,7 +249,7 @@ fn a_delete_scoped_objective_unlocks_the_tree() {
 #[test]
 fn writes_outside_the_frozen_tree_pass() {
     let project = Project::new(true);
-    project.set_objective("chunk:unrelated");
+    project.set_goal("chunk:unrelated");
     for rel in [
         "crates/magistr-desktop/src/lib.rs",
         // a sibling that merely shares the prefix
@@ -264,7 +264,7 @@ fn writes_outside_the_frozen_tree_pass() {
 #[test]
 fn a_project_without_a_ratchet_declaration_is_never_gated() {
     let project = Project::new(false);
-    project.set_objective("chunk:unrelated");
+    project.set_goal("chunk:unrelated");
     let out = project.guard("crates/magistr-gui/src/App.svelte");
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }
@@ -273,12 +273,12 @@ fn a_project_without_a_ratchet_declaration_is_never_gated() {
 #[test]
 fn the_hook_script_forwards_the_write_event_and_the_block() {
     let project = Project::new(true);
-    project.set_objective("chunk:unrelated");
+    project.set_goal("chunk:unrelated");
     let out = project.hook_script("crates/magistr-gui/src/App.svelte");
     assert_eq!(out.status.code(), Some(2), "{}", stderr(&out));
     assert!(stderr(&out).contains("frozen"), "{}", stderr(&out));
 
-    project.set_objective("legacy-gui hotfix: the window will not open");
+    project.set_goal("legacy-gui hotfix: the window will not open");
     let out = project.hook_script("crates/magistr-gui/src/App.svelte");
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }
@@ -294,7 +294,7 @@ fn the_freeze_is_declared_not_hardcoded() {
         r#"{"path": "vendor/thing", "files": 1, "loc": 1, "unlock": ["legacy-thing"]}"#,
     )
     .expect("write");
-    project.set_objective("chunk:unrelated");
+    project.set_goal("chunk:unrelated");
 
     // The GUI is no longer the frozen tree.
     let out = project.guard("crates/magistr-gui/src/App.svelte");
@@ -304,7 +304,7 @@ fn the_freeze_is_declared_not_hardcoded() {
     assert_eq!(out.status.code(), Some(2), "{}", stderr(&out));
     assert!(stderr(&out).contains("legacy-thing"), "{}", stderr(&out));
 
-    project.set_objective("legacy-thing hotfix");
+    project.set_goal("legacy-thing hotfix");
     let out = project.guard("vendor/thing/x.rs");
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }

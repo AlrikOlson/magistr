@@ -429,7 +429,7 @@ fn namespace_session_id_clamps_to_128() {
 /// Every family reads the same switch, so every family must agree on what
 /// turns it on. The shared resolver has always accepted `1` as well as
 /// `true`; the reasoning config once compared against `"true"` alone, which
-/// meant `MAGISTR_WORKFLOW_PERSIST=1` persisted the roadmap, the ship cycle and
+/// meant `MAGISTR_WORKFLOW_PERSIST=1` persisted the roadmap, the run cycle and
 /// the signals while silently leaving the reasoning trace in memory.
 #[test]
 fn persist_switch_agrees_with_every_other_family() {

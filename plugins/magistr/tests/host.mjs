@@ -112,11 +112,11 @@ export async function host(options = {}) {
           e.tool === 'mcp__magistr__execute'
             ? compositionReply(operation.tool, value)
             : value
-        if (operation.tool === 'start_work') {
-          f.task.status = 'active'
-          f.ship.active_task = f.task
-          f.context.phase_task = f.task.id
-          return { result: { id: f.task.id, status: 'active' } }
+        if (operation.tool === 'start_step') {
+          f.step.status = 'active'
+          f.run.active_step = f.step
+          f.context.phase_step = f.step.id
+          return { result: { id: f.step.id, status: 'active' } }
         }
         if (operation.tool === 'roadmap_start_chunk') {
           f.work.status = 'in_progress'
@@ -134,7 +134,7 @@ export async function host(options = {}) {
             recorded: true,
             verified: true,
             output: 'Finished',
-            receipt: 'example-check',
+            check_result: 'example-check',
           },
         })
       },

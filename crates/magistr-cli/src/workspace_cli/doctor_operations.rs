@@ -159,16 +159,16 @@ fn row(state: &IterationState, record: &OperationRecord, loop_alive: Option<bool
         },
         _ => loop_alive.map(|alive| !alive),
     };
-    let check = (record.kind == OperationKind::Receipt).then(|| {
-        let (gate, task) = record
+    let check = (record.kind == OperationKind::CheckResult).then(|| {
+        let (gate, step) = record
             .target
             .strip_prefix("gate:")
-            .and_then(|rest| rest.split_once("@task:"))
+            .and_then(|rest| rest.split_once("@step:"))
             .unzip();
         json!({
             "gate": gate,
-            "task": task,
-            "receipt": record.external.as_deref().and_then(|handle| handle.strip_prefix("receipt:")),
+            "step": step,
+            "check_result": record.external.as_deref().and_then(|handle| handle.strip_prefix("check_result:")),
         })
     });
     let runtime = handle.as_ref().map(|handle| {
@@ -226,7 +226,9 @@ fn classify(
     let authority = match record.kind {
         OperationKind::Reservation => "the checkpoint that carries it (completed)",
         OperationKind::NativeMutation => "the chunk as the native store holds it now",
-        OperationKind::Receipt => "the durable receipt the record names, never a same-named check",
+        OperationKind::CheckResult => {
+            "the durable receipt the record names, never a same-named check"
+        }
         OperationKind::Publication => "nothing: it is cancelled and attached surfaces reseed",
         OperationKind::ProviderDispatch => "the attempt's Git baseline once the runtime is gone",
     };

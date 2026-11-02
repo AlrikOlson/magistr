@@ -45,7 +45,7 @@ public release from package versions, tags or release tooling.
   project's `plan_exports` setting: when it is `false`, never write `PLAN.md`
   or `PLAN.json`.
 - A run is one attempt at a goal, usually one task; its reference is
-  `task:<id>`. Read `run_status` before acting. Resume a matching unfinished
+  `step:<id>`. Read `run_status` before acting. Resume a matching unfinished
   run with its steps, progress, checks and notes unchanged. Opening a run for
   another task with `run_open` saves the current unfinished run; reopening a
   saved one restores it exactly. An unrelated unfinished run is not a reason to

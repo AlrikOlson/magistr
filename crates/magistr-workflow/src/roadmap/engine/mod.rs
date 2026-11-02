@@ -1,5 +1,5 @@
 //! The roadmap engine: owns the in-memory [`Roadmap`] and mediates every
-//! mutation, mirroring the shape of `ship::engine::ShipEngine` (a plain struct
+//! mutation, mirroring the shape of `run::engine::RunEngine` (a plain struct
 //! whose concurrency guard lives at the service layer; builder-style
 //! `with_persistence`; persist-on-mutation).
 //!
@@ -40,7 +40,7 @@ pub struct RoadmapEngine {
     stamp: Option<StoreStamp>,
     broadcaster: Option<Broadcaster>,
     /// Optional git-native trace mirror, reusing the same mirror core as the
-    /// think/ship trace stores. When set, every mutation mirrors into
+    /// think/run trace stores. When set, every mutation mirrors into
     /// `.magistr/traces/` as an Agent Trace
     /// JSONL record; the session commits on chunk completion/obsoletion. All
     /// git/IO runs on the worker's own thread, never under this engine's lock.
@@ -694,28 +694,28 @@ impl RoadmapEngine {
     // ── Cross-family integration ────────────────────────────────────────────
     //
     // These keep the families decoupled: the roadmap records links and hands
-    // back the `chunk:<id>` backref for the agent to wire into ship/think. No
-    // roadmap tool reaches into the ship or think engines.
+    // back the `chunk:<id>` backref for the agent to wire into run/think. No
+    // roadmap tool reaches into the run or think engines.
 
     /// Start eligible pending work; recheck its current blockers and dependencies. Returns the
     /// chunk; the caller derives the `chunk:<id>` backref to pass to
-    /// `ship_set_objective` / a think `execution_ref`.
+    /// `run_open` / a think `execution_ref`.
     pub fn start_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, RoadmapMutationError> {
         self.mutate(|edit| edit.start_chunk(id).cloned())
     }
 
-    /// Mark a chunk done, optionally attaching the proof-of-ship cross-ref
-    /// (e.g. `task:<id>` or `check:<name>`). The ref is validated and stored
+    /// Mark a chunk done, optionally attaching the proof-of-run cross-ref
+    /// (e.g. `step:<id>` or `check:<name>`). The ref is validated and stored
     /// in normalized form.
     pub fn complete_chunk(
         &mut self,
         id: &str,
-        ship_ref: Option<&str>,
+        step_ref: Option<&str>,
     ) -> Result<Observed<Chunk>, RoadmapMutationError> {
-        self.mutate(|edit| edit.complete_chunk(id, ship_ref).cloned())
+        self.mutate(|edit| edit.complete_chunk(id, step_ref).cloned())
     }
 
-    /// Attach any validated cross-reference (`think:N`, `task:X`, `action:N`,
+    /// Attach any validated cross-reference (`think:N`, `step:X`, `progress:N`,
     /// `check:X`, `chunk:X`) to a chunk. Duplicates are ignored.
     pub fn link_chunk(
         &mut self,
@@ -732,7 +732,7 @@ impl RoadmapEngine {
     /// provider — and stamps the content hash and version that later make an
     /// idempotent re-projection and an echo fence possible. Also attaches the
     /// `ext:<provider>/<id>` cross-ref to the chunk, so the binding is visible
-    /// in the same provenance graph as `think:`/`task:` refs rather than in a
+    /// in the same provenance graph as `think:`/`step:` refs rather than in a
     /// side table only this module knows about.
     ///
     /// `content_hash` is `WorkItem::content_hash()` of the payload just written.
@@ -2383,11 +2383,11 @@ mod tests {
         let mut e = engine();
         add(&mut e, "a", 1, vec![]);
         e.link_chunk("a", "think:42").unwrap();
-        e.link_chunk("a", "task:auth").unwrap();
+        e.link_chunk("a", "step:auth").unwrap();
         e.link_chunk("a", "think:42").unwrap(); // duplicate ignored
         assert_eq!(
             e.roadmap().chunks[0].cross_refs,
-            vec!["think:42", "task:auth"]
+            vec!["think:42", "step:auth"]
         );
         // A malformed ref is rejected.
         let err = e.link_chunk("a", "not-a-ref").unwrap_err();
@@ -2395,13 +2395,13 @@ mod tests {
     }
 
     #[test]
-    fn complete_chunk_attaches_proof_of_ship() {
+    fn complete_chunk_attaches_proof_of_run() {
         let mut e = engine();
         add(&mut e, "a", 1, vec![]);
         e.start_chunk("a").unwrap();
-        let c = e.complete_chunk("a", Some("task:build-it")).unwrap();
+        let c = e.complete_chunk("a", Some("step:build-it")).unwrap();
         assert_eq!(c.value.status, ChunkStatus::Done);
-        assert!(c.value.cross_refs.contains(&"task:build-it".to_string()));
+        assert!(c.value.cross_refs.contains(&"step:build-it".to_string()));
     }
 
     #[test]
@@ -2432,8 +2432,8 @@ mod tests {
     fn export_markdown_groups_by_status_section() {
         let mut e = engine();
         e.add_chunk(
-            "ship-me".into(),
-            "Ship me".into(),
+            "run-me".into(),
+            "Run me".into(),
             ChunkStatus::Pending,
             1,
             "do the work".into(),
@@ -2462,7 +2462,7 @@ mod tests {
         assert!(!md.contains("## Obsoleted"), "empty section leaked: {md}");
         // A chunk with a description renders the em-dash tail; one without omits
         // it. Both carry their priority number, named by the band heading above.
-        assert!(md.contains("**Ship me** (1) — do the work"));
+        assert!(md.contains("**Run me** (1) — do the work"));
         assert!(md.contains("- [x] **Did it** (0)\n"));
         assert!(md.contains("  - acceptance: it ships"));
         // Both fixtures sit in the `critical` band (1 and 0), so each status
@@ -2861,9 +2861,9 @@ mod tests {
         for raw in [
             "think:42",
             "chunk:some-other-chunk",
-            "task:verify-blockedby",
+            "step:verify-blockedby",
             "check:cargo test",
-            "action:4",
+            "progress:4",
             "ext:linear/THI-30",
         ] {
             let b = e

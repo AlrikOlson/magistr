@@ -164,8 +164,8 @@ pub struct ThinkStep {
     #[schemars(skip)]
     pub cwd: Option<String>,
 
-    /// Cross-reference to a `ship_*` entity. Format:
-    /// "task:`<id>`", "action:`<id>`", "check:`<name>`". Links this reasoning
+    /// Cross-reference to a `run_*` entity. Format:
+    /// "step:`<id>`", "progress:`<id>`", "check:`<name>`". Links this reasoning
     /// step to the execution work it relates to.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub execution_ref: Option<String>,

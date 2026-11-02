@@ -23,7 +23,7 @@ const SEP: char = '\u{241f}';
 #[serde(rename_all = "snake_case")]
 pub enum Family {
     Think,
-    Ship,
+    Run,
     Roadmap,
     Signal,
 }
@@ -34,7 +34,7 @@ impl Family {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Think => "think",
-            Self::Ship => "ship",
+            Self::Run => "run",
             Self::Roadmap => "roadmap",
             Self::Signal => "signal",
         }
@@ -45,12 +45,14 @@ impl Family {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Kind {
-    Step,
-    Objective,
-    Task,
-    Action,
+    #[serde(rename = "step")]
+    ThinkStep,
+    Goal,
+    #[serde(rename = "step")]
+    RunStep,
+    Progress,
     Check,
-    Gate,
+    Approval,
     Chunk,
     Signal,
 }
@@ -60,12 +62,12 @@ impl Kind {
     #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::Step => "step",
-            Self::Objective => "objective",
-            Self::Task => "task",
-            Self::Action => "action",
+            Self::ThinkStep => "step",
+            Self::Goal => "goal",
+            Self::RunStep => "step",
+            Self::Progress => "progress",
             Self::Check => "check",
-            Self::Gate => "gate",
+            Self::Approval => "approval",
             Self::Chunk => "chunk",
             Self::Signal => "signal",
         }
@@ -107,7 +109,7 @@ pub(crate) fn sha256_hex(input: &str) -> String {
         .collect()
 }
 
-/// The idempotency key for an owner-authored record (think/ship/roadmap):
+/// The idempotency key for an owner-authored record (think/run/roadmap):
 /// `sha256(tenant ␟ family ␟ kind ␟ id)`. Re-syncing the same record yields the
 /// same key — its own identity is stable.
 #[must_use]
@@ -164,7 +166,7 @@ pub struct UnifiedRecordEnvelope {
 }
 
 impl UnifiedRecordEnvelope {
-    /// Build an owner-authored envelope (think/ship/roadmap), computing the
+    /// Build an owner-authored envelope (think/run/roadmap), computing the
     /// identity-based idempotency key. `record` is the verbatim local object.
     #[must_use]
     pub fn owner(
@@ -184,7 +186,7 @@ impl UnifiedRecordEnvelope {
         // the record itself must say which project authored it, or every
         // project in the org bleeds into every other on reconcile. `record`
         // is open per the 31a contract; families whose domain object already
-        // carries project_id (ship objectives) keep their own value.
+        // carries project_id (run goals) keep their own value.
         let mut record = record;
         if let Some(obj) = record.as_object_mut() {
             obj.entry("project_id".to_string())
@@ -280,7 +282,7 @@ mod tests {
         let env = UnifiedRecordEnvelope::owner(
             "magistr-676f38",
             Family::Think,
-            Kind::Step,
+            Kind::ThinkStep,
             "899",
             "2026-06-08T00:00:00Z",
             json!({ "step_number": 899, "purpose": "x" }),
@@ -293,12 +295,12 @@ mod tests {
     }
 
     #[test]
-    fn ship_action_envelope_validates() {
+    fn run_action_envelope_validates() {
         let env = UnifiedRecordEnvelope::owner(
             "magistr-676f38",
-            Family::Ship,
-            Kind::Action,
-            "action:42",
+            Family::Run,
+            Kind::Progress,
+            "progress:42",
             "2026-06-08T00:00:00Z",
             json!({ "id": 42, "type": "code" }),
             vec![Edge::to("think:9")],
@@ -306,22 +308,22 @@ mod tests {
         assert_valid(&env);
     }
 
-    /// The approval-gate kind (webapp-approval-gates): a ship/gate envelope —
-    /// built exactly as `cloud::build::from_gate` builds it — must satisfy the
+    /// The approval-gate kind (webapp-approval-gates): a run/gate envelope —
+    /// built exactly as `cloud::build::from_approval` builds it — must satisfy the
     /// SAME canonical schema the backend validates against, or a gate could
     /// never reach the workspace to be answered.
     #[test]
-    fn ship_gate_envelope_validates() {
-        let gate = crate::ship::gate::open(
+    fn approval_envelope_validates() {
+        let gate = crate::run::approval::open(
             "b7e2c4a0-1f3d-4e5b-8a9c-2d6f0e4b8c1a".into(),
             "Deploy the new billing Worker to production now?",
             "All tests pass; rollback is one redeploy.",
             vec![
-                crate::ship::gate::GateOption {
+                crate::run::approval::ApprovalOption {
                     key: "deploy".into(),
                     label: "Deploy now".into(),
                 },
-                crate::ship::gate::GateOption {
+                crate::run::approval::ApprovalOption {
                     key: "hold".into(),
                     label: "Hold for review".into(),
                 },
@@ -331,9 +333,9 @@ mod tests {
             chrono::Utc::now(),
         )
         .expect("a valid gate");
-        let env = crate::cloud::build::from_gate("magistr-676f38", &gate, Some("deploy-31g"));
+        let env = crate::cloud::build::from_approval("magistr-676f38", &gate, Some("deploy-31g"));
         assert!(
-            env.edges.iter().any(|e| e.target == "task:deploy-31g"),
+            env.edges.iter().any(|e| e.target == "step:deploy-31g"),
             "the gate must carry its part_of edge to the paused task"
         );
         assert_valid(&env);

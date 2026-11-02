@@ -812,28 +812,28 @@ fn admitted(tmp: &tempfile::TempDir, role: magistr_engine::WriterRole) -> Native
         .open()
 }
 
-/// Complete `id` the only way a chunk completes: an objective scoped to
-/// it, a verification task, a gate recorded green on that task, then
-/// `roadmap_complete_chunk` naming the task.
+/// Complete `id` the only way a chunk completes: a goal scoped to
+/// it, a verification step, a gate recorded green on that step, then
+/// `roadmap_complete_chunk` naming the step.
 pub(in crate::workflow) fn complete_native_chunk(engines: &NativeEngines, id: &str) {
     engines
-        .ship_set_objective(format!("do {id}"), vec![], vec![], format!("chunk:{id}"))
-        .expect("objective");
+        .run_open(format!("do {id}"), vec![], vec![], format!("chunk:{id}"))
+        .expect("goal");
     engines
-        .ship_add_task(
+        .add_step(
             "verify".into(),
             "verify".into(),
-            magistr_engine::native::TaskType::Test,
+            magistr_engine::native::StepType::Test,
             None,
         )
-        .expect("task");
-    engines.ship_start_task("verify").expect("active");
+        .expect("step");
+    engines.start_step("verify").expect("active");
     engines
-        .ship_record_gate(None, "test", "true".into(), 0, String::new(), true, None)
+        .run_record_gate(None, "test", "true".into(), 0, String::new(), true, None)
         .expect("gate");
     engines
-        .roadmap_complete_chunk(id, Some("task:verify"))
-        .expect("complete on the run's receipts");
+        .roadmap_complete_chunk(id, Some("step:verify"))
+        .expect("complete on the run's check_results");
 }
 
 pub(in crate::workflow) fn add_native_chunk(
@@ -965,7 +965,7 @@ fn native_loop_advances_on_roadmap_next_and_stops_when_nothing_is_ready() {
             .contains("in progress; resume this work")
     );
     assert_eq!(il.state().spec_checked, 1);
-    writer.ship_finalize(vec![], None).unwrap();
+    writer.run_finish(vec![], None).unwrap();
     complete_native_chunk(&writer, "second");
     il.advance();
     assert_eq!(
@@ -991,7 +991,7 @@ fn native_prompt_names_the_next_chunk() {
 
 #[test]
 fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
-    use magistr_engine::native::TaskType;
+    use magistr_engine::native::StepType;
     let (dir, spec_path) = setup_project("- [x] Legacy item\n");
     let engines = native_engines(&dir);
     add_native_chunk(&engines, "current", 200, &[]);
@@ -1002,7 +1002,7 @@ fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
     );
     engines.roadmap_start_chunk("current").unwrap();
     engines
-        .ship_set_objective(
+        .run_open(
             "Finish the current change".into(),
             vec![],
             vec![],
@@ -1010,16 +1010,16 @@ fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
         )
         .unwrap();
     engines
-        .ship_add_task(
+        .add_step(
             "build".into(),
             "Finish the change".into(),
-            TaskType::Implement,
+            StepType::Implement,
             None,
         )
         .unwrap();
-    engines.ship_start_task("build").unwrap();
-    let objective = engines.ship_objective().unwrap();
-    let plan = engines.ship_tasks().unwrap();
+    engines.start_step("build").unwrap();
+    let goal = engines.run_goal().unwrap();
+    let plan = engines.run_steps().unwrap();
     first.stop(StopReason::Cancelled);
     first.persist().unwrap();
     drop(first);
@@ -1045,8 +1045,8 @@ fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
         !prompt.contains("Chunk urgent") && !prompt.contains("Chunk other"),
         "{prompt}"
     );
-    assert_eq!(engines.ship_objective().unwrap(), objective);
-    assert_eq!(engines.ship_tasks().unwrap(), plan);
+    assert_eq!(engines.run_goal().unwrap(), goal);
+    assert_eq!(engines.run_steps().unwrap(), plan);
 }
 
 #[test]

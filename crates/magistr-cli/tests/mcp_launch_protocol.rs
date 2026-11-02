@@ -184,7 +184,7 @@ async fn generated_magistr_launch_serves_native_tools_after_relocation_from_root
             .await
             .expect("tools/list deadline")
             .expect("list all native tools");
-        for name in ["context", "plan_work", "discover", "execute"] {
+        for name in ["context", "arrange_steps", "discover", "execute"] {
             assert!(tools.iter().any(|tool| tool.name == name), "missing {name}");
         }
         let status = call(&client, "roadmap_status", json!({})).await;

@@ -1,6 +1,6 @@
 //! Export must do the file write itself; document-sized tool results are opt-in.
 use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
-use magistr_workflow::ship::{ShipService, ShipUseCases, engine::ShipEngine};
+use magistr_workflow::run::{RunService, RunUseCases, engine::RunEngine};
 use rmcp::{
     ServiceExt,
     model::{CallToolRequestParams, CallToolResult},
@@ -38,10 +38,10 @@ async fn default_export_cannot_report_success_without_a_workspace() {
     assert!(receipt.get("roadmap").is_none());
 }
 
-/// The ship family every roadmap under test completes against; nothing
+/// The run family every roadmap under test completes against; nothing
 /// here completes a chunk, so it carries no evidence capability.
-fn completion() -> ShipUseCases {
-    ShipService::new(ShipEngine::new("export-test".into())).use_cases()
+fn completion() -> RunUseCases {
+    RunService::new(RunEngine::new("export-test".into())).use_cases()
 }
 
 fn seeded_service(root: &std::path::Path) -> RoadmapService {

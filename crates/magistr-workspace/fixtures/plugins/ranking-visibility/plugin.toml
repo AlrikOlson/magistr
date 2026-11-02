@@ -1,6 +1,6 @@
 # The bundled visibility ranking signal (chunk:m5-ranking-shadow): the first
 # first-party ranking signal on the public magistr:ranking@0.1.0 interface —
-# the same interface a third-party signal would ship against. Declares ZERO
+# the same interface a third-party signal would run against. Declares ZERO
 # capabilities: a ranking signal is a pure function from per-hit facts to named
 # feature values, so the sandbox's default-deny has nothing to grant.
 #

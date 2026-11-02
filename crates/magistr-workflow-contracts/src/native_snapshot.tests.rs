@@ -8,8 +8,8 @@ fn workstream_projection_and_worker_failure_keep_family_provenance() {
             value: RoadmapData::default(),
             source: ReadSource::Missing,
         }),
-        ship: ReadState::Current(Observed {
-            value: ShipData::default(),
+        run: ReadState::Current(Observed {
+            value: RunData::default(),
             source: ReadSource::Memory,
         }),
         ..NativeSnapshot::default()
@@ -36,7 +36,7 @@ fn workstream_projection_and_worker_failure_keep_family_provenance() {
         }
     ));
     assert!(matches!(
-        failed.ship,
+        failed.run,
         ReadState::Stale {
             last: Observed {
                 source: ReadSource::Memory,

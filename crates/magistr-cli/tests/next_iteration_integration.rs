@@ -3,12 +3,12 @@
 //! same `magistr mcp` surface an agent would call (in-memory duplex,
 //! no LLM, no ACP agent). Proves:
 //!
-//! - the lifecycle guard refuses `execute` until an objective and a task are
-//!   recorded in the ship engine, and refuses `done` until a check is
+//! - the lifecycle guard refuses `execute` until a goal and a task are
+//!   recorded in the run engine, and refuses `done` until a check is
 //!   recorded — no plan file is consulted anywhere;
 //! - the four families end the iteration cross-referenced:
-//!   `chunk:X` → `task:X` (roadmap ↔ ship), `think:N` → `task:X`
-//!   (think ↔ ship) and `chunk:X` → `think:N` (roadmap ↔ think), plus a
+//!   `chunk:X` → `step:X` (roadmap ↔ run), `think:N` → `step:X`
+//!   (think ↔ run) and `chunk:X` → `think:N` (roadmap ↔ think), plus a
 //!   signal record, all persisted under the temp data dir.
 
 use std::path::Path;
@@ -127,7 +127,7 @@ fn has_session_file(data_dir: &Path, family: &str) -> bool {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
+async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
@@ -162,12 +162,12 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
     // ── Research and plan are always open; execute is not ──────────────
     phase_ok(&client, "research").await;
     phase_ok(&client, "plan").await;
-    phase_blocked(&client, "execute", "ship_set_objective").await;
+    phase_blocked(&client, "execute", "run_open").await;
 
-    // An objective alone is not a plan.
+    // A goal alone is not a plan.
     ok(
         &client,
-        "ship_set_objective",
+        "run_open",
         json!({
             "description": "realize the fixture chunk",
             "scope": format!("chunk:{CHUNK}"),
@@ -175,13 +175,13 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
         }),
     )
     .await;
-    phase_blocked(&client, "execute", "ship_plan").await;
+    phase_blocked(&client, "execute", "arrange_steps").await;
 
-    // Objective + one planned task: the guard opens.
+    // Goal + one planned task: the guard opens.
     ok(
         &client,
-        "ship_plan",
-        json!({"action": "add", "task_id": TASK, "title": "implement", "task_type": "implement"}),
+        "arrange_steps",
+        json!({"action": "add", "step_id": TASK, "title": "implement", "step_type": "implement"}),
     )
     .await;
     phase_ok(&client, "execute").await;
@@ -195,10 +195,10 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
             "context": "e2e",
             "thought": "implement the one task",
             "outcome": "plan accepted",
-            "next_action": "ship_start",
+            "next_action": "start_step",
             "rationale": "one task, one commit",
             "estimated_total": 2,
-            "execution_ref": format!("task:{TASK}")
+            "execution_ref": format!("step:{TASK}")
         }),
     )
     .await;
@@ -211,10 +211,10 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
     .await;
 
     // ── Execute: start the task, record an action pointing back at the step
-    ok(&client, "ship_start", json!({"task_id": TASK})).await;
+    ok(&client, "start_step", json!({"step_id": TASK})).await;
     ok(
         &client,
-        "ship_record",
+        "record_progress",
         json!({
             "type": "code",
             "description": "edit the fixture source",
@@ -225,7 +225,7 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
     .await;
 
     // ── Done needs a recorded check; verify is where the gates run ─────
-    phase_blocked(&client, "done", "ship_check").await;
+    phase_blocked(&client, "done", "check_step").await;
     phase_ok(&client, "verify").await;
     let gates = ok(&client, "magistr_gate", json!({"gate": "all"})).await;
     assert_eq!(gates["passed"], true, "{gates}");
@@ -237,23 +237,18 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
         "{rows:?}"
     );
 
-    // ── Close: task, chunk (with proof of ship), objective, signal, think ──
-    ok(&client, "ship_complete", json!({"task_id": TASK})).await;
+    // ── Close: task, chunk (with proof of run), goal, signal, think ──
+    ok(&client, "finish_step", json!({"step_id": TASK})).await;
     let done = ok(
         &client,
         "roadmap_complete_chunk",
-        json!({"id": CHUNK, "ship_ref": format!("task:{TASK}")}),
+        json!({"id": CHUNK, "step_ref": format!("step:{TASK}")}),
     )
     .await;
     assert_eq!(done["value"]["status"], "done", "{done}");
-    let finalized = ok(
-        &client,
-        "ship_finalize",
-        json!({"summary": "fixture shipped"}),
-    )
-    .await;
-    assert_eq!(finalized["value"]["status"], "shipped", "{finalized}");
-    assert_eq!(finalized["value"]["tasks"]["completed"], 1, "{finalized}");
+    let finalized = ok(&client, "run_finish", json!({"summary": "fixture shipped"})).await;
+    assert_eq!(finalized["value"]["status"], "finished", "{finalized}");
+    assert_eq!(finalized["value"]["steps"]["done"], 1, "{finalized}");
     assert!(
         finalized["value"]["warnings"]
             .as_array()
@@ -277,7 +272,7 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
             "next_action": "stop",
             "rationale": "acceptance met",
             "estimated_total": 2,
-            "execution_ref": format!("task:{TASK}"),
+            "execution_ref": format!("step:{TASK}"),
             "is_final_step": true
         }),
     )
@@ -291,31 +286,31 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
         .as_array()
         .map(|a| a.iter().filter_map(Value::as_str).collect())
         .unwrap_or_default();
-    assert!(refs.contains(&format!("task:{TASK}").as_str()), "{refs:?}");
+    assert!(refs.contains(&format!("step:{TASK}").as_str()), "{refs:?}");
     assert!(refs.contains(&format!("think:{step}").as_str()), "{refs:?}");
     assert_eq!(record["status"], "done");
     assert_eq!(ok(&client, "roadmap_next", json!({})).await, Value::Null);
 
-    let ship = ok(&client, "ship_status", json!({})).await;
-    assert_eq!(ship["objective"]["status"], "completed", "{ship}");
-    assert_eq!(ship["objective"]["scope"], format!("chunk:{CHUNK}"));
-    let think_refs = ship["think_refs"].as_array().expect("think_refs");
+    let run = ok(&client, "run_status", json!({})).await;
+    assert_eq!(run["goal"]["status"], "finished", "{run}");
+    assert_eq!(run["goal"]["scope"], format!("chunk:{CHUNK}"));
+    let think_refs = run["think_refs"].as_array().expect("think_refs");
     assert!(
         think_refs
             .iter()
-            .any(|r| r["task_id"] == TASK && r["value"] == step),
+            .any(|r| r["step_id"] == TASK && r["value"] == step),
         "{think_refs:?}"
     );
-    let checks = ship["checks"].as_array().expect("checks");
+    let checks = run["checks"].as_array().expect("checks");
     assert_eq!(checks.len(), 3);
     assert!(
         checks
             .iter()
-            .all(|c| c["task_id"] == TASK && c["verified"] == true)
+            .all(|c| c["step_id"] == TASK && c["verified"] == true)
     );
 
     let think = ok(&client, "think_get_step", json!({"step_number": step})).await;
-    assert_eq!(think["execution_ref"], format!("task:{TASK}"), "{think}");
+    assert_eq!(think["execution_ref"], format!("step:{TASK}"), "{think}");
 
     let signals = ok(&client, "signal_status", json!({})).await;
     assert_ne!(signals, Value::Null);
@@ -330,11 +325,11 @@ async fn headless_iteration_is_guarded_on_ship_state_and_cross_referenced() {
 
     let config = magistr_core::evidence::writer_config(&root, |_| None).with_data_dir(&data_dir);
     let execution = magistr_engine::NativeReader::open(&config)
-        .ship_snapshot()
+        .run_snapshot()
         .unwrap();
     assert_eq!(
-        execution.current.unwrap().objective.status,
-        magistr_engine::native::ObjectiveStatus::Completed
+        execution.current.unwrap().goal.status,
+        magistr_engine::native::GoalStatus::Finished
     );
 
     let _ = client.cancel().await;

@@ -194,7 +194,7 @@ mod tests {
     }
 
     /// ACCEPTANCE (connection-is-a-first-class-object), and the gate whose
-    /// absence let this ship: with an EMPTY environment, a recorded connection
+    /// absence let this run: with an EMPTY environment, a recorded connection
     /// plus a stored token is enough to build a client.
     ///
     /// This is the reported failure exactly. `sync push` in a plain shell, on a

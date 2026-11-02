@@ -4,7 +4,7 @@
 //! `family: "roadmap"` discriminator flattened on top of the typed
 //! [`RoadmapFrame`] payload. The socket + fan-out tasks live in
 //! [`crate::infra::broadcast`]; this is the typed view the roadmap engine
-//! emits through, mirroring `crate::ship::broadcast`.
+//! emits through, mirroring `crate::run::broadcast`.
 
 use tracing::warn;
 

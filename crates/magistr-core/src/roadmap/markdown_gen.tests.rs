@@ -144,14 +144,14 @@ fn render_preamble_vision_principles() {
         title: "Test".into(),
         preamble: "Some intro text.".into(),
         vision: "Build great things.".into(),
-        principles: vec!["Keep it simple".into(), "Ship fast".into()],
+        principles: vec!["Keep it simple".into(), "Run fast".into()],
         phases: vec![phase("E1", "Phase", vec![])],
         epilogue: String::new(),
     };
     let md = render(&roadmap);
     assert!(md.contains("Some intro text."));
     assert!(md.contains("**Vision:** Build great things."));
-    assert!(md.contains("**Principles:**\n- Keep it simple\n- Ship fast"));
+    assert!(md.contains("**Principles:**\n- Keep it simple\n- Run fast"));
 }
 
 #[test]

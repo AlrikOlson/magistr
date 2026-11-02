@@ -9,7 +9,7 @@ test("feedback links open exact roadmap and reasoning records and restore resear
   await expect(note).toHaveAttribute("open","");await expect(note.getByRole("button",{name:"Keep each conversation with its saved message",exact:true})).toBeFocused();
 });
 test("missing, unreadable and ambiguous references never guess another record",async({app})=>{
-  await open(app);await app.evaluate(()=>{const f=window.__fixture;f.workflow.signals.data.value[0].cross_refs=["chunk:missing","task:build","think:41"];f.workflow.think={state:"unavailable",data:{kind:"io",message:"Cannot read reasoning."}};f.publish("release",{workflow_revision:1});});
+  await open(app);await app.evaluate(()=>{const f=window.__fixture;f.workflow.signals.data.value[0].cross_refs=["chunk:missing","step:build","think:41"];f.workflow.think={state:"unavailable",data:{kind:"io",message:"Cannot read reasoning."}};f.publish("release",{workflow_revision:1});});
   const related=app.getByRole("region",{name:"Related work",exact:true});await expect(related).toContainText("The related record is no longer available.");await expect(related).toContainText("does not identify a saved record");await expect(related).toContainText("The related records cannot be read.");
   await expect(related.getByRole("button")).toHaveCount(3);
 });

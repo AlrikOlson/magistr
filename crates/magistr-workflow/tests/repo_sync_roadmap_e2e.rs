@@ -66,7 +66,7 @@ fn roadmap_lifecycle_mirrors_records_and_commits_on_complete() {
     engine.start_chunk("phase-1").unwrap();
     engine.record_refresh("revisited".into(), vec![8]).unwrap();
     engine
-        .complete_chunk("phase-1", Some("task:build-it"))
+        .complete_chunk("phase-1", Some("step:build-it"))
         .unwrap();
     // The mirror is asynchronous; wait for the worker to drain before asserting.
     engine.flush_mirror();

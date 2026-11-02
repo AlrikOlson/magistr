@@ -85,17 +85,17 @@ impl Connection {
         assert_eq!(
             names,
             [
-                "check_work",
+                "arrange_steps",
+                "check_step",
                 "context",
                 "discover",
                 "edit",
                 "execute",
-                "finish_work",
-                "plan_work",
+                "finish_step",
                 "read",
                 "record_progress",
                 "search",
-                "start_work",
+                "start_step",
                 "write"
             ]
         );

@@ -54,7 +54,7 @@ async fn waits_for_the_socket_decodes_lines_and_reattaches_after_a_hangup() {
     let socket = tmp.path().join("b.sock");
     let (inbox, mut rx) = Inbox::channel();
     let link = FeedLink::new();
-    let task = spawn_feed(socket.clone(), "selected".into(), inbox, link.clone());
+    let step = spawn_feed(socket.clone(), "selected".into(), inbox, link.clone());
 
     assert_eq!(next(&mut rx).await, EngineEvent::Feed(FeedStatus::Waiting));
     assert!(!requested(&link).await, "and nothing to re-read for");
@@ -113,7 +113,7 @@ async fn waits_for_the_socket_decodes_lines_and_reattaches_after_a_hangup() {
         }
     );
     assert!(requested(&link).await, "a gap asks for a snapshot");
-    task.abort();
+    step.abort();
 }
 
 #[cfg(unix)]
@@ -126,7 +126,7 @@ async fn deliveries_follow_the_publishers_sequence_and_a_new_owner_is_noticed() 
     let socket = tmp.path().join("b.sock");
     let (inbox, mut rx) = Inbox::channel();
     let link = FeedLink::new();
-    let task = spawn_feed(socket.clone(), "selected".into(), inbox, link.clone());
+    let step = spawn_feed(socket.clone(), "selected".into(), inbox, link.clone());
     assert_eq!(next(&mut rx).await, EngineEvent::Feed(FeedStatus::Waiting));
 
     let listener = UnixListener::bind(&socket).expect("bind");
@@ -167,7 +167,7 @@ async fn deliveries_follow_the_publishers_sequence_and_a_new_owner_is_noticed() 
         !requested(&link).await,
         "selected changes coalesce into one request"
     );
-    task.abort();
+    step.abort();
 }
 
 #[cfg(not(unix))]
@@ -176,7 +176,7 @@ async fn without_unix_sockets_the_feed_waits_and_never_attaches() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (inbox, mut rx) = Inbox::channel();
     let link = FeedLink::new();
-    let task = spawn_feed(
+    let step = spawn_feed(
         tmp.path().join("b.sock"),
         "selected".into(),
         inbox,
@@ -186,14 +186,14 @@ async fn without_unix_sockets_the_feed_waits_and_never_attaches() {
     assert_eq!(next(&mut rx).await, EngineEvent::Feed(FeedStatus::Waiting));
     tokio::time::sleep(Duration::from_millis(50)).await;
     assert!(rx.try_recv().is_err(), "and nothing more is posted");
-    task.abort();
+    step.abort();
 }
 
 #[tokio::test]
 async fn ends_once_the_loop_is_gone() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (inbox, rx) = Inbox::channel();
-    let task = spawn_feed(
+    let step = spawn_feed(
         tmp.path().join("never.sock"),
         "selected".into(),
         inbox,
@@ -201,15 +201,15 @@ async fn ends_once_the_loop_is_gone() {
     );
     tokio::time::sleep(Duration::from_millis(20)).await;
     drop(rx);
-    tokio::time::timeout(Duration::from_secs(2), task)
+    tokio::time::timeout(Duration::from_secs(2), step)
         .await
         .expect("the feed ended")
         .expect("without a panic");
 }
 #[cfg(unix)]
 #[tokio::test]
-async fn other_executions_do_not_replace_the_selected_task_or_create_sequence_gaps() {
-    use magistr_engine::ShipFrame;
+async fn other_executions_do_not_replace_the_selected_step_or_create_sequence_gaps() {
+    use magistr_engine::RunFrame;
     use tokio::io::AsyncWriteExt;
     use tokio::net::UnixListener;
     let temp = tempfile::tempdir().expect("temporary");
@@ -217,7 +217,7 @@ async fn other_executions_do_not_replace_the_selected_task_or_create_sequence_ga
     let listener = UnixListener::bind(&socket).expect("listener");
     let (inbox, mut rx) = Inbox::channel();
     let link = FeedLink::new();
-    let task = spawn_feed(socket, "selected".into(), inbox, link.clone());
+    let step = spawn_feed(socket, "selected".into(), inbox, link.clone());
     let (mut stream, _) = listener.accept().await.expect("accept");
     assert_eq!(next(&mut rx).await, EngineEvent::Feed(FeedStatus::Waiting));
     assert!(matches!(
@@ -226,8 +226,8 @@ async fn other_executions_do_not_replace_the_selected_task_or_create_sequence_ga
     ));
     assert!(requested(&link).await);
     for (seq, key, id) in [(1, "other", "wrong"), (2, "selected", "right")] {
-        let line = serde_json::json!({"family":"ship","type":"task_started",
-            "task_id":id,"execution_key":key,"epoch":1,"seq":seq});
+        let line = serde_json::json!({"family":"run","type":"step_started",
+            "step_id":id,"execution_key":key,"epoch":1,"seq":seq});
         stream
             .write_all(format!("{line}\n").as_bytes())
             .await
@@ -236,8 +236,8 @@ async fn other_executions_do_not_replace_the_selected_task_or_create_sequence_ga
     assert_eq!(
         next(&mut rx).await,
         EngineEvent::Event {
-            event: NativeEvent::Ship(ShipFrame::TaskStarted {
-                task_id: "right".into()
+            event: NativeEvent::Run(RunFrame::StepStarted {
+                step_id: "right".into()
             }),
             delivery: Delivery::InOrder,
         }
@@ -247,8 +247,8 @@ async fn other_executions_do_not_replace_the_selected_task_or_create_sequence_ga
         "a selected persisted change requests a real snapshot"
     );
     for (epoch, seq) in [(1, 4), (2, 1)] {
-        let line = serde_json::json!({"family":"ship","type":"task_started",
-            "task_id":"wrong","execution_key":"other","epoch":epoch,"seq":seq});
+        let line = serde_json::json!({"family":"run","type":"step_started",
+            "step_id":"wrong","execution_key":"other","epoch":epoch,"seq":seq});
         stream
             .write_all(format!("{line}\n").as_bytes())
             .await
@@ -256,11 +256,11 @@ async fn other_executions_do_not_replace_the_selected_task_or_create_sequence_ga
         assert_eq!(
             next(&mut rx).await,
             EngineEvent::Refresh,
-            "a gap or new owner invalidates selected observations without foreign task data"
+            "a gap or new owner invalidates selected observations without foreign step data"
         );
         assert!(requested(&link).await);
     }
-    task.abort();
+    step.abort();
 }
 
 #[cfg(unix)]
@@ -273,7 +273,7 @@ async fn duplicates_and_phase_output_do_not_request_reads_but_a_gap_does() {
     let listener = UnixListener::bind(&socket).unwrap();
     let (inbox, mut events) = Inbox::channel();
     let link = FeedLink::new();
-    let task = spawn_feed(socket, "selected".into(), inbox, link.clone());
+    let step = spawn_feed(socket, "selected".into(), inbox, link.clone());
     let (mut stream, _) = listener.accept().await.unwrap();
     next(&mut events).await;
     next(&mut events).await;
@@ -300,5 +300,5 @@ async fn duplicates_and_phase_output_do_not_request_reads_but_a_gap_does() {
         next(&mut events).await;
         assert_eq!(requested(&link).await, expected);
     }
-    task.abort();
+    step.abort();
 }

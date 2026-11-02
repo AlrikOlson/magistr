@@ -164,7 +164,7 @@ async fn reprojection_patches_the_same_twin() {
 }
 
 /// A rename on OUR side must follow the identity, not create a new item — the
-/// bug a title-matching projector would ship.
+/// bug a title-matching projector would run.
 #[tokio::test]
 async fn a_retitled_chunk_follows_its_twin() {
     let mut e = engine();

@@ -5,8 +5,8 @@
 use magistr_workflow::mcp::unified::UnifiedService;
 use magistr_workflow::roadmap::engine::RoadmapEngine;
 use magistr_workflow::roadmap::mcp::RoadmapService;
-use magistr_workflow::ship::engine::ShipEngine;
-use magistr_workflow::ship::mcp::ShipService;
+use magistr_workflow::run::engine::RunEngine;
+use magistr_workflow::run::mcp::RunService;
 use magistr_workflow::signal::engine::SignalEngine;
 use magistr_workflow::signal::mcp::SignalService;
 use magistr_workflow::think::config::ThinkConfig;
@@ -39,10 +39,10 @@ fn build_unified() -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
-    let ship = ShipService::new(ShipEngine::new("test-schema".into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-schema".into()), ship.use_cases());
+    let run = RunService::new(RunEngine::new("test-schema".into()));
+    let roadmap = RoadmapService::new(RoadmapEngine::new("test-schema".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-schema".into()));
-    UnifiedService::new(think, ship, roadmap, signal)
+    UnifiedService::new(think, run, roadmap, signal)
 }
 
 /// Collect every `format` string in a schema, with a JSON-pointer-ish path.

@@ -1,7 +1,7 @@
 //! Typed store records for scenes and tests, and the wire line they ride.
 //!
-//! A scene or a test needs a chunk, a signal, a step, a task, an
-//! objective, an action or a check without saying every field the store
+//! A scene or a test needs a chunk, a signal, a step, a goal,
+//! a progress record or a check without saying every field the store
 //! records; these constructors say the rest. [`frame`] is the wire-shaped
 //! way in — a family, a kind and the payload a socket line would carry —
 //! for scripts that read best as what the engines announce: it fills the
@@ -11,9 +11,8 @@
 //! wire's: a live line missing a field is dropped by that same decoder.
 
 use magistr_workflow_contracts::{
-    Action, ActionType, Check, CheckType, Chunk, ChunkStatus, NativeFrame, Objective,
-    ObjectiveStatus, Signal, SignalKind, SignalStatus, Task, TaskStatus, TaskType, ThinkStep,
-    VerificationMode,
+    Check, CheckType, Chunk, ChunkStatus, Goal, GoalStatus, NativeFrame, Progress, ProgressType,
+    Signal, SignalKind, SignalStatus, Step, StepStatus, StepType, ThinkStep, VerificationMode,
 };
 use magistr_workflow_contracts::{NativeEvent, NativeSnapshot};
 use serde_json::{Value, json};
@@ -102,49 +101,49 @@ pub fn step(number: u32) -> ThinkStep {
     }
 }
 
-/// An active objective with `description`, unscoped.
+/// An active goal with `description`, unscoped.
 #[must_use]
-pub fn objective(description: &str) -> Objective {
-    Objective {
+pub fn goal(description: &str) -> Goal {
+    Goal {
         description: description.to_owned(),
         acceptance_criteria: Vec::new(),
         constraints: Vec::new(),
         scope: String::new(),
         verification: VerificationMode::Full,
-        status: ObjectiveStatus::Active,
+        status: GoalStatus::Active,
         project_id: String::new(),
         created_at: None,
         completed_at: None,
     }
 }
 
-/// A planned implement task, nothing recorded on it yet.
+/// A planned implement step, nothing recorded on it yet.
 #[must_use]
-pub fn task(id: &str, title: &str) -> Task {
-    Task {
+pub fn run_step(id: &str, title: &str) -> Step {
+    Step {
         id: id.to_owned(),
         title: title.to_owned(),
-        task_type: TaskType::Implement,
-        status: TaskStatus::Planned,
+        step_type: StepType::Implement,
+        status: StepStatus::Planned,
         estimate: None,
         started_at: None,
         completed_at: None,
         artifacts: Vec::new(),
         checks: Vec::new(),
-        actions: Vec::new(),
-        blocked_reason: None,
+        progress: Vec::new(),
+        waiting_reason: None,
         think_branch: None,
     }
 }
 
-/// A code action numbered `id` with `description`.
+/// A code progress numbered `id` with `description`.
 #[must_use]
-pub fn action(id: u32, description: &str) -> Action {
-    Action {
+pub fn progress_record(id: u32, description: &str) -> Progress {
+    Progress {
         id,
-        task_id: String::new(),
+        step_id: String::new(),
         timestamp: String::new(),
-        action_type: ActionType::Code,
+        progress_type: ProgressType::Code,
         description: description.to_owned(),
         files_touched: Vec::new(),
         tools_used: Vec::new(),
@@ -158,7 +157,7 @@ pub fn action(id: u32, description: &str) -> Action {
 #[must_use]
 pub fn check(name: &str, passed: bool) -> Check {
     Check {
-        receipt_id: None,
+        check_result_id: None,
         check_type: CheckType::Test,
         name: name.to_owned(),
         passed,
@@ -238,16 +237,16 @@ pub fn frame(family: &str, kind: &str, payload: Value) -> NativeEvent {
     if let Some(object) = payload.as_object_mut() {
         object.insert("family".to_owned(), json!(family));
         object.insert("type".to_owned(), json!(kind));
-        // A script may name the task by its record where the wire names
-        // it by id, and may leave the id off an action or a check.
-        if let Some(id) = object.get("task").and_then(|task| task["id"].as_str()) {
+        // A script may name the step by its record where the wire names
+        // it by id, and may leave the id off a progress record or a check.
+        if let Some(id) = object.get("step").and_then(|step| step["id"].as_str()) {
             let id = id.to_owned();
-            object.entry("task_id").or_insert(json!(id));
+            object.entry("step_id").or_insert(json!(id));
         }
-        if matches!(kind, "action_recorded" | "check_recorded") {
-            object.entry("task_id").or_insert(json!(""));
+        if matches!(kind, "progress_recorded" | "check_recorded") {
+            object.entry("step_id").or_insert(json!(""));
         }
-        if kind == "objective_shipped" {
+        if kind == "run_finished" {
             object.entry("warnings").or_insert(json!([]));
         }
         let ended = match kind {
@@ -270,10 +269,10 @@ pub fn frame(family: &str, kind: &str, payload: Value) -> NativeEvent {
             let number = u32::try_from(number).unwrap_or(u32::MAX);
             fill(&step(number), partial)
         });
-        fill_record(object, "objective", |partial| fill(&objective(""), partial));
-        fill_record(object, "action", |partial| {
+        fill_record(object, "goal", |partial| fill(&goal(""), partial));
+        fill_record(object, "progress", |partial| {
             let id = u32::try_from(partial["id"].as_u64().unwrap_or(0)).unwrap_or(u32::MAX);
-            fill(&action(id, ""), partial)
+            fill(&progress_record(id, ""), partial)
         });
         fill_record(object, "check", fill_check);
     }
@@ -314,30 +313,30 @@ pub fn step_from(partial: Value) -> ThinkStep {
     serde_json::from_value(fill(&step(number), &partial)).expect("a filled step decodes")
 }
 
-/// The task a partial record describes, the rest filled in from [`task`];
-/// its `checks` and `actions` are filled the same way.
+/// The step a partial record describes, the rest filled in from [`run_step`];
+/// its `checks` and `progress` are filled the same way.
 #[must_use]
-pub fn task_from(partial: Value) -> Task {
-    let mut filled = fill(&task(id_of(&partial, "id"), ""), &partial);
+pub fn run_step_from(partial: Value) -> Step {
+    let mut filled = fill(&run_step(id_of(&partial, "id"), ""), &partial);
     if let Some(checks) = filled["checks"].as_array_mut() {
         for check in checks.iter_mut() {
             *check = fill_check(check);
         }
     }
-    if let Some(actions) = filled["actions"].as_array_mut() {
-        for entry in actions.iter_mut() {
+    if let Some(progress) = filled["progress"].as_array_mut() {
+        for entry in progress.iter_mut() {
             let id = u32::try_from(entry["id"].as_u64().unwrap_or(0)).unwrap_or(u32::MAX);
-            *entry = fill(&action(id, ""), entry);
+            *entry = fill(&progress_record(id, ""), entry);
         }
     }
-    serde_json::from_value(filled).expect("a filled task decodes")
+    serde_json::from_value(filled).expect("a filled step decodes")
 }
 
-/// The objective a partial record describes, the rest filled in from
-/// [`objective`].
+/// The goal a partial record describes, the rest filled in from
+/// [`goal`].
 #[must_use]
-pub fn objective_from(partial: Value) -> Objective {
-    serde_json::from_value(fill(&objective(""), &partial)).expect("a filled objective decodes")
+pub fn goal_from(partial: Value) -> Goal {
+    serde_json::from_value(fill(&goal(""), &partial)).expect("a filled goal decodes")
 }
 
 /// The check a partial record describes, the rest filled in from
@@ -368,7 +367,7 @@ macro_rules! to_value_via_serde {
     };
 }
 
-to_value_via_serde!(Chunk, Signal, ThinkStep, Objective, Task, Action, Check);
+to_value_via_serde!(Chunk, Signal, ThinkStep, Goal, Step, Progress, Check);
 
 fn id_of<'a>(partial: &'a Value, key: &str) -> &'a str {
     partial[key].as_str().unwrap_or_default()

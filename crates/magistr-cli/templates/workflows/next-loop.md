@@ -24,18 +24,18 @@ Resume unfinished work only within that scope; blocked work in other features
 does not prevent selection. A recovered run keeps its saved feature and unfinished
 operations. A new run does not inherit a blocked target from an ended run.
 When the chosen feature has no ready or resumable work, stop without selecting
-work from another feature. Choosing a new objective scope saves the unfinished
-plan; returning to its scope restores its tasks and checks. Preserve those
+work from another feature. Choosing a new goal scope saves the unfinished
+plan; returning to its scope restores its steps and checks. Preserve those
 plans without resetting them.
 
-1. Read `roadmap_status` and `ship_status` and record the initial Git revision.
+1. Read `roadmap_status` and `run_status` and record the initial Git revision.
    Follow the chunk already selected by the request or iteration prompt. Resume
    its in-progress work before selecting a pending chunk, following next's
-   recovery contract. Keep its matching unfinished objective, plan, task
-   statuses, actions, and checks; do not start the chunk again or reset its
-   objective. If another scope is selected, use `ship_set_objective` to save
+   recovery contract. Keep its matching unfinished goal, plan, step
+   statuses, progress, and checks; do not start the chunk again or reset its
+   goal. If another scope is selected, use `run_open` to save
    its unfinished work and restore the chosen `chunk:<id>` scope, then read
-   `ship_status` again. Preserve unrelated worktree changes and report
+   `run_status` again. Preserve unrelated worktree changes and report
    ambiguous work within the chosen feature.
 2. Invoke exactly one complete `{{invoke}}next` workflow. When its stop rule is
    reached, end this loop invocation; the return is not permission to select
@@ -44,7 +44,7 @@ plans without resetting them.
    scope, and rerun and record the affected checks. An unfinished commit means
    continue the current iteration, not select another chunk or stop solely
    because it is unfinished.
-3. Confirm the chunk is done, required verification was recorded, its objective
+3. Confirm the chunk is done, required verification was recorded, its goal
    closed, and its commit exists.
 4. Write a handoff containing the completed chunk, commit, recorded checks, the
    remaining iteration bound, and the next roadmap candidate. Include the
@@ -56,14 +56,14 @@ plans without resetting them.
    `{{invoke}}next-loop` again in this context, and do not use compaction as a
    substitute for a new session.
 5. The host may invoke this skill again only from a fresh agent session. That
-   new session must re-read live roadmap and ship state, resuming unfinished
+   new session must re-read live roadmap and run state, resuming unfinished
    work first and selecting a pending chunk only when no resumable work remains.
    This invocation ends after the handoff.
 
 Stop when no authorized work can be resumed or started, an explicit
 iteration/time/usage limit is reached, the user pauses or cancels the work, or
 progress is blocked. A blocker requires user input or an external state change,
-exceeds the authorized scope or permissions, conflicts with another objective,
+exceeds the authorized scope or permissions, conflicts with another goal,
 or is a native lifecycle refusal that remains after supported recovery. A failed
 check alone is not such a blocker.
 

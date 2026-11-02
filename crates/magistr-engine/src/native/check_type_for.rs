@@ -1,6 +1,6 @@
 //! Which kind of check a gate name records as.
 
-use magistr_workflow::ship::domain::check::CheckType;
+use magistr_workflow::run::domain::check::CheckType;
 
 /// The kind of check a gate name stands for. An archetype suffix
 /// (`test:app-typescript`) does not change the kind, and a custom gate is

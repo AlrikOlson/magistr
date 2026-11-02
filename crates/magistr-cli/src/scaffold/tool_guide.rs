@@ -19,7 +19,7 @@ return magistr.call("roadmap_status", {});
 ```
 
 The same catalog includes roadmap, reasoning (`think_*`), feedback (`signal_*`),
-objectives and resumption (`ship_*`), quality gates (`magistr_gate`), and all
+runs and resumption (`run_*`), quality gates (`magistr_gate`), and all
 workspace operations: `map`, `files`, `command`, `undo`, `script`, health and indexing.
 Discover each operation before using it; do not guess argument names. Direct
 tools and composed calls use the same authorization, confirmation and source checks.
@@ -39,13 +39,13 @@ deletions. Use `undo` for this session's writes. Inspect response `ok`, `results
 Follow the project's workspace-routing skill for recovery. Git stays in the shell.
 Explain a focused fallback if the connection is unavailable; never bypass a denial.
 
-Keep plans in `plan_work` and the roadmap in native state. Respect the project's
+Keep run steps in `arrange_steps` and the roadmap in native state. Respect the project's
 `roadmap_exports` setting; when false, never generate ROADMAP.md or ROADMAP.json.
-Set `verification: "focused"` when creating an objective for a bounded change.
-Run relevant formatting, crate and interface checks through `check_work` with
+Set `verification: "focused"` when opening a run for a bounded change.
+Run relevant formatting, crate and interface checks through `check_step` with
 `command`, or a named `magistr_gate`. A full suite requires an explicit request
-or a stated cross-cutting risk. Inspect actual results before `finish_work`,
-then use `ship_finalize` to close the objective. Setup never authorizes implementation.
+or a stated cross-cutting risk. Inspect actual results before `finish_step`,
+then use `run_finish` to finish the run. Setup never authorizes implementation.
 
 "#,
     );

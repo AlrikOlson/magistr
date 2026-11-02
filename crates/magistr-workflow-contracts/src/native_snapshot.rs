@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::roadmap::{Chunk, WorkstreamCatalog, workstream_catalog};
-use crate::ship::{Objective, Task, TaskStatus};
+use crate::run::{Goal, Step, StepStatus};
 use crate::signal::Signal;
 use crate::think::ThinkHistory;
 use crate::{ReadError, ReadState, RoadmapProgress};
@@ -16,44 +16,44 @@ pub struct RoadmapData {
     pub progress: RoadmapProgress,
 }
 
-/// A complete authored execution, addressed independently of reusable local task names.
+/// A complete authored execution, addressed independently of reusable local step names.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ShipRun {
+pub struct Run {
     pub run_id: String,
-    pub task_instances: std::collections::BTreeMap<String, String>,
-    pub objective: Objective,
-    pub tasks: Vec<Task>,
+    pub step_instances: std::collections::BTreeMap<String, String>,
+    pub goal: Goal,
+    pub steps: Vec<Step>,
 }
 
 /// Selected and retained executions from the same validated owner observation.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct ShipData {
-    pub current: Option<ShipRun>,
-    pub retained: Vec<ShipRun>,
+pub struct RunData {
+    pub current: Option<Run>,
+    pub retained: Vec<Run>,
 }
 
-impl ShipData {
+impl RunData {
     #[must_use]
-    pub fn objective(&self) -> Option<&Objective> {
-        self.current.as_ref().map(|run| &run.objective)
+    pub fn goal(&self) -> Option<&Goal> {
+        self.current.as_ref().map(|run| &run.goal)
     }
 
     #[must_use]
-    pub fn tasks(&self) -> &[Task] {
+    pub fn steps(&self) -> &[Step] {
         self.current
             .as_ref()
-            .map_or(&[], |run| run.tasks.as_slice())
+            .map_or(&[], |run| run.steps.as_slice())
     }
 
     #[must_use]
-    pub fn active_task(&self) -> Option<&Task> {
-        self.tasks()
+    pub fn active_step(&self) -> Option<&Step> {
+        self.steps()
             .iter()
-            .find(|task| task.status == TaskStatus::Active)
+            .find(|step| step.status == StepStatus::Active)
     }
 
     #[must_use]
-    pub fn run(&self, run_id: &str) -> Option<&ShipRun> {
+    pub fn run(&self, run_id: &str) -> Option<&Run> {
         self.current
             .iter()
             .chain(&self.retained)
@@ -81,7 +81,7 @@ impl ThinkData {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct NativeSnapshot {
     pub roadmap: ReadState<RoadmapData>,
-    pub ship: ReadState<ShipData>,
+    pub run: ReadState<RunData>,
     pub signals: ReadState<Vec<Signal>>,
     pub think: ReadState<ThinkData>,
 }
@@ -97,7 +97,7 @@ impl NativeSnapshot {
     #[must_use]
     pub fn needs_retry(&self) -> bool {
         self.roadmap.needs_retry()
-            || self.ship.needs_retry()
+            || self.run.needs_retry()
             || self.signals.needs_retry()
             || self.think.needs_retry()
     }
@@ -107,7 +107,7 @@ impl NativeSnapshot {
     #[must_use]
     pub fn failed(mut self, error: ReadError) -> Self {
         self.roadmap.record(Err(error.clone()));
-        self.ship.record(Err(error.clone()));
+        self.run.record(Err(error.clone()));
         self.signals.record(Err(error.clone()));
         self.think.record(Err(error));
         self

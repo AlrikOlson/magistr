@@ -15,12 +15,12 @@ test tui::stream::viewport::tests::viewport_window_performance_100k_lines ... FA
     viewport_window took 593ms for 100K lines (should be <500ms)
     note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
-         TRY 1 FAIL [   0.004s] (3/3) magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_ship_state_and_cross_referenced
-        FAIL [   0.004s] (3/3) magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_ship_state_and_cross_referenced
+         TRY 1 FAIL [   0.004s] (3/3) magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_run_state_and_cross_referenced
+        FAIL [   0.004s] (3/3) magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_run_state_and_cross_referenced
 
---- STDERR:              magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_ship_state_and_cross_referenced ---
+--- STDERR:              magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_run_state_and_cross_referenced ---
 
-    thread 'headless_iteration_is_guarded_on_ship_state_and_cross_referenced' panicked at 'assertion failed: `(left == right)`
+    thread 'headless_iteration_is_guarded_on_run_state_and_cross_referenced' panicked at 'assertion failed: `(left == right)`
       left: `false`,
      right: `true`', tests/next_iteration_integration.rs:83:5
     note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
@@ -29,5 +29,5 @@ test tui::stream::viewport::tests::viewport_window_performance_100k_lines ... FA
 ────────────
      Summary [   1.100s] 3 tests run: 1 passed, 2 failed, 8498 skipped
         FAIL [   1.023s] magistr-cli tui::stream::viewport::tests::viewport_window_performance_100k_lines
-        FAIL [   0.004s] magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_ship_state_and_cross_referenced
+        FAIL [   0.004s] magistr-cli::next_iteration_integration headless_iteration_is_guarded_on_run_state_and_cross_referenced
 error: test run failed

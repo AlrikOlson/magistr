@@ -20,15 +20,15 @@ Check commands are stored in `.magistr/project.json`. An empty command means tha
 
 Use `context` to begin. Use `discover` and `execute` with `magistr.call(name, args)` for advanced workflow operations.
 
-Every change follows this strict loop. No exceptions. The roadmap, the plan and the gates live in magistr (the `roadmap_*` / `ship_*` / `think_*` / `signal_*` tools on the `magistr` MCP server). Roadmap exports follow project policy; never generate `ROADMAP.md` or `ROADMAP.json` when `roadmap_exports` is false.
+Every change follows this strict loop. No exceptions. The roadmap, the plan and the gates live in magistr (the `roadmap_*` / `run_*` / `think_*` / `signal_*` tools on the `magistr` MCP server). Roadmap exports follow project policy; never generate `ROADMAP.md` or `ROADMAP.json` when `roadmap_exports` is false.
 
-1. **PLAN** — Read `roadmap_status` and `ship_status`; resume authorized in-progress work before selecting pending work with `roadmap_next`. Follow the selected chunk and next's recovery contract: keep its matching unfinished objective, plan, completed tasks, actions, and checks. Select the authorized scope with `ship_set_objective` when another scope is selected, then re-read `ship_status`; scope selection saves unrelated unfinished work and restores a saved objective and plan unchanged. Resume a matching scope without repeating setup and use `plan_work` only for missing work; never reset or finalize unrelated work to make room. Re-read the code and record material findings with `think_record_step`.
+1. **PLAN** — Read `roadmap_status` and `run_status`; resume authorized in-progress work before selecting pending work with `roadmap_next`. Follow the selected chunk and next's recovery contract: keep its matching unfinished goal, plan, completed tasks, actions, and checks. Select the authorized scope with `run_open` when another scope is selected, then re-read `run_status`; scope selection saves unrelated unfinished work and restores a saved goal and plan unchanged. Resume a matching scope without repeating setup and use `arrange_steps` only for missing work; never reset or finalize unrelated work to make room. Re-read the code and record material findings with `think_record_step`.
 2. **EXECUTE** — Implement with TDD (red-green-refactor). Follow `.claude/rules/conventions.md`. Record findings and changed conclusions as evidence arrives, using the reasoning guidance in `.claude/skills/craft/references/runtime.md`.
 3. **VERIFY** — All four steps are mandatory, in order:
-   - Choose `verification: "focused"` for bounded changes and record the relevant checks through named `magistr_gate` or server-executed `check_work`. Use `"full"` and `magistr_gate(gate: "all")` only for an explicit full-suite request or a stated cross-cutting risk.
+   - Choose `verification: "focused"` for bounded changes and record the relevant checks through named `magistr_gate` or server-executed `check_step`. Use `"full"` and `magistr_gate(gate: "all")` only for an explicit full-suite request or a stated cross-cutting risk.
    - **Update the roadmap** — `roadmap_complete_chunk` for what you implemented, `roadmap_add_chunk` for anything new
    - **Commit** — one atomic commit per chunk
-   - **Close** — synthesize the recorded findings with `think_record_step`, link the evidence used, then `ship_finalize`
+   - **Close** — synthesize the recorded findings with `think_record_step`, link the evidence used, then `run_finish`
 
 **These rules are NON-NEGOTIABLE:**
 - You MUST update the roadmap after every piece of work — no work is invisible
@@ -43,7 +43,7 @@ Every change follows this strict loop. No exceptions. The roadmap, the plan and 
 | `/next` | Resume interrupted work or implement one ready roadmap item |
 | `/next-loop` | Continue through fresh-session handoffs, one chunk per session |
 | `/validate` | Run quality gates |
-| `/roadmap` | Advance the roadmap one chunk at a time under the full think/ship contract |
+| `/roadmap` | Advance the roadmap one chunk at a time under the full think/run contract |
 | `/roadmap-refresh` | Research-driven refresh of the roadmap itself (no implementation) |
 | `/signals` | Triage stakeholder signals and promote validated ones to chunks |
 | `/craft` | The operating doctrine behind the roadmap skills |

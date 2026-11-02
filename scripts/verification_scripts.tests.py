@@ -25,12 +25,12 @@ nextest = load("nextest-config-gate")
 class OwnershipTests(unittest.TestCase):
     def test_every_ownership_refusal_and_valid_comments(self):
         cases = [
-            ("crates/example/src/lib.rs", "ShipEngine::new();", "composes"),
-            (native.NATIVE + "writer.rs", "ship_engine();", "engine lock"),
+            ("crates/example/src/lib.rs", "RunEngine::new();", "composes"),
+            (native.NATIVE + "writer.rs", "run_engine();", "engine lock"),
             (native.NATIVE + "native_engines.rs", "let x: CallToolResult;", "typed application"),
             ("crates/magistr-cli/src/mcp_tools/tool.rs", "CallToolRequestParams::new();", "own wire"),
-            (native.WORKFLOW + "ship/application/use_case.rs", "use rmcp::Parameters;", "couples"),
-            ("crates/example/src/lib.rs", "x.ship_admit_check();", "composition boundary"),
+            (native.WORKFLOW + "run/application/use_case.rs", "use rmcp::Parameters;", "couples"),
+            ("crates/example/src/lib.rs", "x.run_admit_check();", "composition boundary"),
             (native.ADMISSIONS[0], "ProjectAuthority::admit();", "evidence capability"),
             ("crates/example/src/lib.rs", "WorkspaceService::open();", "hosted workspace"),
             ("crates/example/src/lib.rs", "writer_config(); ProjectAuthority::admit();", "admission sites"),
@@ -51,7 +51,7 @@ class OwnershipTests(unittest.TestCase):
             root = Path(directory)
             path = root / "crates/example/src/lib.rs"
             path.parent.mkdir(parents=True)
-            path.write_text("// ShipEngine::new(); WorkspaceService::open();\n")
+            path.write_text("// RunEngine::new(); WorkspaceService::open();\n")
             self.assertEqual(native.violations(SourceTree(root), False), [])
 
     def test_dependency_command_failures_cannot_pass(self):

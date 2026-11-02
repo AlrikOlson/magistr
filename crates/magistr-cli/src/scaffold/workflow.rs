@@ -56,21 +56,21 @@ pub(crate) fn build_section(vars: &HashMap<String, String>) -> String {
         "{CLAUDE_MD_MARKER}
 # magistr
 
-The `magistr` MCP connection (`magistr mcp --dir .`) provides source tools and the native workflow. Start with `context`. Use direct `search`, `read`, `edit`, `write`, `plan_work`, `start_work`, `record_progress`, `check_work`, and `finish_work` for common work. Use read-only `discover` to inspect advanced operation schemas, then `execute` with synchronous `magistr.call(name, args)`. Compositions stop on failure and return receipts; inspect completed effects before recovery. One workflow owner serves the project, and one workspace owner serves each working copy.
+The `magistr` MCP connection (`magistr mcp --dir .`) provides source tools and the native workflow. Start with `context`. Use direct `search`, `read`, `edit`, `write`, `arrange_steps`, `start_step`, `record_progress`, `check_step`, and `finish_step` for common work. Use read-only `discover` to inspect advanced operation schemas, then `execute` with synchronous `magistr.call(name, args)`. Compositions stop on failure and return receipts; inspect completed effects before recovery. One workflow owner serves the project, and one workspace owner serves each working copy.
 
 ## Tool families
 
 | Family | Purpose | Key tools |
 |--------|---------|-----------|
 | **think_*** | Reasoning trace: record steps, branch hypotheses, pin conclusions | `think_record_step`, `think_pin_step`, `think_trace_checkpoint` |
-| **ship_*** | Execution trace: objectives, tasks, actions, quality gates | `ship_set_objective`, `plan_work`, `start_work`, `record_progress`, `check_work`, `ship_finalize` |
+| **run_*** | Run history: goals, steps, progress, checks and approvals | `run_open`, `arrange_steps`, `start_step`, `record_progress`, `check_step`, `run_finish` |
 | **roadmap_*** | The long-horizon plan-of-plans driving both | `roadmap_status`, `roadmap_next`, `roadmap_start_chunk`, `roadmap_complete_chunk` |
 | **signal_*** | Stakeholder signals: capture, research, surface, promote to the roadmap | `signal_capture`, `signal_pending`, `signal_research`, `signal_promote` |
 
 ## Cross-referencing
 
-Link reasoning to execution:
-- On `think_record_step`, pass `execution_ref: \"task:<id>\"` to point at a ship_* task.
+Link reasoning to runs:
+- On `think_record_step`, pass `execution_ref: \"step:<id>\"` to point at a run step.
 - On `record_progress`, pass `think_step: <N>` to point back at the motivating think_* step.
 
 Both halves resolve the same project identity from the working directory so
@@ -78,15 +78,15 @@ traces auto-correlate.
 
 ## Quick-start workflow
 
-First read `ship_status` and, for roadmap work, `roadmap_status`. Resume a matching unfinished objective and keep its plan, task statuses, actions, checks, and reasoning. Continue an already active task without starting it again; do not restart completed tasks. Select the authorized scope with `ship_set_objective` when another scope is selected, then read `ship_status` again. Scope selection saves unrelated unfinished work and restores a saved objective and plan unchanged; never reset or finalize unrelated work to make room. For `/next`, follow the selected chunk and the recovery contract in `.claude/skills/next/SKILL.md`; pending work is considered only when no authorized in-progress work remains.
+First read `run_status` and, for roadmap work, `roadmap_status`. Resume a matching unfinished goal and keep its plan, step statuses, progress, checks, and reasoning. Continue an already active step without starting it again; do not restart completed steps. Select the authorized scope with `run_open` when another scope is selected, then read `run_status` again. Scope selection saves unrelated unfinished work and restores a saved goal and plan unchanged; never reset or finalize unrelated work to make room. For `/next`, follow the selected chunk and the recovery contract in `.claude/skills/next/SKILL.md`; pending work is considered only when no authorized in-progress work remains.
 
-1. `ship_set_objective` — select the authorized scope or define a new goal; resume a matching unfinished scope without repeating setup
-2. `plan_work` — keep existing tasks and add only missing work
+1. `run_open` — select the authorized scope or define a new goal; resume a matching unfinished scope without repeating setup
+2. `arrange_steps` — keep existing steps and add only missing work
 3. `think_record_step` — record the question, current evidence, and planned next check
-4. `start_work` a pending task, or continue the active task; then `record_progress` → `finish_work` — do the work, recording findings and changed conclusions as evidence arrives
-5. `check_work` — execute and record the relevant checks
+4. `start_step` a pending step, or continue the active step; then `record_progress` → `finish_step` — do the work, recording findings and changed conclusions as evidence arrives
+5. `check_step` — execute and record the relevant checks
 6. `think_record_step` — synthesize the findings, link the steps used, and state remaining uncertainty
-7. `ship_finalize` — finalize the objective after its acceptance criteria and checks pass
+7. `run_finish` — finalize the goal after its acceptance criteria and checks pass
 
 {reasoning_guidance}
 {verify_block}{CLAUDE_MD_END_MARKER}

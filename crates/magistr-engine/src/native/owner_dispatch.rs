@@ -5,7 +5,7 @@ use super::native_engines::NativeEngines;
 use super::owner_command::OwnerCommand;
 use super::owner_reply::OwnerReply;
 use super::roadmap_command::RoadmapCommand;
-use super::ship_command::ShipCommand;
+use super::run_command::RunCommand;
 use super::signal_command::SignalCommand;
 use super::think_command::ThinkCommand;
 
@@ -20,7 +20,7 @@ impl NativeEngines {
         match command {
             OwnerCommand::Roadmap(command) => self.apply_roadmap(command),
             OwnerCommand::Think(command) => self.apply_think(command),
-            OwnerCommand::Ship(command) => self.apply_ship(command),
+            OwnerCommand::Run(command) => self.apply_run(command),
             OwnerCommand::Signal(command) => self.apply_signal(command),
         }
     }
@@ -28,8 +28,8 @@ impl NativeEngines {
     fn apply_roadmap(&self, command: RoadmapCommand) -> Result<OwnerReply, WorkflowMutationError> {
         let chunk = match command {
             RoadmapCommand::StartChunk { id } => self.roadmap_start_chunk(&id),
-            RoadmapCommand::CompleteChunk { id, ship_ref } => {
-                self.roadmap_complete_chunk(&id, ship_ref.as_deref())
+            RoadmapCommand::CompleteChunk { id, step_ref } => {
+                self.roadmap_complete_chunk(&id, step_ref.as_deref())
             }
             RoadmapCommand::AddChunk {
                 id,
@@ -117,7 +117,7 @@ impl NativeEngines {
     fn apply_think(&self, command: ThinkCommand) -> Result<OwnerReply, WorkflowMutationError> {
         Ok(match command {
             ThinkCommand::RecordStep { step } => {
-                OwnerReply::Step(Box::new(self.think_record_step(*step)?))
+                OwnerReply::ThinkStep(Box::new(self.think_record_step(*step)?))
             }
             ThinkCommand::PinStep {
                 step_number,
@@ -130,47 +130,47 @@ impl NativeEngines {
         })
     }
 
-    fn apply_ship(&self, command: ShipCommand) -> Result<OwnerReply, WorkflowMutationError> {
+    fn apply_run(&self, command: RunCommand) -> Result<OwnerReply, WorkflowMutationError> {
         Ok(match command {
-            ShipCommand::CompactReceipts => OwnerReply::Report(
-                serde_json::to_value(self.ship_compact_receipts()?)
+            RunCommand::CompactCheckResults => OwnerReply::Report(
+                serde_json::to_value(self.run_compact_checks()?)
                     .map_err(|error| WorkflowMutationError::uncertain(error.to_string()))?,
             ),
-            ShipCommand::SetObjective {
+            RunCommand::OpenRun {
                 description,
                 acceptance_criteria,
                 constraints,
                 scope,
-            } => OwnerReply::Cleared(self.ship_set_objective(
+            } => OwnerReply::Cleared(self.run_open(
                 description,
                 acceptance_criteria,
                 constraints,
                 scope,
             )?),
-            ShipCommand::AddTask {
+            RunCommand::AddStep {
                 id,
                 title,
-                task_type,
+                step_type,
                 estimate,
-            } => OwnerReply::Done(self.ship_add_task(id, title, task_type, estimate)?),
-            ShipCommand::StartTask { task_id } => OwnerReply::Task(self.ship_start_task(&task_id)?),
-            ShipCommand::RecordAction {
-                task_id,
-                action_type,
+            } => OwnerReply::Done(self.add_step(id, title, step_type, estimate)?),
+            RunCommand::StartStep { step_id } => OwnerReply::Step(self.start_step(&step_id)?),
+            RunCommand::RecordProgress {
+                step_id,
+                progress_type,
                 description,
                 files_touched,
                 tools_used,
                 think_step,
-            } => OwnerReply::Action(self.ship_record_action(
-                task_id.as_deref(),
-                action_type,
+            } => OwnerReply::Progress(self.record_progress(
+                step_id.as_deref(),
+                progress_type,
                 description,
                 files_touched,
                 tools_used,
                 think_step,
             )?),
-            ShipCommand::RecordGate {
-                task_id,
+            RunCommand::RecordGate {
+                step_id,
                 gate,
                 command,
                 exit_code,
@@ -178,8 +178,8 @@ impl NativeEngines {
                 required,
                 report,
             } => OwnerReply::Check(
-                self.ship_record_gate(
-                    task_id.as_deref(),
+                self.run_record_gate(
+                    step_id.as_deref(),
                     &gate,
                     command,
                     exit_code,
@@ -190,11 +190,11 @@ impl NativeEngines {
                         .map(|(format, path)| (format.as_str(), path.as_str())),
                 )?,
             ),
-            ShipCommand::CompleteTask { task_id, artifacts } => {
-                OwnerReply::Task(self.ship_complete_task(&task_id, artifacts)?)
+            RunCommand::CompleteStep { step_id, artifacts } => {
+                OwnerReply::Step(self.finish_step(&step_id, artifacts)?)
             }
-            ShipCommand::Finalize { artifacts, summary } => OwnerReply::Report(
-                serde_json::to_value(self.ship_finalize(artifacts, summary)?)
+            RunCommand::Finalize { artifacts, summary } => OwnerReply::Report(
+                serde_json::to_value(self.run_finish(artifacts, summary)?)
                     .map_err(|error| WorkflowMutationError::uncertain(error.to_string()))?,
             ),
         })

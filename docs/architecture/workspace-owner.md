@@ -215,7 +215,7 @@ are design inputs. ADR-018 chose a detached daemon; Magistr implements the
 embedded-owner bridge above. The table maps all 24 retained rows to native
 evidence. `attachment` means
 [`crates/magistr-cli/tests/workspace_attachment.rs`](../../crates/magistr-cli/tests/workspace_attachment.rs)
-and its support modules; recorded ship checks and the iteration receipt
+and its support modules; recorded run checks and the iteration receipt
 supply actual execution results (macOS host).
 
 | ADR row | Native evidence | Remaining |

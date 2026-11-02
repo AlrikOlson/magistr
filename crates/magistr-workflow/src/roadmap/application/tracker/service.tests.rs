@@ -67,12 +67,12 @@ impl TrackerPort for ProbePort {
     }
 }
 
-/// A roadmap over a ship family with no evidence capability: nothing here
+/// A roadmap over a run family with no evidence capability: nothing here
 /// completes a chunk.
 fn application() -> RoadmapUseCases {
     RoadmapUseCases::new(
         Arc::new(Mutex::new(RoadmapEngine::new("project".into()))),
-        crate::ship::ShipUseCases::new(Arc::new(Mutex::new(crate::ship::engine::ShipEngine::new(
+        crate::run::RunUseCases::new(Arc::new(Mutex::new(crate::run::engine::RunEngine::new(
             "project".into(),
         )))),
     )

@@ -7,7 +7,7 @@
 //! tracker, the deliberation that produced it is gone. This system holds the
 //! reasoning and the plan in the same graph as the work, so a projected item can
 //! carry acceptance criteria as a checklist, dependencies as real blocking
-//! links, and the `think:`/`task:` refs that produced the decision, in a footer
+//! links, and the `think:`/`step:` refs that produced the decision, in a footer
 //! a machine can read back. That payload is the product; the transport is
 //! commodity.
 //!
@@ -348,12 +348,12 @@ pub fn preview_verdict(
 /// the no-op skip.
 fn provenance_footer(chunk: &Chunk, project_id: &str) -> String {
     let mut think: Vec<&str> = Vec::new();
-    let mut ship: Vec<&str> = Vec::new();
+    let mut run: Vec<&str> = Vec::new();
     for r in &chunk.cross_refs {
         if r.starts_with("think:") {
             think.push(r);
-        } else if r.starts_with("task:") || r.starts_with("action:") || r.starts_with("check:") {
-            ship.push(r);
+        } else if r.starts_with("step:") || r.starts_with("progress:") || r.starts_with("check:") {
+            run.push(r);
         }
     }
     let payload = serde_json::json!({
@@ -367,7 +367,7 @@ fn provenance_footer(chunk: &Chunk, project_id: &str) -> String {
         "status": chunk.status,
         "deps": chunk.deps,
         "think": think,
-        "ship": ship,
+        "run": run,
     });
     format!("{FOOTER_OPEN} {payload} {FOOTER_CLOSE}\n")
 }
@@ -936,7 +936,7 @@ mod tests {
         let mut e = engine();
         add(&mut e, "c1", vec![]);
         e.link_chunk("c1", "think:46").expect("link think");
-        e.link_chunk("c1", "task:projector").expect("link task");
+        e.link_chunk("c1", "step:projector").expect("link task");
 
         let chunk = e.roadmap().chunks[0].clone();
         let item = to_work_item(&e, &chunk, "fake", &TrackerCapabilities::full());
@@ -957,7 +957,7 @@ mod tests {
         assert_eq!(parsed["chunk"], "c1");
         assert_eq!(parsed["project"], "proj");
         assert_eq!(parsed["think"][0], "think:46");
-        assert_eq!(parsed["ship"][0], "task:projector");
+        assert_eq!(parsed["run"][0], "step:projector");
     }
 
     /// The footer must be byte-stable across runs, or content_hash changes every

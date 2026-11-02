@@ -3,7 +3,7 @@ use crate::error::{MagistrError, ResultExt};
 use crate::utils::format as fmt;
 use crate::workflow;
 use color_eyre::eyre;
-use magistr_engine::native::ObjectiveStatus;
+use magistr_engine::native::GoalStatus;
 
 pub async fn cmd_next_continue(
     dir: &std::path::Path,
@@ -17,22 +17,20 @@ pub async fn cmd_next_continue(
     let inputs = inputs.for_project(&dir);
     let reader = magistr_engine::NativeReader::open(inputs.workflow());
     let work = reader
-        .ship_snapshot()
+        .run_snapshot()
         .map_err(MagistrError::Workflow)
         .suggest()?;
-    let Some(plan) = work.current.filter(|run| {
-        matches!(
-            run.objective.status,
-            ObjectiveStatus::Defined | ObjectiveStatus::Active
-        )
-    }) else {
+    let Some(plan) = work
+        .current
+        .filter(|run| matches!(run.goal.status, GoalStatus::Open | GoalStatus::Active))
+    else {
         eprintln!("{}", fmt::warning("No unfinished work is selected."));
         return Ok(());
     };
     eprintln!(
         "{} Continuing: {}",
         fmt::cyan("→"),
-        fmt::bold(&plan.objective.description)
+        fmt::bold(&plan.goal.description)
     );
     let inputs = super::workflow_inputs(&inputs, false)?;
     let wf = workflow::WorkflowConfig::load(&dir)
@@ -40,7 +38,7 @@ pub async fn cmd_next_continue(
         .with_native(Some(reader));
     let summary = wf.spec_summary().suggest()?;
     let mut prompt = workflow::prompt::build_next_prompt(&wf.project_config, &summary);
-    prompt.push_str("\n\nContinue this execution's selected unfinished objective and plan. Read ship_status first and retain its existing tasks and evidence. Do not select new work or infer objective completion from overall roadmap counts.");
+    prompt.push_str("\n\nContinue this execution's selected unfinished goal and plan. Read run_status first and retain its existing tasks and evidence. Do not select new work or infer goal completion from overall roadmap counts.");
 
     let workspace =
         crate::commands::start::admit_workspace(&inputs, |line| eprintln!("{line}")).await;

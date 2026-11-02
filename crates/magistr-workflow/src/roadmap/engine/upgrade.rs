@@ -8,11 +8,12 @@ impl RoadmapEngine {
     /// admitted relocation. Explicitly different identities remain conflicts.
     pub fn upgrade_document(bytes: &[u8], project_id: &str) -> Result<Vec<u8>, ReadError> {
         let mut value: Value = serde_json::from_slice(bytes).map_err(schema)?;
+        // Run references take the run words before the current reader sees them.
+        let mut changed = crate::infra::CrossRef::upgrade_stored_refs(&mut value);
         let mut saved: Roadmap = serde_json::from_value(value.clone()).map_err(schema)?;
         if saved.project_id != project_id {
             observation::validate(&saved, project_id)?;
         }
-        let mut changed = false;
         for (index, item) in saved.chunks.iter_mut().enumerate() {
             if item.project_id.is_none() {
                 item.project_id = Some(project_id.to_owned());

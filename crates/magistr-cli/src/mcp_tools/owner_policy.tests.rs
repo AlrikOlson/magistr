@@ -14,7 +14,7 @@ fn owner_loss_keeps_owner_discovery_and_reports_unknown_effect_once() {
     );
     let tools = json!({"tools":[{"name":"owned-tool"}]});
     session.outbound(&json!({"jsonrpc":"2.0","id":2,"result":tools}).to_string());
-    let change = json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"ship_record","arguments":{"description":"change"}}});
+    let change = json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"record_progress","arguments":{"description":"change"}}});
     let Inbound::Forward(frame) = session.inbound(&change.to_string(), true) else {
         panic!("forwarded");
     };

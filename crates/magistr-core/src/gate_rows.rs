@@ -11,7 +11,7 @@
 //!   messages) or rendered (`error[E0308]: …` + `--> file:line:col`);
 //! - `cargo nextest` failures (status line + panic block);
 //! - `cargo test` (libtest) failures (`test … FAILED` + `---- … stdout ----`);
-//! - a junit report (`<testcase>` + `<failure>`), the file `ship_check`'s
+//! - a junit report (`<testcase>` + `<failure>`), the file `check_step`'s
 //!   `report` argument points at;
 //! - a generic `path:line[:col]: message` / `path(line,col): message` line
 //!   for every other tool (eslint, tsc, pytest, mypy, …).

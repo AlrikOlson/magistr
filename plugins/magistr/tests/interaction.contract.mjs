@@ -11,13 +11,13 @@ test('checks and workstream choices read back their acknowledged results', async
   const h = await host()
   await h.start()
   await h.command('')
-  await h.press('task-review')
-  await h.press('start-task')
+  await h.press('step-review')
+  await h.press('start-step')
   assert.doesNotMatch(
     textOf(await h.render()),
-    /No checks recorded for this task.*planned/,
+    /No checks recorded for this step.*planned/,
   )
-  assert.match(textOf(await h.render()), /Continue this task/)
+  assert.match(textOf(await h.render()), /Continue this step/)
   await h.press('tab-checks')
   await h.press('gate-check')
   assert.match(textOf(await h.render()), /Check passed and was recorded/)
@@ -48,8 +48,8 @@ test('mismatched source and workflow folders refuse actions', async () => {
   })
   await h.start()
   await h.command('')
-  await h.press('task-review')
-  await h.press('start-task')
+  await h.press('step-review')
+  await h.press('start-step')
   assert.equal(mutations(h).length, 0)
   assert.match(
     textOf(await h.render()),
@@ -62,7 +62,7 @@ test('interrupted commands fence delayed replies without cancelling the native o
   let slow = false
   const h = await host({
     read: (f, server, tool, args) =>
-      slow && tool === 'ship_status'
+      slow && tool === 'run_status'
         ? wait.promise
         : { structuredContent: answer(f, server, tool, args) },
   })
@@ -82,8 +82,8 @@ test('interrupted commands fence delayed replies without cancelling the native o
   slow = false
   wait.resolve({
     structuredContent: {
-      ...h.f.ship,
-      objective: { description: 'An old reply', acceptance_criteria: [] },
+      ...h.f.run,
+      goal: { description: 'An old reply', acceptance_criteria: [] },
     },
   })
   await pending
@@ -98,8 +98,8 @@ test('entry command, all navigation, evidence and source inspection use read-onl
   await h.command('')
   assert.ok(h.calls.some((c) => c.open?.closeOnEscape && c.open?.focus))
   assert.match(textOf(await h.render()), /Finish the search feature/)
-  await h.press('task-review')
-  assert.match(textOf(await h.render()), /No checks recorded for this task/)
+  await h.press('step-review')
+  assert.match(textOf(await h.render()), /No checks recorded for this step/)
   await h.press('tab-roadmap')
   await h.press('work-search')
   assert.match(textOf(await h.render()), /Matching pages appear/)
@@ -132,20 +132,20 @@ test('explicit confirmations use the normal permission path once and never start
   const h = await host({ ask: () => wait.promise })
   await h.start()
   await h.command('')
-  await h.press('task-review')
-  const first = h.press('start-task')
+  await h.press('step-review')
+  const first = h.press('start-step')
   await flush()
   await h
-    .press('start-task')
+    .press('start-step')
     .catch((e) => assert.match(e.message, /No control/))
   assert.equal(h.asks.length, 1)
-  wait.resolve('Start task')
+  wait.resolve('Start step')
   await first
   assert.equal(mutations(h).length, 1)
   const request = mutations(h)[0].mutation
-  assert.equal(request.tool, 'mcp__magistr__start_work')
-  assert.match(request.consent, /confirmed "Start task"/)
-  assert.match(textOf(await h.render()), /Task started/)
+  assert.equal(request.tool, 'mcp__magistr__start_step')
+  assert.match(request.consent, /confirmed "Start step"/)
+  assert.match(textOf(await h.render()), /Step started/)
   await h.end()
 })
 test('cancel, closing the pane and changing the owner prevent an unadmitted request', async () => {
@@ -154,12 +154,12 @@ test('cancel, closing the pane and changing the owner prevent an unadmitted requ
     const h = await host({ ask: () => wait.promise })
     await h.start()
     await h.command('')
-    await h.press('task-review')
-    const first = h.press('start-task')
+    await h.press('step-review')
+    const first = h.press('start-step')
     await flush()
     if (mode === 'close') await h.dispatch('ui.close', { id: 'magistr-work' })
     if (mode === 'owner') h.f.context.owner_epoch = '43'
-    wait.resolve(mode === 'cancel' ? 'Cancel' : 'Start task')
+    wait.resolve(mode === 'cancel' ? 'Cancel' : 'Start step')
     await first
     assert.equal(mutations(h).length, 0, mode)
     await h.end()
@@ -170,15 +170,15 @@ test('refusal and malformed mutation replies cannot be presented as success', as
     { deny: 'Permission denied' },
     { isError: true, text: 'Write failed' },
     { result: { status: 'active' } },
-    { result: { ok: false, message: 'Task is blocked' } },
+    { result: { ok: false, message: 'Step is blocked' } },
   ]) {
     const h = await host({ mutate: () => result })
     await h.start()
     await h.command('')
-    await h.press('task-review')
-    await h.press('start-task')
+    await h.press('step-review')
+    await h.press('start-step')
     const text = textOf(await h.render())
-    assert.doesNotMatch(text, /Task started\./)
+    assert.doesNotMatch(text, /Step started\./)
     assert.match(text, /denied|did not confirm|blocked|failed/)
     await h.end()
   }
@@ -199,8 +199,8 @@ test('a request crossing clear stays latched and needs successful read-back', as
   })
   await h.start()
   await h.command('')
-  await h.press('task-review')
-  const first = h.press('start-task')
+  await h.press('step-review')
+  const first = h.press('start-step')
   await submitted.promise
   assert.equal(mutations(h).length, 1)
   await h.dispatch('classic.SessionStart', { source: 'clear' })
@@ -222,25 +222,25 @@ test('stale detail replies never replace the latest selection', async () => {
   const wait = deferred()
   const h = await host({
     read: (f, server, tool, args) =>
-      tool === 'context' && args.task_id
+      tool === 'context' && args.step_id
         ? wait.promise
         : { structuredContent: answer(f, server, tool, args) },
   })
   await h.start()
   await h.command('')
-  const task = h.press('task-review')
+  const step = h.press('step-review')
   await flush()
   await h.press('tab-findings')
   const finding = h.press('step-3')
   await flush()
   wait.resolve({
-    structuredContent: { ...h.f.context, task: { record: h.f.task } },
+    structuredContent: { ...h.f.context, step: { record: h.f.step } },
   })
-  await Promise.all([task, finding])
+  await Promise.all([step, finding])
   assert.match(textOf(await h.render()), /Reuse its matching rules/)
   assert.doesNotMatch(
     textOf(await h.render()),
-    /No checks recorded for this task/,
+    /No checks recorded for this step/,
   )
   await h.end()
 })
@@ -249,7 +249,7 @@ test('timeouts retain the raw call bound, stale observations and recover after r
   let hang = false
   const h = await host({
     read: (f, server, tool, args) =>
-      hang && tool === 'ship_status'
+      hang && tool === 'run_status'
         ? wait.promise
         : { structuredContent: answer(f, server, tool, args) },
   })
@@ -263,7 +263,7 @@ test('timeouts retain the raw call bound, stale observations and recover after r
   assert.match(textOf(await h.render()), /Out of date|in time/)
   assert.ok(h.maxActive() <= 2)
   hang = false
-  wait.resolve({ structuredContent: h.f.ship })
+  wait.resolve({ structuredContent: h.f.run })
   await flush()
   await h.command('refresh')
   assert.match(textOf(await h.render()), /Current at last refresh/)
@@ -293,8 +293,8 @@ test('headless confirmation refusal and session end remain transparent', async (
   const h = await host({ interactive: false })
   await h.start()
   await h.command('')
-  await h.press('task-review')
-  await h.press('start-task')
+  await h.press('step-review')
+  await h.press('start-step')
   assert.equal(mutations(h).length, 0)
   assert.match(textOf(await h.render()), /confirm this action/)
   const next = { ended: true }
@@ -334,26 +334,26 @@ test('observers ignore their own calls and coalesce acknowledged calls from othe
   assert.ok(h.maxActive() <= 2)
   await h.end()
 })
-test('confirmation cannot use a changed task, active task or configured command', async () => {
-  for (const mode of ['task', 'active', 'command']) {
+test('confirmation cannot use a changed step, active step or configured command', async () => {
+  for (const mode of ['step', 'active', 'command']) {
     const wait = deferred()
     const h = await host({ ask: () => wait.promise })
     await h.start()
     await h.command('')
     if (mode === 'command') {
-      h.f.task.status = 'active'
-      h.f.ship.active_task = h.f.task
+      h.f.step.status = 'active'
+      h.f.run.active_step = h.f.step
       await h.command('refresh')
       await h.press('tab-checks')
-    } else await h.press('task-review')
-    const request = h.press(mode === 'command' ? 'gate-check' : 'start-task')
+    } else await h.press('step-review')
+    const request = h.press(mode === 'command' ? 'gate-check' : 'start-step')
     await flush()
-    if (mode === 'task') h.f.task.title = 'Changed task'
+    if (mode === 'step') h.f.step.title = 'Changed step'
     if (mode === 'active')
-      h.f.ship.active_task = { ...h.f.task, id: 'another', status: 'active' }
+      h.f.run.active_step = { ...h.f.step, id: 'another', status: 'active' }
     if (mode === 'command')
       h.f.context.checks[0].commands[0].command = 'different check'
-    wait.resolve(mode === 'command' ? 'Run check' : 'Start task')
+    wait.resolve(mode === 'command' ? 'Run check' : 'Start step')
     await request
     assert.equal(mutations(h).length, 0, mode)
     assert.match(textOf(await h.render()), /changed|cannot be started/)
@@ -373,13 +373,13 @@ test('missing, incompatible and mismatched replies leave useful honest views and
             return {
               structuredContent: { ...v, project_id: 'another-project' },
             }
-          if (mode === 'detail' && args.task_id)
+          if (mode === 'detail' && args.step_id)
             return {
               structuredContent: {
                 ...v,
-                task: {
-                  ...v.task,
-                  record: { ...v.task.record, id: 'another-task' },
+                step: {
+                  ...v.step,
+                  record: { ...v.step.record, id: 'another-step' },
                 },
               },
             }
@@ -389,11 +389,11 @@ test('missing, incompatible and mismatched replies leave useful honest views and
     })
     await h.start()
     await h.command('')
-    await h.press('task-review')
+    await h.press('step-review')
     assert.equal(mutations(h).length, 0)
     assert.match(
       textOf(await h.render()),
-      /Not connected|version|different projects|chosen task|connection changed/,
+      /Not connected|version|different projects|chosen step|connection changed/,
     )
     assert.equal(
       (await h.command('current')).text.includes('Finish the search feature'),
@@ -405,9 +405,9 @@ test('missing, incompatible and mismatched replies leave useful honest views and
 test('text details describe recorded work and findings without exposing response fields', async () => {
   const h = await host({ surfaces: ['headless'] })
   await h.start()
-  const task = await h.command('task Review changes')
-  assert.match(task.text, /Review changes\nplanned/)
-  assert.doesNotMatch(task.text, /owner_epoch|project_id|detail_limit|\{\s*"/)
+  const step = await h.command('step Review changes')
+  assert.match(step.text, /Review changes\nplanned/)
+  assert.doesNotMatch(step.text, /owner_epoch|project_id|detail_limit|\{\s*"/)
   const work = await h.command('work Find matching pages')
   assert.match(work.text, /Matching pages appear/)
   const finding = await h.command('finding 3')
@@ -454,8 +454,8 @@ test('check limits are reviewed exactly and invalid limits never submit', async 
   const h = await host()
   await h.start()
   await h.command('')
-  await h.press('task-review')
-  await h.press('start-task')
+  await h.press('step-review')
+  await h.press('start-step')
   await h.press('tab-checks')
   const input = async () =>
     flatten(await h.render()).find((x) => x?.props?.key === 'check-time-limit')

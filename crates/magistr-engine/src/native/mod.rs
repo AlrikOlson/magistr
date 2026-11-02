@@ -1,7 +1,7 @@
 //! Magistr's native workflow store and owner protocol.
 //!
 //! Magistr links its `magistr_workflow` library and runs its four engines —
-//! roadmap, think (reasoning trace), ship (execution trace) and signal — in
+//! roadmap, think (reasoning trace), run (run history) and signal — in
 //! this process. State lives under the resolved Magistr workflow data root,
 //! keyed by `project.id` in `.magistr/project.json`.
 //! Agent tools and native views use Magistr's admitted owners; no standalone
@@ -35,7 +35,9 @@ pub mod delivery;
 pub mod event_cursor;
 mod execution_context;
 mod family_services;
+mod run_words_upgrade;
 mod workflow_upgrade;
+pub use run_words_upgrade::RunWordsUpgrade;
 pub use workflow_upgrade::WorkflowUpgrade;
 pub mod feed_cursor;
 pub mod feed_status;
@@ -78,7 +80,7 @@ mod working_copy_lease;
 pub use working_copy_lease::WorkingCopyLease;
 pub mod roadmap_backend;
 pub mod roadmap_command;
-pub mod ship_command;
+pub mod run_command;
 pub mod signal_command;
 pub mod snapshot;
 pub mod think_branch;
@@ -105,8 +107,8 @@ pub use local_stream::LocalStream;
 pub use magistr_frame::MagistrFrame;
 pub use magistr_workflow::think::ConfigSource;
 pub use magistr_workflow_contracts::{
-    NativeSnapshot, Observed, ReadError, ReadErrorKind, ReadSource, ReadState, RoadmapData,
-    ShipData, ShipRun, StoreStamp, ThinkData,
+    NativeSnapshot, Observed, ReadError, ReadErrorKind, ReadSource, ReadState, RoadmapData, Run,
+    RunData, StoreStamp, ThinkData,
 };
 pub use mcp_acceptor::McpAcceptor;
 pub use native_config::NativeConfig;
@@ -130,7 +132,7 @@ pub use project_authority::ProjectAuthority;
 pub use project_location::ProjectLocation;
 pub use roadmap_backend::RoadmapBackend;
 pub use roadmap_command::RoadmapCommand;
-pub use ship_command::ShipCommand;
+pub use run_command::RunCommand;
 pub use signal_command::SignalCommand;
 pub use snapshot::NativeRoadmapSnapshot;
 pub use think_branch::ThinkBranch;
@@ -156,22 +158,22 @@ pub use magistr_workflow::roadmap::domain::{
     WorkstreamFrontier, WorkstreamHistory, WorkstreamResolution, assess_readiness, next_ready,
     workstream_catalog, workstream_frontier,
 };
-pub use magistr_workflow::ship::application::{
+pub use magistr_workflow::run::application::{
     CheckAdmission, CheckBudget, CheckExecution, CheckOptions, CheckOutcome, CheckRequest,
     CheckSettlement, CompletionEvidence, CompletionRefusal, EvidencePort, ExecutionBinding,
-    GateContract, ObservationDrift, ShipReport, SourceFreshness, SourceObservation, SourceWitness,
-    TaskAdmission, TimeoutOrigin,
+    GateContract, ObservationDrift, RunReport, SourceFreshness, SourceObservation, SourceWitness,
+    StepAdmission, TimeoutOrigin,
 };
-pub use magistr_workflow::ship::broadcast::BroadcastFrame as ShipFrame;
-pub use magistr_workflow::ship::domain::action::{Action, ActionType};
-pub use magistr_workflow::ship::domain::artifact::{Artifact, ArtifactType};
-pub use magistr_workflow::ship::domain::check::{Check, CheckType};
-pub use magistr_workflow::ship::domain::check_receipt::CheckReceipt;
-pub use magistr_workflow::ship::domain::objective::{Objective, ObjectiveStatus, VerificationMode};
-pub use magistr_workflow::ship::domain::receipt_settlement::ReceiptSettlement;
-pub use magistr_workflow::ship::domain::task::{Task, TaskStatus, TaskType};
-pub use magistr_workflow::ship::receipt_compaction::ReceiptCompaction;
-pub use magistr_workflow::ship::report::{ReportRecord, TestResults};
+pub use magistr_workflow::run::broadcast::BroadcastFrame as RunFrame;
+pub use magistr_workflow::run::check_result_compaction::CheckResultCompaction;
+pub use magistr_workflow::run::domain::artifact::{Artifact, ArtifactType};
+pub use magistr_workflow::run::domain::check::{Check, CheckType};
+pub use magistr_workflow::run::domain::check_result::CheckResult;
+pub use magistr_workflow::run::domain::check_result_settlement::CheckResultSettlement;
+pub use magistr_workflow::run::domain::goal::{Goal, GoalStatus, VerificationMode};
+pub use magistr_workflow::run::domain::progress::{Progress, ProgressType};
+pub use magistr_workflow::run::domain::step::{Step, StepStatus, StepType};
+pub use magistr_workflow::run::report::{ReportRecord, TestResults};
 pub use magistr_workflow::signal::broadcast::SignalFrame;
 pub use magistr_workflow::signal::domain::{Enrichment, Signal, SignalKind, SignalStatus};
 pub use magistr_workflow::think::broadcast::BroadcastFrame as ThinkFrame;

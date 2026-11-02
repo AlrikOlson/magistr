@@ -8,9 +8,9 @@ use tempfile::TempDir;
 use magistr_workflow::infra::{Domain, Persistence, PersistenceConfig};
 use magistr_workflow::roadmap::RoadmapEngine;
 use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::ship::domain::task::TaskType;
-use magistr_workflow::ship::engine::ShipEngine;
-use magistr_workflow::ship::persistence as ship_persistence;
+use magistr_workflow::run::domain::step::StepType;
+use magistr_workflow::run::engine::RunEngine;
+use magistr_workflow::run::persistence as run_persistence;
 use magistr_workflow::signal::SignalEngine;
 use magistr_workflow::signal::domain::{SignalKind, SignalStatus};
 
@@ -30,12 +30,12 @@ fn signal_engine(tmp: &TempDir) -> SignalEngine {
         .with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Signal))
 }
 
-fn ship_engine(tmp: &TempDir) -> ShipEngine {
-    let cfg = ship_persistence::PersistenceConfig {
+fn run_engine(tmp: &TempDir) -> RunEngine {
+    let cfg = run_persistence::PersistenceConfig {
         enabled: true,
         data_dir: tmp.path().to_path_buf(),
     };
-    ShipEngine::new("proj".into()).with_persistence(ship_persistence::Persistence::new(&cfg))
+    RunEngine::new("proj".into()).with_persistence(run_persistence::Persistence::new(&cfg))
 }
 
 fn add_chunk(e: &mut RoadmapEngine, id: &str) {
@@ -173,54 +173,54 @@ fn a_conflicting_signal_write_resolves_by_lifecycle_rank_not_by_who_wrote_last()
 }
 
 #[test]
-fn a_ship_refresh_validates_the_store_and_reports_changes() {
+fn a_run_refresh_validates_the_store_and_reports_changes() {
     let tmp = TempDir::new().unwrap();
-    let mut a = ship_engine(&tmp);
-    let mut b = ship_engine(&tmp);
+    let mut a = run_engine(&tmp);
+    let mut b = run_engine(&tmp);
     assert_eq!(b.refresh_if_stale(), Ok(false));
 
-    a.set_objective("cycle".into(), vec![], vec![], "chunk:c".into())
+    a.set_goal("cycle".into(), vec![], vec![], "chunk:c".into())
         .unwrap();
-    a.add_task("t".into(), "task".into(), TaskType::Implement, None, None)
+    a.add_step("t".into(), "step".into(), StepType::Implement, None, None)
         .unwrap();
     assert_eq!(b.refresh_if_stale(), Ok(true));
-    assert_eq!(b.tasks.len(), 1);
+    assert_eq!(b.steps.len(), 1);
     assert_eq!(b.refresh_if_stale(), Ok(false));
     assert_eq!(a.refresh_if_stale(), Ok(false), "A wrote the file it holds");
 
     // B's write on the same cycle merges and B holds the merged state.
-    b.start_task("t").unwrap();
+    b.start_step("t").unwrap();
     assert_eq!(b.refresh_if_stale(), Ok(false));
     assert_eq!(a.refresh_if_stale(), Ok(true));
-    assert_eq!(a.active_task_id().as_deref(), Some("t"));
+    assert_eq!(a.active_step_id().as_deref(), Some("t"));
 }
 
 #[test]
 fn engines_without_persistence_never_refresh() {
     let mut roadmap = RoadmapEngine::new("proj".into());
     let mut signal = SignalEngine::new("proj".into());
-    let mut ship = ShipEngine::new("proj".into());
+    let mut run = RunEngine::new("proj".into());
     assert_eq!(roadmap.refresh_if_stale(), Ok(false));
     assert_eq!(signal.refresh_if_stale(), Ok(false));
-    assert_eq!(ship.refresh_if_stale(), Ok(false));
+    assert_eq!(run.refresh_if_stale(), Ok(false));
 }
 
 #[test]
-fn corrupt_cold_ship_reads_never_confirm_empty_and_recover_without_reopening() {
+fn corrupt_cold_run_reads_never_confirm_empty_and_recover_without_reopening() {
     use magistr_workflow_contracts::ReadErrorKind;
     let tmp = TempDir::new().unwrap();
-    let mut writer = ship_engine(&tmp);
+    let mut writer = run_engine(&tmp);
     writer
-        .set_objective("kept".into(), vec![], vec![], "chunk:c".into())
+        .set_goal("kept".into(), vec![], vec![], "chunk:c".into())
         .unwrap();
-    let persistence = ship_persistence::Persistence::new(&ship_persistence::PersistenceConfig {
+    let persistence = run_persistence::Persistence::new(&run_persistence::PersistenceConfig {
         enabled: true,
         data_dir: tmp.path().to_owned(),
     });
     let path = persistence.path_for("proj");
     let good = std::fs::read(&path).unwrap();
     std::fs::write(&path, "{").unwrap();
-    let mut cold = ship_engine(&tmp);
+    let mut cold = run_engine(&tmp);
     for _ in 0..2 {
         assert_eq!(cold.observe().unwrap_err().kind, ReadErrorKind::Decode);
         assert!(cold.refresh_if_stale().is_err());
@@ -228,16 +228,11 @@ fn corrupt_cold_ship_reads_never_confirm_empty_and_recover_without_reopening() {
     }
     std::fs::write(&path, &good).unwrap();
     assert_eq!(
-        cold.observe()
-            .unwrap()
-            .value
-            .objective()
-            .unwrap()
-            .description,
+        cold.observe().unwrap().value.goal().unwrap().description,
         "kept"
     );
     assert!(cold.refresh_if_stale().unwrap());
-    assert_eq!(cold.objective.as_ref().unwrap().description, "kept");
+    assert_eq!(cold.goal.as_ref().unwrap().description, "kept");
 }
 
 #[test]
@@ -250,13 +245,13 @@ fn each_family_retries_refused_reads_and_observes_deletion() {
     signal
         .capture(SignalKind::Idea, "author".into(), "kept".into())
         .unwrap();
-    let mut ship = ship_engine(&tmp);
-    ship.set_objective("kept".into(), vec![], vec![], "chunk:kept".into())
+    let mut run = run_engine(&tmp);
+    run.set_goal("kept".into(), vec![], vec![], "chunk:kept".into())
         .unwrap();
     let paths = [
         Persistence::new(&infra_cfg(&tmp), Domain::Roadmap).path_for("proj"),
         Persistence::new(&infra_cfg(&tmp), Domain::Signal).path_for("proj"),
-        ship_persistence::Persistence::new(&ship_persistence::PersistenceConfig {
+        run_persistence::Persistence::new(&run_persistence::PersistenceConfig {
             enabled: true,
             data_dir: tmp.path().to_owned(),
         })
@@ -272,20 +267,20 @@ fn each_family_retries_refused_reads_and_observes_deletion() {
     for _ in 0..2 {
         assert_eq!(roadmap.observe().unwrap_err().kind, ReadErrorKind::Decode);
         assert_eq!(signal.observe().unwrap_err().kind, ReadErrorKind::Decode);
-        assert_eq!(ship.observe().unwrap_err().kind, ReadErrorKind::Decode);
+        assert_eq!(run.observe().unwrap_err().kind, ReadErrorKind::Decode);
         assert!(roadmap.refresh_if_stale().is_err());
         assert!(signal.refresh_if_stale().is_err());
-        assert!(ship.refresh_if_stale().is_err());
+        assert!(run.refresh_if_stale().is_err());
     }
     assert_eq!(roadmap.roadmap().chunks.len(), 1);
     assert_eq!(signal.signals().signals.len(), 1);
-    assert!(ship.objective.is_some());
+    assert!(run.goal.is_some());
     for (path, bytes) in paths.iter().zip(good) {
         std::fs::write(path, bytes).unwrap();
     }
     assert_eq!(roadmap.observe().unwrap().value.chunks.len(), 1);
     assert_eq!(signal.observe().unwrap().value.signals.len(), 1);
-    assert!(ship.observe().unwrap().value.objective().is_some());
+    assert!(run.observe().unwrap().value.goal().is_some());
     for path in &paths {
         std::fs::remove_file(path).unwrap();
     }
@@ -293,61 +288,61 @@ fn each_family_retries_refused_reads_and_observes_deletion() {
     assert!(roadmap.observe().unwrap().value.chunks.is_empty());
     assert_eq!(signal.observe().unwrap().source, ReadSource::Missing);
     assert!(signal.observe().unwrap().value.signals.is_empty());
-    assert_eq!(ship.observe().unwrap().source, ReadSource::Missing);
-    assert!(ship.observe().unwrap().value.objective().is_none());
+    assert_eq!(run.observe().unwrap().source, ReadSource::Missing);
+    assert!(run.observe().unwrap().value.goal().is_none());
 }
 
 #[test]
-fn ship_observes_the_opened_execution_and_refuses_an_unsavable_mutation() {
+fn run_observes_the_opened_execution_and_refuses_an_unsavable_mutation() {
     use magistr_workflow_contracts::ReadSource;
     let tmp = TempDir::new().unwrap();
-    let config = ship_persistence::PersistenceConfig {
+    let config = run_persistence::PersistenceConfig {
         enabled: true,
         data_dir: tmp.path().to_owned(),
     };
-    let a_store = ship_persistence::Persistence::new(&config).for_execution("a");
-    let b_store = ship_persistence::Persistence::new(&config).for_execution("b");
+    let a_store = run_persistence::Persistence::new(&config).for_execution("a");
+    let b_store = run_persistence::Persistence::new(&config).for_execution("b");
     let a_path = a_store.path_for("proj");
-    let mut a = ShipEngine::new("proj".into()).with_persistence(a_store.clone());
-    let a_reader = ShipEngine::new("proj".into()).with_persistence(a_store);
-    let mut b = ShipEngine::new("proj".into()).with_persistence(b_store);
-    a.set_objective("execution a".into(), vec![], vec![], "chunk:a".into())
+    let mut a = RunEngine::new("proj".into()).with_persistence(a_store.clone());
+    let a_reader = RunEngine::new("proj".into()).with_persistence(a_store);
+    let mut b = RunEngine::new("proj".into()).with_persistence(b_store);
+    a.set_goal("execution a".into(), vec![], vec![], "chunk:a".into())
         .unwrap();
-    b.set_objective("execution b".into(), vec![], vec![], "chunk:b".into())
+    b.set_goal("execution b".into(), vec![], vec![], "chunk:b".into())
         .unwrap();
     assert_eq!(
         a_reader
             .observe()
             .unwrap()
             .value
-            .objective()
+            .goal()
             .unwrap()
             .description,
         "execution a"
     );
     assert_eq!(
-        b.observe().unwrap().value.objective().unwrap().description,
+        b.observe().unwrap().value.goal().unwrap().description,
         "execution b"
     );
     let lock = a_path.with_extension("json.lock");
     std::fs::remove_file(&lock).unwrap();
     std::fs::create_dir(&lock).unwrap();
     let refused = a
-        .add_task(
+        .add_step(
             "unsaved".into(),
-            "Refuse the unsavable task".into(),
-            TaskType::Implement,
+            "Refuse the unsavable step".into(),
+            StepType::Implement,
             None,
             None,
         )
         .unwrap_err();
     assert_eq!(refused.effect(), "none");
-    assert!(a.tasks.is_empty());
-    assert!(a.observe().unwrap().value.tasks().is_empty());
-    assert!(a.tasks.is_empty());
+    assert!(a.steps.is_empty());
+    assert!(a.observe().unwrap().value.steps().is_empty());
+    assert!(a.steps.is_empty());
     std::fs::remove_file(&a_path).unwrap();
     assert_eq!(a_reader.observe().unwrap().source, ReadSource::Missing);
-    assert!(b.observe().unwrap().value.objective().is_some());
+    assert!(b.observe().unwrap().value.goal().is_some());
 }
 
 #[test]

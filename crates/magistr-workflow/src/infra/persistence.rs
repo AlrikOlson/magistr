@@ -18,7 +18,7 @@ const DATA_DIR_VAR: &str = "MAGISTR_WORKFLOW_DATA_DIR";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Domain {
     Think,
-    Ship,
+    Run,
     Roadmap,
     Signal,
     /// Adopted W3C Trace Context (SEP-414). Not a tool family — the one
@@ -37,7 +37,7 @@ impl Domain {
     fn dir_name(self) -> &'static str {
         match self {
             Self::Think => "think",
-            Self::Ship => "ship",
+            Self::Run => "run",
             Self::Roadmap => "roadmap",
             Self::Signal => "signal",
             Self::Otel => "otel",

@@ -350,13 +350,13 @@ impl Edit<'_> {
         self.set_status(id, ChunkStatus::InProgress)
     }
 
-    pub fn complete_chunk(&mut self, id: &str, ship_ref: Option<&str>) -> Result<&Chunk, String> {
-        if let Some(raw) = ship_ref {
+    pub fn complete_chunk(&mut self, id: &str, step_ref: Option<&str>) -> Result<&Chunk, String> {
+        if let Some(raw) = step_ref {
             // Validate before transitioning so a bad ref doesn't half-apply.
             self.normalize_ref(raw)?;
         }
         self.set_status(id, ChunkStatus::Done)?;
-        if let Some(raw) = ship_ref {
+        if let Some(raw) = step_ref {
             self.push_cross_ref(id, raw)?;
         }
         let idx = self.index_of(id)?;

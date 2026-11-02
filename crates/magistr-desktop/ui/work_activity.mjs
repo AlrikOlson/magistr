@@ -2,7 +2,7 @@ import { element } from "./work_dom.mjs";
 import { renderSourceDetail } from "./source_details.mjs";
 const types={commit:"Commit",pr:"Pull request",file:"File",config:"Configuration",deployment:"Deployment",release:"Release"};
 const actionLabels={code:"Code change",test:"Check",debug:"Investigation",research:"Research",config:"Configuration",refactor:"Code cleanup",review:"Review"};
-const activityIdentity=(run,task)=>JSON.stringify([run.run_id,run.task_instances[task.id],"activity"]);
+const activityIdentity=(run,step)=>JSON.stringify([run.run_id,run.step_instances[step.id],"activity"]);
 export function renderAction(action,copy){
   const row=element("li"),date=new Date(action.timestamp);
   row.dataset.action=String(action.id);
@@ -16,8 +16,8 @@ export function renderAction(action,copy){
   }
   return row;
 }
-export function renderArtifact(run,task,artifact,index,{copy,openLink}){
-  const identity=activityIdentity(run,task);
+export function renderArtifact(run,step,artifact,index,{copy,openLink}){
+  const identity=activityIdentity(run,step);
   const row=element("article"),heading=element("header");
   heading.append(element("span",types[artifact.type]||"Item","work-artifact-type"),element("h5",artifact.description||"Saved reference"));
   row.append(heading,element("p",artifact.ref,"work-artifact-reference"));
@@ -28,20 +28,20 @@ export function renderArtifact(run,task,artifact,index,{copy,openLink}){
   }
   return row;
 }
-export function renderActivity(run,task,actions){
-  if(!task.actions.length&&!task.artifacts.length)return null;
+export function renderActivity(run,step,actions){
+  if(!step.progress.length&&!step.artifacts.length)return null;
   const details=element("details","","work-activity"),summary=element("summary","Activity and files");
-  const identity=activityIdentity(run,task);
+  const identity=activityIdentity(run,step);
   details.dataset.readingKey=identity;summary.dataset.focusKey=identity;details.append(summary);
-  if(task.actions.length){
-    const list=element("ol","","work-action-list");list.setAttribute("aria-label","Activity for "+task.title);
-    for(const action of task.actions)list.append(renderAction(action,actions.copy));
+  if(step.progress.length){
+    const list=element("ol","","work-action-list");list.setAttribute("aria-label","Activity for "+step.title);
+    for(const entry of step.progress)list.append(renderAction(entry,actions.copy));
     details.append(list);
   }
-  if(task.artifacts.length){
-    const section=element("section","","work-artifacts");section.setAttribute("aria-label","Produced items for "+task.title);
+  if(step.artifacts.length){
+    const section=element("section","","work-artifacts");section.setAttribute("aria-label","Produced items for "+step.title);
     section.append(element("h4","Produced items"));
-    for(const [index,artifact] of task.artifacts.entries())section.append(renderArtifact(run,task,artifact,index,actions));
+    for(const [index,artifact] of step.artifacts.entries())section.append(renderArtifact(run,step,artifact,index,actions));
     details.append(section);
   }
   return details;

@@ -143,7 +143,7 @@ async fn explicit_unix_feed_is_refused_on_unsupported_platforms() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_host_started_owner_publishes_existing_execution_views() {
     use magistr::application::workflow_client::EngineClient;
-    use magistr_workflow::ship::domain::task::TaskType;
+    use magistr_workflow::run::domain::step::StepType;
     use tokio::io::{AsyncBufReadExt as _, BufReader};
     use tokio::time::{Duration, timeout};
 
@@ -153,8 +153,8 @@ async fn a_host_started_owner_publishes_existing_execution_views() {
         .with_broadcast_path(Some(tmp.path().join("feed.sock")));
     let host = EngineClient::with_config(cfg.clone()).expect("host owner");
     let writer = host.writer().expect("writer");
-    let task_view = writer
-        .for_working_copy(&root, "task")
+    let step_view = writer
+        .for_working_copy(&root, "step")
         .expect("execution before serving");
     let endpoint = host.serve_owner().await.expect("serve").expect("supported");
     let stream = tokio::net::UnixStream::connect(cfg.feed_socket_path())
@@ -168,17 +168,17 @@ async fn a_host_started_owner_publishes_existing_execution_views() {
             .wait_for_subscribers(1, Duration::from_secs(2))
             .await
     );
-    task_view
-        .ship_set_objective("A task".into(), vec![], vec![], "task".into())
-        .expect("objective");
-    task_view
-        .ship_add_task(
+    step_view
+        .run_open("A step".into(), vec![], vec![], "step".into())
+        .expect("goal");
+    step_view
+        .add_step(
             "verify".into(),
             "Verify changes".into(),
-            TaskType::Test,
+            StepType::Test,
             None,
         )
-        .expect("task");
+        .expect("step");
     let mut lines = BufReader::new(stream).lines();
     let frame: serde_json::Value = serde_json::from_str(
         &timeout(Duration::from_secs(2), lines.next_line())
@@ -188,10 +188,10 @@ async fn a_host_started_owner_publishes_existing_execution_views() {
             .expect("frame"),
     )
     .expect("frame JSON");
-    assert_eq!(frame["family"], "ship");
+    assert_eq!(frame["family"], "run");
     assert_eq!(
         frame["execution_key"],
-        task_view.config().execution_context().key()
+        step_view.config().execution_context().key()
     );
     assert_eq!(
         frame["epoch"].as_u64(),

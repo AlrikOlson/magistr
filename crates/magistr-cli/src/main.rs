@@ -311,8 +311,8 @@ async fn run_cli() -> eyre::Result<()> {
             commands::config::cmd_import(&dir, &source, force)
         }
         Command::Costs { query } => commands::session::cmd_costs(&query, &inputs),
-        Command::Plans { dir, status, limit } => {
-            commands::misc::cmd_plans(&dir, status, limit, &*renderer, &inputs)
+        Command::Runs { dir, status, limit } => {
+            commands::misc::cmd_runs(&dir, status, limit, &*renderer, &inputs)
         }
         Command::Sessions {
             project,

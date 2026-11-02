@@ -14,7 +14,7 @@ use magistr_engine::native::{
 };
 use magistr_engine::{
     ChunkStatus, NativeConfig, NativeEngines, NativeReader, OwnerEndpoint, ProjectAuthority,
-    TaskType, WriterRole,
+    StepType, WriterRole,
 };
 use magistr_workflow::signal::domain::SignalKind;
 use magistr_workspace::service::WorkspaceOpenOptions;
@@ -97,12 +97,12 @@ fn chunk_ids(reader: &NativeReader) -> Vec<String> {
     ids
 }
 
-fn checks_on(reader: &NativeReader, task: &str) -> Vec<String> {
+fn checks_on(reader: &NativeReader, step: &str) -> Vec<String> {
     reader
-        .ship_tasks()
+        .run_steps()
         .unwrap()
         .into_iter()
-        .filter(|t| t.id == task)
+        .filter(|t| t.id == step)
         .flat_map(|t| t.checks)
         .map(|check| check.name)
         .collect()
@@ -183,23 +183,23 @@ async fn an_attached_command_is_current_on_every_capability_and_observer() {
 }
 
 #[test]
-fn shared_ship_capabilities_and_observers_retain_a_recorded_gate() {
+fn shared_run_capabilities_and_observers_retain_a_recorded_gate() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let host = writer(&cfg, WriterRole::Host);
     let service = host.clone();
     let observer = reader(&cfg);
 
-    // The host opens the cycle: an objective with one task, started.
-    host.ship_set_objective("cycle".into(), vec![], vec![], "chunk:c1".into())
-        .expect("objective");
-    host.ship_add_task("verify".into(), "verify".into(), TaskType::Test, None)
-        .expect("task");
-    host.ship_start_task("verify").expect("start");
+    // The host opens the cycle: a goal with one step, started.
+    host.run_open("cycle".into(), vec![], vec![], "chunk:c1".into())
+        .expect("goal");
+    host.add_step("verify".into(), "verify".into(), StepType::Test, None)
+        .expect("step");
+    host.start_step("verify").expect("start");
 
-    // The service view records a gate on the same admitted task.
+    // The service view records a gate on the same admitted step.
     let check = service
-        .ship_record_gate(
+        .run_record_gate(
             Some("verify"),
             "lint",
             "cargo clippy".into(),
@@ -208,15 +208,15 @@ fn shared_ship_capabilities_and_observers_retain_a_recorded_gate() {
             true,
             None,
         )
-        .expect("the service sees the host's task");
+        .expect("the service sees the host's step");
     assert!(check.value.verified && check.value.passed);
     assert_eq!(
-        service.ship_active_task_id().unwrap().as_deref(),
+        service.run_active_step_id().unwrap().as_deref(),
         Some("verify")
     );
 
     // Completing through another capability preserves the recorded check.
-    let completed = host.ship_complete_task("verify", vec![]).expect("complete");
+    let completed = host.finish_step("verify", vec![]).expect("complete");
     assert_eq!(
         completed
             .value
@@ -225,31 +225,27 @@ fn shared_ship_capabilities_and_observers_retain_a_recorded_gate() {
             .map(|c| c.name.as_str())
             .collect::<Vec<_>>(),
         vec!["lint"],
-        "the host's verb answered the current task"
+        "the host's verb answered the current step"
     );
     assert_eq!(checks_on(&reader(&cfg), "verify"), vec!["lint".to_owned()]);
     assert_eq!(
-        host.ship_tasks()
+        host.run_steps()
             .unwrap()
             .iter()
-            .filter(
-                |task| task.status == magistr_workflow::ship::domain::task::TaskStatus::Completed
-            )
+            .filter(|step| step.status == magistr_workflow::run::domain::step::StepStatus::Done)
             .count(),
         1
     );
 
     // Queries read through as well: the service's status answers the
-    // completed task the host wrote, and a reader opened on the empty
+    // completed step the host wrote, and a reader opened on the empty
     // store answers the whole cycle — no reload on either.
     assert_eq!(
         service
-            .ship_tasks()
+            .run_steps()
             .unwrap()
             .iter()
-            .filter(
-                |task| task.status == magistr_workflow::ship::domain::task::TaskStatus::Completed
-            )
+            .filter(|step| step.status == magistr_workflow::run::domain::step::StepStatus::Done)
             .count(),
         1,
         "a query on the shared capability observes the current cycle"
@@ -257,23 +253,21 @@ fn shared_ship_capabilities_and_observers_retain_a_recorded_gate() {
     assert_eq!(checks_on(&observer, "verify"), vec!["lint".to_owned()]);
     assert_eq!(
         observer
-            .ship_tasks()
+            .run_steps()
             .unwrap()
             .iter()
-            .filter(
-                |task| task.status == magistr_workflow::ship::domain::task::TaskStatus::Completed
-            )
+            .filter(|step| step.status == magistr_workflow::run::domain::step::StepStatus::Done)
             .count(),
         1
     );
     assert_eq!(
         observer
             .snapshot()
-            .ship
+            .run
             .current()
             .unwrap()
             .value
-            .tasks()
+            .steps()
             .len(),
         1
     );

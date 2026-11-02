@@ -30,7 +30,7 @@ async fn failed_worker_retains_success_and_marks_unread_families_unavailable() {
             ..
         }
     ));
-    assert!(matches!(failed.ship, ReadState::Unavailable(_)));
+    assert!(matches!(failed.run, ReadState::Unavailable(_)));
     assert!(failed.needs_retry());
 }
 

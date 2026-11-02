@@ -427,7 +427,7 @@ fn every_real_field_carries_a_stable_datatype() {
     );
 }
 
-/// A default board DOES ship a field called Status — so "Status is conventional
+/// A default board DOES run a field called Status — so "Status is conventional
 /// but not guaranteed" is right about the guarantee and wrong about the odds.
 /// 9b must still degrade when it is absent, but the common case is that it is
 /// there, with these three options, and that is worth pinning.

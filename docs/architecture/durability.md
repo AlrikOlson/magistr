@@ -76,7 +76,7 @@ effect:
 | --- | --- | --- | --- |
 | Reserve | `Reservation` `attempt:<n>` | pre-iteration check | the checkpoint itself |
 | Launch | `ProviderDispatch` `dispatch` (or `dispatch:<delivery>` per delegated delivery) | `Accepted` before connect; `Running` with the runtime's handle `pid:<pgid>@<start>` the moment the transport has spawned, before the session is opened | the turn: ended → `Completed`, closed → `Cancelled`, failed → `Failed`; a session that cannot be opened → `Failed` |
-| Record | `Receipt` `gate:<name>@task:<task>` | `Accepted` before the gate is admitted; `Running` with `receipt:<id>` — the durable receipt's id — once admitted, before the gate runs | the ledger's settlement: applied → `Completed`, stale or refused → `Failed`; an admission that fails → `Failed` |
+| Record | `CheckResult` `gate:<name>@step:<step>` | `Accepted` before the gate is admitted; `Running` with `check_result:<id>` — the durable check result's id — once admitted, before the gate runs | the ledger's settlement: applied → `Completed`, stale or refused → `Failed`; an admission that fails → `Failed` |
 | Mutate | `NativeMutation` `start_chunk:<id>`, `complete_chunk:<id>`, `set_blocked_by:<id>`, `set_status:<id>:<status>` | before the handler is called | the handler's answer |
 | Announce | `Publication` `frame:<kind>:<id>` | before the frame is posted | the post |
 
@@ -115,7 +115,7 @@ and operations. Malformed checkpoints and terminal runs with unresolved
 effects refuse a fresh start without replacing the saved checkpoint.
 Archival failure also leaves the previous checkpoint in place.
 
-Native execution state owns the objective and task plan. Command startup and
+Native execution state owns the goal and task plan. Command startup and
 iteration boundaries leave those records with their owner; loop cancellation
 does not imply task completion. Refused recovery preserves both the checkpoint
 and the native work needed to continue it.
@@ -136,7 +136,7 @@ effect. A dispatch's persisted launch phase also establishes whether the transpo
 | --- | --- | --- |
 | `Reservation` | the checkpoint carrying it | `Completed` |
 | `NativeMutation` | the chunk as the native store holds it now (`roadmap_chunk` after reload) | `Completed` when the verb's effect is visible (`start_chunk`: in progress or done; `complete_chunk`: done; `set_blocked_by`: a blocker; `set_status`: that status), else `Failed`; an unknown verb stays open |
-| `Receipt` | the durable receipt the record names (`ship_receipt` by the `receipt:<id>` handle) | `Completed` when that receipt is settled and applied; `Failed` when it is unsettled, settled stale, absent from the ledger, or the record carries no id — nothing was applied, since application needs the live loop's settlement, which always follows the persisted `Running`; a receipt naming another gate or task than the record does stays open. No check of the same name on the task is consulted |
+| `Receipt` | the durable receipt the record names (`run_check_result` by the `receipt:<id>` handle) | `Completed` when that receipt is settled and applied; `Failed` when it is unsettled, settled stale, absent from the ledger, or the record carries no id — nothing was applied, since application needs the live loop's settlement, which always follows the persisted `Running`; a receipt naming another gate or task than the record does stays open. No check of the same name on the task is consulted |
 | `Publication` | none needed | `Cancelled`: attached surfaces reseed from the store, where the announced mutation already is |
 | `ProviderDispatch` | the particular runtime the handle names (`is_live`: the id alive and holding the recorded start identity), then the attempt's Git baseline | `Failed` when its phase is `pending` and it has no handle; open without a handle when its phase is `started` or absent on an older checkpoint; open while the runtime is alive or the host cannot say; once it is gone — or its id is held by another process — `Completed` when HEAD advanced from the baseline (the baseline is an ancestor of HEAD, `git merge-base --is-ancestor`), else `Failed`. A reset, a rebase or a branch switch is movement, not an advance |
 
@@ -155,7 +155,7 @@ is the id's alone.
 Receipt compaction preserves exact IDs referenced by unresolved operations in the
 active checkpoint, including receipts already settled in the workflow store.
 It reads those references under the ledger lock, after pinning the current
-objective; the loop must persist its reference before receipt settlement.
+goal; the loop must persist its reference before receipt settlement.
 See [receipt retention](project-authority.md#receipt-retention). A corrupt or
 unreadable checkpoint refuses compaction.
 
@@ -250,7 +250,7 @@ against the binary.
 | Family | Store | Atomic unit | Cross-family atomicity |
 | --- | --- | --- | --- |
 | Loop run (run state, stop counters, budget, operations) | `.magistr/loop-state.json` | one whole-file atomic replacement | none with any other family; the ledger records the run's side of every effect |
-| Native workflow (roadmap, ship, think, signal) | magistr's own per-family files, written by the library | one family write | none across families; the library does not commit a mutation and its receipt together, so the ledger marks the operation and recovery reads the family back |
+| Native workflow (roadmap, run, think, signal) | magistr's own per-family files, written by the library | one family write | none across families; the library does not commit a mutation and its receipt together, so the ledger marks the operation and recovery reads the family back |
 | Cost history | the machine's cost ledger file | one whole-file atomic replacement | none; the shared session owner settles its optional cumulative spend after cleanup, replacing that conversation's entry; bookkeeping failures do not change the provider outcome |
 | Cockpit checkpoint spine | in-memory `SessionSnapshot` chain | one snapshot | none; it is the session's own ledger, not run persistence |
 | Peer journal | its own versioned journal | one accepted transition | none; peer reservations, unsettled worker attempts and receipts stay there and are not loop-checkpoint fields |
@@ -293,7 +293,7 @@ recovers untorn), native mutation (applied → `Completed` and deduplicated; los
 → `Failed` and retried as attempt two; every verb read back; an unknown verb
 stays open), receipt (admitted and never settled → `Failed` even with a
 same-named applied check on the task; applied → `Completed`; settled stale
-after the objective rolled over → `Failed`; no id → `Failed`; a record naming
+after the goal rolled over → `Failed`; no id → `Failed`; a record naming
 another gate's receipt stays open), publication, and provider dispatch against
 a real child process (open while alive, even after a commit; `Completed` once
 gone with HEAD advanced from the baseline, and then `Established` for the

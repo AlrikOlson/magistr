@@ -144,10 +144,7 @@ fn agent_context_supplies_workflow_guidance_without_rewriting_project_rules() {
     let recovery = magistr_engine::prompt::PromptConfig::NEXT_RECOVERY_GUIDANCE;
     for content in [
         None,
-        Some(
-            "Old project workflow: always select roadmap_next and create a new objective."
-                .to_owned(),
-        ),
+        Some("Old project workflow: always select roadmap_next and create a new goal.".to_owned()),
         Some(format!("Custom introduction.\n{guidance}\n{recovery}")),
     ] {
         if let Some(content) = &content {

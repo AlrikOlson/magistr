@@ -1,4 +1,4 @@
-//! Typed cross-references between `think_*` and `ship_*` entities.
+//! Typed cross-references between `think_*` and `run_*` entities.
 //!
 //! In-process, all cross-references are values of [`CrossRef`]. The wire
 //! contract used by tool inputs and persisted traces is a `prefix:value`
@@ -9,8 +9,8 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 pub type StepNumber = u32;
-pub type TaskId = String;
-pub type ActionId = u32;
+pub type StepId = String;
+pub type ProgressId = u32;
 pub type CheckName = String;
 pub type ChunkId = String;
 pub type SignalId = String;
@@ -29,10 +29,10 @@ const EXTERNAL_SEP: char = '/';
 #[serde(into = "String", try_from = "String")]
 pub enum CrossRef {
     ThinkStep(StepNumber),
-    ShipTask(TaskId),
-    ShipAction(ActionId),
-    ShipCheck(CheckName),
-    /// A roadmap chunk: the long-horizon item a ship objective
+    RunStep(StepId),
+    RunProgress(ProgressId),
+    RunCheck(CheckName),
+    /// A roadmap chunk: the long-horizon item a run goal
     /// realizes and a think step shapes. Wire form `chunk:<slug>`.
     RoadmapChunk(ChunkId),
     /// A stakeholder signal: the opportunity a roadmap chunk was
@@ -75,7 +75,7 @@ impl fmt::Display for ParseError {
             Self::MissingDelimiter => write!(f, "cross-ref string must contain ':'"),
             Self::UnknownPrefix(p) => write!(
                 f,
-                "unknown cross-ref prefix '{p}' (expected think|task|action|check|chunk|signal|ext)"
+                "unknown cross-ref prefix '{p}' (expected think|step|progress|check|chunk|signal|ext)"
             ),
             Self::InvalidNumber(s) => write!(f, "expected integer, got '{s}'"),
             Self::EmptyValue => write!(f, "cross-ref value is empty"),
@@ -101,15 +101,15 @@ impl CrossRef {
         }
     }
 
-    /// Serialize to the wire string form: `think:42`, `task:auth-refactor`,
-    /// `action:5`, `check:cargo-test`, `chunk:phase-26c`,
+    /// Serialize to the wire string form: `think:42`, `step:auth-refactor`,
+    /// `progress:5`, `check:cargo-test`, `chunk:phase-26c`,
     /// `ext:github/1234`.
     pub fn to_wire(&self) -> String {
         match self {
             Self::ThinkStep(n) => format!("think:{n}"),
-            Self::ShipTask(id) => format!("task:{id}"),
-            Self::ShipAction(n) => format!("action:{n}"),
-            Self::ShipCheck(name) => format!("check:{name}"),
+            Self::RunStep(id) => format!("step:{id}"),
+            Self::RunProgress(n) => format!("progress:{n}"),
+            Self::RunCheck(name) => format!("check:{name}"),
             Self::RoadmapChunk(id) => format!("chunk:{id}"),
             Self::SignalRef(id) => format!("signal:{id}"),
             Self::External {
@@ -128,16 +128,16 @@ impl CrossRef {
             return Err(ParseError::EmptyValue);
         }
         match prefix.trim().to_ascii_lowercase().as_str() {
-            "think" | "step" => value
+            "think" => value
                 .parse::<u32>()
                 .map(Self::ThinkStep)
                 .map_err(|_| ParseError::InvalidNumber(value.to_string())),
-            "task" => Ok(Self::ShipTask(value.to_string())),
-            "action" => value
+            "step" => Ok(Self::RunStep(value.to_string())),
+            "progress" => value
                 .parse::<u32>()
-                .map(Self::ShipAction)
+                .map(Self::RunProgress)
                 .map_err(|_| ParseError::InvalidNumber(value.to_string())),
-            "check" => Ok(Self::ShipCheck(value.to_string())),
+            "check" => Ok(Self::RunCheck(value.to_string())),
             "chunk" => Ok(Self::RoadmapChunk(value.to_string())),
             "signal" => Ok(Self::SignalRef(value.to_string())),
             // Split on the FIRST separator only: everything after it is the
@@ -160,6 +160,50 @@ impl CrossRef {
                 }
             }
             other => Err(ParseError::UnknownPrefix(other.to_string())),
+        }
+    }
+}
+
+impl CrossRef {
+    /// Rewrite every stored reference in `value` to the run vocabulary, once:
+    /// `step:<n>` (the retired spelling of a reasoning step) becomes
+    /// `think:<n>` first, then `task:<id>` becomes `step:<id>` and
+    /// `action:<n>` becomes `progress:<n>`. Only whole reference strings are
+    /// rewritten; prose that merely starts with a prefix keeps its words.
+    /// Returns whether anything changed.
+    pub fn upgrade_stored_refs(value: &mut serde_json::Value) -> bool {
+        match value {
+            serde_json::Value::String(text) => match Self::upgraded_ref(text) {
+                Some(upgraded) => {
+                    *text = upgraded;
+                    true
+                }
+                None => false,
+            },
+            serde_json::Value::Array(items) => items.iter_mut().fold(false, |changed, item| {
+                Self::upgrade_stored_refs(item) | changed
+            }),
+            serde_json::Value::Object(fields) => {
+                fields.values_mut().fold(false, |changed, item| {
+                    Self::upgrade_stored_refs(item) | changed
+                })
+            }
+            _ => false,
+        }
+    }
+
+    fn upgraded_ref(text: &str) -> Option<String> {
+        let (prefix, rest) = text.split_once(':')?;
+        if rest.is_empty() || rest.chars().any(char::is_whitespace) {
+            return None;
+        }
+        match prefix {
+            "step" if rest.chars().all(|c| c.is_ascii_digit()) => Some(format!("think:{rest}")),
+            "task" => Some(format!("step:{rest}")),
+            "action" if rest.chars().all(|c| c.is_ascii_digit()) => {
+                Some(format!("progress:{rest}"))
+            }
+            _ => None,
         }
     }
 }
@@ -199,18 +243,18 @@ mod tests {
     }
 
     #[test]
-    fn round_trip_ship_task() {
-        round_trip(CrossRef::ShipTask("auth-refactor".to_string()));
+    fn round_trip_run_task() {
+        round_trip(CrossRef::RunStep("auth-refactor".to_string()));
     }
 
     #[test]
-    fn round_trip_ship_action() {
-        round_trip(CrossRef::ShipAction(7));
+    fn round_trip_run_action() {
+        round_trip(CrossRef::RunProgress(7));
     }
 
     #[test]
-    fn round_trip_ship_check() {
-        round_trip(CrossRef::ShipCheck("cargo-test".to_string()));
+    fn round_trip_check_step() {
+        round_trip(CrossRef::RunCheck("cargo-test".to_string()));
     }
 
     #[test]
@@ -345,9 +389,9 @@ mod tests {
     fn existing_wire_forms_are_unaffected() {
         for (wire, expected) in [
             ("think:42", CrossRef::ThinkStep(42)),
-            ("task:auth", CrossRef::ShipTask("auth".into())),
-            ("action:5", CrossRef::ShipAction(5)),
-            ("check:cargo-test", CrossRef::ShipCheck("cargo-test".into())),
+            ("step:auth", CrossRef::RunStep("auth".into())),
+            ("progress:5", CrossRef::RunProgress(5)),
+            ("check:cargo-test", CrossRef::RunCheck("cargo-test".into())),
             ("chunk:phase-1", CrossRef::RoadmapChunk("phase-1".into())),
             ("signal:abc", CrossRef::SignalRef("abc".into())),
         ] {
@@ -356,10 +400,19 @@ mod tests {
         }
     }
 
+    /// The run family's words replaced `task:` and `action:`, and `step:`
+    /// names a run step, never a reasoning step. The old spellings are
+    /// refused like any unknown prefix; the store upgrade rewrote them.
     #[test]
-    fn legacy_step_prefix_parses() {
-        let r = CrossRef::from_wire("step:9").unwrap();
-        assert_eq!(r, CrossRef::ThinkStep(9));
+    fn retired_run_prefixes_are_refused() {
+        for old in ["task:auth", "action:5"] {
+            let e = CrossRef::from_wire(old).unwrap_err();
+            assert!(matches!(e, ParseError::UnknownPrefix(_)), "{old}");
+        }
+        assert_eq!(
+            CrossRef::from_wire("step:9").unwrap(),
+            CrossRef::RunStep("9".into())
+        );
     }
 
     #[test]
@@ -370,14 +423,40 @@ mod tests {
 
     #[test]
     fn missing_delimiter_rejected() {
-        let e = CrossRef::from_wire("task-without-colon").unwrap_err();
+        let e = CrossRef::from_wire("step-without-colon").unwrap_err();
         assert_eq!(e, ParseError::MissingDelimiter);
     }
 
     #[test]
     fn empty_value_rejected() {
-        let e = CrossRef::from_wire("task: ").unwrap_err();
+        let e = CrossRef::from_wire("step: ").unwrap_err();
         assert_eq!(e, ParseError::EmptyValue);
+    }
+
+    #[test]
+    fn stored_references_take_the_run_words_in_order() {
+        let mut stored = serde_json::json!({
+            "cross_refs": ["task:auth", "action:4", "step:9", "think:2", "chunk:x", "check:lint"],
+            "execution_ref": "task:verify",
+            "context": "task: read the notes first",
+            "nested": [{"ref": "action:12"}],
+        });
+        assert!(CrossRef::upgrade_stored_refs(&mut stored));
+        assert_eq!(
+            stored,
+            serde_json::json!({
+                "cross_refs": ["step:auth", "progress:4", "think:9", "think:2", "chunk:x", "check:lint"],
+                "execution_ref": "step:verify",
+                "context": "task: read the notes first",
+                "nested": [{"ref": "progress:12"}],
+            })
+        );
+        let once = stored.clone();
+        assert!(
+            !CrossRef::upgrade_stored_refs(&mut stored),
+            "a second pass changes nothing"
+        );
+        assert_eq!(stored, once);
     }
 
     #[test]
@@ -388,15 +467,15 @@ mod tests {
 
     #[test]
     fn case_insensitive_prefix() {
-        let r = CrossRef::from_wire("TASK:foo").unwrap();
-        assert_eq!(r, CrossRef::ShipTask("foo".to_string()));
+        let r = CrossRef::from_wire("STEP:foo").unwrap();
+        assert_eq!(r, CrossRef::RunStep("foo".to_string()));
     }
 
     #[test]
     fn serde_round_trip() {
-        let r = CrossRef::ShipTask("x".to_string());
+        let r = CrossRef::RunStep("x".to_string());
         let json = serde_json::to_string(&r).unwrap();
-        assert_eq!(json, "\"task:x\"");
+        assert_eq!(json, "\"step:x\"");
         let back: CrossRef = serde_json::from_str(&json).unwrap();
         assert_eq!(r, back);
     }

@@ -7,7 +7,7 @@ description: Research and update a focused part of Magistr's native roadmap with
 
 Apply [craft](../craft/SKILL.md) and its runtime contract. Use **magistr** native
 roadmap/reasoning tools, **magistr** workspace code grounding, and the host's web
-tools. Do one focused research pass without starting an implementation objective.
+tools. Do one focused research pass without starting an implementation goal.
 
 1. Read `roadmap_status`, relevant chunks, and pertinent prior reasoning. Use
    the user's topic or state one consequential stale area. If the roadmap is
@@ -30,4 +30,4 @@ tools. Do one focused research pass without starting an implementation objective
    Honor the runtime's roadmap/export policy. Report changes, remaining proposals,
    evidence, and the next useful decision. Stop without implementing a chunk.
 
-Preserve active implementation objectives and the existing shared state store.
+Preserve active implementation goals and the existing shared state store.

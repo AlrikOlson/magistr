@@ -29,10 +29,10 @@ def violations(tree, check_dependencies=True):
 
     for name, text in sources.items():
         if not name.startswith((NATIVE, WORKFLOW)):
-            refuse(name, text, r"\b(RoadmapEngine|ShipEngine|SignalEngine|ReasoningServer|ThinkService|ShipService|RoadmapService|SignalService|ThinkUseCases|ShipUseCases|RoadmapUseCases|SignalUseCases)\b|UnifiedService::new|open_engines\(",
+            refuse(name, text, r"\b(RoadmapEngine|RunEngine|SignalEngine|ReasoningServer|ThinkService|RunService|RoadmapService|SignalService|ThinkUseCases|RunUseCases|RoadmapUseCases|SignalUseCases)\b|UnifiedService::new|open_engines\(",
                    "composes or names a workflow engine or service outside magistr-engine/src/native")
         if name.startswith(NATIVE) and name != NATIVE + "native_reader.rs":
-            refuse(name, text, r"roadmap_engine\(\)|ship_engine\(\)|think_engine\(\)|signal_engine\(\)|lock\(&self\.(roadmap|ship|think|signal)\)",
+            refuse(name, text, r"roadmap_engine\(\)|run_engine\(\)|think_engine\(\)|signal_engine\(\)|lock\(&self\.(roadmap|run|think|signal)\)",
                    "takes an engine lock outside the native reader", comments=True)
         if name == NATIVE + "native_engines.rs":
             refuse(name, text, r"Parameters|CallToolResult|::mcp::|serde_json::from_|Waker::noop|handler_call|\.record_check_full\(",
@@ -44,7 +44,7 @@ def violations(tree, check_dependencies=True):
             refuse(name, text, r"(^|[^a-zA-Z0-9_])(rmcp|CallToolResult|Parameters)|::mcp::|Waker::noop",
                    "couples a native application use case to MCP")
         if not name.startswith((NATIVE, APPLICATION)):
-            refuse(name, text, r"\.(ship_admit_gate|ship_admit_check|ship_reuse_gate|ship_settle_gate|ship_record_gate)\(",
+            refuse(name, text, r"\.(run_admit_gate|run_admit_check|run_reuse_gate|run_settle_gate|run_record_gate)\(",
                    "admits or settles a check outside the composition boundary (use magistr::application::AdmittedCheck)")
         admission = bool(hits(text, r"ProjectAuthority::(admit|admit_for_project)\(", comments=False))
         if admission and not name.startswith((NATIVE, "crates/magistr-core/src/evidence/")):

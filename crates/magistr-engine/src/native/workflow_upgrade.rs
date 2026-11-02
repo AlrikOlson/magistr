@@ -37,7 +37,7 @@ impl WorkflowUpgrade {
     }
 
     pub fn has_records(config: &NativeConfig, id: &str) -> io::Result<bool> {
-        Ok(!records(config.data_dir(), id)?.is_empty())
+        Ok(!records(config.data_dir(), id, CURRENT_FAMILIES)?.is_empty())
     }
 
     pub(super) fn ready(
@@ -45,6 +45,7 @@ impl WorkflowUpgrade {
         id: &str,
     ) -> Result<(), magistr_workflow_contracts::ReadError> {
         use magistr_workflow_contracts::{ReadError, ReadErrorKind};
+        super::RunWordsUpgrade::ready(config, id)?;
         if !config.persist || older_root(config.data_dir()).is_none() {
             return Ok(());
         }
@@ -100,7 +101,7 @@ impl WorkflowUpgrade {
             }
             // Fence every source before conversion. The originals remain recovery
             // evidence; only current documents are published to the new store.
-            for relative in records(&source, id)? {
+            for relative in records(&source, id, OLDER_FAMILIES)? {
                 let old = checked_path(&source, &relative)?;
                 fences.push(lock_file(
                     &old.with_extension("json.lock"),
@@ -167,10 +168,16 @@ fn refuse_work_saved_elsewhere(config: &NativeConfig, id: &str) -> io::Result<()
         let found = [Some(store.as_path()), older.as_deref()]
             .into_iter()
             .flatten()
-            .find_map(|root| match records(root, id) {
-                Ok(found) if !found.is_empty() => Some(Ok(root.to_path_buf())),
-                Ok(_) => None,
-                Err(error) => Some(Err(error)),
+            .find_map(|root| {
+                let found = records(root, id, CURRENT_FAMILIES).and_then(|mut found| {
+                    found.extend(records(root, id, OLDER_FAMILIES)?);
+                    Ok(found)
+                });
+                match found {
+                    Ok(found) if !found.is_empty() => Some(Ok(root.to_path_buf())),
+                    Ok(_) => None,
+                    Err(error) => Some(Err(error)),
+                }
             });
         if let Some(root) = found.transpose()? {
             return Err(io::Error::other(format!(
@@ -191,9 +198,14 @@ fn older_root(current: &Path) -> Option<PathBuf> {
         .flatten()
 }
 
-fn records(root: &Path, id: &str) -> io::Result<Vec<PathBuf>> {
+/// Family directories in the current store and in the older standalone store,
+/// whose run family was still named `ship`.
+const CURRENT_FAMILIES: [&str; 4] = ["think", "run", "roadmap", "signal"];
+const OLDER_FAMILIES: [&str; 4] = ["think", "ship", "roadmap", "signal"];
+
+fn records(root: &Path, id: &str, families: [&str; 4]) -> io::Result<Vec<PathBuf>> {
     let mut found = Vec::new();
-    for family in ["think", "ship", "roadmap", "signal"] {
+    for family in families {
         visit(root, Path::new(family), id, &mut found)?;
     }
     found.sort();
@@ -242,10 +254,10 @@ fn converted_records(
     id: &str,
     records: Vec<(PathBuf, Vec<u8>)>,
 ) -> io::Result<Vec<(PathBuf, Vec<u8>)>> {
-    use magistr_workflow::{roadmap::RoadmapEngine, ship, signal::SignalEngine, think};
+    use magistr_workflow::{roadmap::RoadmapEngine, run, signal::SignalEngine, think};
     use std::collections::BTreeMap;
     let execution = super::ExecutionContext::new(&config.workflow_root(), "default")?;
-    let execution_root = Path::new("ship/executions").join(execution.key());
+    let execution_root = Path::new("run/executions").join(execution.key());
     let mut converted = BTreeMap::new();
     let mut histories = BTreeMap::new();
     for (relative, bytes) in records {
@@ -261,19 +273,34 @@ fn converted_records(
         }
         let mut target = relative.clone();
         let bytes = if relative.starts_with("ship") {
-            if let Ok(receipt) = relative.strip_prefix("ship/receipts") {
-                target = execution_root.join("receipts").join(receipt);
-                bytes
+            // The older store names the run family `ship` and keeps its check
+            // results under `receipts`; both take the run words here.
+            let renamed: PathBuf = relative
+                .components()
+                .enumerate()
+                .map(|(index, part)| match part.as_os_str().to_str() {
+                    Some("ship") if index == 0 => "run".into(),
+                    Some("receipts") => "check_results".into(),
+                    _ => part.as_os_str().to_owned(),
+                })
+                .collect();
+            if let Ok(check_result) = relative.strip_prefix("ship/receipts") {
+                target = execution_root.join("check_results").join(check_result);
+                run::persistence::Persistence::upgrade_check_result(&bytes)
+                    .map_err(|error| io::Error::other(format!("{}: {error}", relative.display())))?
             } else if relative
                 .components()
                 .any(|part| part.as_os_str() == "receipts")
             {
-                bytes
+                target = renamed;
+                run::persistence::Persistence::upgrade_check_result(&bytes)
+                    .map_err(|error| io::Error::other(format!("{}: {error}", relative.display())))?
             } else {
+                target = renamed;
                 if relative.parent() == Some(Path::new("ship/sessions")) {
                     target = execution_root.join("sessions").join(format!("{id}.json"));
                 }
-                ship::persistence::Persistence::upgrade_document(&bytes, id)
+                run::persistence::Persistence::upgrade_document(&bytes, id)
                     .map_err(|error| io::Error::other(format!("{}: {error}", relative.display())))?
             }
         } else if relative == Path::new("roadmap/sessions").join(format!("{id}.json")) {

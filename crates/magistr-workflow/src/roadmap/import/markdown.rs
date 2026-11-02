@@ -662,7 +662,7 @@ mod tests {
 - [x] Buy milk
 - [ ] Walk the dog
 - [~] Write the report
-- [ ] Ship it 🎉
+- [ ] Run it 🎉
 ";
         let c = parse_markdown(md);
         assert_eq!(c.len(), 4);
@@ -673,7 +673,7 @@ mod tests {
             ChunkStatus::InProgress
         );
         // emoji marker wins for the last one
-        assert_eq!(by_id(&c, "ship-it").status, ChunkStatus::Done);
+        assert_eq!(by_id(&c, "run-it").status, ChunkStatus::Done);
     }
 
     #[test]

@@ -185,7 +185,7 @@ fn shared_workflow_uses_native_phases_and_the_task_lifecycle() {
         (0..=crate::WorkflowPhase::Complete.step_index()).collect::<Vec<_>>(),
         "one complete phase progression in runtime order"
     );
-    for tool in ["plan_work", "start_work", "finish_work"] {
+    for tool in ["arrange_steps", "start_step", "finish_step"] {
         assert!(
             shared.contains(tool),
             "native task lifecycle requires {tool}"

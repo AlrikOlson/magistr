@@ -72,7 +72,7 @@ The upstream packaging files that the import first retained (`CHANGELOG.md`,
 `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `deny.toml`,
 `docs/deploy/`, `docs/RELEASING.md`, `docs/DEPLOYMENT.md`, `scripts/`) were
 deleted by `arch-14f4-rehome-naming`: they described releasing a product
-Magistr does not ship.
+Magistr does not run.
 Ignored local artifacts, credentials, build products, and workflow stores are
 not source inputs.
 
@@ -176,27 +176,27 @@ Living under `crates/` grants no blanket vendor exemption, and the
 `native-write-path` gate's composition rule treats the crate as the thing
 being composed rather than as a composer. All other
 configured required gates remain part of acceptance.
-Recorded checks in native ship state identify the actual implementation
+Recorded checks in native run state identify the actual implementation
 worktree and results; earlier architecture-only checks do not certify this
 import.
 
 ## Migration boundary
 
 `arch-14b-workflow-use-cases` adds native application modules for reasoning,
-ship, roadmap, and signals. Validation, reciprocal-family operations, tracker
+run, roadmap, and signals. Validation, reciprocal-family operations, tracker
 setup, and ordinary completion policy now sit beneath CLI/MCP adapters.
 Synchronous commands return typed values; command execution, provider probes,
 and approval waits use explicit async capabilities. Native callers no longer
 serialize MCP arguments, decode tool results, or poll handlers with a noop waker.
 Existing tool names and versioned owner replies remain transport contracts.
 
-Ship state gains optional execution identity metadata in its existing native
-store. Legacy stores remain readable; new objective runs and task instances
+Run state gains optional execution identity metadata in its existing native
+store. Legacy stores remain readable; new goal runs and task instances
 receive fresh identities. Check admission captures project/run/task instance
 before execution, and settlement compares the persisted identity under the
 existing file lock before appending. A stale outcome is returned intact rather
 than attached to a reused task name. This is a correlation interface, not durable
-CheckReceipt storage or exactly-once settlement; inherited general mutations
+CheckResult storage or exactly-once settlement; inherited general mutations
 retain their merge semantics and ordinary finalization warnings.
 
 New regressions cover native/MCP success and refusal parity, reciprocal-family

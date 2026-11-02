@@ -80,17 +80,17 @@ test("06 track choices show owner counts and preserve the selection",async({app}
 });
 test("07 work searches clear directly and restore the collection",async({app})=>{
   await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
-  for(const [tab,label] of [["Roadmap","Search all roadmap"],["Reasoning","Search all reasoning"],["Feedback","Search feedback"],["Current and saved work","Find a task"]]){
+  for(const [tab,label] of [["Roadmap","Search all roadmap"],["Reasoning","Search all reasoning"],["Feedback","Search feedback"],["Current and saved work","Find a step"]]){
     await app.getByRole("tab",{name:tab,exact:true}).click();
     const input=app.getByLabel(label,{exact:true});await input.fill("no-matching-record-xyz");
     const clear=app.getByRole("button",{name:"Clear "+label.toLowerCase(),exact:true});
     await expect(clear).toBeVisible();await clear.click();await expect(input).toHaveValue("");await expect(input).toBeFocused();await expect(clear).toBeHidden();
   }
-  await app.getByLabel("Find a task",{exact:true}).fill("installer");await capture(app,"07-search-clear");
+  await app.getByLabel("Find a step",{exact:true}).fill("installer");await capture(app,"07-search-clear");
 });
 test("08 find shortcut selects the visible work search",async({app})=>{
   await openWork(app,"Roadmap");
-  for(const [tab,label] of [["Roadmap","Search all roadmap"],["Reasoning","Search all reasoning"],["Feedback","Search feedback"],["Current and saved work","Find a task"]]){
+  for(const [tab,label] of [["Roadmap","Search all roadmap"],["Reasoning","Search all reasoning"],["Feedback","Search feedback"],["Current and saved work","Find a step"]]){
     await app.getByRole("tab",{name:tab,exact:true}).click();await app.keyboard.press("Control+f");await expect(app.getByLabel(label,{exact:true})).toBeFocused();
     await app.getByLabel(label,{exact:true}).fill("installer");await app.keyboard.press("Meta+f");
     expect(await app.getByLabel(label,{exact:true}).evaluate(input=>input.selectionEnd-input.selectionStart)).toBe(9);
@@ -100,22 +100,22 @@ test("08 find shortcut selects the visible work search",async({app})=>{
 });
 test("09 work subviews use directly selectable native controls",async({app})=>{
   await openWork(app);await app.setViewportSize({width:760,height:550});
-  const plan=app.getByRole("radio",{name:"Plan and tasks",exact:true});await plan.focus();await app.keyboard.press("ArrowRight");
+  const plan=app.getByRole("radio",{name:"Plan and steps",exact:true});await plan.focus();await app.keyboard.press("ArrowRight");
   await expect(app.getByRole("radio",{name:"Checks",exact:true})).toBeChecked();await expect(app.getByLabel("Find a check",{exact:true})).toBeVisible();
   await app.keyboard.press("ArrowRight");await expect(app.getByLabel("Find activity",{exact:true})).toBeVisible();
-  await app.getByRole("radio",{name:"Plan and tasks",exact:true}).check();await expect(app.getByLabel("Find a task",{exact:true})).toBeVisible();
+  await app.getByRole("radio",{name:"Plan and steps",exact:true}).check();await expect(app.getByLabel("Find a step",{exact:true})).toBeVisible();
   expect(await app.locator(".work-browser-filters").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
   await capture(app,"09-subviews");
 });
-test("10 task overview shows actual progress without repeated totals",async({app})=>{
+test("10 step overview shows actual progress without repeated totals",async({app})=>{
   await openWork(app);await app.setViewportSize({width:760,height:550});
-  const overview=app.locator(".work-task-overview");await overview.scrollIntoViewIfNeeded();
-  await expect(overview.locator("dt")).toHaveText(["Total","Completed","In progress","Planned"]);
+  const overview=app.locator(".work-step-overview");await overview.scrollIntoViewIfNeeded();
+  await expect(overview.locator("dt")).toHaveText(["Total","Done","Active","Planned"]);
   await expect(overview.locator("dd")).toHaveText(["3","1","1","1"]);
   await expect(app.locator(".work-record-section>.work-pages")).toHaveCount(0);
-  await capture(app,"10-task-overview");
-  await app.getByLabel("Task status",{exact:true}).selectOption("active");
-  await expect(app.locator(".work-tasks>li")).toHaveCount(1);await expect(overview.locator("dd").first()).toHaveText("3");
+  await capture(app,"10-step-overview");
+  await app.getByLabel("Step status",{exact:true}).selectOption("active");
+  await expect(app.locator(".work-steps>li")).toHaveCount(1);await expect(overview.locator("dd").first()).toHaveText("3");
 });
 test("11 checks present labeled facts with complete recorded times",async({app})=>{
   await openWork(app);await app.getByRole("radio",{name:"Checks",exact:true}).check();

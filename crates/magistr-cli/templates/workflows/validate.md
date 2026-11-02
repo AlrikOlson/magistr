@@ -15,12 +15,12 @@ An empty command means the check is not configured. Report the missing check;
 never substitute a passing no-op or count it as successful verification.
 
 Report each gate's actual result, exit code, actionable failure details, and
-whether it was recorded in ship state. Outside an active task, `recorded: false`
+whether it was recorded in run state. Outside an active step, `recorded: false`
 is expected and does not negate the command result. Do not create or reset
-an objective merely to validate. Inside `{{invoke}}next`, the verification task
+a goal merely to validate. Inside `{{invoke}}next`, the verification step
 must be active and all required checks recorded before completion; follow the
 runtime contract's one-retry recovery if recording fails.
 
 Validation alone does not authorize repairs, formatting, a commit, roadmap
 completion, or a loop. If part of an already authorized fix, repair and rerun
-relevant gates within that task.
+relevant gates within that step.

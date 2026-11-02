@@ -160,10 +160,10 @@ fn a_lost_loop_explains_stalled_recoverable_settled_and_indeterminate_records() 
             record(
                 &run,
                 "0/gate:test",
-                "receipt",
-                "gate:test@task:verify",
+                "check_result",
+                "gate:test@step:verify",
                 "running",
-                json!("receipt:r-17"),
+                json!("check_result:r-17"),
             ),
             record(
                 &run,
@@ -226,8 +226,8 @@ fn a_lost_loop_explains_stalled_recoverable_settled_and_indeterminate_records() 
     );
     let receipt = &listed[2];
     assert_eq!(receipt["check"]["gate"], "test");
-    assert_eq!(receipt["check"]["task"], "verify");
-    assert_eq!(receipt["check"]["receipt"], "r-17");
+    assert_eq!(receipt["check"]["step"], "verify");
+    assert_eq!(receipt["check"]["check_result"], "r-17");
     assert_eq!(receipt["settlement"]["ownershipReleased"], true);
     assert!(
         receipt["explanation"]

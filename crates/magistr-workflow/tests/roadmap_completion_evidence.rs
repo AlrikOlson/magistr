@@ -1,16 +1,16 @@
-//! Completion governed by the ship run's receipts, on every roadmap route.
+//! Completion governed by the run run's check_results, on every roadmap route.
 
 use std::sync::{Arc, Mutex};
 
 use magistr_workflow::roadmap::RoadmapEngine;
 use magistr_workflow::roadmap::application::{ChunkDraft, RoadmapError, RoadmapUseCases};
 use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::ship::application::{
-    CheckExecution, CheckOutcome, CheckRequest, EvidencePort, GateContract, ShipUseCases,
+use magistr_workflow::run::application::{
+    CheckExecution, CheckOutcome, CheckRequest, EvidencePort, GateContract, RunUseCases,
     SourceFreshness, SourceObservation, SourceWitness,
 };
-use magistr_workflow::ship::domain::{check::CheckType, task::TaskType};
-use magistr_workflow::ship::engine::ShipEngine;
+use magistr_workflow::run::domain::{check::CheckType, step::StepType};
+use magistr_workflow::run::engine::RunEngine;
 
 /// A source that never moves while a gate runs: the revision it was
 /// observed at is the revision it validates.
@@ -72,11 +72,11 @@ fn chunk(id: &str, status: ChunkStatus) -> ChunkDraft {
     }
 }
 
-/// A roadmap over `ship`, with `c1` started.
-fn roadmap_over(ship: &ShipUseCases) -> RoadmapUseCases {
+/// A roadmap over `run`, with `c1` started.
+fn roadmap_over(run: &RunUseCases) -> RoadmapUseCases {
     let roadmap = RoadmapUseCases::new(
         Arc::new(Mutex::new(RoadmapEngine::new("project".into()))),
-        ship.clone(),
+        run.clone(),
     );
     roadmap
         .add_chunk(chunk("c1", ChunkStatus::Pending))
@@ -85,41 +85,41 @@ fn roadmap_over(ship: &ShipUseCases) -> RoadmapUseCases {
     roadmap
 }
 
-/// The ship family with the fake evidence capability, and the handle that
+/// The run family with the fake evidence capability, and the handle that
 /// moves its source revision.
-fn evidenced() -> (ShipUseCases, Arc<Mutex<String>>) {
+fn evidenced() -> (RunUseCases, Arc<Mutex<String>>) {
     let revision = Arc::new(Mutex::new("r1".to_owned()));
-    let ship = ShipUseCases::new(Arc::new(Mutex::new(ShipEngine::new("project".into()))))
+    let run = RunUseCases::new(Arc::new(Mutex::new(RunEngine::new("project".into()))))
         .with_evidence(Arc::new(Port {
             revision: Arc::clone(&revision),
         }));
-    (ship, revision)
+    (run, revision)
 }
 
-fn composed() -> (RoadmapUseCases, ShipUseCases) {
-    let (ship, _) = evidenced();
-    (roadmap_over(&ship), ship)
+fn composed() -> (RoadmapUseCases, RunUseCases) {
+    let (run, _) = evidenced();
+    (roadmap_over(&run), run)
 }
 
-fn objective(ship: &ShipUseCases, scope: &str) {
-    ship.set_objective("Do c1".into(), vec![], vec![], scope.into())
+fn goal(run: &RunUseCases, scope: &str) {
+    run.set_goal("Do c1".into(), vec![], vec![], scope.into())
         .unwrap();
-    ship.add_task(
+    run.add_step(
         "verify".into(),
         "Verify".into(),
-        TaskType::Review,
+        StepType::Review,
         None,
         None,
     )
     .unwrap();
-    ship.start_task("verify").unwrap();
+    run.start_step("verify").unwrap();
 }
 
-fn gate(ship: &ShipUseCases, code: i32) {
-    let admission = ship
+fn gate(run: &RunUseCases, code: i32) {
+    let admission = run
         .admit_check(CheckRequest {
             options: Default::default(),
-            task_id: None,
+            step_id: None,
             check_type: CheckType::Test,
             name: "test".into(),
             passed: None,
@@ -129,7 +129,7 @@ fn gate(ship: &ShipUseCases, code: i32) {
             report: None,
         })
         .unwrap();
-    ship.settle_check(
+    run.settle_check(
         admission.value,
         CheckOutcome {
             passed: code == 0,
@@ -146,24 +146,21 @@ fn gate(ship: &ShipUseCases, code: i32) {
 }
 
 #[test]
-fn completion_refuses_without_receipts_and_names_the_resolved_task_when_it_completes() {
-    let (roadmap, ship) = composed();
+fn completion_refuses_without_check_results_and_names_the_resolved_step_when_it_completes() {
+    let (roadmap, run) = composed();
     let refusal = roadmap.complete_chunk("c1", None).unwrap_err();
-    assert!(
-        refusal.to_string().contains("no ship objective"),
-        "{refusal}"
-    );
+    assert!(refusal.to_string().contains("no run goal"), "{refusal}");
 
-    objective(&ship, "chunk:c1");
+    goal(&run, "chunk:c1");
     let refusal = roadmap.complete_chunk("c1", None).unwrap_err();
     assert!(
         refusal.to_string().contains("no check was recorded"),
         "{refusal}"
     );
 
-    gate(&ship, 1);
+    gate(&run, 1);
     let refusal = roadmap
-        .complete_chunk("c1", Some("task:verify"))
+        .complete_chunk("c1", Some("step:verify"))
         .unwrap_err();
     let text = refusal.to_string();
     assert!(
@@ -179,40 +176,40 @@ fn completion_refuses_without_receipts_and_names_the_resolved_task_when_it_compl
         ChunkStatus::InProgress
     );
 
-    gate(&ship, 0);
+    gate(&run, 0);
     let done = roadmap.complete_chunk("c1", None).unwrap();
     assert_eq!(done.value.status, ChunkStatus::Done);
     assert!(
-        done.value.cross_refs.iter().any(|r| r == "task:verify"),
+        done.value.cross_refs.iter().any(|r| r == "step:verify"),
         "{:?}",
         done.value.cross_refs
     );
 }
 
 #[test]
-fn a_foreign_scope_or_task_is_refused_by_name() {
-    let (roadmap, ship) = composed();
-    objective(&ship, "chunk:other");
-    gate(&ship, 0);
+fn a_foreign_scope_or_step_is_refused_by_name() {
+    let (roadmap, run) = composed();
+    goal(&run, "chunk:other");
+    gate(&run, 0);
     let refusal = roadmap.complete_chunk("c1", None).unwrap_err();
     assert!(
         refusal.to_string().contains("scoped to `chunk:other`"),
         "{refusal}"
     );
-    ship.set_objective("Do c1".into(), vec![], vec![], "chunk:c1".into())
+    run.set_goal("Do c1".into(), vec![], vec![], "chunk:c1".into())
         .unwrap();
     let refusal = roadmap
-        .complete_chunk("c1", Some("task:ghost"))
+        .complete_chunk("c1", Some("step:ghost"))
         .unwrap_err();
     assert!(
-        refusal.to_string().contains("task `ghost` is not a task"),
+        refusal.to_string().contains("step `ghost` is not a step"),
         "{refusal}"
     );
 }
 
 #[test]
 fn the_plain_status_routes_cannot_reach_done() {
-    let (roadmap, _ship) = composed();
+    let (roadmap, _run) = composed();
     assert!(matches!(
         roadmap.set_status("c1", ChunkStatus::Done),
         Err(RoadmapError::InvalidState(reason)) if reason.contains("roadmap_complete_chunk")
@@ -236,10 +233,10 @@ fn the_plain_status_routes_cannot_reach_done() {
 
 #[test]
 fn stale_source_evidence_is_refused_until_the_gate_reruns() {
-    let (ship, revision) = evidenced();
-    let roadmap = roadmap_over(&ship);
-    objective(&ship, "chunk:c1");
-    gate(&ship, 0);
+    let (run, revision) = evidenced();
+    let roadmap = roadmap_over(&run);
+    goal(&run, "chunk:c1");
+    gate(&run, 0);
     *revision.lock().unwrap() = "r2".into();
     let refusal = roadmap.complete_chunk("c1", None).unwrap_err();
     assert!(
@@ -252,26 +249,26 @@ fn stale_source_evidence_is_refused_until_the_gate_reruns() {
         roadmap.engine().lock().unwrap().roadmap().chunks[0].status,
         ChunkStatus::InProgress
     );
-    gate(&ship, 0);
+    gate(&run, 0);
     assert_eq!(
         roadmap.complete_chunk("c1", None).unwrap().value.status,
         ChunkStatus::Done
     );
 }
 
-/// A ship family composed without an evidence capability is still the
+/// A run family composed without an evidence capability is still the
 /// roadmap's completion authority — one that refuses every completion with
 /// the reason. There is no permissive branch to fall back to: the
 /// constructor takes the authority, and the plain status routes refuse
-/// `done` whatever the ship family can certify.
+/// `done` whatever the run family can certify.
 #[test]
 fn without_an_evidence_capability_every_route_to_done_is_refused_and_planning_continues() {
-    let ship = ShipUseCases::new(Arc::new(Mutex::new(ShipEngine::new("project".into()))));
-    let roadmap = roadmap_over(&ship);
-    objective(&ship, "chunk:c1");
+    let run = RunUseCases::new(Arc::new(Mutex::new(RunEngine::new("project".into()))));
+    let roadmap = roadmap_over(&run);
+    goal(&run, "chunk:c1");
 
     let refusal = roadmap
-        .complete_chunk("c1", Some("task:verify"))
+        .complete_chunk("c1", Some("step:verify"))
         .unwrap_err();
     assert!(
         refusal

@@ -108,6 +108,6 @@ fn make_guard_context() -> GuardContext {
     GuardContext::new(
         "/tmp/project",
         "/tmp/project/ROADMAP.md",
-        magistr_engine::ShipGuardState::default(),
+        magistr_engine::RunGuardState::default(),
     )
 }

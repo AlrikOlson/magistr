@@ -188,6 +188,6 @@ export class WorkBrowser {
       this.$("work-browser-state").textContent=observed.message;this.$("work-browser-state").dataset.current=String(observed.current);
       retainReading(content,()=>content.replaceChildren(observed.value?this.reasoning.render(observed.value):element("p","Reasoning records are unavailable. Use Refresh to try again.")));return;
     }
-    this.execution.render(this.snapshot.ship);
+    this.execution.render(this.snapshot.run);
   }
 }

@@ -2,9 +2,9 @@ import { test,expect } from "./fixture.mjs";
 test("activity retains full authored content and artifacts delegate safe links",async({app})=>{
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await app.evaluate(()=>{
-    const fixture=window.__fixture,task=fixture.workflow.ship.data.value.current.tasks[1];
-    task.actions[0].result="Long result\n"+"Details 日本語\n".repeat(1000)+"<script>alert(1)</script>\nComplete ending";
-    task.artifacts.push({type:"file",ref:"javascript:alert(1)",description:"Untrusted reference"});
+    const fixture=window.__fixture,step=fixture.workflow.run.data.value.current.steps[1];
+    step.progress[0].result="Long result\n"+"Details 日本語\n".repeat(1000)+"<script>alert(1)</script>\nComplete ending";
+    step.artifacts.push({type:"file",ref:"javascript:alert(1)",description:"Untrusted reference"});
     Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async value=>{window.__copied=value;}}});
     fixture.handlers.open_link=()=>{};
   });
@@ -14,7 +14,7 @@ test("activity retains full authored content and artifacts delegate safe links",
   await expect(activity).toContainText("Files mentioned");
   await expect(activity.locator("script")).toHaveCount(0);
   await activity.getByRole("button",{name:"Copy result",exact:true}).click();
-  expect(await app.evaluate(()=>window.__copied)).toBe(await app.evaluate(()=>window.__fixture.workflow.ship.data.value.current.tasks[1].actions[0].result));
+  expect(await app.evaluate(()=>window.__copied)).toBe(await app.evaluate(()=>window.__fixture.workflow.run.data.value.current.steps[1].progress[0].result));
   const artifacts=activity.locator(".work-artifacts article");
   await expect(artifacts).toHaveCount(3);
   await artifacts.first().getByRole("button",{name:"Copy reference",exact:true}).click();
@@ -22,7 +22,7 @@ test("activity retains full authored content and artifacts delegate safe links",
   await artifacts.nth(1).getByRole("button",{name:"Open link",exact:true}).click();
   expect(await app.evaluate(()=>window.__fixture.calls.findLast(c=>c.command==="open_link").args.destination)).toBe("https://example.com/review/42");
   await expect(artifacts.nth(2).getByRole("button",{name:"Open link",exact:true})).toHaveCount(0);
-  await app.evaluate(()=>{window.__fixture.workflow.ship.data.value.current.tasks[1].actions[0].description="Updated activity";window.__fixture.publish("release",{workflow_revision:1});});
+  await app.evaluate(()=>{window.__fixture.workflow.run.data.value.current.steps[1].progress[0].description="Updated activity";window.__fixture.publish("release",{workflow_revision:1});});
   await expect(activity).toHaveAttribute("open","");
   await expect(activity).toContainText("Updated activity");
   await app.getByLabel("Work to inspect",{exact:true}).selectOption("run:previous-run");

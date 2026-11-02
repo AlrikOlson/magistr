@@ -52,17 +52,17 @@ fn rig() -> (tempfile::TempDir, PathBuf, WorkspaceEvidence) {
 }
 
 #[test]
-fn receipt_retention_refuses_unreadable_or_malformed_checkpoints() {
+fn check_result_retention_refuses_unreadable_or_malformed_checkpoints() {
     let (_dir, root, evidence) = rig();
-    assert!(evidence.retained_receipts().unwrap().is_empty());
+    assert!(evidence.retained_check_results().unwrap().is_empty());
     let path = root.join(".magistr/loop-state.json");
     fs::write(&path, b"{broken").unwrap();
-    assert!(evidence.retained_receipts().is_err());
+    assert!(evidence.retained_check_results().is_err());
     fs::write(&path, b"{}").unwrap();
-    assert!(evidence.retained_receipts().is_err());
+    assert!(evidence.retained_check_results().is_err());
     fs::remove_file(&path).unwrap();
     fs::create_dir(&path).unwrap();
-    assert!(evidence.retained_receipts().is_err());
+    assert!(evidence.retained_check_results().is_err());
 }
 
 #[test]
@@ -246,8 +246,8 @@ fn writer_config_carries_the_capability_over_the_lookups_layers() {
 fn linked_copy_reads_and_writes_shared_settings_and_observes_their_changes() {
     let temp = tempfile::tempdir().unwrap();
     let main = temp.path().join("main");
-    let linked = temp.path().join("task");
-    let metadata = main.join(".git/worktrees/task");
+    let linked = temp.path().join("step");
+    let metadata = main.join(".git/worktrees/step");
     fs::create_dir_all(&metadata).unwrap();
     fs::create_dir_all(&linked).unwrap();
     project(&main);

@@ -126,12 +126,12 @@ The roadmap, plan and gates live in native Magistr state. Start with `context`; 
 
 Choose `verification: "focused"` for bounded work and run the relevant checks. A full suite requires an explicit request or a stated cross-cutting risk.
 
-- `roadmap_status` + `ship_status` → recover the selected chunk and matching unfinished objective first
+- `roadmap_status` + `run_status` → recover the selected chunk and matching unfinished goal first
 - `roadmap_next` → select pending work only when there is no resumable in-progress chunk; `roadmap_start_chunk(id)` starts a pending chunk once
-- `ship_set_objective` + `plan_work` → create a missing objective and plan; keep the matching unfinished objective and saved plan when resuming
+- `run_open` + `arrange_steps` → create a missing goal and plan; keep the matching unfinished goal and saved plan when resuming
 - `think_record_step` → record the plan, material findings and investigations as work proceeds, then the verified outcome
-- `check_work` / `magistr_gate` → every quality gate, recorded with its real exit code
-- `roadmap_complete_chunk(id, ship_ref: "task:<id>")` + `ship_finalize` → done
+- `check_step` / `magistr_gate` → every quality gate, recorded with its real exit code
+- `roadmap_complete_chunk(id, step_ref: "step:<id>")` + `run_finish` → done
 
 ### Execute Phase — restrictions
 
@@ -142,14 +142,14 @@ During Execute, implement and test the change, recording material findings and i
 
 ### Verify Phase — /next-specific steps
 
-After quality gates pass (each recorded through `check_work`), complete these additional steps:
+After quality gates pass (each recorded through `check_step`), complete these additional steps:
 
 1. **Update the roadmap** (MANDATORY)
-   - `roadmap_complete_chunk(id: "<chunk>", ship_ref: "task:<verify task>")` for the chunk you implemented
+   - `roadmap_complete_chunk(id: "<chunk>", step_ref: "step:<verify step>")` for the chunk you implemented
    - `roadmap_add_chunk(status: "backlog", ...)` for work you discovered — never auto-promote it to pending
    - `roadmap_update_chunk` when the chunk's description or acceptance no longer matches reality
    - Preserve the project's roadmap export policy. When `roadmap_exports` is false, never generate ROADMAP.md or ROADMAP.json or invoke `roadmap_export`.
-2. **Finalize** — record the final synthesis with `think_record_step`, linking the findings used and any unresolved questions; then close the objective with `ship_finalize(summary: ...)`
+2. **Finalize** — record the final synthesis with `think_record_step`, linking the findings used and any unresolved questions; then close the goal with `run_finish(summary: ...)`
 3. **Commit** with a conventional commit message (`feat:`, `fix:`, `refactor:`, `test:`)
    - Include only files within the authorized change; preserve other sessions' work
 4. **Append summary** to `.magistr/iteration-log.md`
@@ -166,18 +166,18 @@ After quality gates pass (each recorded through `check_work`), complete these ad
 **Plan Entry Labeling (REQUIRED):**
 Prefix each plan entry with its workflow phase tag:
 - `[Research]` — web search, documentation scraping
-- `[Plan]` — reading, exploring, writing the ship plan
+- `[Plan]` — reading, exploring, writing the run plan
 - `[Execute]` — writing code, tests, TDD
 - `[Verify]` — quality gate, roadmap update, commit
 
 **Plan Entry Status Updates (REQUIRED):**
-Keep plan entry statuses up to date — the native execution plan retains each task's status.
+Keep plan entry statuses up to date — the run's step plan retains each step's status.
 
 - Mark entries as `in_progress` when you start working on them
 - Mark entries as `completed` when you finish them
 - Only one entry should be `in_progress` at a time
 - Update the plan with every phase transition — all entries from the previous phase should be `completed` before starting the next phase
-- On resume, continue an already active task without calling `start_work` again; do not restart completed entries or discard their actions and check results
+- On resume, continue an already active step without calling `start_step` again; do not restart completed entries or discard their progress and check results
 "#;
 
 #[cfg(test)]

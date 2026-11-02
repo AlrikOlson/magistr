@@ -246,13 +246,13 @@ test(
         'source',
         await call('read', { file: '.magistr/project.json', budget: 2000 }),
       )
-      const ship = validate('ship', await call('ship_status'))
-      assert.equal(ship.project_id, projectId)
+      const run = validate('run', await call('run_status'))
+      assert.equal(run.project_id, projectId)
       const first = validate('context', await call('context'))
       assert.equal(first.phase, null)
       validate('roadmap', await call('roadmap_status'))
       validate('findings', await call('think_engine_status', { verbose: true }))
-      assert.equal(phase(first, ship), 'Phase not reported')
+      assert.equal(phase(first, run), 'Phase not reported')
       await verifyWorkstreams(call, root)
       await verifyReadRecovery(
         call,
@@ -262,26 +262,26 @@ test(
           ['roadmap_focus_get', { lane: root }],
         ],
       )
-      await call('ship_set_objective', {
+      await call('run_open', {
         description: 'Inspect the connection',
         verification: 'focused',
       })
-      await call('plan_work', {
+      await call('arrange_steps', {
         action: 'add',
-        task_id: 'verify',
+        step_id: 'verify',
         title: 'Verify the connection',
-        task_type: 'test',
+        step_type: 'test',
       })
-      await call('start_work', { task_id: 'verify' })
+      await call('start_step', { step_id: 'verify' })
       await call('magistr_set_phase', { phase: 'verify' })
-      const current = validate('ship', await call('ship_status'))
+      const current = validate('run', await call('run_status'))
       const context = validate(
         'context',
-        await call('context', { task_id: 'verify' }),
+        await call('context', { step_id: 'verify' }),
       )
       assert.equal(phase(context, current), 'Checking')
-      assert.equal(context.task.record.title, 'Verify the connection')
-      await assert.rejects(() => call('context', { task_id: 'missing' }))
+      assert.equal(context.step.record.title, 'Verify the connection')
+      await assert.rejects(() => call('context', { step_id: 'missing' }))
       const gate = await call('magistr_gate', {
         gate: 'check',
         timeout_secs: 10,
@@ -289,27 +289,27 @@ test(
       const result = decode(gate)
       assert.equal(result.passed, true)
       assert.equal(result.recorded, true)
-      const receipt = validate(
+      const check_result = validate(
         'context',
-        await call('context', { receipt_id: result.receipt }),
+        await call('context', { check_result_id: result.check_result }),
       )
-      assert.equal(receipt.receipt.command, 'echo checked')
-      assert.equal(receipt.receipt.settlement.settlement, 'applied')
-      const executions = await readdir(path.join(data, 'ship', 'executions'))
+      assert.equal(check_result.check_result.command, 'echo checked')
+      assert.equal(check_result.check_result.settlement.settlement, 'applied')
+      const executions = await readdir(path.join(data, 'run', 'executions'))
       assert.equal(executions.length, 1)
       await verifyReadRecovery(
         call,
         path.join(
           data,
-          'ship',
+          'run',
           'executions',
           executions[0],
           'sessions',
           projectId + '.json',
         ),
         [
-          ['ship_status', {}],
-          ['context', { task_id: 'verify' }],
+          ['run_status', {}],
+          ['context', { step_id: 'verify' }],
         ],
       )
       child.stdin.end()

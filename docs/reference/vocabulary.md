@@ -412,7 +412,13 @@ run in this order:
    `magistr team` / `.magistr/team.json` → `magistr people` /
    `.magistr/people.json`. This frees the words run and team.
 2. `vocab-run-family`: ship, objective, ship task, action, receipt and approval
-   gates. The run store rewrites `task:` to `step:` here.
+   gates, and `magistr plans` → `magistr runs`. The run store moves from
+   `ship/` to `run/` (its check results from `receipts/` to `check_results/`)
+   and every store rewrites its stored run references here: `step:<n>` (the
+   retired spelling of a reasoning step) to `think:<n>` first, then `task:` to
+   `step:` and `action:` to `progress:`. Admission does the move once, before
+   any engine opens, and keeps the originals under the store's `backups/`;
+   readers refuse until it is done.
 3. `vocab-plan-family`: roadmap, chunk, group and the task states. The plan
    store rewrites `chunk:` to `task:` after the run store has finished.
 4. `vocab-decision-family` and `vocab-request-family`: think and signal.
@@ -435,3 +441,19 @@ These keep their spelling on purpose:
   is pinned upstream code. The native tools own the public names.
 - The workspace error code `RUN_REDIRECTED` and the runner plugin interface
   (`magistr:runner`) describe running a process, not a run.
+- The step verbs (`arrange_steps`, `start_step`, `record_progress`,
+  `check_step`, `finish_step`) carry no family prefix, so the run family claims
+  them by exact name; it also claims the `approval_` prefix.
+- Real old-format fixtures, the upgrade code that converts them, and the tests
+  that prove old names are refused keep the old words: they name what is
+  converted.
+- `receipt` in workspace writes (apply, mutation, source-write receipts) and in
+  `execute` composition results is a different word from a check result and
+  keeps its spelling here; `vocab-copy-gate` decides its public copy.
+- Words other families own stay until their task lands: `think_step`,
+  `think_branch` and the `execution_ref` field name (decision family), the
+  quality-gate words `gate`, `magistr_gate` and `custom_gates` (teams and
+  checks), and `chunk` (plan family).
+- The imported upstream documentation under `subsystems/workflow/docs` and the
+  recorded demo session under `apps/website/public/demo` are history and are
+  not rewritten.

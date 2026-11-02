@@ -29,7 +29,7 @@ let actionGeneration = 0
 const reads = new Map()
 const PANE = 'magistr-work'
 const READS = [
-  ['ship', 'magistr', 'ship_status', {}],
+  ['run', 'magistr', 'run_status', {}],
   ['roadmap', 'magistr', 'roadmap_status', {}],
   ['context', 'magistr', 'context', {}],
   ['findings', 'magistr', 'think_engine_status', { verbose: true }],
@@ -115,7 +115,7 @@ async function refresh($, force = false) {
             const value = validate(kind, await read($, server, tool, options))
             const now = await $.clock.now()
             if (epoch !== generation || stopped) return
-            const project = model.slots.ship?.value?.project_id
+            const project = model.slots.run?.value?.project_id
             if (
               server === 'magistr' &&
               value.project_id &&
@@ -144,7 +144,7 @@ async function refresh($, force = false) {
     if (
       epoch === generation &&
       model.slots.context?.value?.project_id !==
-        model.slots.ship?.value?.project_id
+        model.slots.run?.value?.project_id
     ) {
       if (model.slots.context) {
         model.slots.context.error =
@@ -172,7 +172,7 @@ async function refresh($, force = false) {
     if (
       epoch === generation &&
       !actionInFlight &&
-      ['ship', 'context', 'roadmap'].every(
+      ['run', 'context', 'roadmap'].every(
         (k) =>
           model.slots[k]?.value &&
           !model.slots[k].error &&
@@ -181,7 +181,7 @@ async function refresh($, force = false) {
     ) {
       if (model.uncertain)
         model.notice =
-          'Records refreshed. Inspect the task or work before requesting another action.'
+          'Records refreshed. Inspect the step or work before requesting another action.'
       model.uncertain = false
     }
   })()
@@ -226,10 +226,10 @@ async function drainDetails($) {
       if (serial !== model.detailGeneration || epoch !== generation || stopped)
         continue
       const [server, tool, args, wire] =
-        kind === 'task'
-          ? ['magistr', 'context', { task_id: item.id }, 'context']
-          : kind === 'receipt'
-            ? ['magistr', 'context', { receipt_id: item }, 'context']
+        kind === 'step'
+          ? ['magistr', 'context', { step_id: item.id }, 'context']
+          : kind === 'check_result'
+            ? ['magistr', 'context', { check_result_id: item }, 'context']
             : kind === 'work'
               ? ['magistr', 'roadmap_get', { ids: [item.id] }, 'work']
               : kind === 'finding'
@@ -245,20 +245,20 @@ async function drainDetails($) {
         continue
       if (
         wire === 'context' &&
-        (value.project_id !== model.slots.ship?.value?.project_id ||
+        (value.project_id !== model.slots.run?.value?.project_id ||
           value.owner_epoch !== model.slots.context?.value?.owner_epoch)
       )
         throw new Error(
           'The connection changed. Refresh before inspecting this record.',
         )
-      if (kind === 'task' && value.task?.record?.id !== item.id)
+      if (kind === 'step' && value.step?.record?.id !== item.id)
         throw new Error(
-          'The reply did not name the chosen task. Refresh and try again.',
+          'The reply did not name the chosen step. Refresh and try again.',
         )
       model.detail = value
       model.detailStatus =
-        kind === 'receipt' && !value.receipt
-          ? 'This check receipt is no longer available.'
+        kind === 'check_result' && !value.check_result
+          ? 'This check check_result is no longer available.'
           : ''
     } catch (error) {
       if (serial !== model.detailGeneration || epoch !== generation || stopped)
@@ -314,8 +314,8 @@ async function action($, kind, target) {
     const label =
       kind === 'gate'
         ? 'Run check'
-        : kind === 'task'
-          ? 'Start task'
+        : kind === 'step'
+          ? 'Start step'
           : kind === 'focus'
             ? 'Choose workstream'
             : 'Mark started'
@@ -344,7 +344,7 @@ async function action($, kind, target) {
       return
     }
     // Read back immediately before admission, and never act on an old owner/work cycle.
-    const oldShip = model.slots.ship?.value
+    const oldRun = model.slots.run?.value
     const oldOwner = model.slots.context?.value?.owner_epoch
     await refresh($, true)
     if (epoch !== generation || serial !== actionGeneration || stopped) return
@@ -363,42 +363,42 @@ async function action($, kind, target) {
       throw new Error(
         'The roadmap could not be checked. Refresh before acting.',
       )
-    if (model.slots.ship?.error || !model.slots.ship?.value)
+    if (model.slots.run?.error || !model.slots.run?.value)
       throw new Error(
         'Current work could not be checked. Refresh before trying again.',
       )
     if (
-      oldShip?.objective?.created_at !==
-        model.slots.ship.value.objective?.created_at ||
+      oldRun?.goal?.created_at !==
+        model.slots.run.value.goal?.created_at ||
       oldOwner !== model.slots.context?.value?.owner_epoch
     )
       throw new Error(
         'Your work or connection changed. Review it before trying again.',
       )
-    if (kind === 'task') {
-      const task = model.slots.ship.value.task_list.find(
+    if (kind === 'step') {
+      const step = model.slots.run.value.step_list.find(
         (t) => t.id === target.id,
       )
       if (
-        !task ||
-        task.title !== target.title ||
-        !['planned', 'blocked'].includes(task.status) ||
-        model.slots.ship.value.active_task
+        !step ||
+        step.title !== target.title ||
+        !['planned', 'waiting'].includes(step.status) ||
+        model.slots.run.value.active_step
       )
-        throw new Error('This task cannot be started now. Review current work.')
+        throw new Error('This step cannot be started now. Review current work.')
     }
     if (kind === 'work' && model.slots.roadmap?.value?.next !== target.id)
       throw new Error(
         'This work is no longer the next ready item. Review the roadmap.',
       )
     if (kind === 'gate') {
-      if (!model.slots.ship.value.active_task)
+      if (!model.slots.run.value.active_step)
         throw new Error(
-          'Start an explicitly chosen task before recording a check.',
+          'Start an explicitly chosen step before recording a check.',
         )
-      if (oldShip?.active_task?.id !== model.slots.ship.value.active_task.id)
+      if (oldRun?.active_step?.id !== model.slots.run.value.active_step.id)
         throw new Error(
-          'The active task changed. Review it before running a check.',
+          'The active step changed. Review it before running a check.',
         )
       const choice = model.slots.context?.value?.checks?.find(
         (c) => c.key === target.key,
@@ -416,16 +416,16 @@ async function action($, kind, target) {
     const operation =
       kind === 'gate'
         ? 'magistr_gate'
-        : kind === 'task'
-          ? 'start_work'
+        : kind === 'step'
+          ? 'start_step'
           : kind === 'focus'
             ? 'roadmap_focus_set'
             : 'roadmap_start_chunk'
     const args =
       kind === 'gate'
         ? { gate: target.key, timeout_secs: timeLimit }
-        : kind === 'task'
-          ? { task_id: target.id }
+        : kind === 'step'
+          ? { step_id: target.id }
           : kind === 'focus'
             ? {
                 lane: 'claude-mod:' + (await $.session.id()),
@@ -481,8 +481,8 @@ async function action($, kind, target) {
       model.detail = { gate: result }
     } else {
       model.notice =
-        kind === 'task'
-          ? 'Task started. Continue it with your coding workflow.'
+        kind === 'step'
+          ? 'Step started. Continue it with your coding workflow.'
           : kind === 'focus'
             ? 'Workstream selected. No implementation was started.'
             : 'Work marked as started. Continue it with your coding workflow.'
@@ -545,7 +545,7 @@ async function command($, e) {
   if (!args) return open($)
   if (args === 'help')
     return {
-      text: 'Magistr: current, roadmap, checks, findings, changes, refresh, diagnose, band on, band off, task <title>, work <title>, finding <number>. The pane lets you inspect work and confirm actions. Existing /next and /craft skills continue coding work.',
+      text: 'Magistr: current, roadmap, checks, findings, changes, refresh, diagnose, band on, band off, step <title>, work <title>, finding <number>. The pane lets you inspect work and confirm actions. Existing /next and /craft skills continue coding work.',
     }
   if (args === 'refresh') {
     await refresh($)
@@ -565,7 +565,7 @@ async function command($, e) {
         READS.map(
           ([name]) =>
             ({
-              ship: 'Work',
+              run: 'Work',
               roadmap: 'Roadmap',
               context: 'Progress',
               findings: 'Findings',
@@ -585,14 +585,14 @@ async function command($, e) {
     await refresh($)
     return { text: summary(model, args) }
   }
-  const match = /^(task|work|finding) (.+)$/.exec(args)
+  const match = /^(step|work|finding) (.+)$/.exec(args)
   if (match) {
     await refresh($)
     const kind = match[1],
       name = match[2]
     const list =
-      kind === 'task'
-        ? model.slots.ship?.value?.task_list
+      kind === 'step'
+        ? model.slots.run?.value?.step_list
         : kind === 'work'
           ? model.slots.roadmap?.value?.chunks
           : []

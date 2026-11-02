@@ -14,35 +14,35 @@ pub(super) fn apply(config: &mut AgentConfig) -> Result<()> {
     }
     config.execution_id = Some(native.execution_context().execution_id.clone());
     let reader = magistr_engine::NativeReader::open(&native);
-    let work = reader.ship_snapshot().map_err(|error| {
+    let work = reader.run_snapshot().map_err(|error| {
         MagistrError::Workflow(format!("Could not read the current work: {error}"))
     })?;
     let current = work.current.map(|run| {
-        let tasks: Vec<_> = run
-            .tasks
+        let steps: Vec<_> = run
+            .steps
             .iter()
-            .map(|task| {
+            .map(|step| {
                 serde_json::json!({
-                    "id": task.id,
-                    "instance": run.task_instances.get(&task.id),
-                    "title": task.title,
-                    "status": task.status,
-                    "type": task.task_type,
-                    "blocked_reason": task.blocked_reason,
+                    "id": step.id,
+                    "instance": run.step_instances.get(&step.id),
+                    "title": step.title,
+                    "status": step.status,
+                    "type": step.step_type,
+                    "waiting_reason": step.waiting_reason,
                 })
             })
             .collect();
         serde_json::json!({
             "run_id": run.run_id,
-            "objective": run.objective,
-            "tasks": tasks,
-            "active_task": run.tasks.iter()
-                .find(|task| task.status == magistr_engine::native::TaskStatus::Active)
-                .map(|task| &task.id),
+            "goal": run.goal,
+            "steps": steps,
+            "active_step": run.steps.iter()
+                .find(|step| step.status == magistr_engine::native::StepStatus::Active)
+                .map(|step| &step.id),
         })
     });
     let context = format!(
-        "## Current work\n\nThis is a launch-time observation of this session's work. Read ship_status before resuming after context compaction or acting on a plan that may have changed. A missing objective means no work has been selected. A completed objective does not authorize starting new work. Follow the user's request and this conversation's purpose.\n\n{}",
+        "## Current work\n\nThis is a launch-time observation of this session's work. Read run_status before resuming after context compaction or acting on a plan that may have changed. A missing goal means no work has been selected. A completed goal does not authorize starting new work. Follow the user's request and this conversation's purpose.\n\n{}",
         serde_json::to_string_pretty(&serde_json::json!({
             "working_copy": native.execution_context().working_copy,
             "execution": native.execution_context().execution_id,

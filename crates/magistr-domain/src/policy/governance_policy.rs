@@ -50,7 +50,7 @@ pub struct GovernancePolicy {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required_gates: Vec<String>,
 
-    /// Whether a developer may ship past a missing required gate.
+    /// Whether a developer may run past a missing required gate.
     #[serde(default)]
     pub allow_gate_bypass: bool,
 

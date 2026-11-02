@@ -295,7 +295,7 @@ impl SignalEngine {
     /// Attach a validated cross-ref to a signal (deduped). Powers `signal_link`
     /// and the reciprocal `chunk:<id>` written by promotion. The ref is
     /// validated + normalized via [`crate::infra::CrossRef`], so only the forms
-    /// that type accepts get through: `think:`, `task:`, `action:`, `check:`,
+    /// that type accepts get through: `think:`, `step:`, `progress:`, `check:`,
     /// `chunk:`, `signal:` and `ext:<provider>/<external_id>`.
     ///
     /// The `ext:` form arrived with the tracker seam and this list did not

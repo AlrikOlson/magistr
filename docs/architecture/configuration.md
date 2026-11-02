@@ -47,7 +47,7 @@ migration requirement.
 | Setting | Resolution |
 | --- | --- |
 | Project root | Explicit host input. Hosts should supply an absolute root. |
-| Execution | Captured `MAGISTR_EXECUTION_ID`, default `default`, or an explicit `with_execution_id` input. Ship state and receipts are partitioned by canonical source root plus execution id. |
+| Execution | Captured `MAGISTR_EXECUTION_ID`, default `default`, or an explicit `with_execution_id` input. Run state and receipts are partitioned by canonical source root plus execution id. |
 | Project identity | Linked Git worktrees resolve the corresponding main project directory. Captured, sanitized `MAGISTR_PROJECT_ID`, then `project.id` in the nearest `.magistr/project.json`, then the canonical path-derived ID. An explicitly admitted project ID remains authoritative. |
 | Store root | First nonblank value: `MAGISTR_WORKFLOW_DATA_DIR`; `XDG_DATA_HOME/magistr/workflow`; `HOME/.local/share/magistr/workflow`; `APPDATA/magistr/workflow`; `USERPROFILE/AppData/Roaming/magistr/workflow`; then the captured platform temporary directory plus `magistr/workflow`. |
 | Native persistence | On by default. Trimmed `MAGISTR_WORKFLOW_PERSIST=false` (case insensitive) or `0` disables it. |
@@ -138,7 +138,7 @@ layer names when a layer moved while the bytes did not.
 | Source digest (`source_digest`) | The selected bytes under the policy (the manifest digest). | A selected file is added, removed or modified — `.magistr/project.json` and `.magistr/workspace.toml` included. | Yes — "the source changed since the gate ran". |
 | Selection policy (`policy_digest`) | What the snapshot selects: version, ceiling, explicit inputs. | The policy is changed. | Yes — "the selection policy changed". |
 | Configuration digest (`config_digest`) | Applicable policy layers and shared project settings by content. | Organization policy, user configuration or shared project settings appear, disappear or change. | Yes — the applicable configuration changed. |
-| Acceptance revision (`CheckReceipt::acceptance_revision`) | The objective's description, acceptance criteria, constraints and scope. | An in-flight `ship_set_objective`. | Yes — "the objective's acceptance changed". |
+| Acceptance revision (`CheckResult::acceptance_revision`) | The goal's description, acceptance criteria, constraints and scope. | An in-flight `run_open`. | Yes — "the goal's acceptance changed". |
 | Owner generation (`workspace_generation`) | Which authority incarnation was durable ([workspace owner](workspace-owner.md)). | Every admission of a workspace owner; never a write. | No — a new owner of the same bytes is not a change of source. |
 | Workflow store stamp (`StoreStamp`) | Where a family's store file stands on disk (inode, mtime, length), a cache-freshness hint. | Any writer lands a store file. | No — it orders nothing and names no content. |
 | Applied mutation revision (`MutationReceipt::revision`) | What one journaled workspace mutation did to the files it touched. | Only for an applied mutation; indeterminate otherwise. | No — it names a mutation's effect, not the tree's state. |

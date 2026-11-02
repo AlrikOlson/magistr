@@ -1,30 +1,30 @@
 use std::process::Command;
 
-use magistr_engine::ShipGuardState;
+use magistr_engine::RunGuardState;
 
 use super::*;
 
-/// A project with no ship state at all — no objective, no tasks, no checks.
+/// A project with no run state at all — no goal, no steps, no checks.
 fn temp_project() -> (tempfile::TempDir, GuardContext) {
-    temp_project_with(ShipGuardState::default())
+    temp_project_with(RunGuardState::default())
 }
 
-fn temp_project_with(ship: ShipGuardState) -> (tempfile::TempDir, GuardContext) {
+fn temp_project_with(run: RunGuardState) -> (tempfile::TempDir, GuardContext) {
     let dir = tempfile::TempDir::new().unwrap();
     let spec_path = dir.path().join("ROADMAP.md");
     let ctx = GuardContext::new(
         dir.path().to_string_lossy().to_string(),
         spec_path.to_string_lossy().to_string(),
-        ship,
+        run,
     );
     (dir, ctx)
 }
 
-/// Objective set, one task planned, no gate recorded yet.
-fn planned() -> ShipGuardState {
-    ShipGuardState {
-        objective_set: true,
-        tasks_planned: 1,
+/// Goal set, one step planned, no gate recorded yet.
+fn planned() -> RunGuardState {
+    RunGuardState {
+        goal_set: true,
+        steps_planned: 1,
         checks_recorded: 0,
     }
 }
@@ -60,7 +60,7 @@ fn guard_context_construction() {
     let ctx = GuardContext::new("/project", "/project/SPEC.md", planned());
     assert_eq!(ctx.project_dir, "/project");
     assert_eq!(ctx.spec_path, "/project/SPEC.md");
-    assert_eq!(ctx.ship, planned());
+    assert_eq!(ctx.run, planned());
 }
 
 // ── PlanGuard tests ─────────────────────────────────────────────────
@@ -71,31 +71,31 @@ fn plan_guard_name() {
 }
 
 #[test]
-fn plan_guard_steers_when_no_ship_plan() {
+fn plan_guard_steers_when_no_arrange_steps() {
     let (_dir, ctx) = temp_project();
     let result = PlanGuard.pre_session(&ctx);
     assert!(!result.is_ok());
     match result.action {
         GuardAction::SteerPrompt(msg) => {
-            assert!(msg.contains("ship_set_objective"), "{msg}");
-            assert!(msg.contains("ship_plan"), "{msg}");
+            assert!(msg.contains("run_open"), "{msg}");
+            assert!(msg.contains("arrange_steps"), "{msg}");
         }
         other => panic!("expected steer, got {other:?}"),
     }
 }
 
 #[test]
-fn plan_guard_steers_when_objective_but_no_task() {
-    let (_dir, ctx) = temp_project_with(ShipGuardState {
-        objective_set: true,
-        tasks_planned: 0,
+fn plan_guard_steers_when_goal_but_no_step() {
+    let (_dir, ctx) = temp_project_with(RunGuardState {
+        goal_set: true,
+        steps_planned: 0,
         checks_recorded: 0,
     });
     assert!(!PlanGuard.pre_session(&ctx).is_ok());
 }
 
 #[test]
-fn plan_guard_continues_when_ship_plan_recorded() {
+fn plan_guard_continues_when_arrange_steps_recorded() {
     let (_dir, ctx) = temp_project_with(planned());
     assert!(PlanGuard.pre_session(&ctx).is_ok());
 }
@@ -105,9 +105,9 @@ fn plan_guard_pre_commit_needs_a_recorded_check() {
     let (_dir, ctx) = temp_project_with(planned());
     let result = PlanGuard.pre_commit(&ctx);
     assert!(!result.is_ok());
-    assert!(matches!(result.action, GuardAction::SteerPrompt(ref m) if m.contains("ship_check")));
+    assert!(matches!(result.action, GuardAction::SteerPrompt(ref m) if m.contains("check_step")));
 
-    let (_dir, ctx) = temp_project_with(ShipGuardState {
+    let (_dir, ctx) = temp_project_with(RunGuardState {
         checks_recorded: 1,
         ..planned()
     });
@@ -436,7 +436,7 @@ fn runner_pre_session_collects_non_ok() {
     let results = runner.run_pre_session(&ctx);
     assert!(
         results.iter().any(|r| r.guard_name == "plan"),
-        "PlanGuard should fire when no ship plan is recorded"
+        "PlanGuard should fire when no run plan is recorded"
     );
 }
 

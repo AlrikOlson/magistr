@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::roadmap_command::RoadmapCommand;
-use super::ship_command::ShipCommand;
+use super::run_command::RunCommand;
 use super::signal_command::SignalCommand;
 use super::think_command::ThinkCommand;
 
@@ -22,7 +22,7 @@ pub enum OwnerCommand {
     /// A reasoning-trace mutation.
     Think(ThinkCommand),
     /// An execution-trace mutation.
-    Ship(ShipCommand),
+    Run(RunCommand),
     /// A signal-inbox mutation.
     Signal(SignalCommand),
 }

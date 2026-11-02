@@ -3,7 +3,7 @@
 //! Cloud sync is write-through on *mutation* only, so an
 //! agent that connects after it already has local history shows nothing in the
 //! cloud until it next mutates each record. `magistr sync push` closes
-//! that gap: it walks the persisted think/ship/roadmap/signal stores, builds the
+//! that gap: it walks the persisted think/run/roadmap/signal stores, builds the
 //! same envelopes the write-through path builds (via [`crate::cloud::build`]),
 //! and `PUT`s each to `/v1/records`.
 //!
@@ -12,8 +12,8 @@
 //! re-running after a partial push simply re-PUTs everything, and the already-
 //! landed records collapse to dedups.
 //!
-//! Scope mirrors the write-through path **exactly**: think steps, ship *actions*,
-//! roadmap chunks, signals. Ship objectives/checks/tasks are not pushed by
+//! Scope mirrors the write-through path **exactly**: think steps, run *progress*,
+//! roadmap chunks, signals. Run goals/checks/steps are not pushed by
 //! write-through (no stable wire id) and stay deferred to `saas-cloud-sync-all`
 //! — this back-fill does not silently widen that scope.
 
@@ -21,8 +21,8 @@ use crate::cloud::build;
 use crate::cloud::client::{CloudClient, PushOutcome};
 use crate::cloud::envelope::{Family, UnifiedRecordEnvelope};
 use crate::roadmap::domain::Roadmap;
-use crate::ship::domain::objective::Objective;
-use crate::ship::domain::task::Task;
+use crate::run::domain::goal::Goal;
+use crate::run::domain::step::Step;
 use crate::signal::domain::Signal;
 use crate::think::domain::step::ThinkStep;
 
@@ -30,7 +30,7 @@ use crate::think::domain::step::ThinkStep;
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct BackfillCounts {
     pub think: usize,
-    pub ship: usize,
+    pub run: usize,
     pub roadmap: usize,
     pub signal: usize,
 }
@@ -39,7 +39,7 @@ impl BackfillCounts {
     /// Total records across all four families.
     #[must_use]
     pub fn total(&self) -> usize {
-        self.think + self.ship + self.roadmap + self.signal
+        self.think + self.run + self.roadmap + self.signal
     }
 
     /// Derive the per-family breakdown from a built envelope list.
@@ -49,7 +49,7 @@ impl BackfillCounts {
         for e in envelopes {
             match e.family {
                 Family::Think => c.think += 1,
-                Family::Ship => c.ship += 1,
+                Family::Run => c.run += 1,
                 Family::Roadmap => c.roadmap += 1,
                 Family::Signal => c.signal += 1,
             }
@@ -60,11 +60,11 @@ impl BackfillCounts {
 
 /// Build the cloud envelopes for every local record across the four families,
 /// reusing the write-through builders. Pure and network-free — the unit-test
-/// seam for the whole back-fill. Order is stable: think, ship, roadmap, signal.
+/// seam for the whole back-fill. Order is stable: think, run, roadmap, signal.
 pub fn collect_envelopes<'a>(
     tenant: &str,
     steps: impl Iterator<Item = &'a ThinkStep>,
-    ship: Option<(&Objective, &[Task])>,
+    run: Option<(&Goal, &[Step])>,
     roadmap: &Roadmap,
     signals: &[Signal],
 ) -> Result<Vec<UnifiedRecordEnvelope>, magistr_workflow_contracts::ReadError> {
@@ -74,23 +74,23 @@ pub fn collect_envelopes<'a>(
             .map(|s| build::from_step(tenant, s))
             .collect::<Result<Vec<_>, _>>()?,
     );
-    // The ship cycle backfills with the SAME cycle-scoped identities as the
-    // write-through push (sync-ship-full); without an objective `created_at`
-    // there is no cycle key, so ship records are skipped (nothing to anchor).
-    if let Some((objective, tasks)) = ship
-        && let Some(created) = objective.created_at.as_deref()
+    // The run cycle backfills with the SAME cycle-scoped identities as the
+    // write-through push (sync-run-full); without a goal `created_at`
+    // there is no cycle key, so run records are skipped (nothing to anchor).
+    if let Some((goal, steps)) = run
+        && let Some(created) = goal.created_at.as_deref()
     {
         let cycle = build::cycle_key(created);
-        out.push(build::from_objective(tenant, &cycle, objective));
-        for task in tasks {
-            out.push(build::from_task(tenant, &cycle, created, task));
-            for (seq, check) in task.checks.iter().enumerate() {
-                out.push(build::from_check(tenant, &cycle, &task.id, seq, check));
+        out.push(build::from_goal(tenant, &cycle, goal));
+        for step in steps {
+            out.push(build::from_run_step(tenant, &cycle, created, step));
+            for (seq, check) in step.checks.iter().enumerate() {
+                out.push(build::from_check(tenant, &cycle, &step.id, seq, check));
             }
             out.extend(
-                task.actions
+                step.progress
                     .iter()
-                    .map(|a| build::from_action(tenant, &cycle, a)),
+                    .map(|a| build::from_progress(tenant, &cycle, a)),
             );
         }
     }

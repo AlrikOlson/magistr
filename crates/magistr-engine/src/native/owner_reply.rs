@@ -1,9 +1,9 @@
 //! What an owner answers a command with.
 
 use magistr_workflow::roadmap::domain::Chunk;
-use magistr_workflow::ship::domain::action::Action;
-use magistr_workflow::ship::domain::check::Check;
-use magistr_workflow::ship::domain::task::Task;
+use magistr_workflow::run::domain::check::Check;
+use magistr_workflow::run::domain::progress::Progress;
+use magistr_workflow::run::domain::step::Step;
 use magistr_workflow::signal::application::SignalPromotion;
 use magistr_workflow::signal::domain::Signal;
 use magistr_workflow_contracts::Observed;
@@ -21,22 +21,22 @@ pub enum OwnerReply {
     /// The chunk as it stands after the command. Boxed: a chunk is the
     /// one of the larger reply payloads.
     Chunk(Box<Observed<Chunk>>),
-    /// The task as it stands after the command.
-    Task(Observed<Task>),
-    /// The action recorded.
-    Action(Observed<Action>),
+    /// The step as it stands after the command.
+    Step(Observed<Step>),
+    /// The progress recorded.
+    Progress(Observed<Progress>),
     /// The check recorded.
     Check(Observed<Check>),
     /// The signal as it stands after the command.
     Signal(Observed<Signal>),
     /// The reasoning engine's answer to a recorded step: the formatted
     /// acceptance, or the refusal it printed.
-    Step(Box<RecordedStep>),
+    ThinkStep(Box<RecordedStep>),
     /// Whether the step is pinned after the command.
     Pinned(Observed<bool>),
-    /// How many stale tasks a fresh objective cleared.
+    /// How many stale steps a fresh goal cleared.
     Cleared(Observed<usize>),
-    /// A document: a checkpoint report or a ship report.
+    /// A document: a checkpoint report or a run report.
     Report(serde_json::Value),
     /// The command produced nothing to show.
     Done(Observed<()>),

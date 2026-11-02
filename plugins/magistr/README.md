@@ -14,7 +14,7 @@ host restrictions.
 You need Claude Code **2.1.287 or later**, with third-party Mods available to your
 account and permitted by your organization. You also need the project's connected
 `magistr` connection, launched with `magistr mcp --dir <project>`. Its `context`
-query supplies phase, check choices and task evidence. Advanced workflow and
+query supplies phase, check choices and step evidence. Advanced workflow and
 workspace queries use bounded `execute` requests on the same connection.
 
 From a Magistr checkout:
@@ -40,7 +40,7 @@ an existing owner can use the normal startup path.
 
 ## Use
 
-- **Work:** inspect your objective, acceptance criteria and tasks; open a task
+- **Work:** inspect your goal, acceptance criteria and steps; open a step
   to see check commands, results, recorded actions and source links.
 - **Roadmap:** inspect readiness, blockers, acceptance criteria and dependencies.
   Choose a workstream for this Claude session or mark the next ready work as started. Other sessions keep their own workstream choices.
@@ -51,7 +51,7 @@ an existing owner can use the normal startup path.
 - **Changes:** inspect Magistr's recorded changes and read the affected files.
   File changes made outside Magistr may also exist.
 
-Task starts, workstream choices, work starts and checks require a specific
+Step starts, workstream choices, work starts and checks require a specific
 confirmation and then Claude's usual permission checks. Starting work records
 your choice; continue implementation with your existing coding workflow.
 The pane never completes work or launches a coding loop.
@@ -69,7 +69,7 @@ Useful text commands:
 /magistr checks
 /magistr findings
 /magistr changes
-/magistr task <full title>
+/magistr step <full title>
 /magistr work <full title>
 /magistr finding <number>
 /magistr band on
@@ -92,7 +92,7 @@ or native commands in that case.
 Each view is observed separately. “Current at last refresh” means the latest
 read succeeded; it does not promise that every service changed at the same time.
 The reported phase can be unknown. Recorded checks describe what ran, and
-their source receipts describe the files checked at the time.
+their source check_results describe the files checked at the time.
 
 Visible views refresh every 30 seconds and after relevant acknowledged tool
 operations. After 45 seconds without a successful read they show “Out of date”.

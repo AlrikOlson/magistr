@@ -1,7 +1,7 @@
 /// magistr:runner — structured-failure parsers for `run` output (SDD §8.2,
 /// §9.6). Pure functions from command output to the structured failure
 /// format; the smallest, safest surface. Known runners (bun/jest/vitest/
-/// pytest/cargo/go) ship as bundled first-party adapters on this same
+/// pytest/cargo/go) run as bundled first-party adapters on this same
 /// interface.
 ///
 /// Vocabulary provenance (the §6.4 re-export):
