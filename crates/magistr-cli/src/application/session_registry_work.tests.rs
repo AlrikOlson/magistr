@@ -36,7 +36,7 @@ async fn controls_address_the_resident_run_across_conversation_changes_and_rejec
     let mut work = WorkRun {
         id: id.clone(),
         mode: RunMode::TaskLoop,
-        track: None,
+        feature: None,
         task: None,
         iteration: 1,
         limit: 10,

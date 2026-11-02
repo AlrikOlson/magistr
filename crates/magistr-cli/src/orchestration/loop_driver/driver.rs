@@ -103,7 +103,7 @@ pub struct LoopDriver {
     persist: bool,
     auto_pause: bool,
     keep_open: bool,
-    choosing_track: bool,
+    choosing_feature: bool,
     session_active: bool,
     conversation: Option<String>,
     plan_request: Option<magistr_application::sessions::PromptInput>,
@@ -300,7 +300,7 @@ impl LoopDriver {
             persist: true,
             auto_pause: true,
             keep_open: false,
-            choosing_track: false,
+            choosing_feature: false,
             session_active: false,
             conversation: None,
             plan_request: None,
@@ -453,10 +453,10 @@ impl LoopDriver {
         self
     }
 
-    /// Wait for the cockpit's track choice before any preflight or provider work.
+    /// Wait for the cockpit's feature choice before any preflight or provider work.
     #[must_use]
-    pub const fn choosing_track(mut self, choosing: bool) -> Self {
-        self.choosing_track = choosing;
+    pub const fn choosing_feature(mut self, choosing: bool) -> Self {
+        self.choosing_feature = choosing;
         self
     }
 
@@ -493,18 +493,21 @@ impl LoopDriver {
             if crate::utils::shutdown::Shutdown::is_requested() {
                 break LoopEnd::Aborted;
             }
-            if self.choosing_track {
+            if self.choosing_feature {
                 match self.wake(None, None).await {
                     Wake::Cmd(Cmd::Launch(magistr_cockpit::cockpit::LaunchAction::Loop(scope))) => {
-                        let result = self.iter_loop.select_track(scope.track()).and_then(|()| {
-                            if self.persist {
-                                self.iter_loop.persist()
-                            } else {
-                                Ok(())
-                            }
-                        });
+                        let result =
+                            self.iter_loop
+                                .select_feature(scope.feature())
+                                .and_then(|()| {
+                                    if self.persist {
+                                        self.iter_loop.persist()
+                                    } else {
+                                        Ok(())
+                                    }
+                                });
                         match result {
-                            Ok(()) => self.choosing_track = false,
+                            Ok(()) => self.choosing_feature = false,
                             Err(error) => {
                                 self.inbox.send(Msg::CommandFailed {
                                     cmd: Cmd::Launch(magistr_cockpit::cockpit::LaunchAction::Loop(
@@ -525,7 +528,7 @@ impl LoopDriver {
                     Wake::Cmd(cmd) => {
                         self.inbox.send(Msg::CommandFailed {
                             cmd,
-                            error: "Choose a track before starting the loop.".into(),
+                            error: "Choose a feature before starting the loop.".into(),
                         });
                     }
                     _ => {}

@@ -4,7 +4,7 @@ use crate::plan::PlanProgress;
 
 /// Project a magistr plan onto the engine's progress snapshot.
 ///
-/// A task is a task; a workstream (`feature`) is a phase. Retired tasks
+/// A task is a task; a feature (`feature`) is a phase. Retired tasks
 /// are history and count toward nothing — the plan that carries 73 of
 /// them would otherwise read as one-third done before any work.
 #[must_use]

@@ -83,7 +83,7 @@ fn stale_hint_is_rechecked_by_the_writer_and_ties_keep_snapshot_order() {
     assert_eq!(engine.next_in_feature("Delivery").unwrap().id, hinted);
     assert_eq!(
         engine
-            .workstream_frontier(Some("Delivery"))
+            .feature_frontier(Some("Delivery"))
             .activity
             .readiness
             .ready,
@@ -102,7 +102,7 @@ fn stale_hint_is_rechecked_by_the_writer_and_ties_keep_snapshot_order() {
     assert_eq!(engine.next().unwrap().id, "a-second");
     assert_eq!(
         engine
-            .workstream_frontier(Some("Delivery"))
+            .feature_frontier(Some("Delivery"))
             .activity
             .readiness
             .ready,
@@ -132,7 +132,7 @@ fn completed_work_closes_saved_focus_without_redirecting_or_mutating_it() {
     engine
         .set_feature("foundation", Some("Rust".into()))
         .unwrap();
-    engine.focus_set("lane", "Rust", FocusMode::Build).unwrap();
+    engine.focus_set("team", "Rust", FocusMode::Build).unwrap();
     add(&mut engine, "desktop", 20, &[]);
     engine
         .set_feature("desktop", Some("Rust desktop".into()))
@@ -141,23 +141,23 @@ fn completed_work_closes_saved_focus_without_redirecting_or_mutating_it() {
     engine.complete_task("foundation", None).unwrap();
 
     let before = engine.plan().clone();
-    let catalog = engine.workstreams();
+    let catalog = engine.features();
     assert_eq!(
-        catalog.focus_state(engine.focus_get("lane").map(|focus| focus.feature.as_str())),
+        catalog.focus_state(engine.focus_get("team").map(|focus| focus.feature.as_str())),
         FocusState::Closed {
             feature: "Rust".into()
         }
     );
     assert_eq!(catalog.current_names(), ["Rust desktop"]);
     assert_eq!(
-        engine.workstream_history(Some("Rust")).task_ids,
+        engine.feature_history(Some("Rust")).task_ids,
         ["foundation"]
     );
-    assert!(engine.workstream_frontier(Some("Rust")).items.is_empty());
+    assert!(engine.feature_frontier(Some("Rust")).items.is_empty());
     assert!(engine.next_in_feature("Rust").is_none());
     for query in ["Rust", "rust"] {
         let error = engine
-            .focus_set("lane", query, FocusMode::Shape)
+            .focus_set("team", query, FocusMode::Shape)
             .unwrap_err();
         assert!(
             error.to_string().contains("no unfinished work")
@@ -170,20 +170,20 @@ fn completed_work_closes_saved_focus_without_redirecting_or_mutating_it() {
         .set_feature("foundation", Some("Archive".into()))
         .unwrap();
     assert_eq!(
-        engine.workstreams().focus_state(Some("Rust")),
+        engine.features().focus_state(Some("Rust")),
         FocusState::Missing {
             feature: "Rust".into()
         }
     );
-    assert_eq!(engine.focus_get("lane").unwrap().feature, "Rust");
+    assert_eq!(engine.focus_get("team").unwrap().feature, "Rust");
     engine
         .set_status("foundation", TaskStatus::InProgress)
         .unwrap();
     assert_eq!(
-        engine.workstreams().current_names(),
+        engine.features().current_names(),
         ["Archive", "Rust desktop"]
     );
-    assert!(!engine.workstreams().history.contains_key("Archive"));
+    assert!(!engine.features().history.contains_key("Archive"));
 }
 
 #[test]
@@ -220,7 +220,7 @@ fn current_grouping_proposals_never_enlist_or_change_terminal_records() {
     assert_eq!(proposals[0].task_ids, ["new-one", "new-two"]);
     assert_eq!(engine.plan(), &before, "discovery writes nothing");
     assert_eq!(
-        engine.workstream_history(None).task_ids,
+        engine.feature_history(None).task_ids,
         ["old-one", "old-two", "new-finished"]
     );
 }

@@ -51,9 +51,9 @@ pub struct IterationState {
     /// The unfinished plan item selected for this run.
     #[serde(deserialize_with = "required_option")]
     pub native_task_id: Option<String>,
-    /// Track selected for this run, retained across iteration sessions and recovery.
+    /// Feature selected for this run, retained across iteration sessions and recovery.
     #[serde(deserialize_with = "required_option")]
-    pub native_track: Option<String>,
+    pub native_feature: Option<String>,
     /// Agent settings frozen when this run began.
     #[serde(deserialize_with = "required_option")]
     pub session_selection: Option<crate::config::session_selection::SessionSelection>,
@@ -220,7 +220,7 @@ impl IterationLoop {
             operations: OperationLedger::new(),
             attempt_started: None,
             native_task_id: None,
-            native_track: None,
+            native_feature: None,
             session_selection: None,
             last_commit_sha: git_head_sha(&project_dir),
             last_status: IterationStatus::None,
@@ -381,37 +381,37 @@ impl IterationLoop {
         self
     }
 
-    /// Select the track before a new run starts. Recovery keeps its original scope.
-    pub fn select_track(&mut self, track: Option<&str>) -> Result<()> {
-        if (track.is_none() || self.recovered || !self.state.operations.records().is_empty())
-            && let Some(saved) = self.state.native_track.as_deref()
+    /// Select the feature before a new run starts. Recovery keeps its original scope.
+    pub fn select_feature(&mut self, feature: Option<&str>) -> Result<()> {
+        if (feature.is_none() || self.recovered || !self.state.operations.records().is_empty())
+            && let Some(saved) = self.state.native_feature.as_deref()
         {
             self.native
                 .as_ref()
-                .ok_or_else(|| MagistrError::Workflow("Tracks require a native plan.".into()))?
+                .ok_or_else(|| MagistrError::Workflow("Features require a native plan.".into()))?
                 .plan_frontier(Some(saved))
                 .map_err(MagistrError::Workflow)?;
         }
-        let Some(track) = track else {
+        let Some(feature) = feature else {
             return Ok(());
         };
         let engines = self
             .native
             .as_ref()
-            .ok_or_else(|| MagistrError::Workflow("Tracks require a native plan.".into()))?;
-        let track = engines
-            .plan_resolve_track(track)
+            .ok_or_else(|| MagistrError::Workflow("Features require a native plan.".into()))?;
+        let feature = engines
+            .plan_resolve_feature(feature)
             .map_err(MagistrError::Workflow)?;
-        if self.state.native_track.as_ref() == Some(&track) {
+        if self.state.native_feature.as_ref() == Some(&feature) {
             return Ok(());
         }
         if self.recovered || !self.state.operations.records().is_empty() {
             return Err(MagistrError::Workflow(
-                "This run already has its work selected. Resume it before choosing a different track.".into(),
+                "This run already has its work selected. Resume it before choosing a different feature.".into(),
             ));
         }
         self.state.native_task_id = None;
-        self.state.native_track = Some(track);
+        self.state.native_feature = Some(feature);
         Ok(())
     }
 
@@ -421,10 +421,10 @@ impl IterationLoop {
         self.recovered
     }
 
-    /// The track this run is confined to; None selects across the plan.
+    /// The feature this run is confined to; None selects across the plan.
     #[must_use]
-    pub fn track(&self) -> Option<&str> {
-        self.state.native_track.as_deref()
+    pub fn feature(&self) -> Option<&str> {
+        self.state.native_feature.as_deref()
     }
 
     /// Canonical counters, limits, observations and terminal state.
@@ -504,7 +504,7 @@ impl IterationLoop {
             super::native_summary::native_work_task(
                 engines,
                 self.state.native_task_id.as_deref(),
-                self.track(),
+                self.feature(),
             )
         })
     }
@@ -701,7 +701,7 @@ impl IterationLoop {
             return super::native_summary::native_work_summary(
                 engines,
                 self.state.native_task_id.as_deref(),
-                self.track(),
+                self.feature(),
             );
         }
         spec::spec_summary_from_project(&self.project_dir, &self.spec_path)

@@ -125,7 +125,7 @@ export async function host(options = {}) {
         if (operation.tool === 'plan_focus_set') {
           f.focus = { feature: operation.args.feature, mode: operation.args.mode }
           return reply({
-            result: { lane: operation.args.lane, focus: f.focus },
+            result: { team: operation.args.team, focus: f.focus },
           })
         }
         return reply({

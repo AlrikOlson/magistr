@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use magistr_workflow::plan::domain::{
-    Task, TaskStatus, WorkstreamCatalog, next_ready, workstream_catalog,
+    FeatureCatalog, Task, TaskStatus, feature_catalog, next_ready,
 };
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +10,7 @@ use crate::plan::PlanProgress;
 
 /// What the engine surfaces about a magistr plan: status counts,
 /// the next ready task, what is in flight, and the canonical current and
-/// historical workstreams. Small on purpose — a view model, not the plan.
+/// historical features. Small on purpose — a view model, not the plan.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct NativePlanSnapshot {
     pub project_id: String,
@@ -21,7 +21,7 @@ pub struct NativePlanSnapshot {
     /// Ids currently `in_progress`.
     pub in_progress: Vec<String>,
     /// Current work, authored history and ungrouped work from the plan owner.
-    pub workstreams: WorkstreamCatalog,
+    pub features: FeatureCatalog,
     pub progress: PlanProgress,
 }
 
@@ -55,7 +55,7 @@ impl NativePlanSnapshot {
             )
             .map(|task| task.id.clone()),
             in_progress,
-            workstreams: workstream_catalog(tasks),
+            features: feature_catalog(tasks),
             progress: progress_from_tasks(tasks),
         }
     }

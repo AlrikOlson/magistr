@@ -50,8 +50,8 @@ impl Edit<'_> {
             .filter(|g| !g.is_empty())
     }
 
-    pub fn workstreams(&self) -> WorkstreamCatalog {
-        workstream_catalog(&self.plan.tasks)
+    pub fn features(&self) -> FeatureCatalog {
+        feature_catalog(&self.plan.tasks)
     }
 
     fn normalize_ref(&self, raw: &str) -> Result<String, String> {

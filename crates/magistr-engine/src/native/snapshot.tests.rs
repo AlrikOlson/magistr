@@ -16,7 +16,7 @@ fn add(e: &mut PlanEngine, id: &str, priority: u32, deps: &[&str]) {
 }
 
 #[test]
-fn snapshot_reports_counts_next_workstreams_and_progress() {
+fn snapshot_reports_counts_next_features_and_progress() {
     let mut e = PlanEngine::new("magistr-test".into());
     add(&mut e, "base", 100, &[]);
     add(&mut e, "gui", 200, &["base"]);
@@ -37,21 +37,17 @@ fn snapshot_reports_counts_next_workstreams_and_progress() {
     assert_eq!(s.in_progress, vec!["base".to_string()]);
     // gui is blocked on base (in progress); cli is the lowest ready.
     assert_eq!(s.next_ready.as_deref(), Some("cli"));
-    let engine = s
-        .workstreams
-        .current
-        .get("Engine")
-        .expect("Engine workstream");
+    let engine = s.features.current.get("Engine").expect("Engine feature");
     assert_eq!(engine.counts.total, 2);
     assert_eq!(engine.counts.in_progress, 1);
     assert_eq!(engine.counts.to_do, 1);
     assert_eq!(engine.readiness.ready, 1);
     assert_eq!(engine.next_ready.as_deref(), Some("cli"));
-    let desktop = &s.workstreams.current["Desktop"];
+    let desktop = &s.features.current["Desktop"];
     assert_eq!(desktop.counts.to_do, 1);
     assert_eq!(desktop.readiness.dependent, 1);
     assert_eq!(desktop.readiness.waiting, 0);
-    assert_eq!(s.workstreams.unassigned_history.retired, 1);
+    assert_eq!(s.features.unassigned_history.retired, 1);
     assert_eq!(s.progress.total_tasks, 3);
     assert_eq!(s.progress.total_phases, 2);
 }

@@ -18,16 +18,16 @@ runtime dependency. Filesystem reads, broadcasters, report-file parsing and
 owner-generation allocation remain with their effectful owners.
 
 Plan readiness is a pure policy over one complete set of tasks. Only a
-completed dependency satisfies a requirement. Workflow queries, workstream
+completed dependency satisfies a requirement. Workflow queries, feature
 reports and new-work admission use that policy. Lower numeric priorities come
 first, with ties retaining canonical insertion order. A saved view grants no
 authority: the writer checks current records when it admits a start.
 
-`WorkstreamCatalog` separates unfinished groups from completed and obsolete
+`FeatureCatalog` separates unfinished groups from completed and obsolete
 history counts, retaining a distinct ungrouped bucket. Historical task IDs
 are returned only by explicit history inspection. Each current group reports
 lifecycle counts, readiness counts and its next candidate.
-`WorkstreamFrontier` assesses each item against the complete plan, including
+`FeatureFrontier` assesses each item against the complete plan, including
 dependencies outside its group. These values are derived, never stored; closing
 or moving the last unfinished item does not delete or relocate history.
 
@@ -115,7 +115,7 @@ unchanged.
 to a transient, clone-shared snapshot. Its retained successful value advances
 only after that family's successful read. One family can be current while
 another is stale or unavailable; there is no global file revision or
-cross-family transaction. Derived workstream
+cross-family transaction. Derived feature
 views preserve the plan's read state and source.
 
 Attaching a native reader does not itself read workflow files. Shared session

@@ -1,79 +1,78 @@
 use crate::plan::domain::{
-    FocusMode, FocusState, WorkstreamCatalog, WorkstreamResolution, validate_lane,
+    FeatureCatalog, FeatureResolution, FocusMode, FocusState, validate_team,
 };
 use crate::plan::engine::PlanEngine;
 use magistr_workflow_contracts::Observed;
 
 use super::{
-    FeatureProposal, FocusChange, FocusRead, PlanError, PlanUseCases, WorkstreamInspection,
-    WorkstreamView,
+    FeatureInspection, FeatureProposal, FeatureView, FocusChange, FocusRead, PlanError,
+    PlanUseCases,
 };
 
 impl PlanUseCases {
     pub fn focus_get(
         &self,
-        lane: &str,
+        team: &str,
         feature: Option<&str>,
-        view: WorkstreamView,
+        view: FeatureView,
     ) -> Result<FocusRead, PlanError> {
         let engine = self.lock()?;
-        let workstreams = engine.workstreams();
-        let focus = engine.focus_get(lane).cloned();
-        let focus_state =
-            workstreams.focus_state(focus.as_ref().map(|focus| focus.feature.as_str()));
+        let features = engine.features();
+        let focus = engine.focus_get(team).cloned();
+        let focus_state = features.focus_state(focus.as_ref().map(|focus| focus.feature.as_str()));
         let frontier = match feature.map(str::trim).filter(|feature| !feature.is_empty()) {
-            Some(query) => match workstreams.resolve_current(query) {
-                WorkstreamResolution::Current { feature }
-                | WorkstreamResolution::Closed { feature, .. } => inspect_exact(
+            Some(query) => match features.resolve_current(query) {
+                FeatureResolution::Current { feature }
+                | FeatureResolution::Closed { feature, .. } => inspect_exact(
                     &engine,
-                    &workstreams,
-                    &workstreams.focus_state(Some(&feature)),
+                    &features,
+                    &features.focus_state(Some(&feature)),
                     view,
                 ),
-                WorkstreamResolution::Unknown { .. } => WorkstreamInspection::Missing {
+                FeatureResolution::Unknown { .. } => FeatureInspection::Missing {
                     query: query.to_owned(),
                 },
-                WorkstreamResolution::Ambiguous { matches } => WorkstreamInspection::Ambiguous {
+                FeatureResolution::Ambiguous { matches } => FeatureInspection::Ambiguous {
                     query: query.to_owned(),
                     matches,
                 },
             },
-            None => inspect_exact(&engine, &workstreams, &focus_state, view),
+            None => inspect_exact(&engine, &features, &focus_state, view),
         };
         Ok(FocusRead {
-            lane: lane.to_owned(),
+            team: team.to_owned(),
             focus,
             focus_state,
             frontier,
-            workstreams,
+            features,
             persistent: engine.persistence_enabled(),
         })
     }
 
     pub fn focus_set(
         &self,
-        lane: &str,
+        team: &str,
         feature: &str,
         mode: FocusMode,
     ) -> Result<Observed<FocusChange>, PlanError> {
         let mut engine = self.lock()?;
         let focus = engine
-            .focus_set(lane, feature, mode)
+            .focus_set(team, feature, mode)
             .map_err(PlanError::invalid_args)?;
-        let frontier = engine.workstream_frontier(Some(&focus.value.feature));
+        let frontier = engine.feature_frontier(Some(&focus.value.feature));
         Ok(focus.map(|focus| FocusChange::Set {
-            lane: focus.lane.clone(),
+            team: focus.team.clone(),
             focus,
             frontier,
         }))
     }
 
-    pub fn focus_clear(&self, lane: &str) -> Result<Observed<FocusChange>, PlanError> {
-        validate_lane(lane).map_err(PlanError::InvalidArgs)?;
+    pub fn focus_clear(&self, team: &str) -> Result<Observed<FocusChange>, PlanError> {
+        validate_team(team).map_err(PlanError::InvalidArgs)?;
         let mut engine = self.lock()?;
-        let released = engine.focus_clear(lane).map_err(PlanError::invalid_args)?;
+        let released = engine.focus_clear(team).map_err(PlanError::invalid_args)?;
         Ok(released.map(|released| FocusChange::Cleared {
-            lane: lane.to_owned(),
+            team: team.to_owned(),
             focus: None,
             released,
         }))
@@ -84,7 +83,7 @@ impl PlanUseCases {
         Ok(FeatureProposal {
             clusters: engine.propose_features_from_ids(min_shared),
             min_shared,
-            authored_names: engine.workstreams().authored_names(),
+            authored_names: engine.features().authored_names(),
             placed: 0,
         })
     }
@@ -92,32 +91,32 @@ impl PlanUseCases {
 
 fn inspect_exact(
     engine: &PlanEngine,
-    workstreams: &WorkstreamCatalog,
+    features: &FeatureCatalog,
     focus_state: &FocusState,
-    view: WorkstreamView,
-) -> WorkstreamInspection {
+    view: FeatureView,
+) -> FeatureInspection {
     match focus_state {
-        FocusState::Unset => WorkstreamInspection::Unset,
+        FocusState::Unset => FeatureInspection::Unset,
         FocusState::Current { feature } | FocusState::Closed { feature }
-            if view == WorkstreamView::History =>
+            if view == FeatureView::History =>
         {
-            WorkstreamInspection::History {
+            FeatureInspection::History {
                 feature: feature.clone(),
-                history: engine.workstream_history(Some(feature)),
+                history: engine.feature_history(Some(feature)),
             }
         }
-        FocusState::Current { feature } => WorkstreamInspection::Current {
-            frontier: engine.workstream_frontier(Some(feature)),
+        FocusState::Current { feature } => FeatureInspection::Current {
+            frontier: engine.feature_frontier(Some(feature)),
         },
-        FocusState::Closed { feature } => WorkstreamInspection::Closed {
+        FocusState::Closed { feature } => FeatureInspection::Closed {
             feature: feature.clone(),
-            history: workstreams
+            history: features
                 .history
                 .get(feature)
-                .expect("closed workstream was classified from this catalog")
+                .expect("closed feature was classified from this catalog")
                 .clone(),
         },
-        FocusState::Missing { feature } => WorkstreamInspection::Missing {
+        FocusState::Missing { feature } => FeatureInspection::Missing {
             query: feature.clone(),
         },
     }

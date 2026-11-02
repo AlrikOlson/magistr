@@ -142,6 +142,10 @@ pub struct Persistence {
 }
 
 impl Persistence {
+    /// The saved format this family writes. A document positively older is
+    /// converted by `upgrade_document` before any reader opens it.
+    pub const CURRENT_VERSION: u32 = SCHEMA_VERSION;
+
     /// Validate a saved execution before its storage owner relocates it.
     pub fn validate_document(bytes: &[u8], project_id: &str) -> Result<(), ReadError> {
         let document: PersistedState = serde_json::from_slice(bytes)

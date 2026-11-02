@@ -9,7 +9,7 @@ pub(crate) const NATIVE_REQUIRED: &str = "This project's plan backend is `yaml`.
      \"plan_backend\": \"native\" in .magistr/project.json to read the \
      magistr plan (`magistr plan show` and `export` keep working on YAML).";
 
-/// The human `show` view: current workstreams, history, the next ready task, and the
+/// The human `show` view: current features, history, the next ready task, and the
 /// to-do tasks in priority order.
 pub(crate) fn render_show(snapshot: &NativePlanSnapshot, tasks: &[Task]) -> String {
     let mut out = String::new();
@@ -28,9 +28,9 @@ pub(crate) fn render_show(snapshot: &NativePlanSnapshot, tasks: &[Task]) -> Stri
         snapshot.count("retired"),
     ));
 
-    if !snapshot.workstreams.current.is_empty() {
-        out.push_str("\n  Current workstreams:\n");
-        for (name, work) in &snapshot.workstreams.current {
+    if !snapshot.features.current.is_empty() {
+        out.push_str("\n  Current features:\n");
+        for (name, work) in &snapshot.features.current {
             out.push_str(&format!(
                 "    {name}: {} unfinished · {} ready · {} after other tasks · {} waiting\n",
                 work.counts.total,
@@ -40,7 +40,7 @@ pub(crate) fn render_show(snapshot: &NativePlanSnapshot, tasks: &[Task]) -> Stri
             ));
         }
     }
-    let unassigned = &snapshot.workstreams.unassigned;
+    let unassigned = &snapshot.features.unassigned;
     if unassigned.counts.total > 0 {
         out.push_str(&format!(
             "\n  Unassigned work: {} unfinished · {} ready · {} after other tasks · {} waiting\n",
@@ -50,19 +50,18 @@ pub(crate) fn render_show(snapshot: &NativePlanSnapshot, tasks: &[Task]) -> Stri
             unassigned.readiness.waiting,
         ));
     }
-    if !snapshot.workstreams.history.is_empty()
-        || snapshot.workstreams.unassigned_history.done
-            + snapshot.workstreams.unassigned_history.retired
+    if !snapshot.features.history.is_empty()
+        || snapshot.features.unassigned_history.done + snapshot.features.unassigned_history.retired
             > 0
     {
         out.push_str("\n  History:\n");
-        for (name, history) in &snapshot.workstreams.history {
+        for (name, history) in &snapshot.features.history {
             out.push_str(&format!(
                 "    {name}: {} done · {} retired\n",
                 history.done, history.retired,
             ));
         }
-        let history = &snapshot.workstreams.unassigned_history;
+        let history = &snapshot.features.unassigned_history;
         if history.done + history.retired > 0 {
             out.push_str(&format!(
                 "    Unassigned: {} done · {} retired\n",
@@ -120,7 +119,7 @@ pub(crate) fn render_next(next: Option<&Task>) -> String {
     };
     let mut out = format!("{} — {}\n", c.id, c.title);
     if let Some(feature) = &c.feature {
-        out.push_str(&format!("  workstream: {feature}\n"));
+        out.push_str(&format!("  feature: {feature}\n"));
     }
     out.push_str(&format!("  priority: {}\n", c.priority));
     if !c.deps.is_empty() {
@@ -163,7 +162,7 @@ pub(crate) fn show_json(snapshot: &NativePlanSnapshot, tasks: &[Task]) -> serde_
         "backend": "magistr",
         "project_id": snapshot.project_id,
         "counts": snapshot.counts,
-        "workstreams": snapshot.workstreams,
+        "features": snapshot.features,
         "next_ready": snapshot.next_ready,
         "in_progress": snapshot.in_progress,
         "progress": snapshot.progress,

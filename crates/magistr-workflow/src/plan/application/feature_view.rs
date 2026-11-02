@@ -11,7 +11,7 @@
     schemars::JsonSchema,
 )]
 #[serde(rename_all = "snake_case")]
-pub enum WorkstreamView {
+pub enum FeatureView {
     #[default]
     Current,
     History,

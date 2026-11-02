@@ -507,7 +507,7 @@ fn doctor_explains_stalled_then_recoverable_operations_and_a_legacy_marker() {
             record("0/dispatch", "provider_dispatch", "dispatch", "running", serde_json::json!(handle.to_string())),
         ] },
         "attempt_started": 0, "native_task_id": "chunk-a", "last_commit_sha": null,
-        "native_track": null, "session_selection": null,
+        "native_feature": null, "session_selection": null,
         "last_status": "none", "spec_checked": 0, "spec_total": 1,
     });
     let state = dir.path().join(".magistr");

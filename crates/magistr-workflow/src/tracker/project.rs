@@ -231,7 +231,7 @@ pub fn to_work_item(
         },
         assignee: None,
         version: link.and_then(|l| l.last_seen_version.clone()),
-        // The task's workstream, carried by NAME. The adapter resolves it to a
+        // The task's feature, carried by NAME. The adapter resolves it to a
         // container id; the projector never learns one.
         feature: task.feature.clone(),
     }
@@ -457,7 +457,7 @@ pub async fn project_all(
 /// "something is moving", "all finished" — and nothing richer, because anything
 /// richer would be the projector inventing an opinion.
 ///
-/// Retired tasks are IGNORED rather than counted as finished — a workstream
+/// Retired tasks are IGNORED rather than counted as finished — a feature
 /// whose every task was abandoned has not been completed, and calling it so
 /// upstream would be a lie a human then has to notice and undo.
 fn derived_state<'a>(

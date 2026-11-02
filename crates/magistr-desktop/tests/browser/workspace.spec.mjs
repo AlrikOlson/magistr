@@ -1,15 +1,17 @@
 import { test, expect, root, ui, workspaceSeed } from "./fixture.mjs";
 import { prepareIteration } from "./iteration_evidence.mjs";
 import { workScene } from "./work_fixture.mjs";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { resolve, relative } from "node:path";
 import { createHash } from "node:crypto";
 import { sourceFolioScene, tableScene, patchScene, toolScene, outlineScene, editorialScene, galleryScene, viewerScene, writingScene, ledgerScene, permissionScene, historyScene, workspaceScaleScene } from "./design_scenes.mjs";
 
 test("workspace composition, appearances and narrow Details",async({app,browser})=>{
   test.setTimeout(60000);
-  const iteration=process.env.MAGISTR_GUI_ITERATION??new Date().toISOString().replace(/[:.TZ]/g,"-");
-  const evidence=resolve(await prepareIteration(root,iteration),"gallery");
+  // Evidence is kept only for a named GUI iteration; a plain run captures to a temporary folder.
+  const iteration=process.env.MAGISTR_GUI_ITERATION;
+  const evidence=iteration?resolve(await prepareIteration(root,iteration),"gallery"):await mkdtemp(resolve(tmpdir(),"magistr-workspace-gallery-"));
   await mkdir(evidence,{recursive:true});
   const images={},viewports={},checks={};
   const capture=async name=>{

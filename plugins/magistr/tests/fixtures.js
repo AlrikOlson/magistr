@@ -155,12 +155,12 @@ export function answer(f, server, tool, args) {
         next_ready: 'search',
       }
       return {
-        lane: args.lane,
+        team: args.team,
         focus: f.focus || null,
         focus_state: f.focus
           ? { state: 'current', feature: f.focus.feature }
           : { state: 'unset' },
-        workstreams: {
+        features: {
           current: { Search: activity },
           history: {},
           unassigned: {

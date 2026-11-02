@@ -21,11 +21,11 @@ const focusSummary = (value) => {
   const group = clean(value.focus.feature, 160)
   switch (value.focus_state.state) {
     case 'current':
-      return 'Chosen workstream: ' + group
+      return 'Chosen feature: ' + group
     case 'closed':
-      return group + ' has no unfinished work. Choose another workstream.'
+      return group + ' has no unfinished work. Choose another feature.'
     case 'missing':
-      return group + ' is no longer on the plan. Choose another workstream.'
+      return group + ' is no longer on the plan. Choose another feature.'
     default:
       return null
   }
@@ -201,7 +201,7 @@ export function pane(E, m, width, handlers) {
           body.push(
             button(
               'focus-work',
-              'Choose this workstream',
+              'Choose this feature',
               () =>
                 handlers.action('focus', {
                   feature: c.feature,

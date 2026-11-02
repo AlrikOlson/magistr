@@ -993,7 +993,7 @@ impl TrackerPort for LinearTracker {
     ///
     /// WHAT IS DELIBERATELY NOT SENT: targetDate, lead, description and health.
     /// The plan has priorities, not deadlines, and no notion of who is
-    /// running a workstream — writing those would be the projector inventing
+    /// running a feature — writing those would be the projector inventing
     /// opinions, and every one of them is a field a human will want to own.
     async fn upsert_feature(
         &self,

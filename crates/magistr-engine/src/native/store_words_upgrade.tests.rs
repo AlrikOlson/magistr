@@ -25,6 +25,10 @@ const DECISION_WORDS: &[u8] = include_bytes!("fixtures/before-decision-words-dec
 /// `surfaced`, `researched`, `dismissed` and `new`, and a `surfaced_at`
 /// stamp. Its free text is replaced because it came from another project.
 const REQUEST_WORDS: &[u8] = include_bytes!("fixtures/before-request-words-signal.json");
+/// A plan document as the request words left it (version 4): the real plan
+/// records above converted by the request-words codec, unchanged, so its
+/// focus still names its `lane`.
+const TEAM_WORDS: &[u8] = include_bytes!("fixtures/before-team-words-plan.json");
 const PROJECT: &str = "magistr-5a5bc6";
 const EXECUTION: &str = "execution-key";
 
@@ -154,7 +158,7 @@ fn plan_and_decision_references_saved_before_the_run_words_take_both_vocabularie
 
     assert!(!data.join("roadmap").exists());
     let plan = read(data.join(format!("plan/sessions/{PROJECT}.json")));
-    assert_eq!(plan["schema_version"], 4);
+    assert_eq!(plan["schema_version"], 5);
     let refs: Vec<&str> = plan["tasks"]
         .as_array()
         .unwrap()
@@ -214,7 +218,7 @@ fn the_plan_store_moves_once_and_takes_the_plan_words() {
 
     let plan = read(data.join(format!("plan/sessions/{PROJECT}.json")));
     let original = json(PLAN_WORDS);
-    assert_eq!(plan["schema_version"], 4);
+    assert_eq!(plan["schema_version"], 5);
     assert!(plan.get("chunks").is_none());
     let tasks = plan["tasks"].as_array().unwrap();
     assert_eq!(tasks.len(), original["chunks"].as_array().unwrap().len());
@@ -257,6 +261,8 @@ fn the_plan_store_moves_once_and_takes_the_plan_words() {
         plan["focuses"][0]["feature"],
         original["focuses"][0]["group"]
     );
+    assert_eq!(plan["focuses"][0]["team"], original["focuses"][0]["lane"]);
+    assert!(plan["focuses"][0].get("lane").is_none());
 
     let requests = read(data.join(format!("requests/sessions/{PROJECT}.json")));
     assert_eq!(requests["schema_version"], 4);
@@ -676,4 +682,61 @@ fn owner_endpoint_sockets_are_not_records() {
             .join(format!("plan/sessions/{PROJECT}.project-owner.lock.sock"))
             .exists()
     );
+}
+
+/// A store the request words already converted in place: every family has
+/// moved, the plan document is version 4, and the request words' backups
+/// hold the version before it.
+#[test]
+fn a_plan_saved_before_the_team_words_converts_in_place_and_keeps_its_original() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("project");
+    fs::create_dir_all(root.join(".magistr")).unwrap();
+    fs::write(
+        root.join(".magistr/project.json"),
+        format!(r#"{{"project":{{"id":"{PROJECT}"}}}}"#),
+    )
+    .unwrap();
+    let config =
+        NativeConfig::from_lookup(&root, |_| None).with_data_dir(dir.path().join("data/workflow"));
+    let data = config.data_dir().to_path_buf();
+    let path = data.join(format!("plan/sessions/{PROJECT}.json"));
+    let earlier = data.join(format!(
+        "backups/before-request-words/plan/sessions/{PROJECT}.json"
+    ));
+    for (file, bytes) in [(&path, TEAM_WORDS), (&earlier, PLAN_WORDS)] {
+        fs::create_dir_all(file.parent().unwrap()).unwrap();
+        fs::write(file, bytes).unwrap();
+    }
+
+    StoreWordsUpgrade::apply(&config, PROJECT).unwrap();
+
+    let plan = read(path.clone());
+    let original = json(TEAM_WORDS);
+    assert_eq!(plan["schema_version"], 5);
+    assert_eq!(plan["focuses"][0]["team"], original["focuses"][0]["lane"]);
+    assert!(plan["focuses"][0].get("lane").is_none());
+    assert_eq!(plan["tasks"], original["tasks"], "only the focus changes");
+    assert_eq!(
+        fs::read(data.join(format!(
+            "backups/before-team-words/plan/sessions/{PROJECT}.json"
+        )))
+        .unwrap(),
+        TEAM_WORDS,
+        "the version-4 original is recoverable byte for byte"
+    );
+    assert_eq!(
+        fs::read(&earlier).unwrap(),
+        PLAN_WORDS,
+        "an earlier conversion's backup is left alone"
+    );
+    let after = fs::read(&path).unwrap();
+    StoreWordsUpgrade::apply(&config, PROJECT).unwrap();
+    assert_eq!(
+        fs::read(&path).unwrap(),
+        after,
+        "a second pass changes nothing"
+    );
+    let reader = NativeReader::open(&config);
+    assert!(reader.plan_snapshot().is_ok());
 }

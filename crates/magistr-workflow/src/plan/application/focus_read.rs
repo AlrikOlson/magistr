@@ -1,14 +1,14 @@
-use crate::plan::domain::{Focus, FocusState, WorkstreamCatalog};
+use crate::plan::domain::{FeatureCatalog, Focus, FocusState};
 
-use super::WorkstreamInspection;
+use super::FeatureInspection;
 
-/// A saved lane focus and the current plan observed under one owner lock.
+/// A saved team focus and the current plan observed under one owner lock.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct FocusRead {
-    pub lane: String,
+    pub team: String,
     pub focus: Option<Focus>,
     pub focus_state: FocusState,
-    pub frontier: WorkstreamInspection,
-    pub workstreams: WorkstreamCatalog,
+    pub frontier: FeatureInspection,
+    pub features: FeatureCatalog,
     pub persistent: bool,
 }

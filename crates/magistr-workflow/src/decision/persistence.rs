@@ -41,6 +41,10 @@ pub struct Persistence {
 }
 
 impl Persistence {
+    /// The saved format this family writes. A document positively older is
+    /// converted by `upgrade_document` before any reader opens it.
+    pub const CURRENT_VERSION: u32 = SCHEMA_VERSION;
+
     pub fn for_project(cfg: &PersistenceConfig, project_id: &str) -> Self {
         Self {
             enabled: cfg.enabled,

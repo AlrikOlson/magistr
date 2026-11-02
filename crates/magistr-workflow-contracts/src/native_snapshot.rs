@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::decision::Log;
-use crate::plan::{Task, WorkstreamCatalog, workstream_catalog};
+use crate::plan::{FeatureCatalog, Task, feature_catalog};
 use crate::request::Request;
 use crate::run::{Goal, Step, StepStatus};
 use crate::{PlanProgress, ReadError, ReadState};
@@ -87,8 +87,8 @@ pub struct NativeSnapshot {
 impl NativeSnapshot {
     /// Derivation preserves the plan's read state and provenance.
     #[must_use]
-    pub fn workstreams(&self) -> ReadState<WorkstreamCatalog> {
-        self.plan.map(|plan| workstream_catalog(&plan.tasks))
+    pub fn features(&self) -> ReadState<FeatureCatalog> {
+        self.plan.map(|plan| feature_catalog(&plan.tasks))
     }
 
     #[must_use]

@@ -44,7 +44,7 @@ snapshot cursor and source revision retain their distinct meanings. The Mod
 does not subscribe to or fabricate a feed cursor. Workspace's existing status
 root is compared with the context's canonical root before actions. Failed or
 mismatched connections refuse actions and mark source views out of date.
-Workstream choices use native per-caller focus under this Claude session's lane;
+Feature choices use native per-caller focus under this Claude session's team;
 the adapter reads it back and leaves other agents' focus untouched.
 
 Rendering consumes bounded plain state and creates elements only. Reads,

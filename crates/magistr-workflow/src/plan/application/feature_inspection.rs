@@ -1,20 +1,20 @@
-use crate::plan::domain::{WorkstreamFrontier, WorkstreamHistory, WorkstreamHistoryRecords};
+use crate::plan::domain::{FeatureFrontier, FeatureHistory, FeatureHistoryRecords};
 
-/// A read-only inspection, distinct from the lane's saved focus.
+/// A read-only inspection, distinct from the team's saved focus.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(tag = "state", rename_all = "snake_case")]
-pub enum WorkstreamInspection {
+pub enum FeatureInspection {
     Unset,
     Current {
-        frontier: WorkstreamFrontier,
+        frontier: FeatureFrontier,
     },
     Closed {
         feature: String,
-        history: WorkstreamHistory,
+        history: FeatureHistory,
     },
     History {
         feature: String,
-        history: WorkstreamHistoryRecords,
+        history: FeatureHistoryRecords,
     },
     Missing {
         query: String,

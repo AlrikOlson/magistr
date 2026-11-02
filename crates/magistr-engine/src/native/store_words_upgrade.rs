@@ -26,12 +26,10 @@ pub struct StoreWordsUpgrade;
 
 const LOCK: &str = "store-words-upgrade.lock";
 
-/// The current schema versions of the per-project documents whose saved
-/// references changed words. Older documents are refused until converted.
-const DECISION_VERSION: u64 = 6;
-const RUN_VERSION: u64 = 6;
-const PLAN_VERSION: u64 = 4;
-const REQUESTS_VERSION: u64 = 4;
+/// The words of the latest in-place document conversion. A document converted
+/// in place keeps its original under `backups/before-<words>/`, one folder per
+/// conversion, so an installation upgraded through several keeps each original.
+const DOCUMENT_WORDS: &str = "team-words";
 
 /// One family store directory that moves to its new name.
 #[derive(Clone, Copy)]
@@ -214,13 +212,14 @@ impl Family {
         }
     }
 
-    const fn current_version(self) -> u64 {
-        match self {
-            Self::Plan => PLAN_VERSION,
-            Self::Decision => DECISION_VERSION,
-            Self::Request => REQUESTS_VERSION,
-            Self::Run => RUN_VERSION,
-        }
+    /// Each family's codec owns its current version; this only asks it.
+    fn current_version(self) -> u64 {
+        u64::from(match self {
+            Self::Plan => magistr_workflow_contracts::PLAN_SCHEMA_VERSION,
+            Self::Decision => magistr_workflow::decision::persistence::Persistence::CURRENT_VERSION,
+            Self::Request => magistr_workflow_contracts::REQUESTS_SCHEMA_VERSION,
+            Self::Run => magistr_workflow::run::persistence::Persistence::CURRENT_VERSION,
+        })
     }
 }
 
@@ -553,7 +552,7 @@ fn convert_project(config: &NativeConfig, project_id: &str) -> io::Result<()> {
             .and_then(|sessions| sessions.strip_prefix(root).ok())
             .unwrap_or_else(|| Path::new("workflow"));
         let backup = root
-            .join("backups/before-request-words")
+            .join(format!("backups/before-{DOCUMENT_WORDS}"))
             .join(place)
             .join(name);
         if !backup.exists() {

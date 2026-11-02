@@ -342,7 +342,7 @@ fn prepare(
                 return Err("A single work item is unfinished. Continue that item before starting a longer run.".into());
             }
             iter_loop
-                .select_track(scope.track())
+                .select_feature(scope.feature())
                 .map_err(|error| error.to_string())?;
             if let Some(selection) = selection {
                 iter_loop

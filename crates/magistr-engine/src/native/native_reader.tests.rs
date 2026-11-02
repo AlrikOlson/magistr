@@ -7,7 +7,7 @@ fn fixture() -> (tempfile::TempDir, NativeConfig, NativeEngines) {
     std::fs::create_dir(&root).unwrap();
     let config = NativeConfig::from_lookup(root, |_| None).with_data_dir(temp.path().join("data"));
     let writer =
-        ProjectAuthority::admit_for_project(&config, "workstream-read".into(), WriterRole::Host)
+        ProjectAuthority::admit_for_project(&config, "feature-read".into(), WriterRole::Host)
             .unwrap()
             .open();
     (temp, config, writer)
@@ -31,30 +31,30 @@ fn add(writer: &NativeEngines, id: &str, priority: u32, feature: Option<&str>) {
 }
 
 #[test]
-fn current_workstreams_refresh_without_redirecting_closed_or_missing_names() {
+fn current_features_refresh_without_redirecting_closed_or_missing_names() {
     let (_temp, config, writer) = fixture();
     add(&writer, "old", 1, Some("Rust"));
     add(&writer, "desktop", 20, Some("Rust desktop"));
     add(&writer, "unassigned", 10, None);
-    let observer = NativeReader::open_for_project(&config, "workstream-read".into());
+    let observer = NativeReader::open_for_project(&config, "feature-read".into());
     assert_eq!(
-        observer.plan_workstreams().unwrap().current_names(),
+        observer.plan_features().unwrap().current_names(),
         ["Rust", "Rust desktop"]
     );
     writer.plan_set_status("old", TaskStatus::Retired).unwrap();
-    let catalog = observer.plan_workstreams().unwrap();
+    let catalog = observer.plan_features().unwrap();
     assert_eq!(catalog.current_names(), ["Rust desktop"]);
     assert_eq!(catalog.history["Rust"].retired, 1);
     assert_eq!(catalog.unassigned.counts.total, 1);
     assert_eq!(observer.plan_tasks().unwrap().len(), 3);
 
-    let refusal = observer.plan_resolve_track("Rust").unwrap_err();
+    let refusal = observer.plan_resolve_feature("Rust").unwrap_err();
     assert!(refusal.contains("no unfinished work"), "{refusal}");
     assert!(refusal.contains("Rust desktop"), "{refusal}");
-    assert!(observer.plan_next_in_track("Rust").is_err());
+    assert!(observer.plan_next_in_feature("Rust").is_err());
     assert!(observer.plan_frontier(Some("Rust des")).is_err());
     assert_eq!(
-        observer.plan_resolve_track("Rust des").unwrap(),
+        observer.plan_resolve_feature("Rust des").unwrap(),
         "Rust desktop"
     );
     assert_eq!(observer.plan_next().unwrap().unwrap().id, "unassigned");
@@ -63,7 +63,7 @@ fn current_workstreams_refresh_without_redirecting_closed_or_missing_names() {
     assert_eq!(unassigned.items[0].id, "unassigned");
     assert_eq!(
         observer
-            .plan_next_in_track("Rust desktop")
+            .plan_next_in_feature("Rust desktop")
             .unwrap()
             .unwrap()
             .id,
@@ -73,15 +73,15 @@ fn current_workstreams_refresh_without_redirecting_closed_or_missing_names() {
     writer
         .plan_set_feature("desktop", Some("Interface".into()))
         .unwrap();
-    assert!(observer.plan_next_in_track("Rust desktop").is_err());
+    assert!(observer.plan_next_in_feature("Rust desktop").is_err());
     assert_eq!(
-        observer.plan_workstreams().unwrap().current_names(),
+        observer.plan_features().unwrap().current_names(),
         ["Interface"]
     );
     writer
         .plan_set_status("desktop", TaskStatus::Retired)
         .unwrap();
-    let catalog = observer.plan_workstreams().unwrap();
+    let catalog = observer.plan_features().unwrap();
     assert!(catalog.current.is_empty());
     assert_eq!(catalog.history["Interface"].retired, 1);
     assert_eq!(observer.plan_next().unwrap().unwrap().id, "unassigned");
@@ -93,27 +93,27 @@ fn selection_refuses_an_unreadable_store_and_recovers_without_cached_success() {
 
     let (_temp, config, writer) = fixture();
     add(&writer, "work", 1, Some("Current"));
-    let observer = NativeReader::open_for_project(&config, "workstream-read".into());
+    let observer = NativeReader::open_for_project(&config, "feature-read".into());
     assert_eq!(observer.plan_next().unwrap().unwrap().id, "work");
     let path =
-        Persistence::new(&config.persistence_config(), Domain::Plan).path_for("workstream-read");
+        Persistence::new(&config.persistence_config(), Domain::Plan).path_for("feature-read");
     let original = std::fs::read(&path).unwrap();
     std::fs::write(&path, b"{ invalid plan").unwrap();
 
     assert!(observer.plan_tasks().is_err());
     assert!(observer.plan_next().is_err());
-    assert!(observer.plan_next_in_track("Current").is_err());
-    assert!(observer.plan_resolve_track("Current").is_err());
-    assert!(observer.plan_workstreams().is_err());
+    assert!(observer.plan_next_in_feature("Current").is_err());
+    assert!(observer.plan_resolve_feature("Current").is_err());
+    assert!(observer.plan_features().is_err());
     assert!(observer.plan_frontier(Some("Current")).is_err());
-    let newly_opened = NativeReader::open_for_project(&config, "workstream-read".into());
+    let newly_opened = NativeReader::open_for_project(&config, "feature-read".into());
     assert!(newly_opened.plan_tasks().is_err());
     assert!(newly_opened.plan_next().is_err());
 
     std::fs::write(&path, original).unwrap();
     assert_eq!(observer.plan_next().unwrap().unwrap().id, "work");
     assert_eq!(
-        observer.plan_workstreams().unwrap().current_names(),
+        observer.plan_features().unwrap().current_names(),
         ["Current"]
     );
 }
@@ -155,13 +155,13 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
     }))
     .unwrap();
     writer.decision_record(step).unwrap();
-    let observer = NativeReader::open_for_project(&config, "workstream-read".into());
+    let observer = NativeReader::open_for_project(&config, "feature-read".into());
     let clone = observer.clone();
     let persistence = config.persistence_config();
     let paths = [
         (
             "plan",
-            Persistence::new(&persistence, Domain::Plan).path_for("workstream-read"),
+            Persistence::new(&persistence, Domain::Plan).path_for("feature-read"),
         ),
         (
             "run",
@@ -171,17 +171,17 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
                 .join("executions")
                 .join(config.execution_context().key())
                 .join("sessions")
-                .join("workstream-read.json"),
+                .join("feature-read.json"),
         ),
         (
             "requests",
-            Persistence::new(&persistence, Domain::Request).path_for("workstream-read"),
+            Persistence::new(&persistence, Domain::Request).path_for("feature-read"),
         ),
         (
             "decisions",
             magistr_workflow::decision::persistence::Persistence::for_project(
                 &persistence,
-                "workstream-read",
+                "feature-read",
             )
             .store_path()
             .unwrap(),
@@ -207,7 +207,7 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
                 }
             }
         }
-        let cold = NativeReader::open_for_project(&config, "workstream-read".into());
+        let cold = NativeReader::open_for_project(&config, "feature-read".into());
         let unavailable = serde_json::to_value(cold.snapshot()).unwrap();
         assert_eq!(unavailable[family]["state"], "unavailable", "{family}");
         assert_eq!(std::fs::read(&path).unwrap(), b"{ unreadable record");
@@ -235,10 +235,10 @@ fn observed_deletion_is_current_empty_and_does_not_clear_other_families() {
             "Retain the request".into(),
         )
         .unwrap();
-    let observer = NativeReader::open_for_project(&config, "workstream-read".into());
+    let observer = NativeReader::open_for_project(&config, "feature-read".into());
     let before = observer.snapshot();
     let path =
-        Persistence::new(&config.persistence_config(), Domain::Plan).path_for("workstream-read");
+        Persistence::new(&config.persistence_config(), Domain::Plan).path_for("feature-read");
     std::fs::remove_file(path).unwrap();
     let empty = observer.snapshot();
     assert_eq!(empty.plan.current().unwrap().source, ReadSource::Missing);
@@ -253,7 +253,7 @@ fn a_family_read_holds_its_owner_until_the_retained_observation_is_recorded() {
 
     let (_temp, config, writer) = fixture();
     add(&writer, "first", 1, None);
-    let observer = NativeReader::open_for_project(&config, "workstream-read".into());
+    let observer = NativeReader::open_for_project(&config, "feature-read".into());
     observer.plan_tasks().unwrap();
     let cache = lock(&observer.observations);
     let first = observer.clone();
@@ -399,7 +399,7 @@ fn complete_execution_history_survives_new_work_and_failed_reads() {
         .value;
     writer.finish_step("verify", vec![]).unwrap();
     writer.run_finish(vec![], None).unwrap();
-    let reader = NativeReader::open_for_project(&config, "workstream-read".into());
+    let reader = NativeReader::open_for_project(&config, "feature-read".into());
     let previous = reader.run_snapshot().unwrap().current.unwrap();
     writer
         .run_open_with_verification(
@@ -410,7 +410,7 @@ fn complete_execution_history_survives_new_work_and_failed_reads() {
             VerificationMode::Focused,
         )
         .unwrap();
-    let reopened = NativeReader::open_for_project(&config, "workstream-read".into());
+    let reopened = NativeReader::open_for_project(&config, "feature-read".into());
     assert_eq!(
         reopened.run_run(&previous.run_id).unwrap(),
         Some(previous.clone())
@@ -429,7 +429,7 @@ fn complete_execution_history_survives_new_work_and_failed_reads() {
         .join("executions")
         .join(config.execution_context().key())
         .join("sessions")
-        .join("workstream-read.json");
+        .join("feature-read.json");
     let bytes = std::fs::read(&path).unwrap();
     std::fs::write(&path, b"invalid").unwrap();
     assert!(reopened.run_run(&previous.run_id).is_err());

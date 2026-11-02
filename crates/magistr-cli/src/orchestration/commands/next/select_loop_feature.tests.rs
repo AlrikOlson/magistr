@@ -18,7 +18,7 @@ fn choosing_a_feature_reprompts_for_invalid_input_and_keeps_the_stored_name() {
 
 #[test]
 fn picker_lists_only_current_authored_names_and_global_selection() {
-    use magistr_engine::native::{Task, TaskStatus, workstream_catalog};
+    use magistr_engine::native::{Task, TaskStatus, feature_catalog};
 
     let task = |id: &str, status: TaskStatus, feature: Option<&str>| -> Task {
         serde_json::from_value(serde_json::json!({
@@ -33,7 +33,7 @@ fn picker_lists_only_current_authored_names_and_global_selection() {
     let current = task("current", TaskStatus::ToDo, Some("Current"));
     let closed = task("closed", TaskStatus::Retired, Some("Closed"));
     let unassigned = task("unassigned", TaskStatus::ToDo, None);
-    let catalog = workstream_catalog(&[current, closed, unassigned]);
+    let catalog = feature_catalog(&[current, closed, unassigned]);
     let mut output = Vec::new();
     let selected = choose(
         &catalog.current_names(),

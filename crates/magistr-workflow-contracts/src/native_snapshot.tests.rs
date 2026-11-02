@@ -2,7 +2,7 @@ use super::*;
 use crate::{Observed, ReadErrorKind, ReadSource};
 
 #[test]
-fn workstream_projection_and_worker_failure_keep_family_provenance() {
+fn feature_projection_and_worker_failure_keep_family_provenance() {
     let snapshot = NativeSnapshot {
         plan: ReadState::Current(Observed {
             value: PlanData::default(),
@@ -15,7 +15,7 @@ fn workstream_projection_and_worker_failure_keep_family_provenance() {
         ..NativeSnapshot::default()
     };
     assert_eq!(
-        snapshot.workstreams().current().unwrap().source,
+        snapshot.features().current().unwrap().source,
         ReadSource::Missing
     );
     assert!(snapshot.needs_retry());
@@ -47,5 +47,5 @@ fn workstream_projection_and_worker_failure_keep_family_provenance() {
     ));
     assert_eq!(failed.requests, ReadState::Unavailable(error.clone()));
     assert_eq!(failed.decisions, ReadState::Unavailable(error));
-    assert!(failed.workstreams().current().is_err());
+    assert!(failed.features().current().is_err());
 }

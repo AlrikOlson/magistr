@@ -965,7 +965,7 @@ async fn an_idle_session_yields_a_start_to_its_host_with_the_commands_still_open
     let (session, _opening) = idle_session(inbox);
     commands
         .send(Cmd::Launch(LaunchAction::Loop(
-            magistr_cockpit::cockpit::LoopScope::AllTracks,
+            magistr_cockpit::cockpit::LoopScope::AllFeatures,
         )))
         .unwrap();
     commands.send(Cmd::Prompt("after the work".into())).unwrap();
@@ -979,7 +979,7 @@ async fn an_idle_session_yields_a_start_to_its_host_with_the_commands_still_open
     assert_eq!(
         exit.launch,
         Some(LaunchAction::Loop(
-            magistr_cockpit::cockpit::LoopScope::AllTracks
+            magistr_cockpit::cockpit::LoopScope::AllFeatures
         ))
     );
     assert!(events.try_recv().is_err(), "a start is not a failure");

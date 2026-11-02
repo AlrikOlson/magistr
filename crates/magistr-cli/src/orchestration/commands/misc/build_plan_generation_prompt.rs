@@ -38,7 +38,7 @@ Call `plan_add_task` once per task. Parameters:
 - `id` (required) — a stable kebab-case slug, e.g. `auth-session-store`
 - `title` (required) — the full claim; a sentence is fine
 - `name` — the short label a canvas node wears (max 24 characters), e.g. `Session store`
-- `feature` — the workstream this task belongs to (e.g. `Auth`, `API`, `Infra`); pass it at birth
+- `feature` — the feature this task belongs to (e.g. `Auth`, `API`, `Infra`); pass it at birth
 - `priority` — `critical` | `high` | `medium` | `low` (lower sorts earlier)
 - `deps` — ids of tasks that must be done first
 - `acceptance` — 3–8 concrete, testable acceptance criteria

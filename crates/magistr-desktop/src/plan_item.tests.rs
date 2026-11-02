@@ -78,7 +78,7 @@ fn relations_resolve_the_complete_graph_and_keep_missing_records_explicit() {
     let records = vec![chosen.clone(), foundation.clone(), dependent];
     let item = PlanItem::new(chosen, &records);
     assert!(
-        matches!(&item.readiness, WorkstreamReadiness::Dependent { dependencies }
+        matches!(&item.readiness, FeatureReadiness::Dependent { dependencies }
         if dependencies.len() == 1 && dependencies[0].id == "missing")
     );
     assert_eq!(item.dependencies.len(), 2);

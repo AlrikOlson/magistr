@@ -16,9 +16,9 @@ import { createInterface } from 'node:readline'
 import { decode, validate, phase } from '../hooks/wire.js'
 import { request as operationRequest, response } from '../hooks/mcp.js'
 
-async function verifyWorkstreams(call, lane) {
+async function verifyFeatures(call, team) {
   const read = (args = {}) =>
-    call('plan_focus_get', { lane, ...args }).then((reply) =>
+    call('plan_focus_get', { team, ...args }).then((reply) =>
       validate('focus', reply),
     )
   assert.equal((await read()).focus_state.state, 'unset')
@@ -36,12 +36,12 @@ async function verifyWorkstreams(call, lane) {
     assert.notEqual(added.isError, true)
   }
   await call('plan_focus_set', {
-    lane,
+    team,
     feature: 'Rust desktop',
     mode: 'build',
   })
   const current = await read()
-  assert.deepEqual(Object.keys(current.workstreams.current), ['Rust desktop'])
+  assert.deepEqual(Object.keys(current.features.current), ['Rust desktop'])
   assert.equal(current.frontier.frontier.activity.next_ready, 'current')
   assert.equal(JSON.stringify(current).includes('task_ids'), false)
 
@@ -69,14 +69,14 @@ async function verifyWorkstreams(call, lane) {
     state: 'closed',
     feature: 'Rust desktop',
   })
-  assert.deepEqual(ended.workstreams.current, {})
+  assert.deepEqual(ended.features.current, {})
   assert.equal(JSON.stringify(ended).includes('task_ids'), false)
   assert.deepEqual(
     (await read({ view: 'history' })).frontier.history.task_ids,
     ['current', 'earlier'],
   )
   assert.equal(
-    (await read({ lane: lane + '/another' })).focus_state.state,
+    (await read({ team: team + '/another' })).focus_state.state,
     'unset',
   )
 }
@@ -253,13 +253,13 @@ test(
       validate('plan', await call('plan_status'))
       validate('findings', await call('decision_status', { verbose: true }))
       assert.equal(phase(first, run), 'Phase not reported')
-      await verifyWorkstreams(call, root)
+      await verifyFeatures(call, root)
       await verifyReadRecovery(
         call,
         path.join(data, 'plan', 'sessions', projectId + '.json'),
         [
           ['plan_status', {}],
-          ['plan_focus_get', { lane: root }],
+          ['plan_focus_get', { team: root }],
         ],
       )
       await call('run_open', {

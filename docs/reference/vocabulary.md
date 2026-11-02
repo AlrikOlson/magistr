@@ -452,10 +452,20 @@ run in this order:
    `owners/request-words/` and the move waits while an older lease is held.
    The cloud family id is `request`, and a promoted request's new task is
    `request-<id>`.
-6. `vocab-teams-checks`: lane, workstream and gate.
-7. `vocab-copy-gate`: desktop, website and docs copy, plus a check that fails
+6. `vocab-teams-checks`: lane, workstream and track. A focus names the
+   `team` that holds it, and `plan_focus_get` / `plan_focus_set` take `team`;
+   the plan codec moves to version 5 and converts each saved focus's `lane`
+   to `team` once. `Workstream*` becomes `Feature*`, a focus read's
+   `workstreams` becomes `features`, and loop selection speaks features
+   (`select_feature`, `LoopScope::Feature`, and the loop checkpoint's
+   `native_feature`, which like `native_task_id` is not converted: an older
+   checkpoint is refused).
+7. `vocab-checks`: gate. It was split from `vocab-teams-checks` on
+   2 November 2026, because the gate words reach most of the code and meet the
+   run family's `Check*` names.
+8. `vocab-copy-gate`: desktop, website and docs copy, plus a check that fails
    on a word from [Words the interface never shows](#words-the-interface-never-shows).
-8. `vocabulary-cutover`: ship the staged skills, then prove an end-to-end agent
+9. `vocabulary-cutover`: ship the staged skills, then prove an end-to-end agent
    run that uses only the new names.
 
 While the tasks land, a family that is not done yet still uses its old words.
@@ -481,8 +491,12 @@ These keep their spelling on purpose:
   `execute` composition results is a different word from a check result and
   keeps its spelling here; `vocab-copy-gate` decides its public copy.
 - Words other families own stay until their task lands: the quality-gate words
-  `gate`, `magistr_gate` and `custom_gates`, and `workstream`, `track` and
-  `lane` (teams and checks).
+  `gate`, `magistr_gate` and `custom_gates` (checks).
+- `lane` as a path or channel is not a team and keeps its spelling: the
+  workspace's plugin, extension, language-pack and runner lanes, the
+  OpenTelemetry span and log lanes, a tracker's companion lane, the cloud push
+  lane and an owner's control lane. So does `track` as a verb ("tracks its
+  inputs") and as a CSS grid track.
 - `thinking` is the model's own reasoning (Claude's extended thinking, the
   ACP tool kind `think`), not the decision log, and keeps its words. So do a
   git branch, an agent or conversation session, and the
@@ -496,7 +510,8 @@ These keep their spelling on purpose:
 - The desktop's internal names and shown labels for the decision log
   ("Reasoning", "Step 41", "Investigation") are copy; `vocab-copy-gate`
   brings them to the glossary. The fields they read already use the stored
-  words.
+  words. The same holds for the plan view's feature picker ("Track",
+  "Back to track", `work-browser-track`, `plan-track-title`).
 - The skill names `roadmap` and `roadmap-refresh` and their template files stay
   until `vocabulary-cutover` ships the staged `plan` skill; their text already
   uses the plan tools.

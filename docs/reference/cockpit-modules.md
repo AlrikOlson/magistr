@@ -51,7 +51,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/work_search.mjs` — complete-record matching and bounded result pages.
 - `crates/magistr-desktop/ui/work_plan_search.mjs` — complete plan search and stable item navigation.
 - `crates/magistr-desktop/ui/work_relations.mjs` — complete dependency/dependent navigation and owner readiness.
-- `crates/magistr-desktop/ui/work_plan.mjs` — track selection and owner-provided readiness.
+- `crates/magistr-desktop/ui/work_plan.mjs` — feature selection and owner-provided readiness.
 - `crates/magistr-desktop/ui/work_plan_surface.mjs` — work pieces and actual prerequisite geometry.
 - `crates/magistr-desktop/ui/work_surface.mjs` — shared camera, semantic selection and arrangement controls.
 - `crates/magistr-desktop/ui/work_surface_input.mjs` — cancellable pointer and keyboard camera input.

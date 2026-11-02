@@ -674,7 +674,7 @@ fn actual_work_and_launch_refusal_survive_pruning_reseed_and_conversation_switch
     let mut run = WorkRun {
         id: RunId::new(ProjectId::new("project").unwrap(), "run-one").unwrap(),
         mode: RunMode::TaskLoop,
-        track: None,
+        feature: None,
         task: Some("item".into()),
         iteration: 1,
         limit: 10,

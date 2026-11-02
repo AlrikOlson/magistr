@@ -669,7 +669,7 @@ fn state_serializes_to_json() {
         operations: OperationLedger::new(),
         attempt_started: None,
         native_task_id: None,
-        native_track: None,
+        native_feature: None,
         session_selection: None,
         last_commit_sha: Some("abc1234".to_string()),
         last_status: IterationStatus::Committed,
@@ -696,7 +696,7 @@ fn state_deserializes_from_json() {
             "operations": {"records": []},
             "attempt_started": null,
             "native_task_id": null,
-            "native_track": null,
+            "native_feature": null,
             "session_selection": null,
             "last_commit_sha": "def5678",
             "last_status": "no_commit",
@@ -1191,7 +1191,7 @@ fn new_loop_does_not_inherit_a_blocked_item_from_an_ended_run() {
 }
 
 #[test]
-fn track_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_workstream() {
+fn feature_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_feature() {
     let (dir, spec_path) = setup_project("- [x] Done\n");
     let engines = native_engines(&dir);
     add_native_task(&engines, "chosen", 100, &[]);
@@ -1203,8 +1203,8 @@ fn track_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_workstream() {
         .plan_set_feature("elsewhere", Some("Other work".into()))
         .unwrap();
     let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
-    first.select_track(Some("surface")).unwrap();
-    assert_eq!(first.track(), Some("Surface work"));
+    first.select_feature(Some("surface")).unwrap();
+    assert_eq!(first.feature(), Some("Surface work"));
     assert_eq!(
         first.pre_iteration_check().unwrap(),
         PreCheckResult::Continue
@@ -1214,16 +1214,16 @@ fn track_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_workstream() {
 
     let mut recovered =
         IterationLoop::recover_with(dir.path(), &spec_path, Some(engines.reader())).unwrap();
-    recovered.select_track(Some("Surface work")).unwrap();
+    recovered.select_feature(Some("Surface work")).unwrap();
     let before = recovered.state().clone();
-    assert!(recovered.select_track(Some("Other work")).is_err());
+    assert!(recovered.select_feature(Some("Other work")).is_err());
     assert_eq!(recovered.state(), &before);
     let checkpoint = std::fs::read(loop_state_path(dir.path())).unwrap();
     engines.plan_start_task("chosen").unwrap();
     complete_native_task(&engines, "chosen");
     let before_closed = recovered.state().clone();
-    assert!(recovered.select_track(None).is_err());
-    assert!(recovered.select_track(Some("Other work")).is_err());
+    assert!(recovered.select_feature(None).is_err());
+    assert!(recovered.select_feature(Some("Other work")).is_err());
     let refusal = recovered.pre_iteration_check().unwrap_err().to_string();
     assert!(refusal.contains("no unfinished work"), "{refusal}");
     assert!(refusal.contains("Other work"), "{refusal}");
@@ -1239,7 +1239,7 @@ fn track_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_workstream() {
 }
 
 #[test]
-fn track_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
+fn feature_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
     let (dir, spec_path) = setup_project("- [x] Done\n");
     let engines = native_engines(&dir);
     add_native_task(&engines, "chosen", 100, &[]);
@@ -1251,7 +1251,7 @@ fn track_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
         .plan_set_feature("elsewhere", Some("Surface follow-up".into()))
         .unwrap();
     let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
-    first.select_track(Some("Surface")).unwrap();
+    first.select_feature(Some("Surface")).unwrap();
     first.pre_iteration_check().unwrap();
     first.persist().unwrap();
     let checkpoint = std::fs::read(loop_state_path(dir.path())).unwrap();
@@ -1263,9 +1263,9 @@ fn track_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
         IterationLoop::recover_with(dir.path(), &spec_path, Some(engines.reader())).unwrap();
     let before = recovered.state().clone();
     for requested in [None, Some("Surface"), Some("Interface")] {
-        let refusal = recovered.select_track(requested).unwrap_err().to_string();
+        let refusal = recovered.select_feature(requested).unwrap_err().to_string();
         assert!(
-            refusal.contains("No current workstream matches 'Surface'"),
+            refusal.contains("No current feature matches 'Surface'"),
             "{refusal}"
         );
         assert!(refusal.contains("Surface follow-up"), "{refusal}");
@@ -1277,7 +1277,7 @@ fn track_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
         std::fs::read(loop_state_path(dir.path())).unwrap(),
         checkpoint
     );
-    assert_eq!(recovered.track(), Some("Surface"));
+    assert_eq!(recovered.feature(), Some("Surface"));
     assert_eq!(
         engines.plan_task("elsewhere").unwrap().unwrap().status,
         magistr_engine::native::TaskStatus::ToDo
@@ -1285,7 +1285,7 @@ fn track_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
 }
 
 #[test]
-fn track_loop_ignores_unrelated_blocked_and_in_progress_items() {
+fn feature_loop_ignores_unrelated_blocked_and_in_progress_items() {
     let (dir, spec_path) = setup_project("- [x] Done\n");
     let engines = native_engines(&dir);
     for (id, feature) in [
@@ -1302,14 +1302,14 @@ fn track_loop_ignores_unrelated_blocked_and_in_progress_items() {
         .unwrap();
     let before = engines.snapshot();
     let mut run = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
-    run.select_track(Some("Chosen")).unwrap();
+    run.select_feature(Some("Chosen")).unwrap();
     assert_eq!(run.pre_iteration_check().unwrap(), PreCheckResult::Continue);
     assert_eq!(run.state().native_task_id.as_deref(), Some("ready"));
     assert_eq!(engines.snapshot(), before);
 }
 
 #[test]
-fn track_loop_never_runs_a_dependency_from_another_track_or_a_blocked_pending_item() {
+fn feature_loop_never_runs_a_dependency_from_another_feature_or_a_blocked_pending_item() {
     let (dir, spec_path) = setup_project("- [x] Done\n");
     let engines = native_engines(&dir);
     add_native_task(&engines, "dependency", 1, &[]);
@@ -1328,9 +1328,9 @@ fn track_loop_never_runs_a_dependency_from_another_track_or_a_blocked_pending_it
         .unwrap();
     let mut run = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     let before = run.state().clone();
-    assert!(run.select_track(Some("Missing")).is_err());
+    assert!(run.select_feature(Some("Missing")).is_err());
     assert_eq!(run.state(), &before);
-    run.select_track(Some("Chosen")).unwrap();
+    run.select_feature(Some("Chosen")).unwrap();
     assert_eq!(
         run.pre_iteration_check().unwrap(),
         PreCheckResult::NoReadyTask

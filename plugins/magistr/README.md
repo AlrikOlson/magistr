@@ -43,7 +43,7 @@ an existing owner can use the normal startup path.
 - **Work:** inspect your goal, acceptance criteria and steps; open a step
   to see check commands, results, recorded actions and source links.
 - **Plan:** inspect readiness, blockers, acceptance criteria and dependencies.
-  Choose a workstream for this Claude session or mark the next ready work as started. Other sessions keep their own workstream choices.
+  Choose a feature for this Claude session or mark the next ready work as started. Other sessions keep their own feature choices.
 - **Checks:** inspect recorded evidence or run a check selected for the current
   change. Set a time limit from 1 to 1800 seconds (five minutes by default),
   then review the exact command and limit before confirming.
@@ -51,7 +51,7 @@ an existing owner can use the normal startup path.
 - **Changes:** inspect Magistr's recorded changes and read the affected files.
   File changes made outside Magistr may also exist.
 
-Step starts, workstream choices, work starts and checks require a specific
+Step starts, feature choices, work starts and checks require a specific
 confirmation and then Claude's usual permission checks. Starting work records
 your choice; continue implementation with your existing coding workflow.
 The pane never completes work or launches a coding loop.

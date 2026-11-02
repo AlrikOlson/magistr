@@ -7,7 +7,7 @@ const flush = async () => {
 }
 const mutations = (h) => h.calls.filter((c) => c.mutation)
 
-test('checks and workstream choices read back their acknowledged results', async () => {
+test('checks and feature choices read back their acknowledged results', async () => {
   const h = await host()
   await h.start()
   await h.command('')
@@ -30,11 +30,11 @@ test('checks and workstream choices read back their acknowledged results', async
   await h.press('work-search')
   await h.press('focus-work')
   assert.equal(
-    decodeRequest('execute', mutations(h).at(-1).mutation).args.lane,
+    decodeRequest('execute', mutations(h).at(-1).mutation).args.team,
     'claude-mod:example-session',
   )
   await h.press('tab-current')
-  assert.match(textOf(await h.render()), /Chosen workstream: Search/)
+  assert.match(textOf(await h.render()), /Chosen feature: Search/)
   await h.end()
 })
 test('mismatched source and workflow folders refuse actions', async () => {

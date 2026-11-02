@@ -27,7 +27,7 @@ fn add(e: &NativeEngines, id: &str, priority: u32, deps: &[&str], feature: Optio
 }
 
 #[test]
-fn show_lists_counts_workstreams_next_and_pending_in_priority_order() {
+fn show_lists_counts_features_next_and_pending_in_priority_order() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let e = engines(&tmp);
     add(&e, "base", 100, &[], Some("Core"));
@@ -54,7 +54,7 @@ fn show_lists_counts_workstreams_next_and_pending_in_priority_order() {
 }
 
 #[test]
-fn show_keeps_closed_workstreams_in_history_and_unassigned_work_in_global_next() {
+fn show_keeps_closed_features_in_history_and_unassigned_work_in_global_next() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let e = engines(&tmp);
     add(&e, "old", 1, &[], Some("Closed"));
@@ -81,13 +81,10 @@ fn show_keeps_closed_workstreams_in_history_and_unassigned_work_in_global_next()
     );
 
     let json = show_json(&snapshot, &tasks);
-    assert_eq!(
-        json["workstreams"]["current"]["Current"]["counts"]["total"],
-        1
-    );
-    assert!(json["workstreams"]["current"].get("Closed").is_none());
-    assert_eq!(json["workstreams"]["history"]["Closed"]["retired"], 1);
-    assert_eq!(json["workstreams"]["unassigned"]["counts"]["total"], 1);
+    assert_eq!(json["features"]["current"]["Current"]["counts"]["total"], 1);
+    assert!(json["features"]["current"].get("Closed").is_none());
+    assert_eq!(json["features"]["history"]["Closed"]["retired"], 1);
+    assert_eq!(json["features"]["unassigned"]["counts"]["total"], 1);
     assert_eq!(json["next_ready"], "unassigned");
     assert!(json.get("regions").is_none());
     assert_eq!(tasks.len(), 3, "history remains in the owning record");
@@ -114,7 +111,7 @@ fn next_renders_the_task_or_explains_the_empty_frontier() {
     let next = e.plan_next().unwrap().expect("dep is ready");
     let text = render_next(Some(&next));
     assert!(text.starts_with("dep — Task dep\n"), "{text}");
-    assert!(text.contains("workstream: Core"), "{text}");
+    assert!(text.contains("feature: Core"), "{text}");
     assert!(text.contains("- dep works"), "{text}");
     let base = e.plan_task("base").unwrap().expect("base");
     assert!(render_next(Some(&base)).contains("deps: dep"));

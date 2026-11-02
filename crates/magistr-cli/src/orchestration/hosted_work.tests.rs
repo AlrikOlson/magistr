@@ -94,7 +94,7 @@ async fn a_host_that_only_attached_refuses_both_starts_in_words_and_stays_open()
 
     let mut host = hosted(dir.path(), attached);
     for action in [
-        LaunchAction::Loop(magistr_cockpit::cockpit::LoopScope::AllTracks),
+        LaunchAction::Loop(magistr_cockpit::cockpit::LoopScope::AllFeatures),
         LaunchAction::Next,
     ] {
         host.commands.send(Cmd::Launch(action.clone())).unwrap();
@@ -124,12 +124,12 @@ async fn a_held_loop_owner_lock_refuses_the_loop_in_words_and_stays_open() {
     for _ in 0..2 {
         host.commands
             .send(Cmd::Launch(LaunchAction::Loop(
-                magistr_cockpit::cockpit::LoopScope::AllTracks,
+                magistr_cockpit::cockpit::LoopScope::AllFeatures,
             )))
             .unwrap();
         let error = refusal(
             &mut host.events,
-            &LaunchAction::Loop(magistr_cockpit::cockpit::LoopScope::AllTracks),
+            &LaunchAction::Loop(magistr_cockpit::cockpit::LoopScope::AllFeatures),
         )
         .await;
         assert!(error.contains("Work is already running"), "{error}");
@@ -143,12 +143,18 @@ async fn a_held_loop_owner_lock_refuses_the_loop_in_words_and_stays_open() {
 #[test]
 fn both_admitted_modes_exclude_every_start_before_checkpoint_writes() {
     use magistr_cockpit::cockpit::LoopScope;
-    for first in [LaunchAction::Next, LaunchAction::Loop(LoopScope::AllTracks)] {
+    for first in [
+        LaunchAction::Next,
+        LaunchAction::Loop(LoopScope::AllFeatures),
+    ] {
         let dir = project();
         let engines = EngineClient::with_config(store(dir.path())).unwrap();
         let admitted = prepare(dir.path(), &engines, &first, None).unwrap();
         let saved = std::fs::read(dir.path().join(".magistr/loop-state.json")).unwrap();
-        for other in [LaunchAction::Next, LaunchAction::Loop(LoopScope::AllTracks)] {
+        for other in [
+            LaunchAction::Next,
+            LaunchAction::Loop(LoopScope::AllFeatures),
+        ] {
             let error = prepare(dir.path(), &engines, &other, None)
                 .err()
                 .expect("lease refusal");
@@ -170,7 +176,7 @@ fn one_item_refuses_unfinished_loop_without_erasing_its_progress() {
     let loop_run = prepare(
         dir.path(),
         &engines,
-        &LaunchAction::Loop(magistr_cockpit::cockpit::LoopScope::AllTracks),
+        &LaunchAction::Loop(magistr_cockpit::cockpit::LoopScope::AllFeatures),
         None,
     )
     .unwrap();

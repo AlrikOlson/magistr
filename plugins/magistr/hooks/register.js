@@ -110,7 +110,7 @@ async function refresh($, force = false) {
           try {
             const options =
               kind === 'focus'
-                ? { lane: 'claude-mod:' + (await $.session.id()) }
+                ? { team: 'claude-mod:' + (await $.session.id()) }
                 : args
             const value = validate(kind, await read($, server, tool, options))
             const now = await $.clock.now()
@@ -317,7 +317,7 @@ async function action($, kind, target) {
         : kind === 'step'
           ? 'Start step'
           : kind === 'focus'
-            ? 'Choose workstream'
+            ? 'Choose feature'
             : 'Mark started'
     const title =
       kind === 'gate'
@@ -428,7 +428,7 @@ async function action($, kind, target) {
           ? { step_id: target.id }
           : kind === 'focus'
             ? {
-                lane: 'claude-mod:' + (await $.session.id()),
+                team: 'claude-mod:' + (await $.session.id()),
                 feature: target.feature,
                 mode: 'build',
               }
@@ -484,7 +484,7 @@ async function action($, kind, target) {
         kind === 'step'
           ? 'Step started. Continue it with your coding workflow.'
           : kind === 'focus'
-            ? 'Workstream selected. No implementation was started.'
+            ? 'Feature selected. No implementation was started.'
             : 'Work marked as started. Continue it with your coding workflow.'
     }
     // Read-back after acknowledgement; the submission latch stays held throughout.
@@ -569,7 +569,7 @@ async function command($, e) {
               plan: 'Plan',
               context: 'Progress',
               findings: 'Findings',
-              focus: 'Chosen workstream',
+              focus: 'Chosen feature',
               workspace: 'Project connection',
               changes: 'Changes',
             })[name] +

@@ -56,7 +56,7 @@ pub enum PlanEvent {
     /// The native magistr plan was re-read (a task changed, a
     /// broadcast frame arrived, or a consumer asked for a refresh).
     NativeSnapshot {
-        /// Counts, next ready task, current workstreams, history and progress.
+        /// Counts, next ready task, current features, history and progress.
         snapshot: Box<NativePlanSnapshot>,
     },
 }

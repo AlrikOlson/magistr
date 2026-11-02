@@ -6,7 +6,7 @@ use magistr_domain::{identity::RunId, workflow::RunMode};
 pub struct WorkRun {
     pub id: RunId,
     pub mode: RunMode,
-    pub track: Option<String>,
+    pub feature: Option<String>,
     pub task: Option<String>,
     pub iteration: u32,
     pub limit: u32,

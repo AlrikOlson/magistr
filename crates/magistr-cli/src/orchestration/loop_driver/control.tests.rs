@@ -12,7 +12,7 @@ fn fixture() -> (Control, tokio::sync::mpsc::UnboundedReceiver<Msg>) {
             state: Arc::new(Mutex::new(WorkRun {
                 id: RunId::new(ProjectId::new("project").unwrap(), "one").unwrap(),
                 mode: RunMode::TaskLoop,
-                track: None,
+                feature: None,
                 task: Some("first".into()),
                 iteration: 1,
                 limit: 10,

@@ -194,22 +194,22 @@ export function validate(kind, raw) {
       })
     })
   } else if (kind === 'focus') {
-    string(v.lane, 'the session')
+    string(v.team, 'the session')
     const focusState = v.focus_state
     if (
       !record(focusState) ||
       !['unset', 'current', 'closed', 'missing'].includes(focusState.state)
     )
-      throw new Error('The chosen workstream could not be checked.')
+      throw new Error('The chosen feature could not be checked.')
     if (v.focus != null) {
-      string(v.focus.feature, 'the workstream')
+      string(v.focus.feature, 'the feature')
       string(v.focus.mode, 'the work mode')
       if (focusState.state === 'unset' || focusState.feature !== v.focus.feature)
         throw new Error(
-          'The chosen workstream does not match its reported state.',
+          'The chosen feature does not match its reported state.',
         )
     } else if (focusState.state !== 'unset') {
-      throw new Error('The chosen workstream was not returned.')
+      throw new Error('The chosen feature was not returned.')
     }
   } else if (kind === 'findings') {
     if (!Number.isSafeInteger(v.next_note))
@@ -268,7 +268,7 @@ export function validateAction(kind, value, target) {
   } else if (kind === 'focus') {
     if (value.focus?.feature !== target.feature || value.focus?.mode !== 'build')
       throw new Error(
-        'The workstream reply did not confirm your choice. Refresh and inspect it.',
+        'The feature reply did not confirm your choice. Refresh and inspect it.',
       )
   } else if (
     value.id !== target.id ||

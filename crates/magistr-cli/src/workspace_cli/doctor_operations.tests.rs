@@ -41,7 +41,7 @@ fn write_checkpoint(root: &Path, run: &str, records: Vec<Value>, terminal_reason
         "operations": { "records": records },
         "attempt_started": 1,
         "native_task_id": "chunk-a",
-        "native_track": null,
+        "native_feature": null,
         "session_selection": null,
         "last_commit_sha": "abc123",
         "last_status": "committed",

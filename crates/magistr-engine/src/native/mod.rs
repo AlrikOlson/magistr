@@ -156,10 +156,10 @@ pub use magistr_workflow::decision::domain::{DepEdge, NextAction, Note, ThreadSt
 pub use magistr_workflow::decision::domain::{NoteError, RecordedNote};
 pub use magistr_workflow::plan::broadcast::PlanFrame;
 pub use magistr_workflow::plan::domain::{
+    FeatureActivity, FeatureCatalog, FeatureFrontier, FeatureHistory, FeatureResolution,
     FocusState, Plan, Readiness, ReprioritizeProposal, StatusProposal, Task, TaskStatus,
-    TitleProposal, WaitingOn, WaitingReason, WorkstreamActivity, WorkstreamCatalog,
-    WorkstreamFrontier, WorkstreamHistory, WorkstreamResolution, assess_readiness, next_ready,
-    workstream_catalog, workstream_frontier,
+    TitleProposal, WaitingOn, WaitingReason, assess_readiness, feature_catalog, feature_frontier,
+    next_ready,
 };
 pub use magistr_workflow::request::broadcast::RequestFrame;
 pub use magistr_workflow::request::domain::{Enrichment, Request, RequestKind, RequestStatus};

@@ -972,7 +972,7 @@ fn the_known_schema_gap_stays_closed() {
 ///
 /// WHY THE PROSE IS THE EXPENSIVE HALF, AND STAYS — both descriptions are
 /// mostly refusal contracts a caller must know BEFORE forming a call: that an
-/// unknown or ambiguous workstream writes nothing and returns candidates, that
+/// unknown or ambiguous feature writes nothing and returns candidates, that
 /// a blank lane is refused rather than defaulted, that no synonym is accepted
 /// for a mode. Those are the clauses that stop a mutating verb from being
 /// misused, and a schema cannot express one of them.

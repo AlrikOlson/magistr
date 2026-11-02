@@ -3799,7 +3799,7 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
         .send(Cmd::ForConversation {
             id: a.conversation.clone(),
             command: Box::new(Cmd::Launch(LaunchAction::Loop(
-                magistr_cockpit::cockpit::LoopScope::AllTracks,
+                magistr_cockpit::cockpit::LoopScope::AllFeatures,
             ))),
         })
         .unwrap();
@@ -3931,7 +3931,7 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
 }
 
 #[tokio::test]
-async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_work() {
+async fn feature_choice_waits_inside_the_cockpit_before_preflight_and_provider_work() {
     use magistr_cockpit::cockpit::{LaunchAction, LoopScope};
     let dir = project("true", "true", "true");
     let engines = engines_with_work(dir.path());
@@ -3950,7 +3950,7 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
         )
         .unwrap();
     engines
-        .plan_set_feature("selected", Some("Chosen track".into()))
+        .plan_set_feature("selected", Some("Chosen feature".into()))
         .unwrap();
     let iteration = IterationLoop::open(
         dir.path(),
@@ -3980,7 +3980,7 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
         receiver,
         connector,
     )
-    .choosing_track(true)
+    .choosing_feature(true)
     .spawn();
 
     commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
@@ -3993,8 +3993,8 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
     assert_eq!(checkpoint(dir.path()).native_task_id, None);
 
     commands
-        .send(Cmd::Launch(LaunchAction::Loop(LoopScope::Track(
-            "Chosen track".into(),
+        .send(Cmd::Launch(LaunchAction::Loop(LoopScope::Feature(
+            "Chosen feature".into(),
         ))))
         .unwrap();
     let report = tokio::time::timeout(Duration::from_secs(10), step)
@@ -4004,12 +4004,12 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
     assert!(matches!(report.end(), LoopEnd::Failed(_)));
     assert_eq!(seen.lock().unwrap().len(), 1);
     let state = checkpoint(dir.path());
-    assert_eq!(state.native_track.as_deref(), Some("Chosen track"));
+    assert_eq!(state.native_feature.as_deref(), Some("Chosen feature"));
     assert_eq!(state.native_task_id.as_deref(), Some("selected"));
 }
 
 #[tokio::test]
-async fn closing_the_track_picker_session_starts_no_work() {
+async fn closing_the_feature_picker_session_starts_no_work() {
     let dir = project("true", "true", "true");
     let iteration = IterationLoop::open(dir.path(), dir.path().join("PLAN.md"), 1, None).unwrap();
     let (inbox, mut events) = Inbox::channel();
@@ -4023,7 +4023,7 @@ async fn closing_the_track_picker_session_starts_no_work() {
         receiver,
         Connector::new(|_| async { panic!("no choice must start no provider") }),
     )
-    .choosing_track(true)
+    .choosing_feature(true)
     .spawn();
     commands
         .send(Cmd::Launch(magistr_cockpit::cockpit::LaunchAction::Next))

@@ -15,7 +15,7 @@ impl Control {
             state: Arc::new(Mutex::new(WorkRun {
                 id: run.state().run_id.clone(),
                 mode: run.run_state().mode,
-                track: run.track().map(str::to_owned),
+                feature: run.feature().map(str::to_owned),
                 task: run.state().native_task_id.clone(),
                 iteration: run.display_iteration(),
                 limit: run.max_iterations(),
@@ -99,7 +99,7 @@ impl Control {
     pub(super) fn begin(&self, run: &IterationLoop, task: Option<String>) {
         self.update(|state| {
             state.iteration = run.display_iteration();
-            state.track = run.track().map(str::to_owned);
+            state.feature = run.feature().map(str::to_owned);
             state.task = task;
             state.phase = WorkPhase::Running;
         });

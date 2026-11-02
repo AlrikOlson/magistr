@@ -93,7 +93,7 @@ impl Edit<'_> {
                 given.to_string()
             }
         };
-        // The workstream is validated BEFORE anything is written, and rejected
+        // The feature is validated BEFORE anything is written, and rejected
         // as a whole call rather than dropped. A task born unassigned because
         // its feature was quietly ignored is invisible to every focused read —
         // `next_in_feature` will not offer it and the frontier will not count
@@ -287,17 +287,17 @@ impl Edit<'_> {
 
     pub fn focus_set(
         &mut self,
-        lane: &str,
+        team: &str,
         feature: &str,
         mode: FocusMode,
     ) -> Result<Focus, String> {
-        let lane = validate_lane(lane)?;
-        let resolved = match self.workstreams().resolve_current(feature) {
-            WorkstreamResolution::Current { feature } => feature,
+        let team = validate_team(team)?;
+        let resolved = match self.features().resolve_current(feature) {
+            FeatureResolution::Current { feature } => feature,
             other => return Err(other.explain(feature)),
         };
         let now = Self::now();
-        let focus = match self.plan.focuses.iter_mut().find(|f| f.lane == lane) {
+        let focus = match self.plan.focuses.iter_mut().find(|f| f.team == team) {
             Some(existing) => {
                 existing.feature = resolved;
                 existing.mode = mode;
@@ -306,7 +306,7 @@ impl Edit<'_> {
             }
             None => {
                 let focus = Focus {
-                    lane,
+                    team,
                     feature: resolved,
                     mode,
                     set_at: now.clone(),
@@ -319,10 +319,10 @@ impl Edit<'_> {
         Ok(focus)
     }
 
-    pub fn focus_clear(&mut self, lane: &str) -> Result<bool, String> {
-        let lane = validate_lane(lane)?;
+    pub fn focus_clear(&mut self, team: &str) -> Result<bool, String> {
+        let team = validate_team(team)?;
         let before = self.plan.focuses.len();
-        self.plan.focuses.retain(|f| f.lane != lane);
+        self.plan.focuses.retain(|f| f.team != team);
         let removed = self.plan.focuses.len() != before;
         Ok(removed)
     }

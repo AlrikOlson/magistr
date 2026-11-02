@@ -80,7 +80,7 @@ test('wire decoding accepts canonical MCP and normal tool replies and rejects in
 })
 test('focus replies preserve closed and missing choices without claiming current work', () => {
   const f = fixture()
-  const base = answer(f, 'magistr', 'plan_focus_get', { lane: 'caller' })
+  const base = answer(f, 'magistr', 'plan_focus_get', { team: 'caller' })
   const focus = { feature: 'Finished search', mode: 'build' }
   assert.doesNotThrow(() => validate('focus', { structuredContent: base }))
   for (const [state, wording] of [
@@ -90,8 +90,8 @@ test('focus replies preserve closed and missing choices without claiming current
     const value = { ...base, focus, focus_state: { state, feature: focus.feature } }
     if (state === 'closed') {
       const history = { done: 1, retired: 0 }
-      value.workstreams = {
-        ...base.workstreams,
+      value.features = {
+        ...base.features,
         history: { [focus.feature]: history },
       }
       value.frontier = { state, feature: focus.feature, history }
@@ -104,8 +104,8 @@ test('focus replies preserve closed and missing choices without claiming current
       m.tab = tab
       const rendered = textOf(pane(elements, m, 40, {}))
       assert.match(rendered, wording)
-      assert.match(rendered, /Choose another workstream/)
-      assert.doesNotMatch(rendered, /Chosen workstream: Finished search/)
+      assert.match(rendered, /Choose another feature/)
+      assert.doesNotMatch(rendered, /Chosen feature: Finished search/)
     }
   }
   for (const bad of [

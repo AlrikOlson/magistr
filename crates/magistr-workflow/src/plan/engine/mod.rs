@@ -25,10 +25,10 @@ use crate::cloud::client::CloudClient;
 use crate::infra::{CrossRef, Persistence, StoreStamp};
 use crate::plan::broadcast::{Broadcaster, PlanFrame};
 use crate::plan::domain::{
-    ContainerKind, ContainerLink, Focus, FocusMode, Plan, RefreshNote, ReprioritizeProposal, Task,
-    TaskStatus, TrackerLink, TrackerOptIn, WaitingOn, WaitingReason, WorkstreamCatalog,
-    WorkstreamFrontier, WorkstreamHistoryRecords, WorkstreamResolution, validate_lane,
-    workstream_catalog, workstream_frontier, workstream_history,
+    ContainerKind, ContainerLink, FeatureCatalog, FeatureFrontier, FeatureHistoryRecords,
+    FeatureResolution, Focus, FocusMode, Plan, RefreshNote, ReprioritizeProposal, Task, TaskStatus,
+    TrackerLink, TrackerOptIn, WaitingOn, WaitingReason, feature_catalog, feature_frontier,
+    feature_history, validate_team,
 };
 use crate::plan::region;
 
@@ -403,7 +403,7 @@ impl PlanEngine {
         })
     }
 
-    /// Put a task in a workstream, or take it out of one.
+    /// Put a task in a feature, or take it out of one.
     ///
     /// A verb of its own rather than a seventh `Option` on [`Self::update_task`],
     /// for a reason that is not style: that function reads `None` as "leave
@@ -419,7 +419,7 @@ impl PlanEngine {
     /// the only place that can tell a caller at the moment it happens; the
     /// alternative was a red diagnostic hours afterwards with no memory of who
     /// wrote it. The phrase returned is the one [`region::why_unfit`] prints.
-    /// Validate and update a task’s workstream in its owning transaction.
+    /// Validate and update a task’s feature in its owning transaction.
     pub fn set_feature(
         &mut self,
         id: &str,
@@ -456,47 +456,47 @@ impl PlanEngine {
 
     /// Current work and terminal history from this complete owner snapshot.
     #[must_use]
-    pub fn workstreams(&self) -> WorkstreamCatalog {
-        workstream_catalog(&self.plan.tasks)
+    pub fn features(&self) -> FeatureCatalog {
+        feature_catalog(&self.plan.tasks)
     }
 
-    // ── Focus: what one lane is currently working on ───────────────────
+    // ── Focus: what one team is currently working on ───────────────────
     //
-    // Every verb below is keyed by lane. There is deliberately no lane-less
-    // variant of any of them: a convenience overload defaulting the lane is
+    // Every verb below is keyed by team. There is deliberately no team-less
+    // variant of any of them: a convenience overload defaulting the team is
     // the project-global focus this design exists to make impossible, and it
     // would be one commit away at all times if the door were left open.
 
-    /// What `lane` is focused on, or `None` if it has never focused anything.
+    /// What `team` is focused on, or `None` if it has never focused anything.
     ///
-    /// Read-only, and it does not validate the lane: asking after a nonsense
-    /// lane is honestly answered "that lane has no focus", which is true and is
+    /// Read-only, and it does not validate the team: asking after a nonsense
+    /// team is honestly answered "that team has no focus", which is true and is
     /// what a caller reconstructing its own state needs to hear.
     #[must_use]
-    pub fn focus_get(&self, lane: &str) -> Option<&Focus> {
-        let lane = lane.trim();
-        self.plan.focuses.iter().find(|f| f.lane == lane)
+    pub fn focus_get(&self, team: &str) -> Option<&Focus> {
+        let team = team.trim();
+        self.plan.focuses.iter().find(|f| f.team == team)
     }
 
-    /// Point `lane` at `feature` in `mode`.
+    /// Point `team` at `feature` in `mode`.
     ///
     /// Validates BEFORE it writes, and the ordering is the contract: a call
     /// naming a closed, unknown or ambiguous feature leaves the store unchanged,
-    /// so a mistyped switch can never strand a lane somewhere it did not ask to
+    /// so a mistyped switch can never strand a team somewhere it did not ask to
     /// be. Task status is untouched — focus points at work, it does not start
     /// any.
     pub fn focus_set(
         &mut self,
-        lane: &str,
+        team: &str,
         feature: &str,
         mode: FocusMode,
     ) -> Result<Observed<Focus>, PlanMutationError> {
-        self.mutate(|edit| edit.focus_set(lane, feature, mode))
+        self.mutate(|edit| edit.focus_set(team, feature, mode))
     }
 
-    /// Drop `lane`'s focus. `true` when there was one to drop.
-    pub fn focus_clear(&mut self, lane: &str) -> Result<Observed<bool>, PlanMutationError> {
-        self.mutate(|edit| edit.focus_clear(lane))
+    /// Drop `team`'s focus. `true` when there was one to drop.
+    pub fn focus_clear(&mut self, team: &str) -> Result<Observed<bool>, PlanMutationError> {
+        self.mutate(|edit| edit.focus_clear(team))
     }
 
     /// The next ready task INSIDE `feature` — same three readiness conditions as
@@ -504,7 +504,7 @@ impl PlanEngine {
     ///
     /// It cannot return a task from another feature, and that is the property the
     /// whole focused loop rests on: an empty answer here means "nothing ready in
-    /// this workstream", never "look elsewhere". Callers are expected to stop.
+    /// this feature", never "look elsewhere". Callers are expected to stop.
     #[must_use]
     pub fn next_in_feature(&self, feature: &str) -> Option<&Task> {
         next_ready(
@@ -520,14 +520,14 @@ impl PlanEngine {
     /// Current work in exactly one feature; None selects unassigned work.
     /// Dependency readiness is assessed against every task in this owner.
     #[must_use]
-    pub fn workstream_frontier(&self, feature: Option<&str>) -> WorkstreamFrontier {
-        workstream_frontier(&self.plan.tasks, feature)
+    pub fn feature_frontier(&self, feature: Option<&str>) -> FeatureFrontier {
+        feature_frontier(&self.plan.tasks, feature)
     }
 
     /// Read terminal record IDs only for the history being inspected.
     #[must_use]
-    pub fn workstream_history(&self, feature: Option<&str>) -> WorkstreamHistoryRecords {
-        workstream_history(&self.plan.tasks, feature)
+    pub fn feature_history(&self, feature: Option<&str>) -> FeatureHistoryRecords {
+        feature_history(&self.plan.tasks, feature)
     }
 
     /// Which unfinished, unassigned tasks share a prefix, offered to be named.
@@ -1910,12 +1910,12 @@ mod tests {
     }
 
     /// THE concurrency property, and the reason focus is a vector rather than a
-    /// field: two lanes hold different workstreams at once, and neither call
+    /// field: two teams hold different features at once, and neither call
     /// disturbs the other's record. A project-global focus fails this on the
     /// second `focus_set` — which is why the assertion is written against both
-    /// lanes AFTER both writes, not against each one as it lands.
+    /// teams AFTER both writes, not against each one as it lands.
     #[test]
-    fn two_lanes_focus_different_features_without_interference() {
+    fn two_teams_focus_different_features_without_interference() {
         let mut e = engine();
         grouped(&mut e, "auth-1", 10, "Authentication");
         grouped(&mut e, "bill-1", 20, "Billing");
@@ -1925,16 +1925,16 @@ mod tests {
         e.focus_set("/work/tree-b", "Billing", FocusMode::Shape)
             .unwrap();
 
-        let a = e.focus_get("/work/tree-a").expect("lane a is focused");
-        let b = e.focus_get("/work/tree-b").expect("lane b is focused");
+        let a = e.focus_get("/work/tree-a").expect("team a is focused");
+        let b = e.focus_get("/work/tree-b").expect("team b is focused");
         assert_eq!(
             (a.feature.as_str(), a.mode),
             ("Authentication", FocusMode::Build)
         );
         assert_eq!((b.feature.as_str(), b.mode), ("Billing", FocusMode::Shape));
-        assert_eq!(e.plan().focuses.len(), 2, "one record per lane");
+        assert_eq!(e.plan().focuses.len(), 2, "one record per team");
 
-        // Re-focusing one lane still leaves the other alone.
+        // Re-focusing one team still leaves the other alone.
         e.focus_set("/work/tree-a", "Billing", FocusMode::Listen)
             .unwrap();
         assert_eq!(e.focus_get("/work/tree-b").unwrap().feature, "Billing");
@@ -1943,9 +1943,9 @@ mod tests {
     }
 
     /// THE DEFECT THIS FIXES, stated as the symptom that was actually reported:
-    /// tasks created for a workstream landed unassigned and were invisible to
+    /// tasks created for a feature landed unassigned and were invisible to
     /// every focused read, so a focused agent saw an empty frontier and had no
-    /// way to tell that from a workstream with genuinely nothing ready.
+    /// way to tell that from a feature with genuinely nothing ready.
     #[test]
     fn a_task_born_with_a_feature_is_immediately_visible_to_the_focused_frontier() {
         let mut e = engine();
@@ -1971,18 +1971,18 @@ mod tests {
             Some("auth-1")
         );
         assert_eq!(
-            e.workstream_frontier(Some("Authentication"))
+            e.feature_frontier(Some("Authentication"))
                 .activity
                 .readiness
                 .ready,
             1
         );
-        assert_eq!(e.workstreams().current_names(), vec!["Authentication"]);
+        assert_eq!(e.features().current_names(), vec!["Authentication"]);
 
         // And it is reachable by focusing, which is the path that matters.
-        e.focus_set("lane", "Authentication", FocusMode::Build)
+        e.focus_set("team", "Authentication", FocusMode::Build)
             .unwrap();
-        assert_eq!(e.focus_get("lane").unwrap().feature, "Authentication");
+        assert_eq!(e.focus_get("team").unwrap().feature, "Authentication");
     }
 
     /// Omitting the feature still works, and blank is the same as omitted — an
@@ -2007,7 +2007,7 @@ mod tests {
             .expect("created");
         }
         assert!(e.plan().tasks.iter().all(|c| c.feature.is_none()));
-        assert!(e.workstreams().current_names().is_empty());
+        assert!(e.features().current_names().is_empty());
     }
 
     /// Both doors into grouping enforce the SAME rule, so neither is a backdoor
@@ -2055,35 +2055,35 @@ mod tests {
         );
     }
 
-    /// A lane that has focused nothing is answered honestly rather than being
+    /// A team that has focused nothing is answered honestly rather than being
     /// handed somebody else's focus.
     #[test]
-    fn an_unfocused_lane_has_no_focus() {
+    fn an_unfocused_team_has_no_focus() {
         let mut e = engine();
         grouped(&mut e, "auth-1", 10, "Authentication");
-        e.focus_set("lane-a", "Authentication", FocusMode::Build)
+        e.focus_set("team-a", "Authentication", FocusMode::Build)
             .unwrap();
-        assert!(e.focus_get("lane-b").is_none());
+        assert!(e.focus_get("team-b").is_none());
     }
 
-    /// The refusal that keeps focus per-caller. A blank lane must NOT become a
-    /// shared default — that is the project-global bug wearing a per-lane type.
+    /// The refusal that keeps focus per-caller. A blank team must NOT become a
+    /// shared default — that is the project-global bug wearing a per-team type.
     #[test]
-    fn a_blank_lane_is_refused_with_a_recipe_rather_than_defaulted() {
+    fn a_blank_team_is_refused_with_a_recipe_rather_than_defaulted() {
         let mut e = engine();
         grouped(&mut e, "auth-1", 10, "Authentication");
 
         for blank in ["", "   ", "\t"] {
             let err = e
                 .focus_set(blank, "Authentication", FocusMode::Build)
-                .expect_err("a blank lane must be refused");
+                .expect_err("a blank team must be refused");
             assert!(
-                err.to_string().contains("a lane is required"),
+                err.to_string().contains("a team is required"),
                 "unhelpful error: {err}"
             );
             assert!(
                 err.to_string().contains("worktree") && err.to_string().contains("session"),
-                "the refusal must say how to produce a real lane: {err}"
+                "the refusal must say how to produce a real team: {err}"
             );
         }
         assert!(
@@ -2095,16 +2095,16 @@ mod tests {
     }
 
     #[test]
-    fn an_over_budget_or_control_character_lane_is_refused() {
+    fn an_over_budget_or_control_character_team_is_refused() {
         let mut e = engine();
         grouped(&mut e, "auth-1", 10, "Authentication");
-        let long = "x".repeat(crate::plan::domain::LANE_BUDGET + 1);
+        let long = "x".repeat(crate::plan::domain::TEAM_BUDGET + 1);
         assert!(
             e.focus_set(&long, "Authentication", FocusMode::Build)
                 .is_err()
         );
         assert!(
-            e.focus_set("lane\nb", "Authentication", FocusMode::Build)
+            e.focus_set("team\nb", "Authentication", FocusMode::Build)
                 .is_err()
         );
         assert!(e.plan().focuses.is_empty());
@@ -2116,16 +2116,16 @@ mod tests {
         let mut e = engine();
         grouped(&mut e, "auth-1", 10, "Authentication");
         grouped(&mut e, "bill-1", 20, "Billing");
-        e.focus_set("lane", "Authentication", FocusMode::Build)
+        e.focus_set("team", "Authentication", FocusMode::Build)
             .unwrap();
 
         let err = e
-            .focus_set("lane", "Payments", FocusMode::Build)
+            .focus_set("team", "Payments", FocusMode::Build)
             .expect_err("unknown feature must refuse");
         assert!(err.to_string().contains("Authentication") && err.to_string().contains("Billing"));
         assert!(err.to_string().contains("Focus is unchanged"));
         // The prior focus survived the failed switch untouched.
-        let f = e.focus_get("lane").unwrap();
+        let f = e.focus_get("team").unwrap();
         assert_eq!(
             (f.feature.as_str(), f.mode),
             ("Authentication", FocusMode::Build)
@@ -2133,7 +2133,7 @@ mod tests {
     }
 
     /// An ambiguous fragment refuses too, and names exactly the candidates —
-    /// picking the "closest" is how a caller ends up in a workstream it never
+    /// picking the "closest" is how a caller ends up in a feature it never
     /// named.
     #[test]
     fn an_ambiguous_feature_fragment_mutates_nothing_and_lists_the_candidates() {
@@ -2141,14 +2141,14 @@ mod tests {
         grouped(&mut e, "a1", 10, "Billing core");
         grouped(&mut e, "b1", 20, "Billing reports");
 
-        match e.workstreams().resolve_current("billing") {
-            WorkstreamResolution::Ambiguous { matches: names } => {
+        match e.features().resolve_current("billing") {
+            FeatureResolution::Ambiguous { matches: names } => {
                 assert_eq!(names, vec!["Billing core", "Billing reports"]);
             }
             other => panic!("expected ambiguity, got {other:?}"),
         }
         let err = e
-            .focus_set("lane", "billing", FocusMode::Build)
+            .focus_set("team", "billing", FocusMode::Build)
             .expect_err("ambiguous feature must refuse");
         assert!(err.to_string().contains("ambiguous"));
         assert!(e.plan().focuses.is_empty());
@@ -2162,23 +2162,23 @@ mod tests {
         grouped(&mut e, "b1", 20, "Billing");
 
         assert_eq!(
-            e.workstreams()
+            e.features()
                 .resolve_current("Authentication and identity")
                 .current(),
             Some("Authentication and identity")
         );
         assert_eq!(
-            e.workstreams().resolve_current("billing").current(),
+            e.features().resolve_current("billing").current(),
             Some("Billing"),
             "case-insensitive exact match"
         );
         assert_eq!(
-            e.workstreams().resolve_current("identity").current(),
+            e.features().resolve_current("identity").current(),
             Some("Authentication and identity"),
             "an unambiguous fragment resolves"
         );
         // The resolved value is the STORED spelling, not what was typed.
-        let f = e.focus_set("lane", "identity", FocusMode::Shape).unwrap();
+        let f = e.focus_set("team", "identity", FocusMode::Shape).unwrap();
         assert_eq!(f.value.feature, "Authentication and identity");
     }
 
@@ -2188,15 +2188,15 @@ mod tests {
         let mut e = engine();
         grouped(&mut e, "auth-1", 10, "Authentication");
         let before = e.plan().tasks.clone();
-        e.focus_set("lane", "Authentication", FocusMode::Build)
+        e.focus_set("team", "Authentication", FocusMode::Build)
             .unwrap();
-        e.focus_set("lane", "Authentication", FocusMode::Listen)
+        e.focus_set("team", "Authentication", FocusMode::Listen)
             .unwrap();
-        e.focus_clear("lane").unwrap();
+        e.focus_clear("team").unwrap();
         assert_eq!(e.plan().tasks, before, "focus must not touch tasks");
     }
 
-    /// `next_in_feature` cannot escape its workstream, and says nothing rather
+    /// `next_in_feature` cannot escape its feature, and says nothing rather
     /// than something from elsewhere.
     #[test]
     fn next_in_feature_never_returns_a_task_from_another_feature() {
@@ -2212,14 +2212,14 @@ mod tests {
             e.next_in_feature("Authentication").map(|c| c.id.as_str()),
             Some("auth-1")
         );
-        // An empty workstream is an empty answer, never a fallthrough.
+        // An empty feature is an empty answer, never a fallthrough.
         assert!(e.next_in_feature("Payments").is_none());
     }
 
     /// A feature whose only task is blocked reports it as blocked rather than
     /// ready, and next_in_feature refuses it.
     #[test]
-    fn workstream_frontier_counts_readiness_blockers_and_unmet_deps() {
+    fn feature_frontier_counts_readiness_blockers_and_unmet_deps() {
         let mut e = engine();
         grouped(&mut e, "one", 10, "Auth");
         grouped(&mut e, "two", 20, "Auth");
@@ -2230,14 +2230,14 @@ mod tests {
             .unwrap()
             .deps = vec!["one".into()];
 
-        let s = e.workstream_frontier(Some("Auth"));
+        let s = e.feature_frontier(Some("Auth"));
         assert_eq!(s.activity.readiness.ready, 1, "only `one` is ready");
         assert_eq!(s.activity.next_ready.as_deref(), Some("one"));
         assert_eq!(s.activity.readiness.dependent, 1, "`two` waits on `one`");
         assert_eq!(
             s.items[1].readiness,
-            crate::plan::domain::WorkstreamReadiness::Dependent {
-                dependencies: vec![crate::plan::domain::WorkstreamDependency {
+            crate::plan::domain::FeatureReadiness::Dependent {
+                dependencies: vec![crate::plan::domain::FeatureDependency {
                     id: "one".into(),
                     status: Some(TaskStatus::ToDo),
                 }],
@@ -2248,11 +2248,11 @@ mod tests {
         // Finish the dependency and the frontier moves.
         e.set_status("one", TaskStatus::InProgress).unwrap();
         e.set_status("one", TaskStatus::Done).unwrap();
-        let s = e.workstream_frontier(Some("Auth"));
+        let s = e.feature_frontier(Some("Auth"));
         assert_eq!(s.activity.next_ready.as_deref(), Some("two"));
         assert_eq!(s.activity.readiness.dependent, 0);
         assert_eq!(s.activity.counts.total, 1);
-        assert_eq!(e.workstreams().history["Auth"].done, 1);
+        assert_eq!(e.features().history["Auth"].done, 1);
     }
 
     /// Focus survives a restart when persistence is on — the property that
@@ -2269,29 +2269,29 @@ mod tests {
                 .with_persistence(Persistence::new(&cfg, Domain::Plan));
             grouped(&mut e, "auth-1", 10, "Authentication");
             grouped(&mut e, "bill-1", 20, "Billing");
-            e.focus_set("lane-a", "Authentication", FocusMode::Build)
+            e.focus_set("team-a", "Authentication", FocusMode::Build)
                 .unwrap();
-            e.focus_set("lane-b", "Billing", FocusMode::Listen).unwrap();
+            e.focus_set("team-b", "Billing", FocusMode::Listen).unwrap();
         }
 
         let e2 =
             PlanEngine::new("proj".into()).with_persistence(Persistence::new(&cfg, Domain::Plan));
         assert_eq!(
-            e2.focus_get("lane-a").map(|f| (f.feature.clone(), f.mode)),
+            e2.focus_get("team-a").map(|f| (f.feature.clone(), f.mode)),
             Some(("Authentication".to_string(), FocusMode::Build))
         );
         assert_eq!(
-            e2.focus_get("lane-b").map(|f| (f.feature.clone(), f.mode)),
+            e2.focus_get("team-b").map(|f| (f.feature.clone(), f.mode)),
             Some(("Billing".to_string(), FocusMode::Listen))
         );
     }
 
-    /// The merge rule: two processes each holding their OWN lane union rather
-    /// than clobber, and the same lane edited twice keeps the newer.
+    /// The merge rule: two processes each holding their OWN team union rather
+    /// than clobber, and the same team edited twice keeps the newer.
     #[test]
-    fn merging_two_stores_unions_lanes_and_keeps_the_newer_per_lane() {
-        let focus = |lane: &str, feature: &str, at: &str| Focus {
-            lane: lane.into(),
+    fn merging_two_stores_unions_teams_and_keeps_the_newer_per_team() {
+        let focus = |team: &str, feature: &str, at: &str| Focus {
+            team: team.into(),
             feature: feature.into(),
             mode: FocusMode::Build,
             set_at: at.into(),
@@ -2302,34 +2302,34 @@ mod tests {
             ..Default::default()
         };
         memory.focuses = vec![
-            focus("lane-a", "Authentication", "2026-01-02T00:00:00+00:00"),
-            focus("lane-shared", "Billing", "2026-01-02T00:00:00+00:00"),
+            focus("team-a", "Authentication", "2026-01-02T00:00:00+00:00"),
+            focus("team-shared", "Billing", "2026-01-02T00:00:00+00:00"),
         ];
         let mut disk = Plan {
             project_id: "p".into(),
             ..Default::default()
         };
         disk.focuses = vec![
-            focus("lane-b", "Billing", "2026-01-01T00:00:00+00:00"),
-            // Older copy of a lane memory also holds: memory must win.
-            focus("lane-shared", "Payments", "2026-01-01T00:00:00+00:00"),
+            focus("team-b", "Billing", "2026-01-01T00:00:00+00:00"),
+            // Older copy of a team memory also holds: memory must win.
+            focus("team-shared", "Payments", "2026-01-01T00:00:00+00:00"),
         ];
 
         let merged = merge_plans(&memory, disk);
-        let by_lane = |lane: &str| {
+        let by_team = |team: &str| {
             merged
                 .focuses
                 .iter()
-                .find(|f| f.lane == lane)
+                .find(|f| f.team == team)
                 .map(|f| f.feature.clone())
         };
-        assert_eq!(merged.focuses.len(), 3, "disk-only lanes survive the union");
-        assert_eq!(by_lane("lane-a").as_deref(), Some("Authentication"));
-        assert_eq!(by_lane("lane-b").as_deref(), Some("Billing"));
+        assert_eq!(merged.focuses.len(), 3, "disk-only teams survive the union");
+        assert_eq!(by_team("team-a").as_deref(), Some("Authentication"));
+        assert_eq!(by_team("team-b").as_deref(), Some("Billing"));
         assert_eq!(
-            by_lane("lane-shared").as_deref(),
+            by_team("team-shared").as_deref(),
             Some("Billing"),
-            "the newer copy of a contested lane wins"
+            "the newer copy of a contested team wins"
         );
     }
 

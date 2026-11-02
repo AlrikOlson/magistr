@@ -210,6 +210,6 @@ async fn an_all_retired_feature_is_not_reported_complete() {
     assert_eq!(
         t.features(),
         vec![("Gate house".to_string(), FeatureState::NotStarted)],
-        "a workstream whose every task was abandoned has not been completed"
+        "a feature whose every task was abandoned has not been completed"
     );
 }

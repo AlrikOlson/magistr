@@ -158,7 +158,7 @@ only a validated URL and never an application or path. The lockfile adds 21
 packages: parser/unicase, opener/open and platform detection, plus Linux DBus
 and supporting packages. Existing locked versions are unchanged.
 
-Plan detail reads resolve prerequisites and dependents from the same complete native graph. Shared workflow policy supplies readiness, including missing and cross-track requirements. Local navigation retains at most 64 item identities and reading positions, then returns to the originating track; it stores no second plan.
+Plan detail reads resolve prerequisites and dependents from the same complete native graph. Shared workflow policy supplies readiness, including missing and cross-feature requirements. Local navigation retains at most 64 item identities and reading positions, then returns to the originating feature; it stores no second plan.
 
 ## Interface
 
@@ -356,20 +356,20 @@ Task activity preserves owner action order, complete outcomes and produced
 artifact references. Files and tools mentioned by an agent remain authored
 claims. Web references use the existing native link policy; local references
 are selectable and copyable without inventing a filesystem-opening command.
-The Plan view uses workstream_catalog and workstream_frontier from the shared
+The Plan view uses feature_catalog and feature_frontier from the shared
 workflow contracts against the same complete plan. Counts and readiness
 arrive with preserved ReadState. The desktop lays out prerequisites beside their
 consumers, marks the owner's next-ready item and retains authored checklist
 progress. Each primary page contains at most 50 items; the visible neighborhood
 is bounded at 100 context pieces and 160 edges. Items with more than six prerequisites use one explicit bundle for their complete prerequisite set; additional omitted context also uses counted bundles. Counts and completed totals come from actual items, and each bundle opens the complete item reader. Canvas geometry contains no second readiness
 policy. A persistent inspector retains complete records while the graph stays
-visible. Returning restores the originating item and focus. Track selection
-keeps closed, ungrouped and missing tracks distinct. Keyboard tabs retain focus
+visible. Returning restores the originating item and focus. Feature selection
+keeps closed, ungrouped and missing features distinct. Keyboard tabs retain focus
 outside refreshed content. Selected item reads map the same owner ReadState to
 an optional complete Task plus disposable Document trees. Removed records stay
 distinct from read failures. The existing Markdown renderer supplies semantic
 text, safe links and complete-source fallback when presentation limits are hit.
-The reader retains item identity, text selection, track return position and
+The reader retains item identity, text selection, feature return position and
 focus across updates, and ignores late reads after navigation.
 The reader never computes a second persisted plan.
 
@@ -380,7 +380,7 @@ matching entries and retain original task positions and receipt identities; a
 failed attempt is not removed by a later pass. The check and activity indexes
 reuse the same renderers as task details.
 
-Plan search includes open, completed and retired records across tracks. Details
+Plan search includes open, completed and retired records across features. Details
 show prerequisites, dependents and proposed values beside actual saved values;
 viewing a suggestion never applies it. Reasoning reads complete default and named
 histories, investigation membership, dependencies and revisions, with project-wide

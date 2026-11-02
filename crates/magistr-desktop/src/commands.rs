@@ -191,7 +191,7 @@ pub(crate) async fn session_action(
         Action::Cancel => Cmd::Cancel,
         Action::Next => Cmd::Launch(magistr_cockpit::cockpit::LaunchAction::Next),
         Action::Loop => Cmd::Launch(magistr_cockpit::cockpit::LaunchAction::Loop(
-            magistr_cockpit::cockpit::LoopScope::AllTracks,
+            magistr_cockpit::cockpit::LoopScope::AllFeatures,
         )),
         Action::Reconnect => Cmd::Reconnect,
         Action::Answer { id, option_id } => Cmd::Permission { id, option_id },

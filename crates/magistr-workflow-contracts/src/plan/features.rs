@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorkstreamCounts {
+pub struct FeatureCounts {
     pub total: usize,
     pub idea: usize,
     pub to_do: usize,
@@ -15,26 +15,26 @@ pub struct WorkstreamCounts {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorkstreamReadinessCounts {
+pub struct FeatureReadinessCounts {
     pub ready: usize,
     pub dependent: usize,
     pub waiting: usize,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorkstreamActivity {
-    pub counts: WorkstreamCounts,
-    pub readiness: WorkstreamReadinessCounts,
+pub struct FeatureActivity {
+    pub counts: FeatureCounts,
+    pub readiness: FeatureReadinessCounts,
     pub next_ready: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorkstreamHistory {
+pub struct FeatureHistory {
     pub done: usize,
     pub retired: usize,
 }
 
-impl WorkstreamHistory {
+impl FeatureHistory {
     fn include(&mut self, status: TaskStatus) {
         match status {
             TaskStatus::Done => self.done += 1,
@@ -45,23 +45,23 @@ impl WorkstreamHistory {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorkstreamHistoryRecords {
+pub struct FeatureHistoryRecords {
     #[serde(flatten)]
-    pub counts: WorkstreamHistory,
+    pub counts: FeatureHistory,
     /// Terminal records in canonical insertion order, available on inspection.
     pub task_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorkstreamCatalog {
-    pub current: BTreeMap<String, WorkstreamActivity>,
-    pub history: BTreeMap<String, WorkstreamHistory>,
-    pub unassigned: WorkstreamActivity,
-    pub unassigned_history: WorkstreamHistory,
+pub struct FeatureCatalog {
+    pub current: BTreeMap<String, FeatureActivity>,
+    pub history: BTreeMap<String, FeatureHistory>,
+    pub unassigned: FeatureActivity,
+    pub unassigned_history: FeatureHistory,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorkstreamDependency {
+pub struct FeatureDependency {
     pub id: String,
     /// None means the dependency is absent from the complete snapshot.
     pub status: Option<TaskStatus>,
@@ -69,11 +69,11 @@ pub struct WorkstreamDependency {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "state", rename_all = "snake_case")]
-pub enum WorkstreamReadiness {
+pub enum FeatureReadiness {
     Ready,
     /// To do, with a dependency that is not done yet.
     Dependent {
-        dependencies: Vec<WorkstreamDependency>,
+        dependencies: Vec<FeatureDependency>,
     },
     /// Waiting on something named; `waiting_on` says what when it is recorded.
     Waiting {
@@ -83,24 +83,24 @@ pub enum WorkstreamReadiness {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorkstreamItem {
+pub struct FeatureItem {
     pub id: String,
     pub name: String,
     pub priority: u32,
     pub status: TaskStatus,
-    pub readiness: WorkstreamReadiness,
+    pub readiness: FeatureReadiness,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorkstreamFrontier {
-    /// None selects unassigned work; it never means all workstreams.
+pub struct FeatureFrontier {
+    /// None selects unassigned work; it never means all features.
     pub feature: Option<String>,
-    pub activity: WorkstreamActivity,
+    pub activity: FeatureActivity,
     /// Active records in canonical insertion order.
-    pub items: Vec<WorkstreamItem>,
+    pub items: Vec<FeatureItem>,
 }
 
-/// The exact saved workstream's relationship to the current plan.
+/// The exact saved feature's relationship to the current plan.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum FocusState {
@@ -111,10 +111,10 @@ pub enum FocusState {
 }
 
 /// Explicit selection may resolve a current name, but an exact closed name
-/// never falls through to a similarly named current workstream.
+/// never falls through to a similarly named current feature.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "state", rename_all = "snake_case")]
-pub enum WorkstreamResolution {
+pub enum FeatureResolution {
     Current {
         feature: String,
     },
@@ -130,7 +130,7 @@ pub enum WorkstreamResolution {
     },
 }
 
-impl WorkstreamResolution {
+impl FeatureResolution {
     #[must_use]
     pub fn current(&self) -> Option<&str> {
         match self {
@@ -143,7 +143,7 @@ impl WorkstreamResolution {
     pub fn explain(&self, query: &str) -> String {
         let choices = |names: &[String]| {
             if names.is_empty() {
-                "none; no named workstream has unfinished work".to_owned()
+                "none; no named feature has unfinished work".to_owned()
             } else {
                 names.join(", ")
             }
@@ -154,7 +154,7 @@ impl WorkstreamResolution {
                 feature,
                 choices: names,
             } => format!(
-                "'{feature}' has no unfinished work. Focus is unchanged. Current workstreams: {}",
+                "'{feature}' has no unfinished work. Focus is unchanged. Current features: {}",
                 choices(names)
             ),
             Self::Ambiguous { matches } => format!(
@@ -162,14 +162,14 @@ impl WorkstreamResolution {
                 choices(matches)
             ),
             Self::Unknown { choices: names } => format!(
-                "No current workstream matches '{query}'. Focus is unchanged. Current workstreams: {}",
+                "No current feature matches '{query}'. Focus is unchanged. Current features: {}",
                 choices(names)
             ),
         }
     }
 }
 
-impl WorkstreamCatalog {
+impl FeatureCatalog {
     #[must_use]
     pub fn authored_names(&self) -> Vec<String> {
         self.current
@@ -205,22 +205,22 @@ impl WorkstreamCatalog {
     }
 
     #[must_use]
-    pub fn resolve_current(&self, query: &str) -> WorkstreamResolution {
+    pub fn resolve_current(&self, query: &str) -> FeatureResolution {
         let query = query.trim();
         if self.current.contains_key(query) {
-            return WorkstreamResolution::Current {
+            return FeatureResolution::Current {
                 feature: query.into(),
             };
         }
         let choices = self.current_names();
         if self.history.contains_key(query) {
-            return WorkstreamResolution::Closed {
+            return FeatureResolution::Closed {
                 feature: query.into(),
                 choices,
             };
         }
         if query.is_empty() {
-            return WorkstreamResolution::Unknown { choices };
+            return FeatureResolution::Unknown { choices };
         }
         let lower = query.to_lowercase();
         let exact: Vec<_> = self
@@ -229,13 +229,13 @@ impl WorkstreamCatalog {
             .filter(|name| name.to_lowercase() == lower)
             .collect();
         if exact.len() > 1 {
-            return WorkstreamResolution::Ambiguous { matches: exact };
+            return FeatureResolution::Ambiguous { matches: exact };
         }
         if let Some(feature) = exact.into_iter().next() {
             return if self.current.contains_key(&feature) {
-                WorkstreamResolution::Current { feature }
+                FeatureResolution::Current { feature }
             } else {
-                WorkstreamResolution::Closed { feature, choices }
+                FeatureResolution::Closed { feature, choices }
             };
         }
         let matches: Vec<_> = choices
@@ -244,38 +244,38 @@ impl WorkstreamCatalog {
             .cloned()
             .collect();
         match matches.len() {
-            0 => WorkstreamResolution::Unknown { choices },
-            1 => WorkstreamResolution::Current {
+            0 => FeatureResolution::Unknown { choices },
+            1 => FeatureResolution::Current {
                 feature: matches.into_iter().next().expect("one match"),
             },
-            _ => WorkstreamResolution::Ambiguous { matches },
+            _ => FeatureResolution::Ambiguous { matches },
         }
     }
 }
 
-fn readiness(task: &Task, snapshot: &BTreeMap<&str, &Task>) -> WorkstreamReadiness {
+fn readiness(task: &Task, snapshot: &BTreeMap<&str, &Task>) -> FeatureReadiness {
     match task.readiness(|id| snapshot.get(id).map(|dependency| dependency.status)) {
-        Readiness::Ready => WorkstreamReadiness::Ready,
-        Readiness::Dependent(dependencies) => WorkstreamReadiness::Dependent {
+        Readiness::Ready => FeatureReadiness::Ready,
+        Readiness::Dependent(dependencies) => FeatureReadiness::Dependent {
             dependencies: dependencies
                 .into_iter()
-                .map(|dependency| WorkstreamDependency {
+                .map(|dependency| FeatureDependency {
                     id: dependency.id.into(),
                     status: dependency.status,
                 })
                 .collect(),
         },
         Readiness::Waiting(_) | Readiness::Inactive(TaskStatus::Waiting) => {
-            WorkstreamReadiness::Waiting {
+            FeatureReadiness::Waiting {
                 waiting_on: task.waiting_on.clone(),
             }
         }
-        Readiness::Inactive(_) => WorkstreamReadiness::Inactive,
+        Readiness::Inactive(_) => FeatureReadiness::Inactive,
     }
 }
 
-fn activity(members: &[&Task], snapshot: &BTreeMap<&str, &Task>) -> WorkstreamActivity {
-    let mut activity = WorkstreamActivity::default();
+fn activity(members: &[&Task], snapshot: &BTreeMap<&str, &Task>) -> FeatureActivity {
+    let mut activity = FeatureActivity::default();
     for task in members {
         activity.counts.total += 1;
         match task.status {
@@ -286,10 +286,10 @@ fn activity(members: &[&Task], snapshot: &BTreeMap<&str, &Task>) -> WorkstreamAc
             TaskStatus::Done | TaskStatus::Retired => unreachable!("current members only"),
         }
         match readiness(task, snapshot) {
-            WorkstreamReadiness::Ready => activity.readiness.ready += 1,
-            WorkstreamReadiness::Dependent { .. } => activity.readiness.dependent += 1,
-            WorkstreamReadiness::Waiting { .. } => activity.readiness.waiting += 1,
-            WorkstreamReadiness::Inactive => {}
+            FeatureReadiness::Ready => activity.readiness.ready += 1,
+            FeatureReadiness::Dependent { .. } => activity.readiness.dependent += 1,
+            FeatureReadiness::Waiting { .. } => activity.readiness.waiting += 1,
+            FeatureReadiness::Inactive => {}
         }
     }
     activity.next_ready = next_ready(
@@ -308,10 +308,10 @@ fn activity(members: &[&Task], snapshot: &BTreeMap<&str, &Task>) -> WorkstreamAc
 /// Authored feature names are preserved byte-for-byte, including an empty name
 /// if a record contains one; only None belongs to the unassigned bucket.
 #[must_use]
-pub fn workstream_catalog(tasks: &[Task]) -> WorkstreamCatalog {
+pub fn feature_catalog(tasks: &[Task]) -> FeatureCatalog {
     let snapshot: BTreeMap<_, _> = tasks.iter().map(|task| (task.id.as_str(), task)).collect();
     let mut current: BTreeMap<Option<&str>, Vec<&Task>> = BTreeMap::new();
-    let mut catalog = WorkstreamCatalog::default();
+    let mut catalog = FeatureCatalog::default();
     for task in tasks {
         if task.status.is_active() {
             current
@@ -338,21 +338,21 @@ pub fn workstream_catalog(tasks: &[Task]) -> WorkstreamCatalog {
     catalog
 }
 
-/// Project exactly one current workstream using the complete dependency graph.
+/// Project exactly one current feature using the complete dependency graph.
 /// An absent or closed feature has an empty frontier, never another feature's work.
 #[must_use]
-pub fn workstream_frontier(tasks: &[Task], feature: Option<&str>) -> WorkstreamFrontier {
+pub fn feature_frontier(tasks: &[Task], feature: Option<&str>) -> FeatureFrontier {
     let snapshot: BTreeMap<_, _> = tasks.iter().map(|task| (task.id.as_str(), task)).collect();
     let members: Vec<_> = tasks
         .iter()
         .filter(|task| task.status.is_active() && task.feature.as_deref() == feature)
         .collect();
-    WorkstreamFrontier {
+    FeatureFrontier {
         feature: feature.map(str::to_owned),
         activity: activity(&members, &snapshot),
         items: members
             .into_iter()
-            .map(|task| WorkstreamItem {
+            .map(|task| FeatureItem {
                 id: task.id.clone(),
                 name: task.name.clone(),
                 priority: task.priority,
@@ -366,8 +366,8 @@ pub fn workstream_frontier(tasks: &[Task], feature: Option<&str>) -> WorkstreamF
 /// Inspect terminal records for exactly one authored feature, or unassigned
 /// history when None. Catalogs carry only counts; record IDs are read on demand.
 #[must_use]
-pub fn workstream_history(tasks: &[Task], feature: Option<&str>) -> WorkstreamHistoryRecords {
-    let mut history = WorkstreamHistoryRecords::default();
+pub fn feature_history(tasks: &[Task], feature: Option<&str>) -> FeatureHistoryRecords {
+    let mut history = FeatureHistoryRecords::default();
     for task in tasks
         .iter()
         .filter(|task| !task.status.is_active() && task.feature.as_deref() == feature)
@@ -379,5 +379,5 @@ pub fn workstream_history(tasks: &[Task], feature: Option<&str>) -> WorkstreamHi
 }
 
 #[cfg(test)]
-#[path = "workstreams.tests.rs"]
+#[path = "features.tests.rs"]
 mod tests;

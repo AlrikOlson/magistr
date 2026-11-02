@@ -57,7 +57,11 @@ threads). The request words move each family one version further (plan and
 request 4, decision and run 6), renaming `signal:` references to `request:`;
 request documents also rename their list to `requests`, kind `idea` to
 `suggestion`, status `surfaced` to `raised` and its `surfaced_at` stamp to
-`raised_at`. A move stages
+`raised_at`. The team words move plan documents to version 5, renaming a
+focus's `lane` to `team`; no store moves. The engine asks each family's codec
+for its current version rather than keeping its own copy, and every in-place
+conversion keeps its originals in its own `backups/before-<words>/` folder, so
+a later conversion never finds an earlier backup and skips its own. A move stages
 converted records beside the old directory, keeps exact staged records when an
 interrupted attempt resumes, publishes them next to the caller's own lock
 files, and keeps the original directory under `backups/`. It waits while an

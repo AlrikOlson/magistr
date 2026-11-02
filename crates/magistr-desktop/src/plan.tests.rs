@@ -1,10 +1,10 @@
 use super::*;
 use magistr_cockpit::harness::fixtures;
-use magistr_workflow_contracts::plan::{TaskStatus, WorkstreamReadiness};
+use magistr_workflow_contracts::plan::{TaskStatus, FeatureReadiness};
 use magistr_workflow_contracts::{Observed, ReadError, ReadErrorKind, ReadSource};
 
 #[test]
-fn overview_uses_complete_cross_track_dependencies_and_keeps_history() {
+fn overview_uses_complete_cross_feature_dependencies_and_keeps_history() {
     let mut dependent = fixtures::task("dependent");
     dependent.feature = Some("Desktop".into());
     dependent.deps = vec!["foundation".into()];
@@ -27,7 +27,7 @@ fn overview_uses_complete_cross_track_dependencies_and_keeps_history() {
     assert_eq!(data.frontiers.len(), 3);
     assert!(matches!(
         data.frontiers[0].items[0].readiness,
-        WorkstreamReadiness::Ready
+        FeatureReadiness::Ready
     ));
     assert!(data.frontiers[1].items.is_empty());
 }
@@ -47,7 +47,7 @@ fn missing_dependencies_and_failed_reads_cannot_look_ready() {
     let data = &view.current().unwrap().value;
     assert_eq!(data.catalog.unassigned.readiness.ready, 0);
     assert!(matches!(&data.frontiers[0].items[0].readiness,
-        WorkstreamReadiness::Dependent { dependencies } if dependencies[0].status.is_none()));
+        FeatureReadiness::Dependent { dependencies } if dependencies[0].status.is_none()));
     records.record(Err(ReadError::new(
         ReadErrorKind::Io,
         "Cannot read the plan.",

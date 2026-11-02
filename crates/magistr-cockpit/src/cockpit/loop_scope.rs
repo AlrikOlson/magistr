@@ -3,16 +3,16 @@
 /// A choice made before the loop starts.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum LoopScope {
-    AllTracks,
-    Track(String),
+    AllFeatures,
+    Feature(String),
 }
 
 impl LoopScope {
     #[must_use]
-    pub fn track(&self) -> Option<&str> {
+    pub fn feature(&self) -> Option<&str> {
         match self {
-            Self::AllTracks => None,
-            Self::Track(track) => Some(track),
+            Self::AllFeatures => None,
+            Self::Feature(feature) => Some(feature),
         }
     }
 }

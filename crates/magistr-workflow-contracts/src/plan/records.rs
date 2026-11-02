@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// What a focused caller is doing to its workstream.
+/// What a focused caller is doing to its feature.
 ///
 /// Exactly three, and closed on purpose. A mode decides which BOUNDARY applies
 /// — `Shape` may not touch implementation source, `Build` may not complete over
@@ -61,73 +61,73 @@ impl FocusMode {
     }
 }
 
-/// What one LANE is currently working on.
+/// What one TEAM is currently working on.
 ///
-/// A lane is a caller — a worktree, a terminal, an agent session, a CI job.
+/// A team is a caller — a worktree, a terminal, an agent session, a CI job.
 /// Focus is deliberately NOT a single project-wide slot: this server is one
 /// process serving every client that resolves to the same project id, and a
 /// repository that declares its identity gives all of its worktrees that same
 /// id. A project-global focus would therefore let a second agent silently
 /// re-point the first one's work mid-task, and the first would never learn it
-/// had moved. Keying by lane makes that impossible rather than unlikely.
+/// had moved. Keying by team makes that impossible rather than unlikely.
 ///
-/// Focus points AT a workstream; it never owns one. `feature` is the same
+/// Focus points AT a feature; it never owns one. `feature` is the same
 /// authored [`Task::feature`] string a tracker maps to a container and the
 /// canvas draws as a region — no second taxonomy is introduced, because a
 /// competing one would immediately disagree with the first.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Focus {
     /// The caller identity this focus belongs to. Never empty — see
-    /// [`validate_lane`], which is the only way one is admitted.
-    pub lane: String,
-    /// The workstream: a value of [`Task::feature`], matched exactly as stored.
+    /// [`validate_team`], which is the only way one is admitted.
+    pub team: String,
+    /// The feature: a value of [`Task::feature`], matched exactly as stored.
     pub feature: String,
     pub mode: FocusMode,
-    /// When this lane first took a focus, preserved across re-focusing so
-    /// "how long has this lane been here" survives a mode change.
+    /// When this team first took a focus, preserved across re-focusing so
+    /// "how long has this team been here" survives a mode change.
     pub set_at: String,
     /// When the feature or mode last changed. The merge tiebreak.
     pub updated_at: String,
 }
 
-/// The maximum length of a lane token.
+/// The maximum length of a team token.
 ///
-/// A lane is an identifier, not a payload. The bound exists because the token
+/// A team is an identifier, not a payload. The bound exists because the token
 /// is caller-supplied and lands in a persisted key: without one, a caller could
 /// write an unbounded string into the store on every focus call. 128 is chosen
 /// to comfortably hold the two identities callers actually have — an absolute
 /// worktree path and a session uuid — with room to spare.
-pub const LANE_BUDGET: usize = 128;
+pub const TEAM_BUDGET: usize = 128;
 
-/// Admit a caller-supplied lane token, or say exactly why not.
+/// Admit a caller-supplied team token, or say exactly why not.
 ///
 /// The refusal is the point. There is an obvious "helpful" alternative — treat
-/// a missing lane as `"default"` — and it is precisely the bug this type exists
+/// a missing team as `"default"` — and it is precisely the bug this type exists
 /// to prevent: every caller that forgot to identify itself would silently share
-/// one focus, which is the project-global behaviour wearing a per-lane type.
-/// So a blank lane is an error carrying a recipe for producing a real one.
-pub fn validate_lane(lane: &str) -> Result<String, String> {
-    let trimmed = lane.trim();
+/// one focus, which is the project-global behaviour wearing a per-team type.
+/// So a blank team is an error carrying a recipe for producing a real one.
+pub fn validate_team(team: &str) -> Result<String, String> {
+    let trimmed = team.trim();
     if trimmed.is_empty() {
         return Err(
-            "a lane is required — focus is per-caller, and collapsing callers into one \
+            "a team is required — focus is per-caller, and collapsing callers into one \
              shared focus would let a second agent silently re-point the first. Pass the \
              stable identity you already have: the absolute path of your worktree, your \
              session id, or your task id"
                 .to_string(),
         );
     }
-    if trimmed.chars().count() > LANE_BUDGET {
+    if trimmed.chars().count() > TEAM_BUDGET {
         return Err(format!(
-            "lane is {} characters, over the {LANE_BUDGET}-character budget — a lane is an \
+            "team is {} characters, over the {TEAM_BUDGET}-character budget — a team is an \
              identifier, not a payload",
             trimmed.chars().count()
         ));
     }
-    // Control characters would corrupt any listing that prints a lane, and a
-    // lane is printed on every receipt.
+    // Control characters would corrupt any listing that prints a team, and a
+    // team is printed on every receipt.
     if trimmed.chars().any(char::is_control) {
-        return Err("lane contains a control character".to_string());
+        return Err("team contains a control character".to_string());
     }
     Ok(trimmed.to_string())
 }
@@ -422,7 +422,7 @@ pub struct Task {
     /// regenerate a plan without nuking its detail.
     #[serde(default)]
     pub notes: String,
-    /// Which workstream this task belongs to — the plan's own grouping, and
+    /// Which feature this task belongs to — the plan's own grouping, and
     /// what a tracker maps to a container (a Linear *project*).
     ///
     /// `None` means unassigned, and that is a first-class answer rather than a
@@ -691,7 +691,7 @@ impl TrackerOptIn {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ContainerKind {
-    /// A workstream's box — a Linear *project*.
+    /// A feature's box — a Linear *project*.
     Feature,
     /// The roof above the features — a Linear *initiative*.
     Initiative,
@@ -772,7 +772,7 @@ pub struct Plan {
     /// unchanged.
     #[serde(default)]
     pub container_links: Vec<ContainerLink>,
-    /// What each LANE is currently focused on, at most one entry per lane.
+    /// What each TEAM is currently focused on, at most one entry per team.
     ///
     /// A vector rather than a single field, and that is the whole concurrency
     /// design: there is no slot for "the" focus to be written into, so no
@@ -784,8 +784,9 @@ pub struct Plan {
 }
 
 /// The saved plan format: version 2 spells the plan words (tasks, features,
-/// waiting, retired, `task:` references).
-pub const PLAN_SCHEMA_VERSION: u32 = 4;
+/// waiting, retired, `task:` references), 3 the decision words, 4 the request
+/// words, and 5 names the team that holds each focus.
+pub const PLAN_SCHEMA_VERSION: u32 = 5;
 
 impl Default for Plan {
     fn default() -> Self {
@@ -901,18 +902,18 @@ pub fn merge_plans(memory: &Plan, disk: Plan) -> Plan {
             None => merged.container_links.push(disk_container),
         }
     }
-    // Focus unions by LANE, newest wins — the same recency rule as every
+    // Focus unions by TEAM, newest wins — the same recency rule as every
     // sibling above, and here it is load-bearing rather than incidental. Two
-    // processes each hold their own lane's focus and neither holds the other's,
+    // processes each hold their own team's focus and neither holds the other's,
     // so the common case is a pure union with no conflict to resolve at all.
-    // A conflict can only arise when one lane is driven from two processes,
-    // which is the one case where "the most recent thing that lane said" is
+    // A conflict can only arise when one team is driven from two processes,
+    // which is the one case where "the most recent thing that team said" is
     // exactly the right answer.
     for disk_focus in disk.focuses {
         match merged
             .focuses
             .iter_mut()
-            .find(|f| f.lane == disk_focus.lane)
+            .find(|f| f.team == disk_focus.team)
         {
             Some(mem_focus) => {
                 if rfc3339_newer(&disk_focus.updated_at, &mem_focus.updated_at) {

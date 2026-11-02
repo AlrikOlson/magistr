@@ -7,7 +7,7 @@ use serde::Deserialize;
 use super::service::PlanService;
 use crate::infra::CrossRef;
 use crate::plan::application::{
-    ExportRequest, PlanError, TaskDraft, TaskPatch, WaitingDraft, WorkstreamView,
+    ExportRequest, FeatureView, PlanError, TaskDraft, TaskPatch, WaitingDraft,
 };
 use crate::plan::domain::TaskStatus;
 
@@ -67,7 +67,7 @@ pub struct AddTaskArgs {
     pub deps: Vec<String>,
     #[serde(default)]
     pub shared: bool,
-    /// The workstream. Omit for unassigned.
+    /// The feature. Omit for unassigned.
     #[serde(default)]
     pub feature: Option<String>,
     /// PREFER THIS over packing detail into `description` — the structured
@@ -308,7 +308,7 @@ pub struct SetFeatureArgs {
     #[serde(default)]
     #[schemars(required, !default)]
     pub id: String,
-    /// The workstream name. Omit or pass empty to CLEAR the feature — unassigned
+    /// The feature name. Omit or pass empty to CLEAR the feature — unassigned
     /// is a valid answer, not a gap.
     #[serde(default)]
     pub feature: Option<String>,
@@ -331,7 +331,7 @@ pub struct NoArgs {}
 
 // Field docs here are deliberately terse. Every `///` below is serialized into
 // the tool's inputSchema and shipped in tools/list on every handshake, and the
-// lane recipe in particular was written three times over — in the description
+// team recipe in particular was written three times over — in the description
 // the model reads, in the schema, and in the refusal a caller actually hits
 // when they get it wrong. Two of those three are the ones that reach a person;
 // the schema is the copy that only costs bytes.
@@ -340,13 +340,13 @@ pub struct FocusGetArgs {
     /// Required. The asking caller's stable identity.
     #[serde(default)]
     #[schemars(required, !default)]
-    pub lane: String,
+    pub team: String,
     /// Inspect this feature without changing focus.
     #[serde(default)]
     pub feature: Option<String>,
     /// current (default) or history.
     #[serde(default)]
-    pub view: WorkstreamView,
+    pub view: FeatureView,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -354,14 +354,14 @@ pub struct FocusSetArgs {
     /// Required. The focusing caller's stable identity.
     #[serde(default)]
     #[schemars(required, !default)]
-    pub lane: String,
-    /// Current workstream name, or an unambiguous current fragment.
+    pub team: String,
+    /// Current feature name, or an unambiguous current fragment.
     #[serde(default)]
     pub feature: String,
     /// shape | build | listen.
     #[serde(default)]
     pub mode: String,
-    /// Release this lane's focus; `feature` and `mode` are then ignored.
+    /// Release this team's focus; `feature` and `mode` are then ignored.
     #[serde(default)]
     pub clear: bool,
 }
@@ -414,7 +414,7 @@ fn native_patch(args: UpdateTaskArgs) -> Result<(String, TaskPatch), PlanError> 
 impl PlanService {
     #[tool(
         name = "plan_add_task",
-        description = "Add a task (phase/item) to the plan.\n\nInputs: id (required, stable slug), title (required — the full claim, a sentence is fine), name (the short label a canvas node wears, max 24 chars, e.g. 'Quota ceiling'; omit it and one is derived from the id, send a sentence and the call is REJECTED), status ('idea'|'to_do'|'in_progress'|'waiting'|'done'|'retired', default 'to_do'), priority (integer OR a named level 'critical'|'high'|'medium'|'low' → 100/200/300/400; lower sorts earlier), description, acceptance (string[]), deps (string[] of task ids), shared (bool — committed vs gitignored partition), feature (the workstream — PASS IT AT BIRTH; an unassigned task is invisible to every focused read), content (RECOMMENDED — structured body: {version:1, summary, facts?[{label,value}], sections?[{heading, prose?, list?[{text,done?}]}]}; write the detail here so the webapp renders it as UI, and keep description to a short plain-prose fallback).\n\nReturns: the created task.\n\nPitfalls: id must be unique; malformed content is rejected with the exact field named; an unusable feature refuses the whole call rather than creating an unassigned task. plan_* is the long-horizon plan above run_* goals.",
+        description = "Add a task (phase/item) to the plan.\n\nInputs: id (required, stable slug), title (required — the full claim, a sentence is fine), name (the short label a canvas node wears, max 24 chars, e.g. 'Quota ceiling'; omit it and one is derived from the id, send a sentence and the call is REJECTED), status ('idea'|'to_do'|'in_progress'|'waiting'|'done'|'retired', default 'to_do'), priority (integer OR a named level 'critical'|'high'|'medium'|'low' → 100/200/300/400; lower sorts earlier), description, acceptance (string[]), deps (string[] of task ids), shared (bool — committed vs gitignored partition), feature (the feature — PASS IT AT BIRTH; an unassigned task is invisible to every focused read), content (RECOMMENDED — structured body: {version:1, summary, facts?[{label,value}], sections?[{heading, prose?, list?[{text,done?}]}]}; write the detail here so the webapp renders it as UI, and keep description to a short plain-prose fallback).\n\nReturns: the created task.\n\nPitfalls: id must be unique; malformed content is rejected with the exact field named; an unusable feature refuses the whole call rather than creating an unassigned task. plan_* is the long-horizon plan above run_* goals.",
         annotations(
             title = "Add plan task",
             read_only_hint = false,
@@ -709,9 +709,9 @@ impl PlanService {
 
     #[tool(
         name = "plan_set_feature",
-        description = "Put a task in a workstream, or take it out of one. The feature is what a tracker maps to a container — a Linear PROJECT.\n\nInputs: id (required), feature (the workstream name; omit or pass empty to CLEAR it).\n\nThe feature is also the task's REGION on the tech-tree canvas, and the two readings pull different ways. A tracker is happy with no feature: such a task mirrors as a plain issue with no project, and a container holding one item is worse than no container. A canvas is not: a task with no region is drawn in 'Uncharted ground', the one region for what nobody has placed. Prefer an existing region over a new one — the map level can only carry 20 marks.\n\nA name that repeats a task id prefix is REFUSED here and now, not reported by `doctor` later: 'signal' or 'saas' is a slug wearing a region's job, and a region has to be somewhere a person could point at. Name the place, not the prefix.\n\nReturns: the updated task, or an invalid_state error naming the slug it clashed with.",
+        description = "Put a task in a feature, or take it out of one. The feature is what a tracker maps to a container — a Linear PROJECT.\n\nInputs: id (required), feature (the feature name; omit or pass empty to CLEAR it).\n\nThe feature is also the task's REGION on the tech-tree canvas, and the two readings pull different ways. A tracker is happy with no feature: such a task mirrors as a plain issue with no project, and a container holding one item is worse than no container. A canvas is not: a task with no region is drawn in 'Uncharted ground', the one region for what nobody has placed. Prefer an existing region over a new one — the map level can only carry 20 marks.\n\nA name that repeats a task id prefix is REFUSED here and now, not reported by `doctor` later: 'signal' or 'saas' is a slug wearing a region's job, and a region has to be somewhere a person could point at. Name the place, not the prefix.\n\nReturns: the updated task, or an invalid_state error naming the slug it clashed with.",
         annotations(
-            title = "Set a task's workstream",
+            title = "Set a task's feature",
             read_only_hint = false,
             destructive_hint = false,
             idempotent_hint = true,
@@ -727,9 +727,9 @@ impl PlanService {
 
     #[tool(
         name = "plan_focus_get",
-        description = "Read a lane's exact saved focus and inspect current work or history. Never changes focus.\n\nInputs: lane (required stable caller identity); feature (optional current name/unique fragment or exact historical name); view (current default | history). No feature inspects the saved name exactly.\n\nReturns: lane, focus, focus_state (unset|current|closed|missing), frontier, workstreams, persistent. frontier state: unset; current with frontier {feature,activity:{counts,readiness,next_ready},items}; closed with feature/history counts; history with feature/history {done,retired,task_ids}; missing with query; ambiguous with query/matches. workstreams holds current features, history counts, unassigned activity and unassigned_history counts. Only view:history includes historical IDs, for mixed or closed features.\n\nPitfalls: peeks leave focus_state unchanged. Closed/missing saved names never redirect. Unknown lanes return unset plus catalog. persistent says whether focus survives restart.",
+        description = "Read a team's exact saved focus and inspect current work or history. Never changes focus.\n\nInputs: team (required stable caller identity); feature (optional current name/unique fragment or exact historical name); view (current default | history). No feature inspects the saved name exactly.\n\nReturns: team, focus, focus_state (unset|current|closed|missing), frontier, features, persistent. frontier state: unset; current with frontier {feature,activity:{counts,readiness,next_ready},items}; closed with feature/history counts; history with feature/history {done,retired,task_ids}; missing with query; ambiguous with query/matches. features holds current features, history counts, unassigned activity and unassigned_history counts. Only view:history includes historical IDs, for mixed or closed features.\n\nPitfalls: peeks leave focus_state unchanged. Closed/missing saved names never redirect. Unknown teams return unset plus catalog. persistent says whether focus survives restart.",
         annotations(
-            title = "Read a lane's focus",
+            title = "Read a team's focus",
             read_only_hint = true,
             destructive_hint = false,
             idempotent_hint = true,
@@ -742,15 +742,15 @@ impl PlanService {
     ) -> Result<CallToolResult, ErrorData> {
         Self::present(
             self.application
-                .focus_get(&args.lane, args.feature.as_deref(), args.view),
+                .focus_get(&args.team, args.feature.as_deref(), args.view),
         )
     }
 
     #[tool(
         name = "plan_focus_set",
-        description = "Select a current workstream and mode for one lane, or release its focus. No task status, order or work changes.\n\nInputs: lane (required stable caller identity), feature (current name/unique fragment), mode (shape|build|listen), clear (release; feature/mode ignored).\n\nReturns: lane, focus, frontier {feature,activity:{counts,readiness,next_ready},items}, persistent. Clear returns focus:null and released.\n\nPitfalls: closed, unknown or ambiguous names write nothing and report current choices; prior focus survives. Blank lanes are refused. Modes accept no synonyms; implement is not build.",
+        description = "Select a current feature and mode for one team, or release its focus. No task status, order or work changes.\n\nInputs: team (required stable caller identity), feature (current name/unique fragment), mode (shape|build|listen), clear (release; feature/mode ignored).\n\nReturns: team, focus, frontier {feature,activity:{counts,readiness,next_ready},items}, persistent. Clear returns focus:null and released.\n\nPitfalls: closed, unknown or ambiguous names write nothing and report current choices; prior focus survives. Blank teams are refused. Modes accept no synonyms; implement is not build.",
         annotations(
-            title = "Set a lane's focus",
+            title = "Set a team's focus",
             read_only_hint = false,
             destructive_hint = false,
             idempotent_hint = true,
@@ -762,19 +762,19 @@ impl PlanService {
         Parameters(args): Parameters<FocusSetArgs>,
     ) -> Result<CallToolResult, ErrorData> {
         if args.clear {
-            return Self::present(self.application.focus_clear(&args.lane));
+            return Self::present(self.application.focus_clear(&args.team));
         }
         match crate::plan::domain::FocusMode::from_wire(&args.mode) {
-            Ok(mode) => Self::present(self.application.focus_set(&args.lane, &args.feature, mode)),
+            Ok(mode) => Self::present(self.application.focus_set(&args.team, &args.feature, mode)),
             Err(error) => Ok(Self::err_structured("invalid_args", error)),
         }
     }
 
     #[tool(
         name = "plan_propose_features",
-        description = "Find clusters of unfinished, unassigned tasks to name. Shared id prefixes require min_shared tasks (default 4).\n\nReturns: clusters (prefix, task IDs, naming restriction), min_shared, authored_names (current and historical names to avoid collisions), placed:0. authored_names is not current choices.\n\nPitfalls: this places nothing. Choose a workstream name and apply it with plan_set_feature. Using the cluster's prefix as its name is refused.",
+        description = "Find clusters of unfinished, unassigned tasks to name. Shared id prefixes require min_shared tasks (default 4).\n\nReturns: clusters (prefix, task IDs, naming restriction), min_shared, authored_names (current and historical names to avoid collisions), placed:0. authored_names is not current choices.\n\nPitfalls: this places nothing. Choose a feature name and apply it with plan_set_feature. Using the cluster's prefix as its name is refused.",
         annotations(
-            title = "Propose workstreams from task ids",
+            title = "Propose features from task ids",
             read_only_hint = true,
             destructive_hint = false,
             idempotent_hint = true,
@@ -1250,9 +1250,9 @@ mod tests {
 
     // ── Focus at the wire seam ─────────────────────────────────────────
 
-    /// Two grouped tasks in two workstreams, plus one unassigned, so a leak in
+    /// Two grouped tasks in two features, plus one unassigned, so a leak in
     /// either direction is visible.
-    fn svc_with_workstreams() -> PlanService {
+    fn svc_with_features() -> PlanService {
         use crate::plan::domain::TaskStatus;
         use crate::plan::engine::PlanEngine;
 
@@ -1310,7 +1310,7 @@ mod tests {
 
     /// A task created over the wire WITH a feature is focusable in one call.
     ///
-    /// The reported symptom was six tasks added for a workstream, all landing
+    /// The reported symptom was six tasks added for a feature, all landing
     /// unassigned, all invisible to the focused frontier — and six follow-up
     /// `plan_set_feature` calls needed to repair it. This is that whole flow
     /// through the tool seam, in one call.
@@ -1335,7 +1335,7 @@ mod tests {
         // Focus and read the frontier: the task is there, with no set_feature.
         let focused = focus_set(
             &svc,
-            r#"{"lane":"/w/a","feature":"Authentication","mode":"build"}"#,
+            r#"{"team":"/w/a","feature":"Authentication","mode":"build"}"#,
         )
         .await;
         assert_eq!(focused["frontier"]["activity"]["next_ready"], "auth-1");
@@ -1395,25 +1395,25 @@ mod tests {
 
     /// The happy path, end to end over the wire: set, then read back.
     #[tokio::test]
-    async fn setting_a_focus_returns_the_lane_the_mode_and_its_frontier() {
-        let svc = svc_with_workstreams();
+    async fn setting_a_focus_returns_the_team_the_mode_and_its_frontier() {
+        let svc = svc_with_features();
         let set = focus_set(
             &svc,
-            r#"{"lane":"/w/a","feature":"Authentication","mode":"build"}"#,
+            r#"{"team":"/w/a","feature":"Authentication","mode":"build"}"#,
         )
         .await;
         // Success carries no `ok` envelope — only a soft failure sets one, so
         // the absence of `ok:false` IS the success signal here.
         assert!(set.get("ok").is_none(), "success must not report an error");
-        assert_eq!(set["lane"], "/w/a");
+        assert_eq!(set["team"], "/w/a");
         assert_eq!(set["focus"]["feature"], "Authentication");
         assert_eq!(set["focus"]["mode"], "build");
-        // The frontier is the FOCUSED workstream's, not the plan's: bill-1
+        // The frontier is the FOCUSED feature's, not the plan's: bill-1
         // has the best priority overall and must not appear.
         assert_eq!(set["frontier"]["activity"]["next_ready"], "auth-1");
         assert_eq!(set["frontier"]["activity"]["readiness"]["ready"], 2);
 
-        let got = focus_get(&svc, r#"{"lane":"/w/a"}"#).await;
+        let got = focus_get(&svc, r#"{"team":"/w/a"}"#).await;
         assert_eq!(got["focus"]["feature"], "Authentication");
         assert_eq!(got["focus_state"]["state"], "current");
         assert_eq!(got["frontier"]["state"], "current");
@@ -1427,30 +1427,30 @@ mod tests {
     /// effect of being asked about one.
     #[tokio::test]
     async fn reading_a_focus_never_creates_one() {
-        let svc = svc_with_workstreams();
-        let got = focus_get(&svc, r#"{"lane":"/w/never-focused"}"#).await;
+        let svc = svc_with_features();
+        let got = focus_get(&svc, r#"{"team":"/w/never-focused"}"#).await;
         assert_eq!(got["focus"], serde_json::Value::Null);
         assert_eq!(got["focus_state"]["state"], "unset");
         assert_eq!(got["frontier"]["state"], "unset");
-        assert!(got["workstreams"]["current"].get("Billing").is_some());
-        assert_eq!(got["workstreams"]["unassigned"]["counts"]["total"], 1);
+        assert!(got["features"]["current"].get("Billing").is_some());
+        assert_eq!(got["features"]["unassigned"]["counts"]["total"], 1);
         // Still nothing stored, so a second read agrees with the first.
         assert_eq!(
-            focus_get(&svc, r#"{"lane":"/w/never-focused"}"#).await["focus"],
+            focus_get(&svc, r#"{"team":"/w/never-focused"}"#).await["focus"],
             serde_json::Value::Null
         );
     }
 
-    /// Peeking at another workstream reports it WITHOUT switching to it.
+    /// Peeking at another feature reports it WITHOUT switching to it.
     #[tokio::test]
     async fn peeking_at_a_feature_reports_it_without_switching() {
-        let svc = svc_with_workstreams();
+        let svc = svc_with_features();
         focus_set(
             &svc,
-            r#"{"lane":"/w/a","feature":"Authentication","mode":"shape"}"#,
+            r#"{"team":"/w/a","feature":"Authentication","mode":"shape"}"#,
         )
         .await;
-        let peek = focus_get(&svc, r#"{"lane":"/w/a","feature":"Billing"}"#).await;
+        let peek = focus_get(&svc, r#"{"team":"/w/a","feature":"Billing"}"#).await;
         assert_eq!(peek["frontier"]["frontier"]["feature"], "Billing");
         // The focus itself did not move.
         assert_eq!(peek["focus"]["feature"], "Authentication");
@@ -1463,20 +1463,20 @@ mod tests {
         );
     }
 
-    /// An unknown workstream is a soft error carrying the candidates, and it
+    /// An unknown feature is a soft error carrying the candidates, and it
     /// leaves an existing focus exactly where it was.
     #[tokio::test]
     async fn an_unknown_or_ambiguous_feature_is_refused_over_the_wire_without_mutating() {
-        let svc = svc_with_workstreams();
+        let svc = svc_with_features();
         focus_set(
             &svc,
-            r#"{"lane":"/w/a","feature":"Authentication","mode":"build"}"#,
+            r#"{"team":"/w/a","feature":"Authentication","mode":"build"}"#,
         )
         .await;
 
         let bad = focus_set(
             &svc,
-            r#"{"lane":"/w/a","feature":"Payments","mode":"build"}"#,
+            r#"{"team":"/w/a","feature":"Payments","mode":"build"}"#,
         )
         .await;
         assert_eq!(bad["ok"], false);
@@ -1485,77 +1485,116 @@ mod tests {
         assert!(msg.contains("Authentication") && msg.contains("Billing"));
 
         // Untouched.
-        let got = focus_get(&svc, r#"{"lane":"/w/a"}"#).await;
+        let got = focus_get(&svc, r#"{"team":"/w/a"}"#).await;
         assert_eq!(got["focus"]["feature"], "Authentication");
         assert_eq!(got["focus"]["mode"], "build");
     }
 
-    /// A blank lane is refused on BOTH verbs, including the clear path — the
+    /// A blank team is refused on BOTH verbs, including the clear path — the
     /// clear path is the one where a default would be most tempting and most
     /// destructive, since it would release somebody else's focus.
     #[tokio::test]
-    async fn a_blank_lane_is_refused_on_set_and_on_clear() {
-        let svc = svc_with_workstreams();
+    async fn a_blank_team_is_refused_on_set_and_on_clear() {
+        let svc = svc_with_features();
+        focus_set(
+            &svc,
+            r#"{"team":"/w/a","feature":"Authentication","mode":"build"}"#,
+        )
+        .await;
+
+        let set = focus_set(&svc, r#"{"team":"","feature":"Billing","mode":"build"}"#).await;
+        assert_eq!(set["ok"], false);
+        let clear = focus_set(&svc, r#"{"team":"  ","clear":true}"#).await;
+        assert_eq!(clear["ok"], false);
+
+        // The real team still holds its focus.
+        assert_eq!(
+            focus_get(&svc, r#"{"team":"/w/a"}"#).await["focus"]["feature"],
+            "Authentication"
+        );
+    }
+
+    /// The retired caller key `lane` is not a spelling of `team`: a set that
+    /// uses it names no team and is refused without writing anything, and a
+    /// read that uses it names no team that holds a focus.
+    #[tokio::test]
+    async fn the_retired_lane_argument_is_refused_not_translated() {
+        let svc = svc_with_features();
+        let set = focus_set(
+            &svc,
+            r#"{"lane":"/w/a","feature":"Authentication","mode":"build"}"#,
+        )
+        .await;
+        assert_eq!(set["ok"], false, "{set}");
+        focus_set(
+            &svc,
+            r#"{"team":"/w/a","feature":"Billing","mode":"build"}"#,
+        )
+        .await;
+        assert!(focus_get(&svc, r#"{"lane":"/w/a"}"#).await["focus"].is_null());
+        assert_eq!(
+            focus_get(&svc, r#"{"team":"/w/a"}"#).await["focus"]["feature"],
+            "Billing",
+            "only the team key reaches the saved focus"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_set_under_the_retired_key_writes_nothing() {
+        let svc = svc_with_features();
         focus_set(
             &svc,
             r#"{"lane":"/w/a","feature":"Authentication","mode":"build"}"#,
         )
         .await;
-
-        let set = focus_set(&svc, r#"{"lane":"","feature":"Billing","mode":"build"}"#).await;
-        assert_eq!(set["ok"], false);
-        let clear = focus_set(&svc, r#"{"lane":"  ","clear":true}"#).await;
-        assert_eq!(clear["ok"], false);
-
-        // The real lane still holds its focus.
-        assert_eq!(
-            focus_get(&svc, r#"{"lane":"/w/a"}"#).await["focus"]["feature"],
-            "Authentication"
+        assert!(
+            focus_get(&svc, r#"{"team":"/w/a"}"#).await["focus"].is_null(),
+            "nothing was focused under the old key"
         );
     }
 
     /// An unknown mode is refused with the vocabulary, and no synonym is taken.
     #[tokio::test]
     async fn an_unknown_mode_is_refused_with_the_vocabulary() {
-        let svc = svc_with_workstreams();
+        let svc = svc_with_features();
         let bad = focus_set(
             &svc,
-            r#"{"lane":"/w/a","feature":"Authentication","mode":"implement"}"#,
+            r#"{"team":"/w/a","feature":"Authentication","mode":"implement"}"#,
         )
         .await;
         assert_eq!(bad["ok"], false);
         let msg = bad["message"].as_str().unwrap();
         assert!(msg.contains("shape") && msg.contains("build") && msg.contains("listen"));
         assert_eq!(
-            focus_get(&svc, r#"{"lane":"/w/a"}"#).await["focus"],
+            focus_get(&svc, r#"{"team":"/w/a"}"#).await["focus"],
             serde_json::Value::Null,
             "a refused mode must not have created a focus"
         );
     }
 
-    /// Clearing releases only the asking lane.
+    /// Clearing releases only the asking team.
     #[tokio::test]
-    async fn clearing_releases_only_the_asking_lane() {
-        let svc = svc_with_workstreams();
+    async fn clearing_releases_only_the_asking_team() {
+        let svc = svc_with_features();
         focus_set(
             &svc,
-            r#"{"lane":"/w/a","feature":"Authentication","mode":"build"}"#,
+            r#"{"team":"/w/a","feature":"Authentication","mode":"build"}"#,
         )
         .await;
         focus_set(
             &svc,
-            r#"{"lane":"/w/b","feature":"Billing","mode":"listen"}"#,
+            r#"{"team":"/w/b","feature":"Billing","mode":"listen"}"#,
         )
         .await;
 
-        let cleared = focus_set(&svc, r#"{"lane":"/w/a","clear":true}"#).await;
+        let cleared = focus_set(&svc, r#"{"team":"/w/a","clear":true}"#).await;
         assert_eq!(cleared["released"], true);
         assert_eq!(
-            focus_get(&svc, r#"{"lane":"/w/a"}"#).await["focus"],
+            focus_get(&svc, r#"{"team":"/w/a"}"#).await["focus"],
             serde_json::Value::Null
         );
         assert_eq!(
-            focus_get(&svc, r#"{"lane":"/w/b"}"#).await["focus"]["feature"],
+            focus_get(&svc, r#"{"team":"/w/b"}"#).await["focus"]["feature"],
             "Billing"
         );
     }
@@ -1563,7 +1602,7 @@ mod tests {
     /// Caller focus does not change the unscoped next/status query results.
     #[tokio::test]
     async fn plan_next_and_status_keep_their_no_input_behaviour() {
-        let svc = svc_with_workstreams();
+        let svc = svc_with_features();
         let before_next = svc
             .plan_next(Parameters(NoArgs {}))
             .await
@@ -1572,7 +1611,7 @@ mod tests {
             .unwrap();
         focus_set(
             &svc,
-            r#"{"lane":"/w/a","feature":"Authentication","mode":"build"}"#,
+            r#"{"team":"/w/a","feature":"Authentication","mode":"build"}"#,
         )
         .await;
         let after_next = svc
@@ -1596,11 +1635,11 @@ mod tests {
         assert_eq!(status["counts"]["total"], 4);
     }
 
-    /// The compact summary carries the workstream, so a reader building a
+    /// The compact summary carries the feature, so a reader building a
     /// focused frontier from `plan_status` can tell the rows apart.
     #[tokio::test]
     async fn compact_task_summaries_carry_the_feature() {
-        let svc = svc_with_workstreams();
+        let svc = svc_with_features();
         let status = svc
             .plan_status(Parameters(NoArgs {}))
             .await

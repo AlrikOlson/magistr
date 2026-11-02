@@ -9,9 +9,9 @@ pub(super) fn select_loop_feature(
     interactive: bool,
 ) -> color_eyre::eyre::Result<()> {
     if requested.is_some() {
-        return run.select_track(requested).map_err(Into::into);
+        return run.select_feature(requested).map_err(Into::into);
     }
-    run.select_track(None)?;
+    run.select_feature(None)?;
     if run.is_recovered() || !interactive || !io::stdin().is_terminal() {
         return Ok(());
     }
@@ -19,14 +19,14 @@ pub(super) fn select_loop_feature(
         return Ok(());
     };
     let features = engines
-        .plan_workstreams()
+        .plan_features()
         .map_err(|error| color_eyre::eyre::eyre!(error))?
         .current_names();
     if features.is_empty() {
         return Ok(());
     }
     let chosen = choose(&features, &mut io::stdin().lock(), &mut io::stderr().lock())?;
-    run.select_track(chosen.as_deref())?;
+    run.select_feature(chosen.as_deref())?;
     Ok(())
 }
 

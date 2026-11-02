@@ -1,16 +1,16 @@
-use crate::plan::domain::{Focus, WorkstreamFrontier};
+use crate::plan::domain::{FeatureFrontier, Focus};
 
 /// A focus mutation with the frontier observed under the same native lock.
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(untagged)]
 pub enum FocusChange {
     Set {
-        lane: String,
+        team: String,
         focus: Focus,
-        frontier: WorkstreamFrontier,
+        frontier: FeatureFrontier,
     },
     Cleared {
-        lane: String,
+        team: String,
         focus: Option<Focus>,
         released: bool,
     },

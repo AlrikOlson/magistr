@@ -2,7 +2,7 @@
 use crate::{commands::DesktopState, document::Document};
 use magistr_domain::identity::SessionAddress;
 use magistr_workflow_contracts::plan::{
-    Task, TaskStatus, WorkstreamReadiness, workstream_frontier,
+    Task, TaskStatus, FeatureReadiness, feature_frontier,
 };
 use magistr_workflow_contracts::{ReadState, PlanData};
 use serde::Serialize;
@@ -14,7 +14,7 @@ pub(crate) struct PlanItem {
     notes: Document,
     requirements: Vec<Document>,
     sections: Vec<Document>,
-    readiness: WorkstreamReadiness,
+    readiness: FeatureReadiness,
     dependencies: Vec<Relation>,
     dependents: Vec<Relation>,
 }
@@ -40,11 +40,11 @@ impl PlanItem {
                 feature: item.and_then(|item| item.feature.clone()),
             }
         };
-        let readiness = workstream_frontier(records, record.feature.as_deref())
+        let readiness = feature_frontier(records, record.feature.as_deref())
             .items
             .into_iter()
             .find(|item| item.id == record.id)
-            .map_or(WorkstreamReadiness::Inactive, |item| item.readiness);
+            .map_or(FeatureReadiness::Inactive, |item| item.readiness);
         Self {
             readiness,
             dependencies: record.deps.iter().map(|id| resolve(id)).collect(),

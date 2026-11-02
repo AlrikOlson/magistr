@@ -23,16 +23,16 @@ fn blocker() -> WaitingOn {
 
 #[test]
 fn an_empty_catalog_has_explicit_unassigned_buckets_and_no_focus() {
-    let catalog = workstream_catalog(&[]);
+    let catalog = feature_catalog(&[]);
     assert!(catalog.current.is_empty());
     assert!(catalog.history.is_empty());
-    assert_eq!(catalog.unassigned, WorkstreamActivity::default());
-    assert_eq!(catalog.unassigned_history, WorkstreamHistory::default());
+    assert_eq!(catalog.unassigned, FeatureActivity::default());
+    assert_eq!(catalog.unassigned_history, FeatureHistory::default());
     assert_eq!(catalog.focus_state(None), FocusState::Unset);
     assert!(catalog.authored_names().is_empty());
     assert_eq!(
         catalog.resolve_current("Anything"),
-        WorkstreamResolution::Unknown { choices: vec![] }
+        FeatureResolution::Unknown { choices: vec![] }
     );
 }
 
@@ -50,11 +50,11 @@ fn current_activity_and_terminal_history_share_names_without_sharing_counts() {
         task("loose", TaskStatus::ToDo, None),
         task("loose-old", TaskStatus::Retired, None),
     ];
-    let catalog = workstream_catalog(&tasks);
+    let catalog = feature_catalog(&tasks);
     let activity = &catalog.current["Mixed"];
     assert_eq!(
         activity.counts,
-        WorkstreamCounts {
+        FeatureCounts {
             total: 4,
             idea: 1,
             to_do: 1,
@@ -64,7 +64,7 @@ fn current_activity_and_terminal_history_share_names_without_sharing_counts() {
     );
     assert_eq!(
         activity.readiness,
-        WorkstreamReadinessCounts {
+        FeatureReadinessCounts {
             ready: 1,
             dependent: 0,
             waiting: 1
@@ -74,7 +74,7 @@ fn current_activity_and_terminal_history_share_names_without_sharing_counts() {
     assert_eq!(catalog.history["Mixed"].done, 2);
     assert_eq!(catalog.history["Mixed"].retired, 1);
     assert_eq!(
-        workstream_history(&tasks, Some("Mixed")).task_ids,
+        feature_history(&tasks, Some("Mixed")).task_ids,
         ["done-first", "obsolete", "done-last"]
     );
     assert!(!catalog.current.contains_key("Closed"));
@@ -82,8 +82,8 @@ fn current_activity_and_terminal_history_share_names_without_sharing_counts() {
     assert_eq!(catalog.authored_names(), ["Closed", "Mixed"]);
     assert_eq!(catalog.unassigned.counts.total, 1);
     assert_eq!(catalog.unassigned.next_ready.as_deref(), Some("loose"));
-    assert_eq!(workstream_history(&tasks, None).task_ids, ["loose-old"]);
-    let frontier = workstream_frontier(&tasks, Some("Mixed"));
+    assert_eq!(feature_history(&tasks, None).task_ids, ["loose-old"]);
+    let frontier = feature_frontier(&tasks, Some("Mixed"));
     assert_eq!(frontier.activity, *activity);
     assert_eq!(
         frontier
@@ -110,22 +110,22 @@ fn dependencies_are_assessed_against_the_complete_snapshot() {
         task("obsolete", TaskStatus::Retired, Some("Foundation")),
         task("working", TaskStatus::InProgress, None),
     ];
-    let frontier = workstream_frontier(&tasks, Some("Delivery"));
+    let frontier = feature_frontier(&tasks, Some("Delivery"));
     assert_eq!(frontier.activity.readiness.dependent, 1);
     assert_eq!(frontier.activity.next_ready, None);
     assert_eq!(
         frontier.items[0].readiness,
-        WorkstreamReadiness::Dependent {
+        FeatureReadiness::Dependent {
             dependencies: vec![
-                WorkstreamDependency {
+                FeatureDependency {
                     id: "obsolete".into(),
                     status: Some(TaskStatus::Retired)
                 },
-                WorkstreamDependency {
+                FeatureDependency {
                     id: "missing".into(),
                     status: None
                 },
-                WorkstreamDependency {
+                FeatureDependency {
                     id: "working".into(),
                     status: Some(TaskStatus::InProgress)
                 },
@@ -135,8 +135,8 @@ fn dependencies_are_assessed_against_the_complete_snapshot() {
     let mut satisfied = tasks.clone();
     satisfied[0].deps = vec!["done".into()];
     assert_eq!(
-        workstream_frontier(&satisfied, Some("Delivery")).items[0].readiness,
-        WorkstreamReadiness::Ready
+        feature_frontier(&satisfied, Some("Delivery")).items[0].readiness,
+        FeatureReadiness::Ready
     );
 }
 
@@ -152,21 +152,21 @@ fn explicit_blockers_take_precedence_and_unexplained_blocked_status_stays_honest
         task("waiting", TaskStatus::Waiting, Some("Delivery")),
         historical,
     ];
-    let catalog = workstream_catalog(&tasks);
-    let frontier = workstream_frontier(&tasks, Some("Delivery"));
+    let catalog = feature_catalog(&tasks);
+    let frontier = feature_frontier(&tasks, Some("Delivery"));
     assert_eq!(frontier.activity.counts.waiting, 1);
     assert_eq!(frontier.activity.readiness.waiting, 2);
     assert_eq!(frontier.activity.readiness.dependent, 0);
     assert_eq!(catalog.history["Delivery"].done, 1);
     assert_eq!(
         frontier.items[0].readiness,
-        WorkstreamReadiness::Waiting {
+        FeatureReadiness::Waiting {
             waiting_on: Some(blocker())
         }
     );
     assert_eq!(
         frontier.items[1].readiness,
-        WorkstreamReadiness::Waiting { waiting_on: None }
+        FeatureReadiness::Waiting { waiting_on: None }
     );
     let wire = serde_json::to_value(&frontier.items[1]).unwrap();
     assert_eq!(
@@ -190,37 +190,33 @@ fn the_lowest_ready_priority_wins_and_equal_priorities_keep_insertion_order() {
         first,
         second,
     ];
-    let frontier = workstream_frontier(&tasks, Some("Delivery"));
+    let frontier = feature_frontier(&tasks, Some("Delivery"));
     assert_eq!(frontier.activity.next_ready.as_deref(), Some("z-first"));
     assert_eq!(
-        workstream_catalog(&tasks).current["Delivery"],
+        feature_catalog(&tasks).current["Delivery"],
         frontier.activity
     );
 }
 
 #[test]
-fn unassigned_is_exact_and_never_a_synthetic_or_global_workstream() {
+fn unassigned_is_exact_and_never_a_synthetic_or_global_feature() {
     let tasks = vec![
         task("loose", TaskStatus::ToDo, None),
         task("named-unassigned", TaskStatus::ToDo, Some("Unassigned")),
         task("empty-name", TaskStatus::Done, Some("")),
         task("spaced-name", TaskStatus::Idea, Some(" Work ")),
     ];
-    let catalog = workstream_catalog(&tasks);
+    let catalog = feature_catalog(&tasks);
     assert_eq!(catalog.current_names(), [" Work ", "Unassigned"]);
     assert!(catalog.history.contains_key(""));
     assert_eq!(catalog.unassigned.counts.total, 1);
-    assert_eq!(workstream_frontier(&tasks, None).items[0].id, "loose");
+    assert_eq!(feature_frontier(&tasks, None).items[0].id, "loose");
     assert_eq!(
-        workstream_frontier(&tasks, Some("Unassigned")).items[0].id,
+        feature_frontier(&tasks, Some("Unassigned")).items[0].id,
         "named-unassigned"
     );
-    assert!(
-        workstream_frontier(&tasks, Some("Missing"))
-            .items
-            .is_empty()
-    );
-    assert!(workstream_frontier(&tasks, Some("")).items.is_empty());
+    assert!(feature_frontier(&tasks, Some("Missing")).items.is_empty());
+    assert!(feature_frontier(&tasks, Some("")).items.is_empty());
 }
 
 #[test]
@@ -230,11 +226,11 @@ fn exact_closed_selection_never_falls_through_to_a_current_fragment() {
         task("desktop", TaskStatus::ToDo, Some("Rust desktop")),
         task("billing", TaskStatus::Idea, Some("Billing")),
     ];
-    let catalog = workstream_catalog(&tasks);
+    let catalog = feature_catalog(&tasks);
     let refusal = catalog.resolve_current("Rust");
     assert_eq!(
         refusal,
-        WorkstreamResolution::Closed {
+        FeatureResolution::Closed {
             feature: "Rust".into(),
             choices: vec!["Billing".into(), "Rust desktop".into()],
         }
@@ -270,7 +266,7 @@ fn exact_closed_selection_never_falls_through_to_a_current_fragment() {
 #[test]
 fn saved_focus_is_exact_even_when_one_current_name_contains_it() {
     let tasks = vec![task("desktop", TaskStatus::ToDo, Some("Rust desktop"))];
-    let catalog = workstream_catalog(&tasks);
+    let catalog = feature_catalog(&tasks);
     assert_eq!(
         catalog.resolve_current("Rust").current(),
         Some("Rust desktop")
@@ -296,22 +292,22 @@ fn current_resolution_reports_ambiguity_without_offering_terminal_only_names() {
         task("core", TaskStatus::ToDo, Some("Billing core")),
         task("reports", TaskStatus::InProgress, Some("Billing reports")),
     ];
-    let catalog = workstream_catalog(&tasks);
+    let catalog = feature_catalog(&tasks);
     assert_eq!(
         catalog.resolve_current("billing"),
-        WorkstreamResolution::Ambiguous {
+        FeatureResolution::Ambiguous {
             matches: vec!["Billing core".into(), "Billing reports".into()]
         }
     );
     assert_eq!(
         catalog.resolve_current("missing"),
-        WorkstreamResolution::Unknown {
+        FeatureResolution::Unknown {
             choices: vec!["Billing core".into(), "Billing reports".into()]
         }
     );
     assert_eq!(
         catalog.resolve_current(""),
-        WorkstreamResolution::Unknown {
+        FeatureResolution::Unknown {
             choices: catalog.current_names()
         }
     );
@@ -332,7 +328,7 @@ fn snapshot_projection_recomputes_after_completion_regrouping_and_reopening() {
     };
     assert_eq!(
         snapshot(&tasks)
-            .workstreams()
+            .features()
             .current()
             .unwrap()
             .value
@@ -342,21 +338,18 @@ fn snapshot_projection_recomputes_after_completion_regrouping_and_reopening() {
     tasks[0].status = TaskStatus::Done;
     assert!(
         snapshot(&tasks)
-            .workstreams()
+            .features()
             .current()
             .unwrap()
             .value
             .current
             .is_empty()
     );
-    assert_eq!(
-        workstream_history(&tasks, Some("Delivery")).task_ids,
-        ["work"]
-    );
+    assert_eq!(feature_history(&tasks, Some("Delivery")).task_ids, ["work"]);
     tasks[0].feature = Some("Archive".into());
     assert_eq!(
         snapshot(&tasks)
-            .workstreams()
+            .features()
             .current()
             .unwrap()
             .value
@@ -366,13 +359,12 @@ fn snapshot_projection_recomputes_after_completion_regrouping_and_reopening() {
         }
     );
     tasks[0].status = TaskStatus::InProgress;
-    let observation = snapshot(&tasks).workstreams();
+    let observation = snapshot(&tasks).features();
     let catalog = &observation.current().unwrap().value;
     assert_eq!(catalog.current_names(), ["Archive"]);
     assert!(catalog.history.is_empty());
     assert_eq!(
-        serde_json::from_value::<WorkstreamCatalog>(serde_json::to_value(catalog).unwrap())
-            .unwrap(),
+        serde_json::from_value::<FeatureCatalog>(serde_json::to_value(catalog).unwrap()).unwrap(),
         *catalog
     );
     assert_eq!(
@@ -388,15 +380,15 @@ fn case_insensitive_authored_identity_precedes_current_fragment_search() {
         task("current", TaskStatus::ToDo, Some("RUST")),
         task("desktop", TaskStatus::ToDo, Some("Rust desktop")),
     ];
-    let catalog = workstream_catalog(&tasks);
+    let catalog = feature_catalog(&tasks);
     assert!(matches!(
         catalog.resolve_current("Rust"),
-        WorkstreamResolution::Closed { .. }
+        FeatureResolution::Closed { .. }
     ));
     assert_eq!(catalog.resolve_current("RUST").current(), Some("RUST"));
     assert_eq!(
         catalog.resolve_current("rUsT"),
-        WorkstreamResolution::Ambiguous {
+        FeatureResolution::Ambiguous {
             matches: vec!["RUST".into(), "Rust".into()]
         }
     );
@@ -413,7 +405,7 @@ fn catalog_history_stays_bounded_and_named_inspection_exposes_records() {
             )
         })
         .collect();
-    let catalog = workstream_catalog(&tasks);
+    let catalog = feature_catalog(&tasks);
     let value = serde_json::to_value(&catalog).unwrap();
     assert_eq!(
         value["history"]["Archive"],
@@ -421,7 +413,7 @@ fn catalog_history_stays_bounded_and_named_inspection_exposes_records() {
     );
     assert!(value["unassigned_history"].get("task_ids").is_none());
     assert!(serde_json::to_string(&catalog).unwrap().len() < 500);
-    let history = workstream_history(&tasks, Some("Archive"));
+    let history = feature_history(&tasks, Some("Archive"));
     assert_eq!(history.counts, catalog.history["Archive"]);
     assert_eq!(history.task_ids.len(), 1000);
     assert_eq!(history.task_ids[0], "finished-0");
@@ -431,11 +423,11 @@ fn catalog_history_stays_bounded_and_named_inspection_exposes_records() {
     assert!(inspected.get("counts").is_none());
     assert_eq!(inspected["task_ids"].as_array().unwrap().len(), 1000);
     assert_eq!(
-        workstream_history(&tasks, Some("Missing")),
-        WorkstreamHistoryRecords::default()
+        feature_history(&tasks, Some("Missing")),
+        FeatureHistoryRecords::default()
     );
     assert_eq!(
-        workstream_history(&tasks, None),
-        WorkstreamHistoryRecords::default()
+        feature_history(&tasks, None),
+        FeatureHistoryRecords::default()
     );
 }

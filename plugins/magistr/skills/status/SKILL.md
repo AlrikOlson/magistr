@@ -5,7 +5,7 @@ disable-model-invocation: true
 ---
 
 Show the requested Magistr view using the connected project's advertised MCP tools.
-This is read-only. Do not start or complete steps, run checks, select a workstream,
+This is read-only. Do not start or complete steps, run checks, select a feature,
 edit source, submit prompts or start an implementation loop.
 
 Start with `context`. Use `discover` for schemas and `execute` with

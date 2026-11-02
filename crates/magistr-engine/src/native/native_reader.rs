@@ -5,8 +5,8 @@ use magistr_workflow::decision::domain::{Log, Note};
 use magistr_workflow::decision::engine::ReasoningServer;
 use magistr_workflow::plan::PlanEngine;
 use magistr_workflow::plan::domain::{
-    FocusState, Plan, Task, WorkstreamCatalog, WorkstreamFrontier, WorkstreamResolution,
-    next_ready, workstream_catalog, workstream_frontier,
+    FeatureCatalog, FeatureFrontier, FeatureResolution, FocusState, Plan, Task, feature_catalog,
+    feature_frontier, next_ready,
 };
 use magistr_workflow::request::RequestEngine;
 use magistr_workflow::request::domain::{Request, Requests};
@@ -40,18 +40,18 @@ pub struct NativeReader {
     observations: Arc<Mutex<NativeSnapshot>>,
 }
 
-fn require_current_track(catalog: &WorkstreamCatalog, track: &str) -> Result<(), String> {
-    let refusal = match catalog.focus_state(Some(track)) {
+fn require_current_feature(catalog: &FeatureCatalog, feature: &str) -> Result<(), String> {
+    let refusal = match catalog.focus_state(Some(feature)) {
         FocusState::Current { .. } => return Ok(()),
-        FocusState::Closed { feature } => WorkstreamResolution::Closed {
+        FocusState::Closed { feature } => FeatureResolution::Closed {
             feature,
             choices: catalog.current_names(),
         },
-        FocusState::Missing { .. } | FocusState::Unset => WorkstreamResolution::Unknown {
+        FocusState::Missing { .. } | FocusState::Unset => FeatureResolution::Unknown {
             choices: catalog.current_names(),
         },
     };
-    Err(refusal.explain(track))
+    Err(refusal.explain(feature))
 }
 
 impl fmt::Debug for NativeReader {
@@ -224,7 +224,7 @@ impl NativeReader {
 
     // ── Plan ────────────────────────────────────────────────────────
 
-    /// Counts, next ready task, current workstreams, history and progress.
+    /// Counts, next ready task, current features, history and progress.
     pub fn plan_snapshot(&self) -> Result<NativePlanSnapshot, String> {
         let observed = self.observe_plan().map_err(|error| error.to_string())?;
         Ok(NativePlanSnapshot::from_tasks(
@@ -259,16 +259,16 @@ impl NativeReader {
         .cloned())
     }
 
-    /// The next ready task in an exactly named current workstream.
+    /// The next ready task in an exactly named current feature.
     /// Closed or missing saved names never select similarly named work.
-    pub fn plan_next_in_track(&self, track: &str) -> Result<Option<Task>, String> {
+    pub fn plan_next_in_feature(&self, feature: &str) -> Result<Option<Task>, String> {
         let observed = self.observe_plan().map_err(|error| error.to_string())?;
         let tasks = &observed.value.tasks;
-        require_current_track(&workstream_catalog(tasks), track)?;
+        require_current_feature(&feature_catalog(tasks), feature)?;
         Ok(next_ready(
             tasks,
             |task| {
-                task.feature.as_deref() == Some(track)
+                task.feature.as_deref() == Some(feature)
                     && task
                         .readiness(|id| {
                             tasks
@@ -283,27 +283,27 @@ impl NativeReader {
         .cloned())
     }
 
-    /// Current workstreams, authored history and unassigned work from one read.
-    pub fn plan_workstreams(&self) -> Result<WorkstreamCatalog, String> {
+    /// Current features, authored history and unassigned work from one read.
+    pub fn plan_features(&self) -> Result<FeatureCatalog, String> {
         let observed = self.observe_plan().map_err(|error| error.to_string())?;
-        Ok(workstream_catalog(&observed.value.tasks))
+        Ok(feature_catalog(&observed.value.tasks))
     }
 
-    /// Current work in an exact workstream; None selects unassigned work.
-    pub fn plan_frontier(&self, feature: Option<&str>) -> Result<WorkstreamFrontier, String> {
+    /// Current work in an exact feature; None selects unassigned work.
+    pub fn plan_frontier(&self, feature: Option<&str>) -> Result<FeatureFrontier, String> {
         let observed = self.observe_plan().map_err(|error| error.to_string())?;
         let tasks = &observed.value.tasks;
         if let Some(feature) = feature {
-            require_current_track(&workstream_catalog(tasks), feature)?;
+            require_current_feature(&feature_catalog(tasks), feature)?;
         }
-        Ok(workstream_frontier(tasks, feature))
+        Ok(feature_frontier(tasks, feature))
     }
 
     /// Resolve an explicit current name or unambiguous fragment without writing.
     /// An exact authored closed name is a refusal before fragment matching.
-    pub fn plan_resolve_track(&self, query: &str) -> Result<String, String> {
-        match self.plan_workstreams()?.resolve_current(query) {
-            WorkstreamResolution::Current { feature } => Ok(feature),
+    pub fn plan_resolve_feature(&self, query: &str) -> Result<String, String> {
+        match self.plan_features()?.resolve_current(query) {
+            FeatureResolution::Current { feature } => Ok(feature),
             refusal => Err(refusal.explain(query)),
         }
     }

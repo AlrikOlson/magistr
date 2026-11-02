@@ -22,6 +22,7 @@ other MCP servers, environment settings and agent preferences are preserved.
 | The plan store `roadmap/` in the workflow data directory | `plan/`, with records in the plan words: tasks, features, waiting reasons and retired tasks |
 | The decision store `think/` in the workflow data directory | `decisions/`, with records in the decision words: logs, notes and threads, and open threads stored as `open` |
 | The request store `signal/` in the workflow data directory | `requests/`, with records in the request words: kind `suggestion` for `idea`, status `raised` for `surfaced`, and `raised_at` for `surfaced_at` |
+| A saved focus's `lane` in the plan | `team` |
 | Stored references `task:`, `action:`, `chunk:`, `think:` and `signal:` in plan, decision, request and run records | `step:`, `progress:`, `task:`, `decision:` and `request:`, chosen from each record's saved version |
 | A progress record's or a request enrichment's `think_step`, and a plan refresh's `think_steps` | `note` and `notes` |
 | Saved `magistr mcp-launch magistr …` registration | `magistr mcp --dir …`, preserving the directory and extra connection settings |
@@ -41,9 +42,9 @@ Original settings and the original YAML plan are saved under
 `.magistr/upgrades/configuration/`. The original `ship/`, `roadmap/`,
 `think/` and `signal/` stores are kept under the workflow data directory's
 `backups/`, and each project's documents converted in place keep their
-originals under `backups/before-request-words/` (`before-decision-words/` or
-`before-plan-words/` for an installation upgraded before the request or the
-decision words). An interrupted store move
+originals under `backups/before-team-words/` (`before-request-words/`,
+`before-decision-words/` or `before-plan-words/` for an installation upgraded
+before the team, request or decision words). An interrupted store move
 resumes where it stopped; readers wait until it has finished.
 The retired workspace configuration is archived under
 `.magistr/upgrades/workspace-config/`. The original `.workbench` journal and

@@ -242,7 +242,8 @@ run `git submodule update --init docs/evidence/desktop-iterations` once after
 cloning (the screenshot gate refuses an uninitialized archive), commit new
 iterations inside it, and update the submodule pointer here in the same change.
 Set `MAGISTR_GUI_ITERATION`
-to a new dated folder, or let the gallery create a timestamped folder. Existing
+to a new dated folder to keep captures; without it the scenario captures to a
+temporary folder, so an ordinary test run leaves the archive untouched. Existing
 images cannot be overwritten. Open the archived images and record each review
 there before promoting accepted captures to `docs/evidence/desktop-layout` and
 updating its review.

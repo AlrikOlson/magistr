@@ -5,8 +5,8 @@ use rmcp::handler::server::wrapper::Parameters;
 use crate::content::StructuredContent;
 use crate::plan::PlanService;
 use crate::plan::application::{
-    ExportFormat, ExportOutcome, ExportRequest, ExportTarget, FocusChange, TaskPatch, WaitingDraft,
-    WorkstreamInspection, WorkstreamView,
+    ExportFormat, ExportOutcome, ExportRequest, ExportTarget, FeatureInspection, FeatureView,
+    FocusChange, TaskPatch, WaitingDraft,
 };
 use crate::plan::domain::{FocusMode, FocusState, WaitingReason};
 use crate::plan::mcp::handlers::{FocusGetArgs, FocusSetArgs, ProposeFeaturesArgs, UpdateTaskArgs};
@@ -143,7 +143,7 @@ fn native_blocker_commands_validate_and_clear_through_the_same_patch() {
 }
 
 #[test]
-fn native_queries_include_shared_requests_and_keep_lane_isolation() {
+fn native_queries_include_shared_requests_and_keep_team_isolation() {
     let app = application();
     app.add_task(draft()).unwrap();
     let requests = crate::request::application::RequestUseCases::new(Arc::new(Mutex::new(
@@ -162,32 +162,32 @@ fn native_queries_include_shared_requests_and_keep_lane_isolation() {
         .unwrap();
     let app = app.with_request(requests.engine());
     assert_eq!(app.status().unwrap()["ready_requests"], 1);
-    app.focus_set("lane-a", "Delivery", FocusMode::Build)
+    app.focus_set("team-a", "Delivery", FocusMode::Build)
         .unwrap();
     assert!(
-        app.focus_get("lane-b", None, WorkstreamView::Current)
+        app.focus_get("team-b", None, FeatureView::Current)
             .unwrap()
             .focus
             .is_none()
     );
     let before = app
-        .focus_get("lane-a", None, WorkstreamView::Current)
+        .focus_get("team-a", None, FeatureView::Current)
         .unwrap()
         .focus;
     assert!(
-        app.focus_set("lane-a", "unknown", FocusMode::Shape)
+        app.focus_set("team-a", "unknown", FocusMode::Shape)
             .is_err()
     );
     assert_eq!(
-        app.focus_get("lane-a", None, WorkstreamView::Current)
+        app.focus_get("team-a", None, FeatureView::Current)
             .unwrap()
             .focus,
         before
     );
     assert!(app.focus_clear(" ").is_err());
-    app.focus_clear("lane-a").unwrap();
+    app.focus_clear("team-a").unwrap();
     assert!(
-        app.focus_get("lane-a", None, WorkstreamView::Current)
+        app.focus_get("team-a", None, FeatureView::Current)
             .unwrap()
             .focus
             .is_none()
@@ -216,7 +216,7 @@ fn export_capability_requires_a_workspace_only_for_file_delivery() {
     );
 }
 
-fn add_workstream_task(app: &PlanUseCases, id: &str, feature: Option<&str>, status: TaskStatus) {
+fn add_feature_task(app: &PlanUseCases, id: &str, feature: Option<&str>, status: TaskStatus) {
     app.add_task(TaskDraft {
         id: id.into(),
         title: format!("Work for {id}"),
@@ -230,24 +230,22 @@ fn add_workstream_task(app: &PlanUseCases, id: &str, feature: Option<&str>, stat
 #[test]
 fn focus_catalog_separates_closed_history_and_unassigned_work_without_rewriting_records() {
     let app = application();
-    add_workstream_task(&app, "finished", Some("Archive"), TaskStatus::Done);
-    add_workstream_task(&app, "abandoned", Some("Archive"), TaskStatus::Retired);
-    add_workstream_task(&app, "feature", Some("Delivery"), TaskStatus::ToDo);
-    add_workstream_task(&app, "loose", None, TaskStatus::Idea);
-    add_workstream_task(&app, "loose-finished", None, TaskStatus::Done);
+    add_feature_task(&app, "finished", Some("Archive"), TaskStatus::Done);
+    add_feature_task(&app, "abandoned", Some("Archive"), TaskStatus::Retired);
+    add_feature_task(&app, "feature", Some("Delivery"), TaskStatus::ToDo);
+    add_feature_task(&app, "loose", None, TaskStatus::Idea);
+    add_feature_task(&app, "loose-finished", None, TaskStatus::Done);
     let before = app.engine().lock().unwrap().plan().clone();
 
-    let read = app
-        .focus_get("lane-a", None, WorkstreamView::Current)
-        .unwrap();
+    let read = app.focus_get("team-a", None, FeatureView::Current).unwrap();
     assert!(read.focus.is_none());
     assert_eq!(read.focus_state, FocusState::Unset);
-    assert_eq!(read.frontier, WorkstreamInspection::Unset);
-    assert_eq!(read.workstreams.current_names(), vec!["Delivery"]);
-    assert_eq!(read.workstreams.history["Archive"].done, 1);
-    assert_eq!(read.workstreams.history["Archive"].retired, 1);
-    assert_eq!(read.workstreams.unassigned.counts.total, 1);
-    assert_eq!(read.workstreams.unassigned_history.done, 1);
+    assert_eq!(read.frontier, FeatureInspection::Unset);
+    assert_eq!(read.features.current_names(), vec!["Delivery"]);
+    assert_eq!(read.features.history["Archive"].done, 1);
+    assert_eq!(read.features.history["Archive"].retired, 1);
+    assert_eq!(read.features.unassigned.counts.total, 1);
+    assert_eq!(read.features.unassigned_history.done, 1);
     assert!(!read.persistent);
     assert!(
         !serde_json::to_string(&read)
@@ -259,7 +257,7 @@ fn focus_catalog_separates_closed_history_and_unassigned_work_without_rewriting_
     assert_eq!(proposed.authored_names, vec!["Archive", "Delivery"]);
     assert_eq!(proposed.placed, 0);
     let error = app
-        .focus_set("lane-a", "Archive", FocusMode::Build)
+        .focus_set("team-a", "Archive", FocusMode::Build)
         .unwrap_err();
     assert!(error.to_string().contains("no unfinished work"));
     assert!(error.to_string().contains("Delivery"));
@@ -267,16 +265,16 @@ fn focus_catalog_separates_closed_history_and_unassigned_work_without_rewriting_
 }
 
 #[test]
-fn obsoleting_the_last_open_task_keeps_exact_saved_focus_and_other_lanes() {
+fn obsoleting_the_last_open_task_keeps_exact_saved_focus_and_other_teams() {
     let app = application();
-    add_workstream_task(&app, "feature", Some("Delivery"), TaskStatus::ToDo);
-    add_workstream_task(&app, "other", Some("Delivery tools"), TaskStatus::ToDo);
+    add_feature_task(&app, "feature", Some("Delivery"), TaskStatus::ToDo);
+    add_feature_task(&app, "other", Some("Delivery tools"), TaskStatus::ToDo);
     let FocusChange::Set {
         focus: saved,
         frontier,
         ..
     } = app
-        .focus_set("lane-a", "Delivery", FocusMode::Shape)
+        .focus_set("team-a", "Delivery", FocusMode::Shape)
         .unwrap()
         .value
     else {
@@ -284,18 +282,16 @@ fn obsoleting_the_last_open_task_keeps_exact_saved_focus_and_other_lanes() {
     };
     assert_eq!(frontier.feature.as_deref(), Some("Delivery"));
     assert_eq!(frontier.activity.next_ready.as_deref(), Some("feature"));
-    app.focus_set("lane-b", "Delivery tools", FocusMode::Listen)
+    app.focus_set("team-b", "Delivery tools", FocusMode::Listen)
         .unwrap();
-    let other_lane = app
-        .focus_get("lane-b", None, WorkstreamView::Current)
+    let other_team = app
+        .focus_get("team-b", None, FeatureView::Current)
         .unwrap()
         .focus;
     app.retire_task("feature", "Superseded by completed delivery work".into())
         .unwrap();
 
-    let read = app
-        .focus_get("lane-a", None, WorkstreamView::Current)
-        .unwrap();
+    let read = app.focus_get("team-a", None, FeatureView::Current).unwrap();
     assert_eq!(read.focus, Some(saved.clone()));
     assert_eq!(
         read.focus_state,
@@ -310,24 +306,22 @@ fn obsoleting_the_last_open_task_keeps_exact_saved_focus_and_other_lanes() {
     );
     assert!(matches!(
         read.frontier,
-        WorkstreamInspection::Closed { feature, history }
+        FeatureInspection::Closed { feature, history }
             if feature == "Delivery" && history.retired == 1
     ));
-    assert_eq!(read.workstreams.current_names(), vec!["Delivery tools"]);
-    let history = app
-        .focus_get("lane-a", None, WorkstreamView::History)
-        .unwrap();
+    assert_eq!(read.features.current_names(), vec!["Delivery tools"]);
+    let history = app.focus_get("team-a", None, FeatureView::History).unwrap();
     assert_eq!(history.focus, Some(saved.clone()));
     assert_eq!(history.focus_state, read.focus_state);
     assert!(matches!(
         history.frontier,
-        WorkstreamInspection::History { feature, history }
+        FeatureInspection::History { feature, history }
             if feature == "Delivery" && history.counts.retired == 1
                 && history.task_ids == ["feature"]
     ));
 
     let peek = app
-        .focus_get("lane-a", Some("tools"), WorkstreamView::Current)
+        .focus_get("team-a", Some("tools"), FeatureView::Current)
         .unwrap();
     assert_eq!(peek.focus, Some(saved.clone()));
     assert_eq!(
@@ -338,52 +332,47 @@ fn obsoleting_the_last_open_task_keeps_exact_saved_focus_and_other_lanes() {
     );
     assert!(matches!(
         peek.frontier,
-        WorkstreamInspection::Current { frontier }
+        FeatureInspection::Current { frontier }
             if frontier.feature.as_deref() == Some("Delivery tools")
     ));
     let exact = app
-        .focus_get("lane-a", Some("Delivery"), WorkstreamView::Current)
+        .focus_get("team-a", Some("Delivery"), FeatureView::Current)
         .unwrap();
-    assert!(matches!(
-        exact.frontier,
-        WorkstreamInspection::Closed { .. }
-    ));
+    assert!(matches!(exact.frontier, FeatureInspection::Closed { .. }));
     assert!(
-        app.focus_set("lane-a", "Delivery", FocusMode::Build)
+        app.focus_set("team-a", "Delivery", FocusMode::Build)
             .is_err()
     );
     assert_eq!(
-        app.focus_get("lane-a", None, WorkstreamView::Current)
+        app.focus_get("team-a", None, FeatureView::Current)
             .unwrap()
             .focus,
         Some(saved)
     );
     assert_eq!(
-        app.focus_get("lane-b", None, WorkstreamView::Current)
+        app.focus_get("team-b", None, FeatureView::Current)
             .unwrap()
             .focus,
-        other_lane
+        other_team
     );
 }
 
 #[test]
 fn moving_the_last_task_reports_missing_focus_without_resolving_similar_current_names() {
     let app = application();
-    add_workstream_task(&app, "feature", Some("Delivery"), TaskStatus::ToDo);
-    app.focus_set("lane-a", "Delivery", FocusMode::Build)
+    add_feature_task(&app, "feature", Some("Delivery"), TaskStatus::ToDo);
+    app.focus_set("team-a", "Delivery", FocusMode::Build)
         .unwrap();
     let saved = app
-        .focus_get("lane-a", None, WorkstreamView::Current)
+        .focus_get("team-a", None, FeatureView::Current)
         .unwrap()
         .focus;
     app.set_feature("feature", Some("Dispatch".into())).unwrap();
-    add_workstream_task(&app, "tools", Some("Delivery tools"), TaskStatus::ToDo);
-    add_workstream_task(&app, "reviews", Some("Delivery reviews"), TaskStatus::Idea);
+    add_feature_task(&app, "tools", Some("Delivery tools"), TaskStatus::ToDo);
+    add_feature_task(&app, "reviews", Some("Delivery reviews"), TaskStatus::Idea);
     let before = app.engine().lock().unwrap().plan().clone();
 
-    let read = app
-        .focus_get("lane-a", None, WorkstreamView::Current)
-        .unwrap();
+    let read = app.focus_get("team-a", None, FeatureView::Current).unwrap();
     assert_eq!(read.focus, saved);
     assert_eq!(
         read.focus_state,
@@ -393,45 +382,43 @@ fn moving_the_last_task_reports_missing_focus_without_resolving_similar_current_
     );
     assert_eq!(
         read.frontier,
-        WorkstreamInspection::Missing {
+        FeatureInspection::Missing {
             query: "Delivery".into()
         }
     );
 
-    let history = app
-        .focus_get("lane-a", None, WorkstreamView::History)
-        .unwrap();
+    let history = app.focus_get("team-a", None, FeatureView::History).unwrap();
     assert_eq!(history.focus, saved);
     assert_eq!(history.focus_state, read.focus_state);
     assert_eq!(history.frontier, read.frontier);
 
     let peek = app
-        .focus_get("lane-a", Some("Delivery"), WorkstreamView::Current)
+        .focus_get("team-a", Some("Delivery"), FeatureView::Current)
         .unwrap();
     assert_eq!(peek.focus_state, read.focus_state);
     assert_eq!(
         peek.frontier,
-        WorkstreamInspection::Ambiguous {
+        FeatureInspection::Ambiguous {
             query: "Delivery".into(),
             matches: vec!["Delivery reviews".into(), "Delivery tools".into()],
         }
     );
     let explicit = app
-        .focus_get("lane-a", Some("tools"), WorkstreamView::Current)
+        .focus_get("team-a", Some("tools"), FeatureView::Current)
         .unwrap();
     assert_eq!(explicit.focus_state, read.focus_state);
     assert!(matches!(
         explicit.frontier,
-        WorkstreamInspection::Current { frontier }
+        FeatureInspection::Current { frontier }
             if frontier.feature.as_deref() == Some("Delivery tools")
     ));
     let missing = app
-        .focus_get("lane-a", Some("Unknown"), WorkstreamView::Current)
+        .focus_get("team-a", Some("Unknown"), FeatureView::Current)
         .unwrap();
     assert_eq!(missing.focus_state, read.focus_state);
     assert_eq!(
         missing.frontier,
-        WorkstreamInspection::Missing {
+        FeatureInspection::Missing {
             query: "Unknown".into()
         }
     );
@@ -456,27 +443,27 @@ fn focus_read_refreshes_catalog_saved_selection_and_frontier_from_one_store_obse
         )
     };
     let writer = application();
-    add_workstream_task(&writer, "feature", Some("Delivery"), TaskStatus::ToDo);
+    add_feature_task(&writer, "feature", Some("Delivery"), TaskStatus::ToDo);
     writer
-        .focus_set("lane-a", "Delivery", FocusMode::Build)
+        .focus_set("team-a", "Delivery", FocusMode::Build)
         .unwrap();
     let reader = application();
 
     writer
         .retire_task("feature", "Finished elsewhere".into())
         .unwrap();
-    add_workstream_task(
+    add_feature_task(
         &writer,
         "replacement",
         Some("Delivery tools"),
         TaskStatus::ToDo,
     );
     writer
-        .focus_set("lane-b", "Delivery tools", FocusMode::Listen)
+        .focus_set("team-b", "Delivery tools", FocusMode::Listen)
         .unwrap();
 
     let read = reader
-        .focus_get("lane-a", None, WorkstreamView::Current)
+        .focus_get("team-a", None, FeatureView::Current)
         .unwrap();
     assert!(read.persistent);
     assert_eq!(
@@ -485,22 +472,22 @@ fn focus_read_refreshes_catalog_saved_selection_and_frontier_from_one_store_obse
             feature: "Delivery".into()
         }
     );
-    assert_eq!(read.workstreams.current_names(), vec!["Delivery tools"]);
-    assert!(matches!(read.frontier, WorkstreamInspection::Closed { .. }));
+    assert_eq!(read.features.current_names(), vec!["Delivery tools"]);
+    assert!(matches!(read.frontier, FeatureInspection::Closed { .. }));
     let other = reader
-        .focus_get("lane-b", None, WorkstreamView::Current)
+        .focus_get("team-b", None, FeatureView::Current)
         .unwrap();
     assert_eq!(other.focus.unwrap().mode, FocusMode::Listen);
     assert!(matches!(
         other.frontier,
-        WorkstreamInspection::Current { frontier }
+        FeatureInspection::Current { frontier }
             if frontier.activity.next_ready.as_deref() == Some("replacement")
     ));
 
     let store = Persistence::new(&config, Domain::Plan).path_for("project");
     std::fs::write(store, b"unreadable plan").unwrap();
     assert!(matches!(
-        reader.focus_get("lane-a", None, WorkstreamView::Current),
+        reader.focus_get("team-a", None, FeatureView::Current),
         Err(PlanError::Store(_))
     ));
 }
@@ -508,20 +495,20 @@ fn focus_read_refreshes_catalog_saved_selection_and_frontier_from_one_store_obse
 #[tokio::test]
 async fn mcp_history_peek_preserves_current_focus_and_refuses_closed_selection() {
     let app = application();
-    add_workstream_task(&app, "finished", Some("Archive"), TaskStatus::Done);
-    add_workstream_task(&app, "feature", Some("Delivery"), TaskStatus::ToDo);
-    add_workstream_task(&app, "earlier", Some("Delivery"), TaskStatus::Done);
-    app.focus_set("lane-a", "Delivery", FocusMode::Build)
+    add_feature_task(&app, "finished", Some("Archive"), TaskStatus::Done);
+    add_feature_task(&app, "feature", Some("Delivery"), TaskStatus::ToDo);
+    add_feature_task(&app, "earlier", Some("Delivery"), TaskStatus::Done);
+    app.focus_set("team-a", "Delivery", FocusMode::Build)
         .unwrap();
     let before = app.engine().lock().unwrap().plan().clone();
     let service = PlanService::from_use_cases(app.clone());
 
     // Omitting the view returns active work and history summaries without IDs.
     let args: FocusGetArgs = serde_json::from_value(serde_json::json!({
-        "lane": "lane-a",
+        "team": "team-a",
     }))
     .unwrap();
-    assert_eq!(args.view, WorkstreamView::Current);
+    assert_eq!(args.view, FeatureView::Current);
     let current = service
         .plan_focus_get(Parameters(args))
         .await
@@ -540,13 +527,13 @@ async fn mcp_history_peek_preserves_current_focus_and_refuses_closed_selection()
     );
     assert!(!current.to_string().contains("\"task_ids\":"));
 
-    // History is an explicit query for either a mixed or a closed workstream.
+    // History is an explicit query for either a mixed or a closed feature.
     for (feature, id) in [(None, "earlier"), (Some("Archive"), "finished")] {
         let read = service
             .plan_focus_get(Parameters(FocusGetArgs {
-                lane: "lane-a".into(),
+                team: "team-a".into(),
                 feature: feature.map(str::to_owned),
-                view: WorkstreamView::History,
+                view: FeatureView::History,
             }))
             .await
             .unwrap()
@@ -564,17 +551,17 @@ async fn mcp_history_peek_preserves_current_focus_and_refuses_closed_selection()
             read["frontier"]["history"]["task_ids"],
             serde_json::json!([id])
         );
-        assert!(read["workstreams"]["current"].get("Archive").is_none());
-        assert_eq!(read["workstreams"]["history"]["Archive"]["done"], 1);
-        assert_eq!(read["workstreams"]["history"]["Delivery"]["done"], 1);
-        assert!(read.get("features").is_none());
+        assert!(read["features"]["current"].get("Archive").is_none());
+        assert_eq!(read["features"]["history"]["Archive"]["done"], 1);
+        assert_eq!(read["features"]["history"]["Delivery"]["done"], 1);
+        assert!(read.get("workstreams").is_none());
     }
 
     let closed = service
         .plan_focus_get(Parameters(FocusGetArgs {
-            lane: "lane-a".into(),
+            team: "team-a".into(),
             feature: Some("Archive".into()),
-            view: WorkstreamView::Current,
+            view: FeatureView::Current,
         }))
         .await
         .unwrap()
@@ -585,14 +572,14 @@ async fn mcp_history_peek_preserves_current_focus_and_refuses_closed_selection()
     assert!(!closed.to_string().contains("\"task_ids\":"));
     assert!(
         serde_json::from_value::<FocusGetArgs>(serde_json::json!({
-            "lane": "lane-a", "view": "all",
+            "team": "team-a", "view": "all",
         }))
         .is_err()
     );
 
     let refused = service
         .plan_focus_set(Parameters(FocusSetArgs {
-            lane: "lane-a".into(),
+            team: "team-a".into(),
             feature: "Archive".into(),
             mode: "build".into(),
             clear: false,

@@ -11,28 +11,34 @@ impl PlanEngine {
     /// references may still spell. Version 2 was written before the decision
     /// words: refresh records point at their decision `notes` and notes are
     /// referenced as `decision:`. Version 3 was written before the request
-    /// words: requests are referenced as `request:`. Omitted item origins are filled from the
-    /// enclosing project's identity; explicitly different identities remain
-    /// conflicts. A current document is returned unchanged, so the conversion
-    /// is idempotent; the version, never the references, decides what is old.
+    /// words: requests are referenced as `request:`. Version 4 was written
+    /// before the team words: a focus names its `team`. Each older version
+    /// takes every later step in order. Omitted item origins are filled from
+    /// the enclosing project's identity; explicitly different identities
+    /// remain conflicts. A current document is returned unchanged, so the
+    /// conversion is idempotent; the version, never the references, decides
+    /// what is old.
     pub fn upgrade_document(bytes: &[u8], project_id: &str) -> Result<Vec<u8>, ReadError> {
         let mut value: Value = serde_json::from_slice(bytes).map_err(schema)?;
-        let mut changed = match value.get("schema_version").and_then(Value::as_u64) {
-            None => {
-                rename_plan_words(&mut value)?;
-                rename_decision_words(&mut value)?;
-                CrossRef::upgrade_stored_refs(&mut value, StoredRefWords::BeforeRunWords);
-                value["schema_version"] = json!(PLAN_SCHEMA_VERSION);
-                true
-            }
-            Some(2) => {
-                rename_decision_words(&mut value)?;
-                CrossRef::upgrade_stored_refs(&mut value, StoredRefWords::BeforeDecisionWords);
-                value["schema_version"] = json!(PLAN_SCHEMA_VERSION);
-                true
-            }
-            Some(3) => {
-                CrossRef::upgrade_stored_refs(&mut value, StoredRefWords::BeforeRequestWords);
+        let saved_version = value.get("schema_version").and_then(Value::as_u64);
+        let mut changed = match saved_version {
+            None | Some(2..=4) => {
+                if saved_version.is_none() {
+                    rename_plan_words(&mut value)?;
+                }
+                if saved_version.is_none_or(|version| version <= 2) {
+                    rename_decision_words(&mut value)?;
+                }
+                let words = match saved_version {
+                    None => Some(StoredRefWords::BeforeRunWords),
+                    Some(2) => Some(StoredRefWords::BeforeDecisionWords),
+                    Some(3) => Some(StoredRefWords::BeforeRequestWords),
+                    _ => None,
+                };
+                if let Some(words) = words {
+                    CrossRef::upgrade_stored_refs(&mut value, words);
+                }
+                rename_team_words(&mut value)?;
                 value["schema_version"] = json!(PLAN_SCHEMA_VERSION);
                 true
             }
@@ -124,6 +130,17 @@ fn rename_decision_words(value: &mut Value) -> Result<(), ReadError> {
         .ok_or_else(|| schema("Expected a saved plan."))?;
     for refresh in objects(document.get_mut("refreshes")) {
         rename_key(refresh, "think_steps", "notes")?;
+    }
+    Ok(())
+}
+
+/// A focus names the team that holds it.
+fn rename_team_words(value: &mut Value) -> Result<(), ReadError> {
+    let document = value
+        .as_object_mut()
+        .ok_or_else(|| schema("Expected a saved plan."))?;
+    for focus in objects(document.get_mut("focuses")) {
+        rename_key(focus, "lane", "team")?;
     }
     Ok(())
 }

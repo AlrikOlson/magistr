@@ -4,8 +4,8 @@
 
 use magistr_engine::NativeReader;
 use magistr_engine::native::{
-    FocusState, GoalStatus, Readiness, Task, TaskStatus, WorkstreamResolution, assess_readiness,
-    next_ready, progress_from_tasks, workstream_catalog,
+    FeatureResolution, FocusState, GoalStatus, Readiness, Task, TaskStatus, assess_readiness,
+    feature_catalog, next_ready, progress_from_tasks,
 };
 
 use super::spec::SpecSummary;
@@ -41,35 +41,36 @@ pub fn native_spec_summary(engines: &NativeReader) -> Result<SpecSummary> {
 pub(crate) fn native_work_task(
     engines: &NativeReader,
     preferred: Option<&str>,
-    track: Option<&str>,
+    feature: Option<&str>,
 ) -> Result<Option<Task>> {
     let tasks = engines.plan_tasks().map_err(MagistrError::Workflow)?;
-    select_work_task(engines, preferred, track, &tasks)
+    select_work_task(engines, preferred, feature, &tasks)
 }
 
 fn select_work_task(
     engines: &NativeReader,
     preferred: Option<&str>,
-    track: Option<&str>,
+    feature: Option<&str>,
     tasks: &[Task],
 ) -> Result<Option<Task>> {
-    if let Some(track) = track {
-        let catalog = workstream_catalog(tasks);
-        let refusal = match catalog.focus_state(Some(track)) {
+    if let Some(feature) = feature {
+        let catalog = feature_catalog(tasks);
+        let refusal = match catalog.focus_state(Some(feature)) {
             FocusState::Current { .. } => None,
-            FocusState::Closed { feature } => Some(WorkstreamResolution::Closed {
+            FocusState::Closed { feature } => Some(FeatureResolution::Closed {
                 feature,
                 choices: catalog.current_names(),
             }),
-            FocusState::Missing { .. } | FocusState::Unset => Some(WorkstreamResolution::Unknown {
+            FocusState::Missing { .. } | FocusState::Unset => Some(FeatureResolution::Unknown {
                 choices: catalog.current_names(),
             }),
         };
         if let Some(refusal) = refusal {
-            return Err(MagistrError::Workflow(refusal.explain(track)));
+            return Err(MagistrError::Workflow(refusal.explain(feature)));
         }
     }
-    let in_track = |task: &&Task| track.is_none_or(|track| task.feature.as_deref() == Some(track));
+    let in_feature =
+        |task: &&Task| feature.is_none_or(|feature| task.feature.as_deref() == Some(feature));
     let goal = engines
         .run_goal()
         .map_err(MagistrError::Workflow)?
@@ -91,10 +92,10 @@ fn select_work_task(
     }
     if let Some(task) = saved
         && matches!(task.status, TaskStatus::ToDo | TaskStatus::InProgress)
-        && !in_track(&task)
+        && !in_feature(&task)
     {
         return Err(MagistrError::Workflow(
-            "The saved work belongs to another track. Resume that run before choosing a different track.".into(),
+            "The saved work belongs to another feature. Resume that run before choosing a different feature.".into(),
         ));
     }
     if let Some(task) = saved
@@ -117,18 +118,18 @@ fn select_work_task(
         .and_then(|goal| goal.scope.trim().strip_prefix("task:"))
         .and_then(|id| tasks.iter().find(|task| task.id == id.trim()))
         .filter(|task| task.status == TaskStatus::InProgress)
-        .filter(in_track);
+        .filter(in_feature);
     let selected = match saved.or(goal_task) {
         Some(task) => Some(task.clone()),
         None => {
             let active: Vec<_> = tasks
                 .iter()
                 .filter(|task| task.status == TaskStatus::InProgress)
-                .filter(in_track)
+                .filter(in_feature)
                 .collect();
             match active.as_slice() {
                 [] => next_ready(
-                    tasks.iter().filter(in_track),
+                    tasks.iter().filter(in_feature),
                     |task| {
                         task.readiness(|id| tasks.iter().find(|c| c.id == id).map(|c| c.status))
                             .is_ready()
@@ -211,10 +212,10 @@ fn work_name(task: &Task) -> &str {
 pub(crate) fn native_work_summary(
     engines: &NativeReader,
     preferred: Option<&str>,
-    track: Option<&str>,
+    feature: Option<&str>,
 ) -> Result<SpecSummary> {
     let tasks = engines.plan_tasks().map_err(MagistrError::Workflow)?;
-    let task = select_work_task(engines, preferred, track, &tasks)?;
+    let task = select_work_task(engines, preferred, feature, &tasks)?;
     let progress = progress_from_tasks(&tasks);
     let unchecked_items: Vec<_> = task
         .into_iter()
