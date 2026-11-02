@@ -3,6 +3,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use magistr_workflow::content::StructuredContent;
+use magistr_workflow::decision::domain::{Note, NoteError, RecordedNote};
 use magistr_workflow::plan::application::PlanError;
 use magistr_workflow::plan::application::{TaskDraft, TaskPatch, WaitingDraft};
 use magistr_workflow::plan::domain::{Task, TaskStatus, WaitingReason};
@@ -16,7 +17,6 @@ use magistr_workflow::run::domain::progress::{Progress, ProgressType};
 use magistr_workflow::run::domain::step::{Step, StepType};
 use magistr_workflow::signal::application::{SignalError, SignalPromotion};
 use magistr_workflow::signal::domain::{Signal, SignalKind};
-use magistr_workflow::think::domain::{RecordedStep, StepError, ThinkStep};
 use magistr_workflow_contracts::Observed;
 use serde_json::Value;
 
@@ -162,11 +162,11 @@ impl NativeEngines {
             executions.insert(key, Arc::downgrade(&services));
             services
         };
-        let (think, run, plan, signal) = services.engines();
+        let (decision, run, plan, signal) = services.engines();
         let reader = NativeReader::from_shared(
             self.authority.project_id().to_owned(),
             config,
-            think,
+            decision,
             run,
             plan,
             signal,
@@ -389,29 +389,29 @@ impl NativeEngines {
         self.services.plan.resolve_reprioritize(id, accept)
     }
 
-    // ── Think ──────────────────────────────────────────────────────────
+    // ── Decision ──────────────────────────────────────────────────────────
 
-    /// Record a native step with its bound project and stored step identity.
+    /// Record a native note with its bound project and stored note identity.
     /// The extensible display projection is serialized only at transport edges.
-    pub fn think_record_step(&self, step: ThinkStep) -> Result<RecordedStep, StepError> {
-        self.services.think.record_step(step)
+    pub fn decision_record(&self, note: Note) -> Result<RecordedNote, NoteError> {
+        self.services.decision.record(note)
     }
 
-    /// Pin or unpin a step (the `think_pin_step` verb); answers whether it
+    /// Pin or unpin a note (the `decision_pin` verb); answers whether it
     /// was pinned before.
-    pub fn think_pin_step(
+    pub fn decision_pin(
         &self,
-        step_number: u32,
+        note_number: u32,
         pinned: bool,
-    ) -> Result<Observed<bool>, StepError> {
-        self.services.think.pin_step(step_number, pinned)
+    ) -> Result<Observed<bool>, NoteError> {
+        self.services.decision.pin(note_number, pinned)
     }
 
-    /// The trace-wide metacognitive checkpoint (the
-    /// `think_trace_checkpoint` verb's report): open hypotheses, stale
-    /// branches, confidence drift, dependencies on revised steps.
-    pub fn think_checkpoint(&self) -> Result<Value, String> {
-        self.services.think.checkpoint(None)
+    /// The log-wide metacognitive review (the `decision_review` verb's
+    /// report): open hypotheses, stale threads, confidence drift,
+    /// dependencies on revised notes.
+    pub fn decision_review(&self) -> Result<Value, String> {
+        self.services.decision.checkpoint(None)
     }
 
     // ── Run ───────────────────────────────────────────────────────────
@@ -497,7 +497,7 @@ impl NativeEngines {
         description: String,
         files_touched: Vec<String>,
         tools_used: Vec<String>,
-        think_step: Option<u32>,
+        note: Option<u32>,
     ) -> Result<Observed<Progress>, RunError> {
         self.services.run.record_progress(
             step_id,
@@ -506,7 +506,7 @@ impl NativeEngines {
             files_touched,
             tools_used,
             String::new(),
-            think_step,
+            note,
         )
     }
 
@@ -670,11 +670,11 @@ impl NativeEngines {
         summary: String,
         confidence: f64,
         sources: Vec<String>,
-        think_step: Option<u32>,
+        note: Option<u32>,
     ) -> Result<Observed<Signal>, SignalError> {
         self.services
             .signal
-            .research(id, summary, confidence, sources, think_step)
+            .research(id, summary, confidence, sources, note)
     }
 
     /// Promote a researched or surfaced signal to the plan (the

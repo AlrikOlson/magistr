@@ -50,16 +50,16 @@ test("shared prerequisites and manual obstruction keep routes clear",async({app}
 });
 test("nested investigations and return paths stay separate from decision content",async({app})=>{
   await app.evaluate(()=>{
-    const f=window.__fixture,h=f.workflow.think.data.value.sessions[0],base=h.steps[0];
-    h.steps=[
-      {...base,record_id:"s41",step_number:41,purpose:"Locate the saved conversation"},
-      {...base,record_id:"s44",step_number:44,purpose:"Restore the existing conversation",dependencies:[{step:41,relation:"supports"}]},
-      {...base,record_id:"s43",step_number:43,branch_id:"storage",purpose:"Confirm who saves the draft"},
-      {...base,record_id:"s45",step_number:45,branch_id:"failure",purpose:"Reproduce an interrupted save"},
-      {...base,record_id:"s46",step_number:46,branch_id:"failure",purpose:"Verify a safe retry"},
-      {...base,record_id:"s47",step_number:47,branch_id:"detail",purpose:"Check the acknowledgement order"}
+    const f=window.__fixture,h=f.workflow.decisions.data.value.logs[0],base=h.notes[0];
+    h.notes=[
+      {...base,record_id:"s41",note:41,purpose:"Locate the saved conversation"},
+      {...base,record_id:"s44",note:44,purpose:"Restore the existing conversation",dependencies:[{note:41,relation:"supports"}]},
+      {...base,record_id:"s43",note:43,thread_id:"storage",purpose:"Confirm who saves the draft"},
+      {...base,record_id:"s45",note:45,thread_id:"failure",purpose:"Reproduce an interrupted save"},
+      {...base,record_id:"s46",note:46,thread_id:"failure",purpose:"Verify a safe retry"},
+      {...base,record_id:"s47",note:47,thread_id:"detail",purpose:"Check the acknowledgement order"}
     ];
-    h.branches=[{id:"storage",name:"Who owns the saved draft?",from_step:41,status:"merged",merged_into:44},{id:"failure",name:"What happens if saving stops?",from_step:41,status:"merged",merged_into:44},{id:"detail",name:"Can an old acknowledgement replace newer text?",from_step:43,status:"merged",merged_into:46}];
+    h.threads=[{id:"storage",name:"Who owns the saved draft?",from_note:41,status:"merged",merged_into:44},{id:"failure",name:"What happens if saving stops?",from_note:41,status:"merged",merged_into:44},{id:"detail",name:"Can an old acknowledgement replace newer text?",from_note:43,status:"merged",merged_into:46}];
     f.publish("release",{workflow_revision:2});
   });
   await open(app,"Reasoning");

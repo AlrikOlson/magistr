@@ -5,7 +5,7 @@
 //! the TS twin over golden fixtures, so any drift is a red test, not a guess.
 //!
 //! Parsing is hand-rolled (the regex crate needs std; this guest is no_std by
-//! the think:119 recipe so its module imports NOTHING — it declares zero
+//! the decision:119 recipe so its module imports NOTHING — it declares zero
 //! capabilities and the sandbox's default-deny has nothing to even consider).
 
 #![no_std]

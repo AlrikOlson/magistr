@@ -1,0 +1,2 @@
+//! Domain exports of the canonical effect-free workflow contracts.
+pub use magistr_workflow_contracts::decision::{Thread, ThreadStatus, ThreadStatusChange};

@@ -129,7 +129,7 @@ Choose `verification: "focused"` for bounded work and run the relevant checks. A
 - `plan_status` + `run_status` → recover the selected task and matching unfinished goal first
 - `plan_next` → select pending work only when there is no resumable in-progress task; `plan_start_task(id)` starts a pending task once
 - `run_open` + `arrange_steps` → create a missing goal and plan; keep the matching unfinished goal and saved plan when resuming
-- `think_record_step` → record the plan, material findings and investigations as work proceeds, then the verified outcome
+- `decision_record` → record the plan, material findings and investigations as work proceeds, then the verified outcome
 - `check_step` / `magistr_gate` → every quality gate, recorded with its real exit code
 - `plan_complete_task(id, step_ref: "step:<id>")` + `run_finish` → done
 
@@ -149,7 +149,7 @@ After quality gates pass (each recorded through `check_step`), complete these ad
    - `plan_add_task(status: "idea", ...)` for work you discovered — never promote it to to_do yourself
    - `plan_update_task` when the task's description or acceptance no longer matches reality
    - Preserve the project's plan export policy. When `plan_exports` is false, never generate PLAN.md or PLAN.json or invoke `plan_export`.
-2. **Finalize** — record the final synthesis with `think_record_step`, linking the findings used and any unresolved questions; then close the goal with `run_finish(summary: ...)`
+2. **Finalize** — record the final synthesis with `decision_record`, linking the findings used and any unresolved questions; then close the goal with `run_finish(summary: ...)`
 3. **Commit** with a conventional commit message (`feat:`, `fix:`, `refactor:`, `test:`)
    - Include only files within the authorized change; preserve other sessions' work
 4. **Append summary** to `.magistr/iteration-log.md`

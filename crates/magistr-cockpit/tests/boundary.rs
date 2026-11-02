@@ -326,47 +326,84 @@ fn canonical_contract_sources_own_no_ambient_effects() {
     }
 }
 
+#[test]
+fn the_effect_guard_names_host_modules_and_not_project_modules() {
+    let effects = |source: &str| {
+        let mut guard = ContractEffects::default();
+        syn::visit::Visit::visit_file(&mut guard, &syn::parse_file(source).unwrap());
+        guard.0
+    };
+    assert_eq!(effects("use std::thread;"), ["thread"]);
+    assert_eq!(effects("use std::{fs, env::var};"), ["fs", "env"]);
+    assert_eq!(effects("fn f() { std::process::exit(1) }"), ["process"]);
+    assert_eq!(effects("fn f() { tokio::spawn(x); }"), ["tokio"]);
+    assert!(effects("mod thread; pub use thread::Thread; use super::{Note, Thread};").is_empty());
+    assert!(effects("fn f(thread: &Thread) -> u32 { thread.depth }").is_empty());
+}
+
 #[derive(Default)]
 struct ContractEffects(Vec<String>);
 
 impl ContractEffects {
-    fn name(&mut self, ident: &syn::Ident) {
-        let name = ident.to_string();
-        if [
-            "fs",
-            "env",
-            "process",
-            "thread",
-            "net",
-            "tokio",
-            "magistr_engine",
-            "magistr_workflow",
-            "magistr_workspace",
-        ]
-        .contains(&name.as_str())
-        {
-            self.0.push(name);
+    /// Standard-library modules that reach the host, named from `std` or
+    /// `core`; a project module of the same name (a decision `thread`) is
+    /// not one.
+    const STD_EFFECTS: [&'static str; 5] = ["fs", "env", "process", "thread", "net"];
+    /// Crates whose every path is an effect or an outer layer.
+    const CRATES: [&'static str; 4] = [
+        "tokio",
+        "magistr_engine",
+        "magistr_workflow",
+        "magistr_workspace",
+    ];
+
+    fn path(&mut self, segments: &[String]) {
+        for (index, name) in segments.iter().enumerate() {
+            let from_std = index > 0 && matches!(segments[index - 1].as_str(), "std" | "core");
+            if Self::CRATES.contains(&name.as_str())
+                || (from_std && Self::STD_EFFECTS.contains(&name.as_str()))
+            {
+                self.0.push(name.clone());
+            }
+        }
+    }
+
+    fn use_tree(&mut self, prefix: &mut Vec<String>, tree: &syn::UseTree) {
+        match tree {
+            syn::UseTree::Path(path) => {
+                prefix.push(path.ident.to_string());
+                self.use_tree(prefix, &path.tree);
+                prefix.pop();
+            }
+            syn::UseTree::Name(name) => {
+                prefix.push(name.ident.to_string());
+                self.path(prefix);
+                prefix.pop();
+            }
+            syn::UseTree::Rename(rename) => {
+                prefix.push(rename.ident.to_string());
+                self.path(prefix);
+                prefix.pop();
+            }
+            syn::UseTree::Glob(_) => self.path(prefix),
+            syn::UseTree::Group(group) => {
+                for tree in &group.items {
+                    self.use_tree(prefix, tree);
+                }
+            }
         }
     }
 }
 
 impl<'ast> syn::visit::Visit<'ast> for ContractEffects {
-    fn visit_path_segment(&mut self, segment: &'ast syn::PathSegment) {
-        self.name(&segment.ident);
-        syn::visit::visit_path_segment(self, segment);
+    fn visit_path(&mut self, path: &'ast syn::Path) {
+        let segments: Vec<String> = path.segments.iter().map(|s| s.ident.to_string()).collect();
+        self.path(&segments);
+        syn::visit::visit_path(self, path);
     }
 
-    fn visit_use_path(&mut self, path: &'ast syn::UsePath) {
-        self.name(&path.ident);
-        syn::visit::visit_use_path(self, path);
-    }
-
-    fn visit_use_name(&mut self, name: &'ast syn::UseName) {
-        self.name(&name.ident);
-    }
-
-    fn visit_use_rename(&mut self, rename: &'ast syn::UseRename) {
-        self.name(&rename.ident);
+    fn visit_item_use(&mut self, item: &'ast syn::ItemUse) {
+        self.use_tree(&mut Vec::new(), &item.tree);
     }
 
     fn visit_signature(&mut self, signature: &'ast syn::Signature) {

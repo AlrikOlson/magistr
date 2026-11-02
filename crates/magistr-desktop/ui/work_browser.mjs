@@ -120,7 +120,7 @@ export class WorkBrowser {
     if(this.returnTrail.length>32)this.returnTrail.shift();
     this.routing=true;
     if(target.kind==="task"){this.tabs.select("plan");this.item.open(this.frame.address,target.id,this.revision);}
-    if(target.kind==="think"){this.reasoning.query="";this.$("work-browser-reasoning-search").value="";this.reasoning.choice=target.session;this.reasoning.stepId=target.id;this.reasoning.trail=[];this.reasoning.branches.reset();this.tabs.select("reasoning");}
+    if(target.kind==="decision"){this.reasoning.query="";this.$("work-browser-reasoning-search").value="";this.reasoning.choice=target.session;this.reasoning.stepId=target.id;this.reasoning.trail=[];this.reasoning.branches.reset();this.tabs.select("reasoning");}
     if(target.kind==="signal"){this.feedback.id=target.id;this.tabs.select("feedback");}
     this.routing=false;this.$("work-browser-return").hidden=false;
     this.$("work-browser-content").scrollTop=0;(this.$("work-browser-inspector").hidden?this.$("work-browser-content"):this.$("work-browser-inspector")).querySelector("h3")?.focus({preventScroll:true});
@@ -183,7 +183,7 @@ export class WorkBrowser {
       retainReading(content,()=>content.replaceChildren(observed.value?this.feedback.render(observed.value):element("p","Feedback is unavailable. Use Refresh to try again.")));return;
     }
     if(this.area==="reasoning"){
-      const observed=readState(this.snapshot.think,"reasoning");
+      const observed=readState(this.snapshot.decisions,"reasoning");
       if(!observed.value){this.$("work-browser-inspector").hidden=true;this.$("work-browser-inspector").replaceChildren();}
       this.$("work-browser-state").textContent=observed.message;this.$("work-browser-state").dataset.current=String(observed.current);
       retainReading(content,()=>content.replaceChildren(observed.value?this.reasoning.render(observed.value):element("p","Reasoning records are unavailable. Use Refresh to try again.")));return;

@@ -4,12 +4,14 @@
 //! result that breaks its schema with a schema error, so a task that started
 //! reads as a call that failed. The working path is held to the schema here,
 //! over the real wire.
+use magistr_workflow::decision::{
+    DecisionService, config::DecisionConfig, engine::core::ReasoningServer,
+};
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::{PlanService, engine::PlanEngine};
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::run::mcp::RunService;
 use magistr_workflow::signal::{SignalService, engine::SignalEngine};
-use magistr_workflow::think::{ThinkService, config::ThinkConfig, engine::core::ReasoningServer};
 use rmcp::model::{CallToolRequestParams, CallToolResult, Tool};
 use rmcp::{ClientHandler, RoleClient, ServiceExt};
 use serde_json::{Value, json};
@@ -21,16 +23,16 @@ impl ClientHandler for Client {}
 type Session = rmcp::service::RunningService<RoleClient, Client>;
 
 async fn session() -> Session {
-    let mut config = ThinkConfig::default();
+    let mut config = DecisionConfig::default();
     config.display.color_output = false;
-    let think = ThinkService::new(ReasoningServer::new(config));
+    let decision = DecisionService::new(ReasoningServer::new(config));
     let run = RunService::new(RunEngine::new("schema-conformance".into()));
     let plan = PlanService::new(
         PlanEngine::new("schema-conformance".into()),
         run.use_cases(),
     );
     let signal = SignalService::new(SignalEngine::new("schema-conformance".into()));
-    let server = UnifiedService::new(think, run, plan, signal);
+    let server = UnifiedService::new(decision, run, plan, signal);
     let (server_io, client_io) = tokio::io::duplex(1 << 16);
     tokio::spawn(async move {
         let running = server.serve(server_io).await.expect("server.serve");

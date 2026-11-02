@@ -10,8 +10,8 @@ fn same_type<A: 'static, B: 'static>() {
 fn producers_and_surfaces_share_the_same_record_definitions() {
     same_type::<contracts::Task, magistr_workflow::plan::domain::Task>();
     same_type::<contracts::Signal, magistr_workflow::signal::domain::Signal>();
-    same_type::<contracts::ThinkStep, magistr_workflow::think::domain::ThinkStep>();
-    same_type::<contracts::think::Branch, magistr_workflow::think::domain::Branch>();
+    same_type::<contracts::Note, magistr_workflow::decision::domain::Note>();
+    same_type::<contracts::decision::Thread, magistr_workflow::decision::domain::Thread>();
     same_type::<contracts::Goal, magistr_workflow::run::domain::goal::Goal>();
     same_type::<contracts::Step, magistr_workflow::run::domain::step::Step>();
     same_type::<contracts::Progress, magistr_workflow::run::domain::progress::Progress>();
@@ -34,7 +34,7 @@ fn projections_observations_and_broadcasts_share_canonical_type_identity() {
     same_type::<contracts::Delivery, magistr_engine::Delivery>();
     same_type::<contracts::OwnerGeneration, magistr_engine::OwnerGeneration>();
     same_type::<contracts::Family, magistr_workflow::infra::Family>();
-    same_type::<contracts::ThinkFrame, magistr_workflow::think::broadcast::BroadcastFrame>();
+    same_type::<contracts::DecisionFrame, magistr_workflow::decision::broadcast::BroadcastFrame>();
     same_type::<contracts::RunFrame, magistr_workflow::run::broadcast::BroadcastFrame>();
     same_type::<contracts::PlanFrame, magistr_workflow::plan::broadcast::PlanFrame>();
     same_type::<contracts::SignalFrame, magistr_workflow::signal::broadcast::SignalFrame>();

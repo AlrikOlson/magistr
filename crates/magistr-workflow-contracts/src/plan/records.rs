@@ -2,7 +2,7 @@
 //!
 //! A [`Plan`] is the long-horizon plan-of-plans: an ordered set of
 //! [`Task`]s (phases / items) that sits above `run_*` goals and links
-//! across to `think_*` reasoning steps. These types are serde-only and depend
+//! across to `decision_*` reasoning steps. These types are serde-only and depend
 //! on nothing in `crate::infra` so the dependency graph stays one-directional
 //! (engine → domain + infra, never the reverse).
 
@@ -370,7 +370,7 @@ pub struct WaitingOn {
     /// Why, in a sentence. Required and non-blank: a blocker whose reason has
     /// to be re-derived from the title is precisely the failure this replaces.
     pub reason: String,
-    /// What says so, as a cross-ref wire string (`think:42`, `task:foo`,
+    /// What says so, as a cross-ref wire string (`decision:42`, `task:foo`,
     /// `step:bar`) — or `None` when nothing does, which is an honest answer
     /// rather than a gap to fill with a guess.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -460,7 +460,7 @@ pub struct Task {
     /// cannot silently drop it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tier: Option<u32>,
-    /// Cross-references into other families as wire strings (e.g. `"think:42"`,
+    /// Cross-references into other families as wire strings (e.g. `"decision:42"`,
     /// `"step:auth"`). The typed `CrossRef::PlanTask` integration layers
     /// on top of these raw strings.
     #[serde(default)]
@@ -559,13 +559,13 @@ impl Task {
 }
 
 /// A datestamped refresh provenance entry (populated by `plan_record_refresh`
-/// in 26c — links the think steps that motivated a mutation).
+/// in 26c — links the decision notes that motivated a mutation).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefreshNote {
     pub at: String,
     pub summary: String,
     #[serde(default)]
-    pub think_steps: Vec<u32>,
+    pub notes: Vec<u32>,
 }
 
 /// A free-form document-level section that isn't work — a `## Research notes`,
@@ -785,7 +785,7 @@ pub struct Plan {
 
 /// The saved plan format: version 2 spells the plan words (tasks, features,
 /// waiting, retired, `task:` references).
-pub const PLAN_SCHEMA_VERSION: u32 = 2;
+pub const PLAN_SCHEMA_VERSION: u32 = 3;
 
 impl Default for Plan {
     fn default() -> Self {
@@ -817,7 +817,7 @@ impl Default for Plan {
 /// accumulating a second twin; tracker opt-ins union the same way, which is why
 /// opting out is a recorded `enabled: false` rather than a deletion — a removal
 /// would be re-added by any peer still holding the older opt-in. Known LWW caveat
-/// (documented, same tradeoff as the think merge): two processes editing the
+/// (documented, same tradeoff as the decision merge): two processes editing the
 /// SAME task concurrently keep only the newer copy's fields.
 pub fn merge_plans(memory: &Plan, disk: Plan) -> Plan {
     let mut merged = memory.clone();

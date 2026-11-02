@@ -1,5 +1,7 @@
 //! Recovery contracts over the real MCP wire, with an isolated in-memory engine.
-use magistr_workflow::think::{ThinkService, config::ThinkConfig, engine::core::ReasoningServer};
+use magistr_workflow::decision::{
+    DecisionService, config::DecisionConfig, engine::core::ReasoningServer,
+};
 use rmcp::{ClientHandler, ServiceExt, model::CallToolRequestParams};
 use serde_json::{Value, json};
 
@@ -15,9 +17,9 @@ fn valid() -> Value {
 
 #[tokio::test]
 async fn required_schema_and_corrected_next_call_replay() {
-    let mut config = ThinkConfig::default();
+    let mut config = DecisionConfig::default();
     config.display.color_output = false;
-    let service = ThinkService::new(ReasoningServer::new_for_project(
+    let service = DecisionService::new(ReasoningServer::new_for_project(
         config,
         "recovery-fixture".into(),
     ));
@@ -37,7 +39,7 @@ async fn required_schema_and_corrected_next_call_replay() {
     let tool = catalog
         .tools
         .iter()
-        .find(|t| t.name == "think_record_step")
+        .find(|t| t.name == "decision_record")
         .unwrap();
     let schema = Value::Object((*tool.input_schema).clone());
     let validator = jsonschema::validator_for(&schema).unwrap();
@@ -98,7 +100,7 @@ async fn required_schema_and_corrected_next_call_replay() {
             let response = client
                 .peer()
                 .call_tool(
-                    CallToolRequestParams::new("think_record_step")
+                    CallToolRequestParams::new("decision_record")
                         .with_arguments(invalid.as_object().unwrap().clone()),
                 )
                 .await
@@ -117,21 +119,18 @@ async fn required_schema_and_corrected_next_call_replay() {
                 "{body}"
             );
         }
-        assert!(owner.get_step(corrected + 1, false).unwrap().is_none());
+        assert!(owner.get_note(corrected + 1, false).unwrap().is_none());
         let response = client
             .peer()
             .call_tool(
-                CallToolRequestParams::new("think_record_step")
+                CallToolRequestParams::new("decision_record")
                     .with_arguments(valid().as_object().unwrap().clone()),
             )
             .await
             .unwrap();
         assert_ne!(response.is_error, Some(true), "{response:?}");
         corrected += 1;
-        assert_eq!(
-            response.structured_content.unwrap()["step_number"],
-            corrected
-        );
+        assert_eq!(response.structured_content.unwrap()["note"], corrected);
     }
     assert_eq!(corrected as usize, cases.len());
     eprintln!(
@@ -143,22 +142,22 @@ async fn required_schema_and_corrected_next_call_replay() {
 }
 
 #[tokio::test]
-async fn omitted_numbers_branch_continuation_and_merge_survive_server_restart() {
-    use magistr_workflow::think::domain::BranchStatus;
+async fn omitted_numbers_thread_continuation_and_merge_survive_server_restart() {
+    use magistr_workflow::decision::domain::ThreadStatus;
 
     let directory = tempfile::tempdir().unwrap();
-    let mut config = ThinkConfig::default();
+    let mut config = DecisionConfig::default();
     config.display.color_output = false;
-    config.features.enable_sessions = false;
+    config.features.enable_logs = false;
     config.persistence.enabled = true;
     config.persistence.data_dir = directory.path().to_path_buf();
-    let mut branch_id = String::new();
+    let mut thread_id = String::new();
     let mut nested_id = String::new();
 
     for restarted in [false, true] {
-        let service = ThinkService::new(ReasoningServer::new_for_project(
+        let service = DecisionService::new(ReasoningServer::new_for_project(
             config.clone(),
-            "branch-wire-fixture".into(),
+            "thread-wire-fixture".into(),
         ));
         let owner = service.use_cases();
         let (server_io, client_io) = tokio::io::duplex(65536);
@@ -192,100 +191,96 @@ async fn omitted_numbers_branch_continuation_and_merge_survive_server_restart() 
                 catalog
                     .tools
                     .iter()
-                    .any(|t| t.name == "think_set_branch_status")
+                    .any(|t| t.name == "decision_set_thread_status")
             );
             let record = catalog
                 .tools
                 .iter()
-                .find(|t| t.name == "think_record_step")
+                .find(|t| t.name == "decision_record")
                 .unwrap();
             assert!(
                 !record.input_schema["required"]
                     .as_array()
                     .unwrap()
-                    .contains(&json!("step_number"))
+                    .contains(&json!("note"))
             );
 
-            assert_eq!(call!("think_record_step", valid())["step_number"], 1);
-            let mut branch = valid();
-            branch["branch_from"] = json!(1);
-            branch["branch_name"] = json!("Can retry limits be shared?");
-            let opened = call!("think_record_step", branch);
-            assert_eq!(opened["step_number"], 2);
-            branch_id = opened["branch"]["id"].as_str().unwrap().to_owned();
+            assert_eq!(call!("decision_record", valid())["note"], 1);
+            let mut thread = valid();
+            thread["thread_from"] = json!(1);
+            thread["thread_name"] = json!("Can retry limits be shared?");
+            let opened = call!("decision_record", thread);
+            assert_eq!(opened["note"], 2);
+            thread_id = opened["thread"]["id"].as_str().unwrap().to_owned();
 
             let mut continuation = valid();
-            continuation["branch_id"] = json!(branch_id);
-            let continued = call!("think_record_step", continuation);
-            assert_eq!(continued["step_number"], 3);
-            assert_eq!(continued["branch"]["from"], 1);
-            assert_eq!(continued["branch"]["name"], "Can retry limits be shared?");
+            continuation["thread_id"] = json!(thread_id);
+            let continued = call!("decision_record", continuation);
+            assert_eq!(continued["note"], 3);
+            assert_eq!(continued["thread"]["from"], 1);
+            assert_eq!(continued["thread"]["name"], "Can retry limits be shared?");
 
             let mut nested = valid();
-            nested["branch_from"] = json!(3);
-            nested["branch_name"] = json!("Do shared limits survive a restart?");
-            let opened = call!("think_record_step", nested);
-            assert_eq!(opened["step_number"], 4);
-            nested_id = opened["branch"]["id"].as_str().unwrap().to_owned();
+            nested["thread_from"] = json!(3);
+            nested["thread_name"] = json!("Do shared limits survive a restart?");
+            let opened = call!("decision_record", nested);
+            assert_eq!(opened["note"], 4);
+            nested_id = opened["thread"]["id"].as_str().unwrap().to_owned();
 
             let mut revision = valid();
-            revision["branch_id"] = json!(branch_id);
-            revision["revises_step"] = json!(2);
+            revision["thread_id"] = json!(thread_id);
+            revision["revises_note"] = json!(2);
             revision["revision_reason"] = json!("The restart check rejected shared limits.");
-            revision["dependencies"] = json!([{"step":2,"relation":"refutes"}, 4]);
-            assert_eq!(call!("think_record_step", revision)["step_number"], 5);
+            revision["dependencies"] = json!([{"note":2,"relation":"refutes"}, 4]);
+            assert_eq!(call!("decision_record", revision)["note"], 5);
 
             let mut synthesis = valid();
             synthesis["dependencies"] = json!([3, 5]);
-            assert_eq!(call!("think_record_step", synthesis)["step_number"], 6);
-            for id in [&branch_id, &nested_id] {
+            assert_eq!(call!("decision_record", synthesis)["note"], 6);
+            for id in [&thread_id, &nested_id] {
                 let merged = call!(
-                    "think_set_branch_status",
+                    "decision_set_thread_status",
                     json!({
-                        "branch_id": id, "status":"merged", "merged_into":6
+                        "thread_id": id, "status":"merged", "merged_into":6
                     })
                 );
                 assert_eq!(merged["merged_into"], 6);
             }
         }
 
-        for (origin, id) in [(1, &branch_id), (3, &nested_id)] {
-            let impact = call!("think_step_impact", json!({"step_number":origin}));
-            let branches = impact["branches_from"].as_array().unwrap();
-            let branch = branches.iter().find(|branch| branch["id"] == *id).unwrap();
-            assert_eq!(branch["status"], "merged");
-            assert_eq!(branch["merged_into"], 6);
+        for (origin, id) in [(1, &thread_id), (3, &nested_id)] {
+            let impact = call!("decision_impact", json!({"note":origin}));
+            let threads = impact["threads_from"].as_array().unwrap();
+            let thread = threads.iter().find(|thread| thread["id"] == *id).unwrap();
+            assert_eq!(thread["status"], "merged");
+            assert_eq!(thread["merged_into"], 6);
         }
-        let continued = call!("think_get_step", json!({"step_number":3}));
-        assert_eq!(continued["branch_id"], branch_id);
-        assert_eq!(continued["branch_from"], 1);
-        assert_eq!(continued["branch_name"], "Can retry limits be shared?");
-        let revised = call!("think_get_step", json!({"step_number":2}));
+        let continued = call!("decision_get", json!({"note":3}));
+        assert_eq!(continued["thread_id"], thread_id);
+        assert_eq!(continued["thread_from"], 1);
+        assert_eq!(continued["thread_name"], "Can retry limits be shared?");
+        let revised = call!("decision_get", json!({"note":2}));
         assert_eq!(revised["revised_by"], 5);
-        let status = call!("think_engine_status", json!({}));
-        assert_eq!(status["next_step_number"], 7);
+        let status = call!("decision_status", json!({}));
+        assert_eq!(status["next_note_number"], 7);
         {
             let engine = owner.engine();
             let engine = engine.lock().unwrap();
-            let branch = &engine.branches()[&branch_id];
-            assert_eq!(branch.status, BranchStatus::Merged);
-            assert_eq!(branch.merged_into, Some(6));
+            let thread = &engine.threads()[&thread_id];
+            assert_eq!(thread.status, ThreadStatus::Merged);
+            assert_eq!(thread.merged_into, Some(6));
             assert_eq!(
-                branch
-                    .steps
-                    .iter()
-                    .map(|s| s.step_number)
-                    .collect::<Vec<_>>(),
+                thread.notes.iter().map(|s| s.note).collect::<Vec<_>>(),
                 vec![2, 3, 5]
             );
-            assert_eq!(branch.from_step, 1);
-            assert_eq!(branch.depth, 1);
-            let nested = &engine.branches()[&nested_id];
-            assert_eq!(nested.status, BranchStatus::Merged);
+            assert_eq!(thread.from_note, 1);
+            assert_eq!(thread.depth, 1);
+            let nested = &engine.threads()[&nested_id];
+            assert_eq!(nested.status, ThreadStatus::Merged);
             assert_eq!(nested.merged_into, Some(6));
-            assert_eq!(nested.from_step, 3);
+            assert_eq!(nested.from_note, 3);
             assert_eq!(nested.depth, 2);
-            assert!(engine.step_by_number(6).unwrap().branch_id.is_none());
+            assert!(engine.note_by_number(6).unwrap().thread_id.is_none());
         }
         client.cancel().await.unwrap();
         server.await.unwrap();
@@ -300,9 +295,9 @@ fn every_advertised_required_field_has_actionable_admission() {
         run::{RunService, engine::RunEngine},
         signal::{SignalEngine, SignalService},
     };
-    let mut config = ThinkConfig::default();
+    let mut config = DecisionConfig::default();
     config.display.color_output = false;
-    let tools = ThinkService::new(ReasoningServer::new_for_project(
+    let tools = DecisionService::new(ReasoningServer::new_for_project(
         config,
         "schema-contract".into(),
     ))
@@ -364,7 +359,7 @@ fn shared_failures_are_errors_with_conservative_effect_evidence() {
 
 #[test]
 fn persisted_legacy_defaults_do_not_define_wire_requirements() {
-    let legacy: magistr_workflow::think::domain::ThinkStep =
+    let legacy: magistr_workflow::decision::domain::Note =
         serde_json::from_value(json!({})).unwrap();
     assert!(legacy.thought.is_empty());
 }

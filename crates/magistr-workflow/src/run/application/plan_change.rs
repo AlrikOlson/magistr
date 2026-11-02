@@ -8,7 +8,7 @@ pub enum PlanChange {
         title: Option<String>,
         step_type: Option<StepType>,
         estimate: Option<String>,
-        think_branch: Option<String>,
+        decision_thread: Option<String>,
     },
     Remove {
         id: String,

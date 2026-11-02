@@ -1,13 +1,13 @@
 //! Carrying an owner command out on the writer.
 
 use super::WorkflowMutationError;
+use super::decision_command::DecisionCommand;
 use super::native_engines::NativeEngines;
 use super::owner_command::OwnerCommand;
 use super::owner_reply::OwnerReply;
 use super::plan_command::PlanCommand;
 use super::run_command::RunCommand;
 use super::signal_command::SignalCommand;
-use super::think_command::ThinkCommand;
 
 impl NativeEngines {
     /// Carry `command` out on this writer: the one place an attached
@@ -19,7 +19,7 @@ impl NativeEngines {
     pub fn apply(&self, command: OwnerCommand) -> Result<OwnerReply, WorkflowMutationError> {
         match command {
             OwnerCommand::Plan(command) => self.apply_plan(command),
-            OwnerCommand::Think(command) => self.apply_think(command),
+            OwnerCommand::Decision(command) => self.apply_decision(command),
             OwnerCommand::Run(command) => self.apply_run(command),
             OwnerCommand::Signal(command) => self.apply_signal(command),
         }
@@ -106,17 +106,19 @@ impl NativeEngines {
         Ok(OwnerReply::Task(Box::new(task)))
     }
 
-    fn apply_think(&self, command: ThinkCommand) -> Result<OwnerReply, WorkflowMutationError> {
+    fn apply_decision(
+        &self,
+        command: DecisionCommand,
+    ) -> Result<OwnerReply, WorkflowMutationError> {
         Ok(match command {
-            ThinkCommand::RecordStep { step } => {
-                OwnerReply::ThinkStep(Box::new(self.think_record_step(*step)?))
+            DecisionCommand::Record { note } => {
+                OwnerReply::Note(Box::new(self.decision_record(*note)?))
             }
-            ThinkCommand::PinStep {
-                step_number,
-                pinned,
-            } => OwnerReply::Pinned(self.think_pin_step(step_number, pinned)?),
-            ThinkCommand::Checkpoint => OwnerReply::Report(
-                self.think_checkpoint()
+            DecisionCommand::Pin { note, pinned } => {
+                OwnerReply::Pinned(self.decision_pin(note, pinned)?)
+            }
+            DecisionCommand::Review => OwnerReply::Report(
+                self.decision_review()
                     .map_err(WorkflowMutationError::rejected)?,
             ),
         })
@@ -152,14 +154,14 @@ impl NativeEngines {
                 description,
                 files_touched,
                 tools_used,
-                think_step,
+                note,
             } => OwnerReply::Progress(self.record_progress(
                 step_id.as_deref(),
                 progress_type,
                 description,
                 files_touched,
                 tools_used,
-                think_step,
+                note,
             )?),
             RunCommand::RecordGate {
                 step_id,
@@ -200,8 +202,8 @@ impl NativeEngines {
                 summary,
                 confidence,
                 sources,
-                think_step,
-            } => self.signal_research(&id, summary, confidence, sources, think_step),
+                note,
+            } => self.signal_research(&id, summary, confidence, sources, note),
             SignalCommand::Promote { id } => {
                 return Ok(OwnerReply::Promotion(Box::new(self.signal_promote(&id)?)));
             }

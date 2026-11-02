@@ -22,7 +22,7 @@ impl RunUseCases {
                 title,
                 step_type,
                 estimate,
-                think_branch,
+                decision_thread,
             } => {
                 let title = title.unwrap_or_else(|| id.clone());
                 engine.plan_step(
@@ -30,7 +30,7 @@ impl RunUseCases {
                     title,
                     step_type.unwrap_or(StepType::Implement),
                     estimate,
-                    think_branch,
+                    decision_thread,
                 )?
             }
             PlanChange::Remove { id } => engine.remove_step(&id)?,
@@ -90,10 +90,10 @@ impl RunUseCases {
         title: String,
         step_type: StepType,
         estimate: Option<String>,
-        think_branch: Option<String>,
+        decision_thread: Option<String>,
     ) -> Result<Observed<()>, RunError> {
         self.lock()?
-            .plan_step(id, title, step_type, estimate, think_branch)
+            .plan_step(id, title, step_type, estimate, decision_thread)
     }
 
     pub fn remove_step(&self, step_id: &str) -> Result<Observed<()>, RunError> {
@@ -125,7 +125,7 @@ impl RunUseCases {
         files_touched: Vec<String>,
         tools_used: Vec<String>,
         result: String,
-        think_step: Option<u32>,
+        note: Option<u32>,
     ) -> Result<Observed<Progress>, RunError> {
         self.lock()?.record_progress(
             step_id,
@@ -134,7 +134,7 @@ impl RunUseCases {
             files_touched,
             tools_used,
             result,
-            think_step,
+            note,
         )
     }
 

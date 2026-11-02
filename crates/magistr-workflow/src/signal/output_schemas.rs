@@ -2,7 +2,7 @@
 //!
 //! # Why this module exists
 //!
-//! It didn't, and that was the whole defect. `think_*` and `plan_*` each
+//! It didn't, and that was the whole defect. `decision_*` and `plan_*` each
 //! carry an `output_schemas` module and patch `Tool.output_schema` in their
 //! `list_tools_view`; `signal_*` had neither, so all ten of its tools shipped
 //! with no schema at all while their siblings shipped with one. Nothing said
@@ -11,7 +11,7 @@
 //!
 //! # The shapes are the handlers', not an idealization of them
 //!
-//! As in [`crate::think::output_schemas`], these structs exist solely so
+//! As in [`crate::decision::output_schemas`], these structs exist solely so
 //! `schemars::schema_for!(T)` can compute a blob. The engine emits
 //! `serde_json::Value` directly and we never deserialize back into these
 //! types, so a field that drifts from what the handler actually builds is a
@@ -27,8 +27,8 @@ use schemars::{JsonSchema, schema_for};
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::decision::output_schemas::JsonObject;
 use crate::signal::domain::Signal;
-use crate::think::output_schemas::JsonObject;
 use magistr_workflow_contracts::Observed;
 
 /// `signal_status` — mirrors `SignalEngine::status`.

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://think-and-ship.dev/contract/unified-record-envelope/v1.json",
   "title": "Unified record envelope (v1)",
-  "description": "The canonical, backend-agnostic wire form of ANY think-and-ship record — a think step, a run goal/step/progress/check, a plan task, or a signal — in the unified Phase-31 SaaS. This file is the SINGLE SOURCE OF TRUTH: the Rust core validates against it (serde + a schema test) and the TS edge generates its types from it (json-schema-to-typescript), so the two can never drift. It GENERALIZES the Phase-30a Signal envelope (contract/signal-envelope.schema.json): the cloud fields (schema_version, tenant_id, idempotency_key, source, attribution) are reused verbatim and lifted to the envelope, the local family object is carried verbatim under `record`, and every family's links are normalized into one queryable `edges[]` graph — the product's moat. The signal envelope remains the family=signal profile (see docs/UNIFIED_CONTRACT.md §Relationship to the 30a Signal envelope). See docs/UNIFIED_CONTRACT.md for the prose contract, the per-family idempotency rules, the tenant-identity model, and the edge/graph model.",
+  "description": "The canonical, backend-agnostic wire form of ANY think-and-ship record — a decision note, a run goal/step/progress/check, a plan task, or a signal — in the unified Phase-31 SaaS. This file is the SINGLE SOURCE OF TRUTH: the Rust core validates against it (serde + a schema test) and the TS edge generates its types from it (json-schema-to-typescript), so the two can never drift. It GENERALIZES the Phase-30a Signal envelope (contract/signal-envelope.schema.json): the cloud fields (schema_version, tenant_id, idempotency_key, source, attribution) are reused verbatim and lifted to the envelope, the local family object is carried verbatim under `record`, and every family's links are normalized into one queryable `edges[]` graph — the product's moat. The signal envelope remains the family=signal profile (see docs/UNIFIED_CONTRACT.md §Relationship to the 30a Signal envelope). See docs/UNIFIED_CONTRACT.md for the prose contract, the per-family idempotency rules, the tenant-identity model, and the edge/graph model.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -36,14 +36,14 @@
       "$ref": "#/$defs/Kind"
     },
     "id": {
-      "description": "The record's stable id, unique within (tenant_id, family, kind). Heterogeneous by family — a think step number ('884'), a run goal/step/progress/check id ('verify-31a', 'progress:42'), a plan task slug ('saas-unified-contract'), or a signal UUIDv4. Pair with `family`+`kind` to address a record; pair with `family` to form an edge endpoint ('<family-prefix>:<id>').",
+      "description": "The record's stable id, unique within (tenant_id, family, kind). Heterogeneous by family — a decision note number ('884'), a run goal/step/progress/check id ('verify-31a', 'progress:42'), a plan task slug ('saas-unified-contract'), or a signal UUIDv4. Pair with `family`+`kind` to address a record; pair with `family` to form an edge endpoint ('<family-prefix>:<id>').",
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
       "pattern": "^[A-Za-z0-9:._-]+$"
     },
     "idempotency_key": {
-      "description": "Lowercase hex SHA-256 that lets re-delivery / re-sync of the same record collapse to one upsert. Computed per family (docs/UNIFIED_CONTRACT.md §Idempotency): owner-authored records (think/run/plan) use sha256(tenant_id \\u241f family \\u241f kind \\u241f id); ingested signals keep the 30a rule sha256(tenant_id \\u241f source.adapter \\u241f source.external_id), else sha256(tenant_id \\u241f kind \\u241f from \\u241f body \\u241f created). \\u241f (U+241F) is the field separator. The canonical store treats a colliding key as a no-op upsert.",
+      "description": "Lowercase hex SHA-256 that lets re-delivery / re-sync of the same record collapse to one upsert. Computed per family (docs/UNIFIED_CONTRACT.md §Idempotency): owner-authored records (decision/run/plan) use sha256(tenant_id \\u241f family \\u241f kind \\u241f id); ingested signals keep the 30a rule sha256(tenant_id \\u241f source.adapter \\u241f source.external_id), else sha256(tenant_id \\u241f kind \\u241f from \\u241f body \\u241f created). \\u241f (U+241F) is the field separator. The canonical store treats a colliding key as a no-op upsert.",
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
     },
@@ -76,14 +76,14 @@
       "maxItems": 32
     },
     "edges": {
-      "description": "The normalized cross-reference graph for this record — the product's moat. Each edge's SOURCE is this record's ('<family-prefix>:<id>') endpoint; `ref` is the TARGET in the existing prefix:value wire form. edges[] is the canonical, queryable projection of however each family stores links locally: plan Task.refs[] and signal Signal.refs[] map 1:1; a think step's dependencies[] become think:<step> edges (carrying the dependency relation) and its execution_ref becomes one edge; a run action's think_step becomes a think:<n> edge. Derivable from `record`, but materialized so the backend builds one graph without parsing four local shapes.",
+      "description": "The normalized cross-reference graph for this record — the product's moat. Each edge's SOURCE is this record's ('<family-prefix>:<id>') endpoint; `ref` is the TARGET in the existing prefix:value wire form. edges[] is the canonical, queryable projection of however each family stores links locally: plan Task.refs[] and signal Signal.refs[] map 1:1; a decision note's dependencies[] become decision:<step> edges (carrying the dependency relation) and its run_ref becomes one edge; a run action's note becomes a decision:<n> edge. Derivable from `record`, but materialized so the backend builds one graph without parsing four local shapes.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/Edge"
       }
     },
     "record": {
-      "description": "The verbatim local family domain object (a think ThinkStep | run Goal/Task/Action/Check | plan Task | Signal). Its detailed shape is owned by the local Rust types (and, for signals, fully specified by contract/signal-envelope.schema.json) and evolves independently, so `additionalProperties` is intentionally OPEN here — the envelope wrapper + edges are the strict contract, the payload is the existing record. The `id` of this record MUST equal the envelope `id`. ONE payload key is contract-owned across every family: `content`, the optional structured body (see $defs/StructuredContent) that lets a record render as UI instead of a prose wall; when present it must be well-formed, and the prose field (`body`/`description`) remains the plain-text fallback for readers that don't know the shape.",
+      "description": "The verbatim local family domain object (a decision Note | run Goal/Task/Action/Check | plan Task | Signal). Its detailed shape is owned by the local Rust types (and, for signals, fully specified by contract/signal-envelope.schema.json) and evolves independently, so `additionalProperties` is intentionally OPEN here — the envelope wrapper + edges are the strict contract, the payload is the existing record. The `id` of this record MUST equal the envelope `id`. ONE payload key is contract-owned across every family: `content`, the optional structured body (see $defs/StructuredContent) that lets a record render as UI instead of a prose wall; when present it must be well-formed, and the prose field (`body`/`description`) remains the plain-text fallback for readers that don't know the shape.",
       "type": "object",
       "properties": {
         "content": {
@@ -97,14 +97,14 @@
       "if": {
         "properties": {
           "family": {
-            "const": "think"
+            "const": "decision"
           }
         }
       },
       "then": {
         "properties": {
           "kind": {
-            "const": "step"
+            "const": "note"
           }
         }
       }
@@ -169,16 +169,17 @@
       "description": "Which tool family produced the record. The four families that share the workflow server.",
       "type": "string",
       "enum": [
-        "think",
+        "decision",
         "run",
         "plan",
         "signal"
       ]
     },
     "Kind": {
-      "description": "The record type within its family. Constrained to the family by the top-level allOf: think\\u2192step; run\\u2192goal|step|progress|check|approval; plan\\u2192task; signal\\u2192signal. An `approval` is agent work paused on a question only a human can answer (docs/UNIFIED_CONTRACT.md \\u00a7Approval gates) \\u2014 its record carries the question, the option set with a declared safe default, an expiry that resolves an unanswered approval to that default, and \\u2014 once decided \\u2014 who answered and when.",
+      "description": "The record type within its family. Constrained to the family by the top-level allOf: decision\\u2192note; run\\u2192goal|step|progress|check|approval; plan\\u2192task; signal\\u2192signal. An `approval` is agent work paused on a question only a human can answer (docs/UNIFIED_CONTRACT.md \\u00a7Approval gates) \\u2014 its record carries the question, the option set with a declared safe default, an expiry that resolves an unanswered approval to that default, and \\u2014 once decided \\u2014 who answered and when.",
       "type": "string",
       "enum": [
+        "note",
         "step",
         "goal",
         "progress",
@@ -205,12 +206,12 @@
       }
     },
     "CrossRef": {
-      "description": "A cross-reference target in the existing wire form `prefix:value`. `prefix` is one of the think/run/plan families, plus `signal`, plus `ext` for an item that lives in an external tracker (`ext:<provider>/<external_id>`). Mirrors infra/cross_ref.rs::CrossRef::from_wire so the same parser accepts it. An `ext:` target has no record of its own in this store, so it appears in the graph as an incoming edge only.",
+      "description": "A cross-reference target in the existing wire form `prefix:value`. `prefix` is one of the decision/run/plan families, plus `signal`, plus `ext` for an item that lives in an external tracker (`ext:<provider>/<external_id>`). Mirrors infra/cross_ref.rs::CrossRef::from_wire so the same parser accepts it. An `ext:` target has no record of its own in this store, so it appears in the graph as an incoming edge only.",
       "type": "string",
-      "pattern": "^(think|step|progress|check|task|signal|goal|ext):.+$"
+      "pattern": "^(decision|step|progress|check|task|signal|goal|ext):.+$"
     },
     "Relation": {
-      "description": "Optional typed relation on an edge. `supports`/`refutes`/`depends_on` mirror the think dependency-edge vocabulary; `realizes` (task\\u2192task), `motivates` (think\\u2192task), and `promoted_from`/`promotes` (signal\\u2194task) name the cross-family links the graph already expresses. Absent = an unlabeled link.",
+      "description": "Optional typed relation on an edge. `supports`/`refutes`/`depends_on` mirror the decision dependency-edge vocabulary; `realizes` (task\\u2192task), `motivates` (decision\\u2192task), and `promoted_from`/`promotes` (signal\\u2194task) name the cross-family links the graph already expresses. Absent = an unlabeled link.",
       "type": "string",
       "enum": [
         "supports",
@@ -225,7 +226,7 @@
       ]
     },
     "Source": {
-      "description": "Which edge adapter produced the record and the upstream coordinates needed to dedupe it (Phase 30c). Mainly populated for ingested signals; owner-authored think/run/plan records use source.adapter 'local' or 'mcp', or omit `source` entirely. Reused verbatim from the 30a Signal envelope.",
+      "description": "Which edge adapter produced the record and the upstream coordinates needed to dedupe it (Phase 30c). Mainly populated for ingested signals; owner-authored decision/run/plan records use source.adapter 'local' or 'mcp', or omit `source` entirely. Reused verbatim from the 30a Signal envelope.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -390,7 +391,7 @@
     {
       "schema_version": "1",
       "tenant_id": "think-and-ship-676f38",
-      "family": "think",
+      "family": "decision",
       "kind": "step",
       "id": "884",
       "idempotency_key": "a1b2c3d4e5f60718293a4b5c6d7e8f90112233445566778899aabbccddeeff00",
@@ -401,7 +402,7 @@
       },
       "edges": [
         {
-          "ref": "think:883",
+          "ref": "decision:883",
           "relation": "depends_on"
         },
         {
@@ -410,11 +411,11 @@
         }
       ],
       "record": {
-        "step_number": 884,
+        "note": 884,
         "purpose": "Synthesis — Phase-31 unified-SaaS cluster from the interview + research",
         "outcome": "Add 11 Phase-31 backlog tasks…",
         "pinned": true,
-        "execution_ref": "step:schema-31a",
+        "run_ref": "step:schema-31a",
         "dependencies": [
           {
             "step": 883,
@@ -433,7 +434,7 @@
       "created": "2026-06-08T03:23:00Z",
       "edges": [
         {
-          "ref": "think:886",
+          "ref": "decision:886",
           "relation": "motivates"
         }
       ],
@@ -441,7 +442,7 @@
         "id": 42,
         "type": "code",
         "description": "Authored contract/unified-record-envelope.schema.json",
-        "think_step": 886,
+        "note": 886,
         "files_touched": [
           "contract/unified-record-envelope.schema.json"
         ]
@@ -457,7 +458,7 @@
       "created": "2026-06-08T03:14:53Z",
       "edges": [
         {
-          "ref": "think:884"
+          "ref": "decision:884"
         },
         {
           "ref": "signal:f1c9a4e2-6b3d-4f8a-9c21-0a7e5d2b8c44",
@@ -476,7 +477,7 @@
           "signal-saas-contract"
         ],
         "refs": [
-          "think:884"
+          "decision:884"
         ]
       }
     },
@@ -534,7 +535,7 @@
       },
       "edges": [
         {
-          "ref": "think:867",
+          "ref": "decision:867",
           "relation": "supports"
         },
         {
@@ -550,7 +551,7 @@
         "status": "promoted",
         "created": "2026-06-08T01:10:00Z",
         "refs": [
-          "think:867",
+          "decision:867",
           "task:saas-unified-contract"
         ],
         "content": {

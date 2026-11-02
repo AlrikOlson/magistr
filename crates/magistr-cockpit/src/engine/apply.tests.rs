@@ -33,17 +33,17 @@ fn signal(id: &str, status: SignalStatus) -> Signal {
 impl EnginePort for Port {
     fn pin(
         &mut self,
-        step_number: u32,
+        note_number: u32,
         pinned: bool,
     ) -> Result<Observed<bool>, WorkflowMutationError> {
         if self.fail {
-            return Err(WorkflowMutationError::rejected("no such step"));
+            return Err(WorkflowMutationError::rejected("no such note"));
         }
-        self.pins.push((step_number, pinned));
+        self.pins.push((note_number, pinned));
         Ok(observed(false))
     }
 
-    fn checkpoint(&mut self) -> Result<serde_json::Value, String> {
+    fn review(&mut self) -> Result<serde_json::Value, String> {
         if self.fail {
             return Err("engine gone".into());
         }
@@ -234,7 +234,7 @@ fn a_pin_reaches_the_port_and_answers_with_the_requested_flag() {
     let event = apply(
         &mut port,
         &EngineCmd::Pin {
-            step_number: 7,
+            note: 7,
             pinned: true,
         },
     );
@@ -242,20 +242,20 @@ fn a_pin_reaches_the_port_and_answers_with_the_requested_flag() {
     assert_eq!(
         event,
         EngineEvent::Pinned {
-            step_number: 7,
+            note: 7,
             pinned: true,
         }
     );
 }
 
 #[test]
-fn a_checkpoint_renders_the_report_to_lines() {
+fn a_review_renders_the_report_to_lines() {
     let mut port = Port {
         pins: Vec::new(),
         fail: false,
     };
-    let EngineEvent::Checkpoint { lines } = apply(&mut port, &EngineCmd::Checkpoint) else {
-        panic!("a checkpoint answers with its report");
+    let EngineEvent::Review { lines } = apply(&mut port, &EngineCmd::Review) else {
+        panic!("a review answers with its report");
     };
     assert!(lines.iter().any(|line| line.contains("open_hypotheses")));
 }
@@ -270,24 +270,24 @@ fn a_refusal_names_what_was_asked() {
         apply(
             &mut port,
             &EngineCmd::Pin {
-                step_number: 9,
+                note: 9,
                 pinned: false,
             }
         ),
         EngineEvent::PortFailed {
             cmd: EngineCmd::Pin {
-                step_number: 9,
+                note: 9,
                 pinned: false,
             },
             what: "pin 9".to_owned(),
-            error: "no such step".to_owned(),
+            error: "no such note".to_owned(),
         }
     );
     assert_eq!(
-        apply(&mut port, &EngineCmd::Checkpoint),
+        apply(&mut port, &EngineCmd::Review),
         EngineEvent::PortFailed {
-            cmd: EngineCmd::Checkpoint,
-            what: "checkpoint".to_owned(),
+            cmd: EngineCmd::Review,
+            what: "review".to_owned(),
             error: "engine gone".to_owned(),
         }
     );

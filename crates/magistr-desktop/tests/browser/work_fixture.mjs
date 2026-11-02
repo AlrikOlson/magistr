@@ -26,7 +26,7 @@ export function workSnapshot(){
   previous.steps=previous.steps.map(step=>({...step,title:"Earlier: "+step.title,status:"done"}));
   previous.step_instances={review:"earlier-review",build:"earlier-build",verify:"earlier-verify"};
   return {run:{state:"current",data:{source:{kind:"memory"},value:{current,retained:[previous]}}},
-    plan:{state:"unobserved"},think:reasoningFixture(),signals:feedbackFixture()};
+    plan:{state:"unobserved"},decisions:reasoningFixture(),signals:feedbackFixture()};
 }
 export async function workScene(app,capture){
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();

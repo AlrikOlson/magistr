@@ -2,14 +2,14 @@
 
 use crate::cockpit::EngineCmd;
 
-/// The ask behind `cmd` — `pin 7`, `checkpoint`, `start <id>`,
+/// The ask behind `cmd` — `pin 7`, `review`, `start <id>`,
 /// `promote <id>`, … — as
 /// [`EngineEvent::PortFailed`](super::EngineEvent::PortFailed) carries it.
 #[must_use]
 pub fn describe(cmd: &EngineCmd) -> String {
     match cmd {
-        EngineCmd::Pin { step_number, .. } => format!("pin {step_number}"),
-        EngineCmd::Checkpoint => "checkpoint".to_owned(),
+        EngineCmd::Pin { note, .. } => format!("pin {note}"),
+        EngineCmd::Review => "review".to_owned(),
         EngineCmd::StartTask { id } => format!("start {id}"),
         EngineCmd::CompleteTask { id } => format!("complete {id}"),
         EngineCmd::ResolveProposal { task, kind, accept } => format!(

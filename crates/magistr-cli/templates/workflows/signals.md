@@ -18,7 +18,7 @@ web tools for external research. Choose the mode from the user's request:
 - **Churn** (default): process one open signal end to end, then stop.
 
 For churn, read `signal_status` and the chosen `signal_get` record. Ground the
-claim in current code before researching its premise. Use `think_record_step`
+claim in current code before researching its premise. Use `decision_record`
 for reasoning and `signal_research` for durable findings, sources, and justified
 confidence. Link reasoning or tasks with `signal_link`. Record an explanation
 and appropriate dismiss/snooze action for refuted claims.

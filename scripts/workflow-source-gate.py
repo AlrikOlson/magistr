@@ -38,7 +38,7 @@ def check(root):
         required_file(SUBSYSTEM / relative)
     for relative in (
         "Cargo.toml", "src/lib.rs",
-        "src/think/mod.rs", "src/run/mod.rs", "src/plan/mod.rs", "src/signal/mod.rs",
+        "src/decision/mod.rs", "src/run/mod.rs", "src/plan/mod.rs", "src/signal/mod.rs",
         "src/tracker/host/mod.rs",
         "tests/family_stores_durability.rs", "tests/workflow_e2e.rs",
         "tests/unified_service.rs",

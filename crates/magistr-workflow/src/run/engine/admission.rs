@@ -20,9 +20,9 @@ impl RunEngine {
         title: String,
         step_type: crate::run::domain::step::StepType,
         estimate: Option<String>,
-        think_branch: Option<String>,
+        decision_thread: Option<String>,
     ) -> Result<Observed<()>, RunError> {
-        self.add_step(id, title, step_type, estimate, think_branch)
+        self.add_step(id, title, step_type, estimate, decision_thread)
     }
 
     pub fn refresh_if_stale(&mut self) -> Result<bool, RunError> {

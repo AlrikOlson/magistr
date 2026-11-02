@@ -28,7 +28,7 @@ suspends it.
   to happen, what actually happens, and the design you recommend, in product
   terms. Never ask the owner to choose between workarounds, and never explain a
   problem through the history of retired components.
-- Record the architectural finding in the reasoning trace when it is made, and
+- Record the architectural finding in the decision log when it is made, and
   file the owning fix on the plan when it is outside the current change.
 
 ## Before public release

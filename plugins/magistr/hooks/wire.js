@@ -212,10 +212,10 @@ export function validate(kind, raw) {
       throw new Error('The chosen workstream was not returned.')
     }
   } else if (kind === 'findings') {
-    if (!Number.isSafeInteger(v.next_step_number))
+    if (!Number.isSafeInteger(v.next_note))
       throw new Error('The findings reply is unsupported.')
     array(v.pinned ?? [], 'pinned findings').forEach((s) => {
-      if (!record(s) || !Number.isSafeInteger(s.step_number))
+      if (!record(s) || !Number.isSafeInteger(s.note))
         throw new Error('A recorded finding could not be read.')
       string(s.purpose, 'a finding title')
     })
@@ -231,7 +231,7 @@ export function validate(kind, raw) {
   } else if (kind === 'work') {
     array(v.records, 'work details').forEach(workRecord)
   } else if (kind === 'finding') {
-    if (!Number.isSafeInteger(v.step_number))
+    if (!Number.isSafeInteger(v.note))
       throw new Error('This finding is unavailable.')
     string(v.purpose, 'a finding title')
     optionalArray(v.dependencies, 'supporting findings').forEach((d) => {
@@ -448,7 +448,7 @@ export function summary(m, tab = m.tab) {
     )
     lines.push(
       'Next finding number: ' +
-        v.next_step_number +
+        v.next_note +
         '. Use /magistr finding <number> to inspect a recorded finding.',
     )
   } else if (tab === 'changes') {

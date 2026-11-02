@@ -284,9 +284,12 @@ fn an_older_owner_is_fenced_even_before_its_first_record() {
         fs::remove_file(old.data_dir().join(path)).unwrap();
     }
     request(&current);
+    // The older standalone store's owner locked in its plan directory.
     let guard = File::options()
         .read(true)
         .write(true)
+        .create(true)
+        .truncate(false)
         .open(
             old.data_dir()
                 .join("roadmap/sessions/saved-project.project-owner.lock"),
@@ -361,14 +364,11 @@ fn old_work_and_reasoning_are_converted_into_the_records_current_readers_use() {
     let owner = ProjectAuthority::admit(&current, WriterRole::Host).unwrap();
     let reader = NativeReader::open(&current);
     let work = reader.run_snapshot().unwrap();
-    assert_eq!(
-        reader.run_steps().unwrap()[0].progress[0].think_step,
-        Some(7)
-    );
+    assert_eq!(reader.run_steps().unwrap()[0].progress[0].note, Some(7));
     assert_eq!(reader.run_steps().unwrap()[0].id, "one");
     assert_eq!(reader.run_steps().unwrap()[0].checks[0].name, "Saved check");
     assert_eq!(
-        reader.think_step(7).unwrap().unwrap().record_id.as_deref(),
+        reader.note(7).unwrap().unwrap().record_id.as_deref(),
         Some("retained-step")
     );
     assert_eq!(
@@ -425,12 +425,7 @@ fn interrupted_old_format_conversion_reuses_exact_published_identities() {
     drop(ProjectAuthority::admit(&current, WriterRole::Host).unwrap());
     assert_eq!(fs::read(current.data_dir().join(relative)).unwrap(), *bytes);
     assert_eq!(NativeReader::open(&current).run_steps().unwrap().len(), 1);
-    assert!(
-        NativeReader::open(&current)
-            .think_step(7)
-            .unwrap()
-            .is_some()
-    );
+    assert!(NativeReader::open(&current).note(7).unwrap().is_some());
 }
 
 #[test]

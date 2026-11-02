@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex, PoisonError};
 use magistr_engine::Observed;
 use magistr_engine::native::{Signal, SignalPromotion, Task, WorkflowMutationError};
 use magistr_engine::{
-    OwnerClient, OwnerCommand, OwnerGeneration, OwnerReply, PlanCommand, SignalCommand,
-    ThinkCommand,
+    DecisionCommand, OwnerClient, OwnerCommand, OwnerGeneration, OwnerReply, PlanCommand,
+    SignalCommand,
 };
 
 use magistr_cockpit::cockpit::ProposalKind;
@@ -99,11 +99,11 @@ impl AttachedEnginePort {
 impl EnginePort for AttachedEnginePort {
     fn pin(
         &mut self,
-        step_number: u32,
+        note_number: u32,
         pinned: bool,
     ) -> Result<Observed<bool>, WorkflowMutationError> {
-        match self.run(OwnerCommand::Think(ThinkCommand::PinStep {
-            step_number,
+        match self.run(OwnerCommand::Decision(DecisionCommand::Pin {
+            note: note_number,
             pinned,
         }))? {
             OwnerReply::Pinned(previous) => Ok(previous),
@@ -113,9 +113,9 @@ impl EnginePort for AttachedEnginePort {
         }
     }
 
-    fn checkpoint(&mut self) -> Result<serde_json::Value, String> {
+    fn review(&mut self) -> Result<serde_json::Value, String> {
         match self
-            .run(OwnerCommand::Think(ThinkCommand::Checkpoint))
+            .run(OwnerCommand::Decision(DecisionCommand::Review))
             .map_err(|error| error.to_string())?
         {
             OwnerReply::Report(report) => Ok(report),

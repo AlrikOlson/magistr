@@ -438,10 +438,10 @@ test('the finding field keeps typed text and refuses invalid numbers before requ
       )
   await (await input()).props.onInput('3')
   assert.equal((await input()).props.value, '3')
-  const before = h.calls.filter((c) => c.tool === 'think_get_step').length
+  const before = h.calls.filter((c) => c.tool === 'decision_get').length
   await (await input()).props.onSubmit('0')
   assert.equal(
-    h.calls.filter((c) => c.tool === 'think_get_step').length,
+    h.calls.filter((c) => c.tool === 'decision_get').length,
     before,
   )
   assert.match(textOf(await h.render()), /greater than zero/)

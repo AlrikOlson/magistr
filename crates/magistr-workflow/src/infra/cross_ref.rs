@@ -1,4 +1,4 @@
-//! Typed cross-references between `think_*` and `run_*` entities.
+//! Typed cross-references between `decision_*` and `run_*` entities.
 //!
 //! In-process, all cross-references are values of [`CrossRef`]. The wire
 //! contract used by tool inputs and persisted traces is a `prefix:value`
@@ -30,12 +30,12 @@ const EXTERNAL_SEP: char = '/';
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(into = "String", try_from = "String")]
 pub enum CrossRef {
-    ThinkStep(StepNumber),
+    Note(StepNumber),
     RunStep(StepId),
     RunProgress(ProgressId),
     RunCheck(CheckName),
     /// A plan task: the long-horizon item a run goal
-    /// realizes and a think step shapes. Wire form `task:<slug>`.
+    /// realizes and a decision note shapes. Wire form `task:<slug>`.
     PlanTask(TaskId),
     /// A stakeholder signal: the opportunity a plan task was
     /// promoted from. Wire form `signal:<id>`. Promotion writes this onto the
@@ -77,7 +77,7 @@ impl fmt::Display for ParseError {
             Self::MissingDelimiter => write!(f, "cross-ref string must contain ':'"),
             Self::UnknownPrefix(p) => write!(
                 f,
-                "unknown cross-ref prefix '{p}' (expected think|step|progress|check|task|signal|ext)"
+                "unknown cross-ref prefix '{p}' (expected decision|step|progress|check|task|signal|ext)"
             ),
             Self::InvalidNumber(s) => write!(f, "expected integer, got '{s}'"),
             Self::EmptyValue => write!(f, "cross-ref value is empty"),
@@ -103,12 +103,12 @@ impl CrossRef {
         }
     }
 
-    /// Serialize to the wire string form: `think:42`, `step:auth-refactor`,
+    /// Serialize to the wire string form: `decision:42`, `step:auth-refactor`,
     /// `progress:5`, `check:cargo-test`, `task:phase-26c`,
     /// `ext:github/1234`.
     pub fn to_wire(&self) -> String {
         match self {
-            Self::ThinkStep(n) => format!("think:{n}"),
+            Self::Note(n) => format!("decision:{n}"),
             Self::RunStep(id) => format!("step:{id}"),
             Self::RunProgress(n) => format!("progress:{n}"),
             Self::RunCheck(name) => format!("check:{name}"),
@@ -130,9 +130,9 @@ impl CrossRef {
             return Err(ParseError::EmptyValue);
         }
         match prefix.trim().to_ascii_lowercase().as_str() {
-            "think" => value
+            "decision" => value
                 .parse::<u32>()
-                .map(Self::ThinkStep)
+                .map(Self::Note)
                 .map_err(|_| ParseError::InvalidNumber(value.to_string())),
             "step" => Ok(Self::RunStep(value.to_string())),
             "progress" => value
@@ -202,8 +202,10 @@ impl CrossRef {
         }
         let numeric = rest.chars().all(|c| c.is_ascii_digit());
         match (words, prefix) {
+            (StoredRefWords::BeforeDecisionWords, "chunk") => None,
             (_, "chunk") => Some(format!("task:{rest}")),
-            (StoredRefWords::BeforeRunWords, "step") if numeric => Some(format!("think:{rest}")),
+            (_, "think") if numeric => Some(format!("decision:{rest}")),
+            (StoredRefWords::BeforeRunWords, "step") if numeric => Some(format!("decision:{rest}")),
             (StoredRefWords::BeforeRunWords, "task") => Some(format!("step:{rest}")),
             (StoredRefWords::BeforeRunWords, "action") if numeric => {
                 Some(format!("progress:{rest}"))
@@ -243,8 +245,8 @@ mod tests {
     }
 
     #[test]
-    fn round_trip_think_step() {
-        round_trip(CrossRef::ThinkStep(42));
+    fn round_trip_note() {
+        round_trip(CrossRef::Note(42));
     }
 
     #[test]
@@ -313,7 +315,7 @@ mod tests {
             CrossRef::from_wire("ext:github/1234").unwrap(),
             CrossRef::external("github", "1234")
         );
-        // `external` is accepted as a long-form alias, like `step` for `think`.
+        // `external` is accepted as a long-form alias, like `step` for `decision`.
         assert_eq!(
             CrossRef::from_wire("external:github/1234").unwrap(),
             CrossRef::external("github", "1234")
@@ -393,7 +395,7 @@ mod tests {
     #[test]
     fn existing_wire_forms_are_unaffected() {
         for (wire, expected) in [
-            ("think:42", CrossRef::ThinkStep(42)),
+            ("decision:42", CrossRef::Note(42)),
             ("step:auth", CrossRef::RunStep("auth".into())),
             ("progress:5", CrossRef::RunProgress(5)),
             ("check:cargo-test", CrossRef::RunCheck("cargo-test".into())),
@@ -457,7 +459,7 @@ mod tests {
         assert_eq!(
             stored,
             serde_json::json!({
-                "cross_refs": ["step:auth", "progress:4", "think:9", "think:2", "task:x", "check:lint"],
+                "cross_refs": ["step:auth", "progress:4", "decision:9", "decision:2", "task:x", "check:lint"],
                 "execution_ref": "step:verify",
                 "context": "task: read the notes first",
                 "nested": [{"ref": "progress:12"}],
@@ -466,7 +468,7 @@ mod tests {
     }
 
     #[test]
-    fn references_saved_with_the_run_words_only_rename_plan_tasks() {
+    fn references_saved_with_the_run_words_rename_plan_tasks_and_notes() {
         let mut stored = serde_json::json!({
             "refs": ["step:auth", "progress:4", "think:9", "chunk:x", "task:y"],
             "scope": "chunk:vocab-plan-family",
@@ -478,7 +480,7 @@ mod tests {
         assert_eq!(
             stored,
             serde_json::json!({
-                "refs": ["step:auth", "progress:4", "think:9", "task:x", "task:y"],
+                "refs": ["step:auth", "progress:4", "decision:9", "task:x", "task:y"],
                 "scope": "task:vocab-plan-family",
             })
         );
@@ -491,9 +493,40 @@ mod tests {
     }
 
     #[test]
+    fn references_saved_with_the_plan_words_only_rename_notes() {
+        let mut stored = serde_json::json!({
+            "refs": ["step:auth", "progress:4", "think:9", "task:y", "chunk:kept"],
+            "context": "think: about it",
+        });
+        assert!(CrossRef::upgrade_stored_refs(
+            &mut stored,
+            StoredRefWords::BeforeDecisionWords
+        ));
+        assert_eq!(
+            stored,
+            serde_json::json!({
+                "refs": ["step:auth", "progress:4", "decision:9", "task:y", "chunk:kept"],
+                "context": "think: about it",
+            })
+        );
+        assert!(!CrossRef::upgrade_stored_refs(
+            &mut stored,
+            StoredRefWords::BeforeDecisionWords
+        ));
+    }
+
+    #[test]
+    fn the_retired_note_prefix_is_refused_like_any_unknown_prefix() {
+        assert_eq!(
+            CrossRef::from_wire("think:5"),
+            Err(ParseError::UnknownPrefix("think".into()))
+        );
+    }
+
+    #[test]
     fn whitespace_tolerated() {
-        let r = CrossRef::from_wire("  think:5  ").unwrap();
-        assert_eq!(r, CrossRef::ThinkStep(5));
+        let r = CrossRef::from_wire("  decision:5  ").unwrap();
+        assert_eq!(r, CrossRef::Note(5));
     }
 
     #[test]

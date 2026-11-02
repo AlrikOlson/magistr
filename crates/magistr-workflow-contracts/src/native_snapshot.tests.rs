@@ -46,6 +46,6 @@ fn workstream_projection_and_worker_failure_keep_family_provenance() {
         }
     ));
     assert_eq!(failed.signals, ReadState::Unavailable(error.clone()));
-    assert_eq!(failed.think, ReadState::Unavailable(error));
+    assert_eq!(failed.decisions, ReadState::Unavailable(error));
     assert!(failed.workstreams().current().is_err());
 }

@@ -20,7 +20,7 @@ pub enum SignalCommand {
         summary: String,
         confidence: f64,
         sources: Vec<String>,
-        think_step: Option<u32>,
+        note: Option<u32>,
     },
     /// `signal_promote`.
     Promote { id: String },

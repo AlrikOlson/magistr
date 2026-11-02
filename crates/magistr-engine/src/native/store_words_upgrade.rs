@@ -3,10 +3,11 @@
 //! Each family whose words changed moves its store directory once, in a fixed
 //! order: the run store from `ship/` to `run/` (its check results from
 //! `receipts/` to `check_results/`), then the plan store from `roadmap/` to
-//! `plan/`. Each project's plan, decision and signal documents then convert
-//! through their own codecs, which decide what is old from the document's
-//! version, never from its references: after the plan words `task:` names a
-//! plan task, while before the run words it named a run step. This module
+//! `plan/`, then the decision store from `think/` to `decisions/`. Each
+//! project's plan, decision and signal documents then convert through their
+//! own codecs, which decide what is old from the document's version, never
+//! from its references: after the plan words `task:` names a plan task, while
+//! before the run words it named a run step. This module
 //! only owns where saved work lives and the order of the moves. Admission
 //! finishes them before any engine opens; readers refuse while one is
 //! unfinished.
@@ -26,10 +27,10 @@ const LOCK: &str = "store-words-upgrade.lock";
 
 /// The current schema versions of the per-project documents whose saved
 /// references changed words. Older documents are refused until converted.
-const DECISION_VERSION: u64 = 4;
-const RUN_VERSION: u64 = 4;
-const PLAN_VERSION: u64 = 2;
-const SIGNALS_VERSION: u64 = 2;
+const DECISION_VERSION: u64 = 5;
+const RUN_VERSION: u64 = 5;
+const PLAN_VERSION: u64 = 3;
+const SIGNALS_VERSION: u64 = 3;
 
 /// One family store directory that moves to its new name.
 #[derive(Clone, Copy)]
@@ -41,8 +42,9 @@ struct Move {
 }
 
 /// The order is the glossary's: the run store has finished before the plan
-/// store converts its references.
-const MOVES: [Move; 2] = [
+/// store converts its references, and the plan store before the decision
+/// store.
+const MOVES: [Move; 3] = [
     Move {
         old: "ship",
         new: "run",
@@ -55,15 +57,25 @@ const MOVES: [Move; 2] = [
         words: "plan-words",
         codec: Codec::Plan,
     },
+    Move {
+        old: "think",
+        new: "decisions",
+        words: "decision-words",
+        codec: Codec::Decision,
+    },
 ];
 
-/// Where owners older than the plan words hold their project locks.
-const OLDER_OWNER_LOCKS: &str = "roadmap/sessions";
+/// Where older owners hold their project locks: before the plan words in the
+/// old plan directory, and until the decision words in the plan directory.
+/// Current owners lock under [`super::owner_lease::OWNER_LEASES`], so every
+/// held lock in these is an older owner's.
+const OLDER_OWNER_LOCKS: [&str; 2] = ["roadmap/sessions", "plan/sessions"];
 
 #[derive(Clone, Copy)]
 enum Codec {
     Run,
     Plan,
+    Decision,
 }
 
 impl StoreWordsUpgrade {
@@ -209,7 +221,7 @@ fn family_documents(root: &Path, project_id: &str) -> Vec<(PathBuf, Family)> {
     let document = |family: &str| root.join(family).join("sessions").join(&file);
     vec![
         (document("plan"), Family::Plan),
-        (document("think"), Family::Decision),
+        (document("decisions"), Family::Decision),
         (document("signal"), Family::Signal),
         (document("run"), Family::Run),
     ]
@@ -306,32 +318,34 @@ fn move_store(root: &Path, step: Move) -> io::Result<()> {
     sync_directory(&backups)
 }
 
-/// Projects whose older owner currently holds its store lock. Owners older
-/// than the plan words lock under the old plan directory, which nothing
-/// current ever locks, so every held lock there is someone else's.
+/// Projects whose older owner currently holds its store lock. Nothing
+/// current ever locks where older owners did, so every held lock there is
+/// someone else's.
 fn live_owners(root: &Path) -> io::Result<Vec<String>> {
-    let sessions = root.join(OLDER_OWNER_LOCKS);
-    let entries = match fs::read_dir(&sessions) {
-        Ok(entries) => entries,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(error) => return Err(error),
-    };
     let mut live = std::collections::BTreeSet::new();
-    for entry in entries {
-        let name = entry?.file_name().to_string_lossy().into_owned();
-        let Some(project) = name
-            .strip_suffix("-owner.lock")
-            .and_then(|stem| stem.rsplit_once('.'))
-            .map(|(project, _role)| project.to_owned())
-        else {
-            continue;
+    for place in OLDER_OWNER_LOCKS {
+        let sessions = root.join(place);
+        let entries = match fs::read_dir(&sessions) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error),
         };
-        let file = fs::File::options()
-            .read(true)
-            .write(true)
-            .open(sessions.join(&name))?;
-        if matches!(file.try_lock(), Err(fs::TryLockError::WouldBlock)) {
-            live.insert(project);
+        for entry in entries {
+            let name = entry?.file_name().to_string_lossy().into_owned();
+            let Some(project) = name
+                .strip_suffix("-owner.lock")
+                .and_then(|stem| stem.rsplit_once('.'))
+                .map(|(project, _role)| project.to_owned())
+            else {
+                continue;
+            };
+            let file = fs::File::options()
+                .read(true)
+                .write(true)
+                .open(sessions.join(&name))?;
+            if matches!(file.try_lock(), Err(fs::TryLockError::WouldBlock)) {
+                live.insert(project);
+            }
         }
     }
     Ok(live.into_iter().collect())
@@ -392,6 +406,14 @@ fn convert_tree(source: &Path, target: &Path, relative: &Path, codec: Codec) -> 
                 Codec::Plan if in_sessions => {
                     magistr_workflow::plan::PlanEngine::upgrade_document(&bytes, project_id)
                         .map_err(|error| invalid(&path, error))?
+                }
+                // A project's consolidated document; older per-log files
+                // (`<project>__<log>.json`) are the older-store import's.
+                Codec::Decision if in_sessions && !project_id.contains("__") => {
+                    magistr_workflow::decision::persistence::Persistence::upgrade_document(
+                        &bytes, project_id,
+                    )
+                    .map_err(|error| invalid(&path, error))?
                 }
                 _ => bytes,
             }
@@ -498,13 +520,9 @@ fn convert_project(config: &NativeConfig, project_id: &str) -> io::Result<()> {
             )
             .map_err(|error| invalid(&path, error))?,
             Family::Decision => {
-                let mut histories = std::collections::BTreeMap::new();
-                histories.insert(project_id.to_owned(), bytes.clone());
-                magistr_workflow::think::persistence::Persistence::for_project(
-                    &config.persistence_config(),
-                    project_id,
+                magistr_workflow::decision::persistence::Persistence::upgrade_document(
+                    &bytes, project_id,
                 )
-                .upgrade_documents(&histories)
                 .map_err(|error| invalid(&path, error))?
             }
         };
@@ -522,7 +540,7 @@ fn convert_project(config: &NativeConfig, project_id: &str) -> io::Result<()> {
             .and_then(|sessions| sessions.strip_prefix(root).ok())
             .unwrap_or_else(|| Path::new("workflow"));
         let backup = root
-            .join("backups/before-plan-words")
+            .join("backups/before-decision-words")
             .join(place)
             .join(name);
         if !backup.exists() {

@@ -132,7 +132,7 @@ mod tests {
         let mut v = json!({
             "type": "object",
             "properties": {
-                "step_number": { "type": "integer", "format": "uint32", "minimum": 0 },
+                "note": { "type": "integer", "format": "uint32", "minimum": 0 },
                 "nested": {
                     "items": [{ "type": "integer", "format": "uint64" }],
                     "anyOf": [{ "type": "number", "format": "double" }]
@@ -143,7 +143,7 @@ mod tests {
         let s = v.to_string();
         assert!(!s.contains("uint32") && !s.contains("uint64") && !s.contains("double"));
         // Bounds survive the cleanup.
-        assert_eq!(v["properties"]["step_number"]["minimum"], json!(0));
+        assert_eq!(v["properties"]["note"]["minimum"], json!(0));
     }
 
     #[test]

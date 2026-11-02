@@ -11,10 +11,10 @@ start an implementation loop by itself.
 
 - Ground substantial decisions in the actual code through workspace before
   researching replacements. Record evidence-backed findings with native
-  `think_*` tools throughout research, implementation, and verification,
+  `decision_*` tools throughout research, implementation, and verification,
   linked to the relevant task and run step. Explain what each finding
   changes and what to check next. Follow the shared runtime's guidance for
-  real questions, branch membership, revisions, dependencies, and synthesis;
+  real questions, thread membership, revisions, dependencies, and synthesis;
   revisit earlier conclusions when evidence changes them.
 - Deliver one coherent, independently verifiable change at a time. Read
   acceptance criteria before implementing, preserve authorized scope, and

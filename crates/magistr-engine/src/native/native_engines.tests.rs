@@ -3,12 +3,12 @@ use crate::native::{
     EvidencePort, GateContract, NativeConfig, NativeReader, NativeSnapshot, ProjectAuthority,
     SourceFreshness, SourceObservation, SourceWitness, WriterRole,
 };
+use magistr_workflow::decision::domain::Note;
 use magistr_workflow::plan::domain::{TaskStatus, WaitingReason};
 use magistr_workflow::run::domain::check::{Check, CheckType};
 use magistr_workflow::run::domain::progress::ProgressType;
 use magistr_workflow::run::domain::step::StepType;
 use magistr_workflow::signal::domain::SignalKind;
-use magistr_workflow::think::domain::ThinkStep;
 
 /// A source that never moves and a project that configures no gates: the
 /// evidence capability every writer here is admitted with, so a recorded
@@ -91,9 +91,9 @@ fn add_task(engines: &NativeEngines, id: &str, priority: u32, deps: &[&str]) {
         .expect("add task");
 }
 
-fn step(n: u32, purpose: &str) -> ThinkStep {
+fn note(n: u32, purpose: &str) -> Note {
     serde_json::from_value(serde_json::json!({
-        "step_number": n,
+        "note": n,
         "estimated_total": 3,
         "purpose": purpose,
         "context": "in-process test",
@@ -102,7 +102,7 @@ fn step(n: u32, purpose: &str) -> ThinkStep {
         "next_action": "Continue.",
         "rationale": "Because the test says so.",
     }))
-    .expect("step")
+    .expect("note")
 }
 
 #[test]
@@ -154,8 +154,8 @@ fn compaction_owner_command_preserves_check_results_for_current_and_retained_run
 }
 
 #[test]
-fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
-    use crate::native::BranchStatus;
+fn thread_lifecycle_and_exact_merge_destination_survive_reader_restart() {
+    use crate::native::ThreadStatus;
 
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
@@ -164,77 +164,77 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
     assert!(
         observer
             .snapshot()
-            .think
+            .decisions
             .current()
             .unwrap()
             .value
-            .sessions
+            .logs
             .is_empty()
     );
     {
         let engines = host(&cfg, project);
         engines
-            .think_record_step(step(1, "Keep recovery isolated"))
+            .decision_record(note(1, "Keep recovery isolated"))
             .expect("origin");
-        let mut branch = step(2, "Can each tenant keep its own check_result?");
-        branch.branch_id = Some("check_result".into());
-        branch.branch_name = Some("Can each tenant keep its own check_result?".into());
-        branch.branch_from = Some(1);
-        branch.outcome = "Keep one check_result per tenant.".into();
-        engines.think_record_step(branch).expect("branch");
+        let mut thread = note(2, "Can each tenant keep its own check_result?");
+        thread.thread_id = Some("check_result".into());
+        thread.thread_name = Some("Can each tenant keep its own check_result?".into());
+        thread.thread_from = Some(1);
+        thread.outcome = "Keep one check_result per tenant.".into();
+        engines.decision_record(thread).expect("thread");
         engines
-            .think_record_step(step(3, "Check the log format"))
-            .expect("unrelated step");
+            .decision_record(note(3, "Check the log format"))
+            .expect("unrelated note");
         engines
-            .think_record_step(step(4, "Use tenant check_results during recovery"))
+            .decision_record(note(4, "Use tenant check_results during recovery"))
             .expect("synthesis");
         engines
             .services
-            .think
-            .set_branch_status("check_result", "merged", Some(4))
+            .decision
+            .set_thread_status("check_result", "merged", Some(4))
             .expect("merge");
         let snapshot = observer.snapshot();
         let check_result = snapshot
-            .think
+            .decisions
             .current()
             .unwrap()
             .value
-            .session(None)
+            .log(None)
             .unwrap()
-            .branches
+            .threads
             .iter()
             .flatten()
-            .find(|branch| branch.id == "check_result")
-            .expect("persisted branch");
+            .find(|thread| thread.id == "check_result")
+            .expect("persisted thread");
         assert_eq!(
             check_result.name,
             "Can each tenant keep its own check_result?"
         );
-        assert_eq!(check_result.from_step, 1);
-        assert_eq!(check_result.status, BranchStatus::Merged);
+        assert_eq!(check_result.from_note, 1);
+        assert_eq!(check_result.status, ThreadStatus::Merged);
         assert_eq!(check_result.merged_into, Some(4));
         assert_eq!(
             snapshot
-                .think
+                .decisions
                 .current()
                 .unwrap()
                 .value
-                .session(None)
+                .log(None)
                 .unwrap()
-                .steps[1]
-                .branch_id
+                .notes[1]
+                .thread_id
                 .as_deref(),
             Some("check_result")
         );
         assert_eq!(
             snapshot
-                .think
+                .decisions
                 .current()
                 .unwrap()
                 .value
-                .session(None)
+                .log(None)
                 .unwrap()
-                .steps[1]
+                .notes[1]
                 .outcome,
             "Keep one check_result per tenant."
         );
@@ -243,46 +243,46 @@ fn branch_lifecycle_and_exact_merge_destination_survive_reader_restart() {
     let restarted = reader(&cfg, project);
     let persisted = restarted.snapshot();
     let check_result = persisted
-        .think
+        .decisions
         .current()
         .unwrap()
         .value
-        .session(None)
+        .log(None)
         .unwrap()
-        .branches
+        .threads
         .iter()
         .flatten()
-        .find(|branch| branch.id == "check_result")
-        .expect("branch after restart");
-    assert_eq!(check_result.status, BranchStatus::Merged);
+        .find(|thread| thread.id == "check_result")
+        .expect("thread after restart");
+    assert_eq!(check_result.status, ThreadStatus::Merged);
     assert_eq!(
         check_result.merged_into,
         Some(4),
-        "do not substitute the first later main-line step"
+        "do not substitute the first later main-line note"
     );
 
     {
         let engines = host(&cfg, project);
         engines
             .services
-            .think
-            .set_branch_status("check_result", "abandoned", None)
+            .decision
+            .set_thread_status("check_result", "abandoned", None)
             .expect("stop investigation after restart");
     }
     let stopped = restarted.snapshot();
     let check_result = stopped
-        .think
+        .decisions
         .current()
         .unwrap()
         .value
-        .session(None)
+        .log(None)
         .unwrap()
-        .branches
+        .threads
         .iter()
         .flatten()
-        .find(|branch| branch.id == "check_result")
-        .expect("stopped branch");
-    assert_eq!(check_result.status, BranchStatus::Abandoned);
+        .find(|thread| thread.id == "check_result")
+        .expect("stopped thread");
+    assert_eq!(check_result.status, ThreadStatus::Abandoned);
     assert_eq!(
         check_result.merged_into, None,
         "reseed clears obsolete merge provenance"
@@ -302,9 +302,9 @@ fn round_trip_through_a_temp_store() {
         let started = engines.plan_start_task("base").expect("start");
         assert_eq!(started.value.status, TaskStatus::InProgress);
 
-        assert!(engines.think_record_step(step(1, "open")).is_ok());
+        assert!(engines.decision_record(note(1, "open")).is_ok());
         // Returns the prior pinned state; a fresh step was not pinned.
-        assert!(!engines.think_pin_step(1, true).unwrap().value);
+        assert!(!engines.decision_pin(1, true).unwrap().value);
 
         assert_eq!(
             engines
@@ -328,7 +328,7 @@ fn round_trip_through_a_temp_store() {
                 Some(1),
             )
             .expect("progress");
-        assert_eq!(progress.value.think_step, Some(1));
+        assert_eq!(progress.value.note, Some(1));
         let check = engines
             .run_record_gate(
                 None,
@@ -389,14 +389,14 @@ fn round_trip_through_a_temp_store() {
         Some(vec!["step:t1".to_string()])
     );
     let pinned = reopened
-        .think_session(None)
+        .decision_log(None)
         .unwrap()
         .unwrap()
-        .steps
+        .notes
         .iter()
-        .filter(|step| step.pinned == Some(true))
+        .filter(|note| note.pinned == Some(true))
         .count();
-    assert_eq!(pinned, 1, "think trace persisted with its pin");
+    assert_eq!(pinned, 1, "decision log persisted with its pin");
     assert_eq!(
         reopened.run_goal().unwrap().unwrap().status,
         crate::native::GoalStatus::Finished
@@ -404,7 +404,7 @@ fn round_trip_through_a_temp_store() {
     assert_eq!(reopened.signal_status().unwrap()["counts"]["new"], 1);
 
     // Every family wrote under its own partition of the one data dir.
-    for family in ["plan", "think", "run", "signal"] {
+    for family in ["plan", "decisions", "run", "signal"] {
         let base = tmp.path().join("data").join(family);
         let base = if family == "run" {
             base.join("executions").join(cfg.execution_context().key())
@@ -554,8 +554,8 @@ fn plan_mutation_wrappers_round_trip() {
         Some(300)
     );
 
-    let linked = engines.plan_link("auth", "think:7").expect("link");
-    assert!(linked.value.refs.contains(&"think:7".to_string()));
+    let linked = engines.plan_link("auth", "decision:7").expect("link");
+    assert!(linked.value.refs.contains(&"decision:7".to_string()));
 
     let regrouped = engines
         .plan_set_feature("auth", Some("Accounts".into()))
@@ -580,7 +580,7 @@ fn plan_mutation_wrappers_round_trip() {
     assert_eq!(gone.value.status, TaskStatus::Retired);
     assert_eq!(gone.value.retired_reason.as_deref(), Some("superseded"));
 
-    assert!(engines.plan_link("missing", "think:1").is_err());
+    assert!(engines.plan_link("missing", "decision:1").is_err());
 }
 
 #[test]
@@ -618,24 +618,24 @@ fn repeated_validated_reads_pick_up_another_writers_changes() {
 }
 
 #[test]
-fn think_session_sees_another_writers_steps_without_reopening() {
+fn decision_log_sees_another_writers_notes_without_reopening() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
-    let host = reader(&cfg, "think-store");
-    assert!(host.think_session(None).unwrap().is_none());
+    let host = reader(&cfg, "decision-store");
+    assert!(host.decision_log(None).unwrap().is_none());
 
     // The agent's server records after the host opened.
-    let server = service(&cfg, "think-store");
-    assert!(server.think_record_step(step(1, "open")).is_ok());
-    assert!(server.think_record_step(step(2, "ground")).is_ok());
+    let server = service(&cfg, "decision-store");
+    assert!(server.decision_record(note(1, "open")).is_ok());
+    assert!(server.decision_record(note(2, "ground")).is_ok());
 
     let numbers: Vec<u32> = host
-        .think_session(None)
+        .decision_log(None)
         .unwrap()
         .unwrap()
-        .steps
+        .notes
         .iter()
-        .map(|s| s.step_number)
+        .map(|s| s.note)
         .collect();
     assert_eq!(numbers, vec![1, 2]);
 }
@@ -644,11 +644,11 @@ fn think_session_sees_another_writers_steps_without_reopening() {
 fn reasoning_observation_uses_live_memory_when_persistence_is_disabled() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp).persist(false);
-    let engines = host(&cfg, "ephemeral-think");
-    assert!(engines.think_record_step(step(1, "open")).is_ok());
-    assert_eq!(engines.think_session(None).unwrap().unwrap().steps.len(), 1);
+    let engines = host(&cfg, "ephemeral-decision");
+    assert!(engines.decision_record(note(1, "open")).is_ok());
+    assert_eq!(engines.decision_log(None).unwrap().unwrap().notes.len(), 1);
     assert_eq!(
-        engines.snapshot().think.current().unwrap().source,
+        engines.snapshot().decisions.current().unwrap().source,
         crate::native::ReadSource::Memory
     );
 }
@@ -833,28 +833,28 @@ fn proposal_resolution_wrappers_round_trip() {
 }
 
 #[test]
-fn think_pin_and_checkpoint_act_on_the_live_trace() {
+fn decision_pin_and_review_act_on_the_live_log() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp).persist(false);
     let engines = host(&cfg, "pin-checkpoint");
-    assert!(engines.think_record_step(step(1, "hypothesis")).is_ok());
+    assert!(engines.decision_record(note(1, "hypothesis")).is_ok());
 
     assert!(
-        !engines.think_pin_step(1, true).unwrap().value,
+        !engines.decision_pin(1, true).unwrap().value,
         "the previous flag comes back"
     );
     let pinned = engines
-        .think_step(1)
+        .note(1)
         .unwrap()
-        .and_then(|step| step.pinned)
+        .and_then(|note| note.pinned)
         .unwrap_or(false);
     assert!(pinned, "the flag stuck");
-    assert!(engines.think_pin_step(9, true).is_err(), "unknown step");
+    assert!(engines.decision_pin(9, true).is_err(), "unknown note");
 
-    let report = engines.think_checkpoint().expect("checkpoint");
+    let report = engines.decision_review().expect("review");
     assert!(
         report.get("open_hypotheses").is_some(),
-        "the checkpoint report has its sections: {report}"
+        "the review report has its sections: {report}"
     );
 }
 
@@ -908,7 +908,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
         crate::native::ReadSource::Missing
     );
     assert_eq!(
-        empty.think.current().unwrap().source,
+        empty.decisions.current().unwrap().source,
         crate::native::ReadSource::Missing
     );
     assert_ne!(
@@ -956,7 +956,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
     engines
         .signal_capture(SignalKind::Idea, "alice".into(), "faster".into())
         .expect("signal");
-    assert!(engines.think_record_step(step(1, "open")).is_ok());
+    assert!(engines.decision_record(note(1, "open")).is_ok());
 
     let snapshot = engines.snapshot();
     assert!(!snapshot.needs_retry());
@@ -973,7 +973,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
         crate::native::ReadSource::File(_)
     ));
     assert!(matches!(
-        snapshot.think.current().unwrap().source,
+        snapshot.decisions.current().unwrap().source,
         crate::native::ReadSource::File(_)
     ));
     assert_eq!(
@@ -1028,27 +1028,27 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
     assert_eq!(snapshot.signals.current().unwrap().value.len(), 1);
     assert_eq!(
         snapshot
-            .think
+            .decisions
             .current()
             .unwrap()
             .value
-            .session(None)
+            .log(None)
             .unwrap()
-            .steps
+            .notes
             .len(),
         1,
-        "the persisted step"
+        "the persisted note"
     );
     assert_eq!(
         snapshot
-            .think
+            .decisions
             .current()
             .unwrap()
             .value
-            .session(None)
+            .log(None)
             .unwrap()
-            .steps[0]
-            .step_number,
+            .notes[0]
+            .note,
         1
     );
 
@@ -1111,7 +1111,7 @@ fn a_blocker_is_set_through_the_wrapper_the_way_the_verb_sets_it() {
             "stuck",
             WaitingReason::Person,
             "the judge says the acceptance cannot be met as written".into(),
-            Some("think:345".into()),
+            Some("decision:345".into()),
         )
         .expect("set");
     let blocker = blocked
@@ -1120,7 +1120,7 @@ fn a_blocker_is_set_through_the_wrapper_the_way_the_verb_sets_it() {
         .expect("the blocker is on the task");
     assert_eq!(blocker.kind, WaitingReason::Person);
     assert!(blocker.reason.contains("cannot be met"));
-    assert_eq!(blocker.evidence.as_deref(), Some("think:345"));
+    assert_eq!(blocker.evidence.as_deref(), Some("decision:345"));
     // Stored, not only answered: a fresh read sees it, and the clear
     // wrapper lifts exactly this.
     assert!(

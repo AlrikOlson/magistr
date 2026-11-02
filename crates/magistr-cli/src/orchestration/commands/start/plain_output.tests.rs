@@ -23,7 +23,7 @@ fn checks_remain_visible_even_when_the_transport_call_succeeded() {
 
 #[test]
 fn structured_findings_do_not_repeat_the_entire_reasoning_record() {
-    let result = json!({"step_number":1348,"estimated_total":6,"outcome_excerpt":"kept","recent_steps":[{"thought_excerpt":"old"}]});
+    let result = json!({"note":1348,"estimated_total":6,"outcome_excerpt":"kept","recent_steps":[{"thought_excerpt":"old"}]});
     assert_eq!(display_output(&result), "Finding recorded.");
     assert_eq!(
         display_output(&json!({"ok":false,"message":"writer refused"})),

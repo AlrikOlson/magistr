@@ -2,10 +2,10 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use magistr_workflow::decision::config::DecisionConfig;
+use magistr_workflow::decision::{ConfigSource, DecisionConfigResolution};
 use magistr_workflow::infra::{PersistenceConfig, project_id_for_path};
 use magistr_workflow::run::application::EvidencePort;
-use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::{ConfigSource, ThinkConfigResolution};
 
 const PERSIST_VAR: &str = "MAGISTR_WORKFLOW_PERSIST";
 const BROADCAST_VAR: &str = "MAGISTR_WORKFLOW_BROADCAST_PATH";
@@ -58,7 +58,7 @@ pub struct NativeConfig {
     pub(super) evidence: Option<Arc<dyn EvidencePort>>,
     execution_id: String,
     pub(super) owner_generation: u64,
-    think: ThinkConfig,
+    decision: DecisionConfig,
     project_name: Option<String>,
     sources: std::collections::BTreeMap<&'static str, ConfigSource>,
 }
@@ -91,7 +91,7 @@ impl PartialEq for NativeConfig {
             && self.evidence.is_some() == other.evidence.is_some()
             && self.execution_id == other.execution_id
             && self.owner_generation == other.owner_generation
-            && self.think == other.think
+            && self.decision == other.decision
             && self.project_name == other.project_name
             && self.sources == other.sources
     }
@@ -248,14 +248,14 @@ impl NativeConfig {
                 ConfigSource::Default
             },
         );
-        let resolved = ThinkConfigResolution::from_lookup(
+        let resolved = DecisionConfigResolution::from_lookup(
             get,
             PersistenceConfig {
                 enabled: persist,
                 data_dir: data_dir.clone(),
             },
         );
-        // Native composition owns persistence and socket policy; think owns
+        // Native composition owns persistence and socket policy; decision owns
         // only its parsed behavior settings.
         for (key, source) in resolved.sources {
             sources.entry(key).or_insert(source);
@@ -277,7 +277,7 @@ impl NativeConfig {
             evidence: None,
             execution_id: execution_id.unwrap_or_else(|| "default".into()),
             owner_generation: 0,
-            think: resolved.config,
+            decision: resolved.config,
             project_name,
             sources,
         }
@@ -376,14 +376,14 @@ impl NativeConfig {
     }
 
     /// Materialize captured behavior for the admitted project. The native
-    /// publisher exclusively owns the socket; the think engine never binds it.
+    /// publisher exclusively owns the socket; the decision engine never binds it.
     #[must_use]
-    pub fn think_config(&self, project_id: &str) -> ThinkConfig {
-        let mut config = self.think.clone();
+    pub fn decision_config(&self, project_id: &str) -> DecisionConfig {
+        let mut config = self.decision.clone();
         config.persistence = self.persistence_config();
         config.broadcast.path = None;
-        if config.features.enable_sessions && config.features.default_session_id.is_none() {
-            config.features.default_session_id = Some(project_id.to_string());
+        if config.features.enable_logs && config.features.default_log_id.is_none() {
+            config.features.default_log_id = Some(project_id.to_string());
         }
         config
     }

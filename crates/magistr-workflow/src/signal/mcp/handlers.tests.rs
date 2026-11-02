@@ -133,7 +133,7 @@ async fn link_attaches_validated_crossref() {
 
     svc.signal_link(Parameters(LinkArgs {
         id: id.clone(),
-        cross_ref: "think:42".into(),
+        cross_ref: "decision:42".into(),
     }))
     .await
     .unwrap();
@@ -144,6 +144,6 @@ async fn link_attaches_validated_crossref() {
             .get(&id)
             .unwrap()
             .refs
-            .contains(&"think:42".to_string())
+            .contains(&"decision:42".to_string())
     );
 }

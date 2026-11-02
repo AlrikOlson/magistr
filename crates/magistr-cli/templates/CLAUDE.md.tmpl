@@ -20,15 +20,15 @@ Check commands are stored in `.magistr/project.json`. An empty command means tha
 
 Use `context` to begin. Use `discover` and `execute` with `magistr.call(name, args)` for advanced workflow operations.
 
-Every change follows this strict loop. No exceptions. The plan, the plan and the gates live in magistr (the `plan_*` / `run_*` / `think_*` / `signal_*` tools on the `magistr` MCP server). Plan exports follow project policy; never generate `PLAN.md` or `PLAN.json` when `plan_exports` is false.
+Every change follows this strict loop. No exceptions. The plan, the plan and the gates live in magistr (the `plan_*` / `run_*` / `decision_*` / `signal_*` tools on the `magistr` MCP server). Plan exports follow project policy; never generate `PLAN.md` or `PLAN.json` when `plan_exports` is false.
 
-1. **PLAN** — Read `plan_status` and `run_status`; resume authorized in-progress work before selecting pending work with `plan_next`. Follow the selected task and next's recovery contract: keep its matching unfinished goal, plan, completed tasks, actions, and checks. Select the authorized scope with `run_open` when another scope is selected, then re-read `run_status`; scope selection saves unrelated unfinished work and restores a saved goal and plan unchanged. Resume a matching scope without repeating setup and use `arrange_steps` only for missing work; never reset or finalize unrelated work to make room. Re-read the code and record material findings with `think_record_step`.
+1. **PLAN** — Read `plan_status` and `run_status`; resume authorized in-progress work before selecting pending work with `plan_next`. Follow the selected task and next's recovery contract: keep its matching unfinished goal, plan, completed tasks, actions, and checks. Select the authorized scope with `run_open` when another scope is selected, then re-read `run_status`; scope selection saves unrelated unfinished work and restores a saved goal and plan unchanged. Resume a matching scope without repeating setup and use `arrange_steps` only for missing work; never reset or finalize unrelated work to make room. Re-read the code and record material findings with `decision_record`.
 2. **EXECUTE** — Implement with TDD (red-green-refactor). Follow `.claude/rules/conventions.md`. Record findings and changed conclusions as evidence arrives, using the reasoning guidance in `.claude/skills/craft/references/runtime.md`.
 3. **VERIFY** — All four steps are mandatory, in order:
    - Choose `verification: "focused"` for bounded changes and record the relevant checks through named `magistr_gate` or server-executed `check_step`. Use `"full"` and `magistr_gate(gate: "all")` only for an explicit full-suite request or a stated cross-cutting risk.
    - **Update the plan** — `plan_complete_task` for what you implemented, `plan_add_task` for anything new
    - **Commit** — one atomic commit per task
-   - **Close** — synthesize the recorded findings with `think_record_step`, link the evidence used, then `run_finish`
+   - **Close** — synthesize the recorded findings with `decision_record`, link the evidence used, then `run_finish`
 
 **These rules are NON-NEGOTIABLE:**
 - You MUST update the plan after every piece of work — no work is invisible
@@ -43,7 +43,7 @@ Every change follows this strict loop. No exceptions. The plan, the plan and the
 | `/next` | Resume interrupted work or implement one ready plan item |
 | `/next-loop` | Continue through fresh-session handoffs, one task per session |
 | `/validate` | Run quality gates |
-| `/roadmap` | Advance the plan one task at a time under the full think/run contract |
+| `/roadmap` | Advance the plan one task at a time under the full decision/run contract |
 | `/roadmap-refresh` | Research-driven refresh of the plan itself (no implementation) |
 | `/signals` | Triage stakeholder signals and promote validated ones to tasks |
 | `/craft` | The operating doctrine behind the plan skills |

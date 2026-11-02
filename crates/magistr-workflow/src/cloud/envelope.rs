@@ -22,7 +22,7 @@ const SEP: char = '\u{241f}';
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Family {
-    Think,
+    Decision,
     Run,
     Plan,
     Signal,
@@ -33,7 +33,7 @@ impl Family {
     #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::Think => "think",
+            Self::Decision => "decision",
             Self::Run => "run",
             Self::Plan => "plan",
             Self::Signal => "signal",
@@ -45,8 +45,7 @@ impl Family {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Kind {
-    #[serde(rename = "step")]
-    ThinkStep,
+    Note,
     Goal,
     #[serde(rename = "step")]
     RunStep,
@@ -62,7 +61,7 @@ impl Kind {
     #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::ThinkStep => "step",
+            Self::Note => "note",
             Self::Goal => "goal",
             Self::RunStep => "step",
             Self::Progress => "progress",
@@ -109,7 +108,7 @@ pub(crate) fn sha256_hex(input: &str) -> String {
         .collect()
 }
 
-/// The idempotency key for an owner-authored record (think/run/plan):
+/// The idempotency key for an owner-authored record (decision/run/plan):
 /// `sha256(tenant ␟ family ␟ kind ␟ id)`. Re-syncing the same record yields the
 /// same key — its own identity is stable.
 #[must_use]
@@ -166,7 +165,7 @@ pub struct UnifiedRecordEnvelope {
 }
 
 impl UnifiedRecordEnvelope {
-    /// Build an owner-authored envelope (think/run/plan), computing the
+    /// Build an owner-authored envelope (decision/run/plan), computing the
     /// identity-based idempotency key. `record` is the verbatim local object.
     #[must_use]
     pub fn owner(
@@ -272,22 +271,22 @@ mod tests {
             "saas-cloud-envelope",
             "2026-06-08T00:00:00Z",
             json!({ "id": "saas-cloud-envelope", "status": "in_progress" }),
-            edges_from_refs(&["think:9".into(), "signal:abc".into()]),
+            edges_from_refs(&["decision:9".into(), "signal:abc".into()]),
         );
         assert_valid(&env);
     }
 
     #[test]
-    fn think_step_envelope_validates() {
+    fn note_envelope_validates() {
         let env = UnifiedRecordEnvelope::owner(
             "magistr-676f38",
-            Family::Think,
-            Kind::ThinkStep,
+            Family::Decision,
+            Kind::Note,
             "899",
             "2026-06-08T00:00:00Z",
-            json!({ "step_number": 899, "purpose": "x" }),
+            json!({ "note": 899, "purpose": "x" }),
             vec![Edge {
-                target: "think:8".into(),
+                target: "decision:8".into(),
                 relation: Some("depends_on".into()),
             }],
         );
@@ -303,7 +302,7 @@ mod tests {
             "progress:42",
             "2026-06-08T00:00:00Z",
             json!({ "id": 42, "type": "code" }),
-            vec![Edge::to("think:9")],
+            vec![Edge::to("decision:9")],
         );
         assert_valid(&env);
     }
@@ -406,7 +405,7 @@ mod tests {
     #[test]
     fn an_ext_tracker_cross_ref_validates_against_the_contract() {
         let refs = vec![
-            "think:44".to_string(),
+            "decision:44".to_string(),
             "ext:github/owner/repo#12".to_string(),
         ];
         let env = UnifiedRecordEnvelope::owner(

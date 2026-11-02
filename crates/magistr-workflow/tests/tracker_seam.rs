@@ -115,7 +115,7 @@ async fn a_task_round_trips_through_the_seam_with_no_provider_code() {
     );
     assert_eq!(remote.state, WorkItemState::Todo);
 
-    // …and the task knows its twin, in the SAME provenance graph as think:/task:.
+    // …and the task knows its twin, in the SAME provenance graph as decision:/task:.
     let link = e.tracker_link("c1", PROVIDER).expect("bound");
     assert_eq!(link.external_id, remote.external_id.clone().unwrap());
     assert_eq!(

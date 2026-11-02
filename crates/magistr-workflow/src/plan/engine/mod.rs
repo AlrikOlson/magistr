@@ -40,7 +40,7 @@ pub struct PlanEngine {
     stamp: Option<StoreStamp>,
     broadcaster: Option<Broadcaster>,
     /// Optional git-native trace mirror, reusing the same mirror core as the
-    /// think/run trace stores. When set, every mutation mirrors into
+    /// decision/run trace stores. When set, every mutation mirrors into
     /// `.magistr/traces/` as an Agent Trace
     /// JSONL record; the session commits on task completion/obsoletion. All
     /// git/IO runs on the worker's own thread, never under this engine's lock.
@@ -226,10 +226,9 @@ impl PlanEngine {
             | PlanFrame::TaskRetired { task } => {
                 serde_json::to_value(task).unwrap_or(serde_json::Value::Null)
             }
-            PlanFrame::RefreshRecorded {
-                summary,
-                think_steps,
-            } => serde_json::json!({ "summary": summary, "think_steps": think_steps }),
+            PlanFrame::RefreshRecorded { summary, notes } => {
+                serde_json::json!({ "summary": summary, "notes": notes })
+            }
         };
 
         // Hand off to the worker thread; building the record (which shells git),
@@ -683,12 +682,12 @@ impl PlanEngine {
     // ── Cross-family integration ────────────────────────────────────────────
     //
     // These keep the families decoupled: the plan records links and hands
-    // back the `task:<id>` reference for the agent to wire into run/think. No
-    // plan tool reaches into the run or think engines.
+    // back the `task:<id>` reference for the agent to wire into run/decision. No
+    // plan tool reaches into the run or decision engines.
 
     /// Start eligible pending work; recheck its current blockers and dependencies. Returns the
     /// task; the caller derives the `task:<id>` reference to pass to
-    /// `run_open` / a think `execution_ref`.
+    /// `run_open` / a decision `run_ref`.
     pub fn start_task(&mut self, id: &str) -> Result<Observed<Task>, PlanMutationError> {
         self.mutate(|edit| edit.start_task(id).cloned())
     }
@@ -704,7 +703,7 @@ impl PlanEngine {
         self.mutate(|edit| edit.complete_task(id, step_ref).cloned())
     }
 
-    /// Attach any validated cross-reference (`think:N`, `step:X`, `progress:N`,
+    /// Attach any validated cross-reference (`decision:N`, `step:X`, `progress:N`,
     /// `check:X`, `task:X`) to a task. Duplicates are ignored.
     pub fn link_task(
         &mut self,
@@ -721,7 +720,7 @@ impl PlanEngine {
     /// provider — and stamps the content hash and version that later make an
     /// idempotent re-projection and an echo fence possible. Also attaches the
     /// `ext:<provider>/<id>` cross-ref to the task, so the binding is visible
-    /// in the same provenance graph as `think:`/`step:` refs rather than in a
+    /// in the same provenance graph as `decision:`/`step:` refs rather than in a
     /// side table only this module knows about.
     ///
     /// `content_hash` is `WorkItem::content_hash()` of the payload just written.
@@ -943,13 +942,13 @@ impl PlanEngine {
     }
 
     /// Append a datestamped refresh note recording a plan mutation and the
-    /// think step ids that motivated it. Returns the new note count.
+    /// decision note ids that motivated it. Returns the new note count.
     pub fn record_refresh(
         &mut self,
         summary: String,
-        think_steps: Vec<u32>,
+        notes: Vec<u32>,
     ) -> Result<Observed<usize>, PlanMutationError> {
-        self.mutate(|edit| edit.record_refresh(summary, think_steps))
+        self.mutate(|edit| edit.record_refresh(summary, notes))
     }
 
     /// Validate + normalize a wire cross-ref string via [`CrossRef`].
@@ -2364,10 +2363,10 @@ mod tests {
     fn link_task_validates_and_dedupes() {
         let mut e = engine();
         add(&mut e, "a", 1, vec![]);
-        e.link_task("a", "think:42").unwrap();
+        e.link_task("a", "decision:42").unwrap();
         e.link_task("a", "step:auth").unwrap();
-        e.link_task("a", "think:42").unwrap(); // duplicate ignored
-        assert_eq!(e.plan().tasks[0].refs, vec!["think:42", "step:auth"]);
+        e.link_task("a", "decision:42").unwrap(); // duplicate ignored
+        assert_eq!(e.plan().tasks[0].refs, vec!["decision:42", "step:auth"]);
         // A malformed ref is rejected.
         let err = e.link_task("a", "not-a-ref").unwrap_err();
         assert!(err.to_string().contains("invalid cross-ref"));
@@ -2404,7 +2403,7 @@ mod tests {
         assert_eq!(n, 1);
         let note = &e.plan().refreshes[0];
         assert_eq!(note.summary, "revisited priorities");
-        assert_eq!(note.think_steps, vec![1, 2, 3]);
+        assert_eq!(note.notes, vec![1, 2, 3]);
     }
 
     #[test]
@@ -2838,7 +2837,7 @@ mod tests {
     fn validate_waiting_on_accepts_every_cross_ref_form_and_normalizes_it() {
         let e = engine();
         for raw in [
-            "think:42",
+            "decision:42",
             "task:some-other-chunk",
             "step:verify-blockedby",
             "check:cargo test",
@@ -2865,7 +2864,12 @@ mod tests {
     #[test]
     fn validate_waiting_on_refuses_evidence_that_is_not_a_cross_ref() {
         let e = engine();
-        for bad in ["1763", "think:", "just some prose", "think:not-a-number"] {
+        for bad in [
+            "1763",
+            "decision:",
+            "just some prose",
+            "decision:not-a-number",
+        ] {
             let err = e
                 .validate_waiting_on(
                     WaitingReason::Disproved,

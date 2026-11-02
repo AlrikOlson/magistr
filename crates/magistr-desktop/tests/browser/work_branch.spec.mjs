@@ -6,10 +6,10 @@ test("investigation membership and lifecycle stay scoped to one reasoning sessio
   await select.selectOption("branch:storage");await expect(app.locator(".decision-piece")).toHaveCount(1);await expect(app.locator("#work-browser-content")).toContainText("Concluded");
   await app.getByRole("button",{name:"Check whether reopening needs a second saved message",exact:true}).click();await app.getByRole("button",{name:"Back to reasoning",exact:true}).click();
   await expect(select).toHaveValue("branch:storage");
-  await app.evaluate(()=>{const f=window.__fixture,h=f.workflow.think.data.value.sessions[1];h.steps[0].branch_id="storage";h.branches=[{id:"storage",name:"Different investigation",status:"abandoned",from_step:42,steps:[],created_at:"2026-10-15T08:00:00Z",depth:1}];f.publish("release",{workflow_revision:1});});
+  await app.evaluate(()=>{const f=window.__fixture,h=f.workflow.decisions.data.value.logs[1];h.notes[0].thread_id="storage";h.threads=[{id:"storage",name:"Different investigation",status:"abandoned",from_note:42,steps:[],created_at:"2026-10-15T08:00:00Z",depth:1}];f.publish("release",{workflow_revision:1});});
   await app.getByRole("combobox",{name:"Reasoning",exact:true}).selectOption('"review"');await expect(select).toHaveValue("all");
   await select.selectOption("branch:storage");await expect(app.locator("#work-browser-content")).toContainText("Different investigation");await expect(app.locator("#work-browser-content")).toContainText("Abandoned");
   await expect(app.getByRole("button",{name:"Inspect the installation result",exact:true})).toBeVisible();
-  await app.evaluate(()=>{const f=window.__fixture;f.workflow.think.data.value.sessions[1].branches=[];f.publish("release",{workflow_revision:2});});
+  await app.evaluate(()=>{const f=window.__fixture;f.workflow.decisions.data.value.logs[1].threads=[];f.publish("release",{workflow_revision:2});});
   await expect(app.locator("#work-browser-content")).toContainText("This investigation is no longer available.");
 });

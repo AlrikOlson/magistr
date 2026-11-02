@@ -166,10 +166,10 @@ impl PlanUseCases {
     pub fn record_refresh(
         &self,
         summary: String,
-        think_steps: Vec<u32>,
+        notes: Vec<u32>,
     ) -> Result<Observed<usize>, PlanError> {
         self.lock()?
-            .record_refresh(summary, think_steps)
+            .record_refresh(summary, notes)
             .map_err(PlanError::invalid_state)
     }
 }

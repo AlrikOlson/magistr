@@ -12,8 +12,8 @@ fn error_without_structured_content_preserves_original_diagnostic() {
 
 #[test]
 fn success_supports_json_text_and_checks_every_failure_shape() {
-    let success = CallToolResult::success(vec![ContentBlock::text(r#"{"step_number":7}"#)]);
-    assert_eq!(CheckedToolResult::body(&success).unwrap()["step_number"], 7);
+    let success = CallToolResult::success(vec![ContentBlock::text(r#"{"note":7}"#)]);
+    assert_eq!(CheckedToolResult::body(&success).unwrap()["note"], 7);
     for body in [
         json!({"ok":false,"message":"legacy refusal"}),
         json!({"status":"failed","error":"native refusal"}),
@@ -47,7 +47,7 @@ fn uncertainty_stops_dependent_write_but_not_an_independent_call() {
     let original = ToolFailure::uncertain("receipt_lost", "write applied; receipt unavailable");
     let chain = CheckedToolResult::body(&original).map(|body| {
         writes.set(writes.get() + 1);
-        body["step_number"].clone()
+        body["note"].clone()
     });
     assert!(chain.is_err());
     assert_eq!(writes.get(), 1, "no dependent write or blind retry");

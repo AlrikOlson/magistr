@@ -3,7 +3,7 @@
 # componentize with plugins/runner-go/build.ps1 (or build.sh); the committed
 # guest.wasm is the shipped artifact.
 #
-# Same no-WASI discipline as the resolver guest (think:119 recipe): no_std +
+# Same no-WASI discipline as the resolver guest (decision:119 recipe): no_std +
 # alloc, panic = "abort", dlmalloc, no HashMap — the core module must import
 # NOTHING (this guest declares zero capabilities).
 

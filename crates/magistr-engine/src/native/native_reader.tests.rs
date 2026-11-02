@@ -140,7 +140,7 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
         .signal_capture(SignalKind::Idea, "reader".into(), "Keep this signal".into())
         .unwrap();
     let step = serde_json::from_value(serde_json::json!({
-        "step_number": 1,
+        "note": 1,
         "estimated_total": 1,
         "purpose": "investigation",
         "context": "Observation",
@@ -150,7 +150,7 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
         "rationale": "Read failures must preserve it."
     }))
     .unwrap();
-    writer.think_record_step(step).unwrap();
+    writer.decision_record(step).unwrap();
     let observer = NativeReader::open_for_project(&config, "workstream-read".into());
     let clone = observer.clone();
     let persistence = config.persistence_config();
@@ -174,8 +174,8 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
             Persistence::new(&persistence, Domain::Signal).path_for("workstream-read"),
         ),
         (
-            "think",
-            magistr_workflow::think::persistence::Persistence::for_project(
+            "decisions",
+            magistr_workflow::decision::persistence::Persistence::for_project(
                 &persistence,
                 "workstream-read",
             )
@@ -194,7 +194,7 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
                 failed[family]["data"]["last"], good[family]["data"],
                 "{family}"
             );
-            for other in ["plan", "run", "signals", "think"] {
+            for other in ["plan", "run", "signals", "decision"] {
                 if other != family {
                     assert_eq!(
                         failed[other], good[other],
@@ -283,86 +283,85 @@ fn a_family_read_holds_its_owner_until_the_retained_observation_is_recorded() {
 }
 
 #[test]
-fn failed_session_reads_retain_the_previous_sessions_identity_until_recovery() {
+fn failed_log_reads_retain_the_previous_logs_identity_until_recovery() {
     use crate::native::ReadState;
-    use magistr_workflow::think::config::namespace_session_id;
-    use magistr_workflow::think::persistence::Persistence;
+    use magistr_workflow::decision::config::namespace_log_id;
+    use magistr_workflow::decision::persistence::Persistence;
 
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().join("project");
     std::fs::create_dir(&root).unwrap();
     let config = NativeConfig::from_lookup(root, |key| match key {
-        "MAGISTR_WORKFLOW_ENABLE_SESSIONS" => Some("true".into()),
-        "MAGISTR_WORKFLOW_DEFAULT_SESSION_ID" => Some("alpha".into()),
+        "MAGISTR_WORKFLOW_ENABLE_LOGS" => Some("true".into()),
+        "MAGISTR_WORKFLOW_DEFAULT_LOG_ID" => Some("alpha".into()),
         _ => None,
     })
     .with_data_dir(temp.path().join("data"));
-    let writer =
-        ProjectAuthority::admit_for_project(&config, "session-read".into(), WriterRole::Host)
-            .unwrap()
-            .open();
-    let step = |number, session| {
+    let writer = ProjectAuthority::admit_for_project(&config, "log-read".into(), WriterRole::Host)
+        .unwrap()
+        .open();
+    let note = |number, log| {
         serde_json::from_value(serde_json::json!({
-            "step_number": number,
+            "note": number,
             "estimated_total": 2,
             "purpose": "investigation",
-            "context": "Selected reasoning session",
-            "thought": format!("Evidence from {session}"),
-            "outcome": "Keep the selected session identity.",
+            "context": "Selected reasoning log",
+            "thought": format!("Evidence from {log}"),
+            "outcome": "Keep the selected log identity.",
             "next_action": "Review.",
             "rationale": "A read failure must not relabel retained records.",
-            "session_id": session
+            "log_id": log
         }))
         .unwrap()
     };
-    writer.think_record_step(step(1, "alpha")).unwrap();
+    writer.decision_record(note(1, "alpha")).unwrap();
     let observer = writer.reader();
-    let first = observer.snapshot().think.current().unwrap().clone();
-    let alpha = namespace_session_id("session-read", "alpha");
-    let beta = namespace_session_id("session-read", "beta");
-    assert_eq!(first.value.sessions.len(), 1);
+    let first = observer.snapshot().decisions.current().unwrap().clone();
+    let alpha = namespace_log_id("log-read", "alpha");
+    let beta = namespace_log_id("log-read", "beta");
+    assert_eq!(first.value.logs.len(), 1);
     assert_eq!(
-        first.value.session(Some(&alpha)).unwrap().steps[0].thought,
+        first.value.log(Some(&alpha)).unwrap().notes[0].thought,
         "Evidence from alpha"
     );
 
-    writer.think_record_step(step(2, "beta")).unwrap();
-    let persistence = Persistence::for_project(&config.persistence_config(), "session-read");
+    writer.decision_record(note(2, "beta")).unwrap();
+    let persistence = Persistence::for_project(&config.persistence_config(), "log-read");
     let path = persistence.store_path().unwrap();
     let saved = std::fs::read(&path).unwrap();
     std::fs::write(&path, b"{ unreadable reasoning").unwrap();
     for _ in 0..2 {
-        let ReadState::Stale { last, .. } = observer.snapshot().think else {
-            panic!("failed selected session must keep its last successful observation");
+        let ReadState::Stale { last, .. } = observer.snapshot().decisions else {
+            panic!("failed selected log must keep its last successful observation");
         };
         assert_eq!(last, first);
-        assert!(observer.think_step(1).is_err());
+        assert!(observer.note(1).is_err());
     }
 
-    // All reasoning sessions share the canonical project document. A new
-    // reader cannot certify any session while that document is unreadable.
-    let detached = NativeReader::open_for_project(&config, "session-read".into());
+    // All reasoning logs share the canonical project document. A new
+    // reader cannot certify any log while that document is unreadable.
+    let detached = NativeReader::open_for_project(&config, "log-read".into());
     assert!(matches!(
-        detached.snapshot().think,
+        detached.snapshot().decisions,
         ReadState::Unavailable(_)
     ));
 
     std::fs::write(path, saved).unwrap();
-    let recovered = observer.snapshot().think.current().unwrap().clone();
-    assert_eq!(recovered.value.sessions.len(), 2);
+    let recovered = observer.snapshot().decisions.current().unwrap().clone();
+    assert_eq!(recovered.value.logs.len(), 2);
     assert_eq!(
-        recovered.value.session(Some(&beta)).unwrap().steps[0].thought,
+        recovered.value.log(Some(&beta)).unwrap().notes[0].thought,
         "Evidence from beta"
     );
     assert_eq!(
-        observer.think_step(1).unwrap().unwrap().thought,
+        observer.note(1).unwrap().unwrap().thought,
         "Evidence from alpha"
     );
     assert_eq!(
-        observer.think_session(Some("alpha")).unwrap(),
-        detached.think_session(Some("alpha")).unwrap()
+        observer.decision_log(Some("alpha")).unwrap(),
+        detached.decision_log(Some("alpha")).unwrap()
     );
-    assert!(observer.think_session(None).unwrap().is_none());
+    assert!(observer.decision_log(None).unwrap().is_none());
 }
 
 #[test]

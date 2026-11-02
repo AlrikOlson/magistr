@@ -3,13 +3,13 @@
 //! itself becomes `record`, and its links become graph `edges`.
 
 use crate::cloud::envelope::{Edge, Family, Kind, UnifiedRecordEnvelope, edges_from_refs};
+use crate::decision::domain::note::Note;
 use crate::plan::domain::{Task, TrackerLink, TrackerOptIn};
 use crate::run::domain::check::Check;
 use crate::run::domain::goal::Goal;
 use crate::run::domain::progress::Progress;
 use crate::run::domain::step::Step;
 use crate::signal::domain::Signal;
-use crate::think::domain::step::ThinkStep;
 
 /// The cycle key — the stable wire identity of one run cycle, derived from
 /// the goal's `created_at` (the same identity the disk merge uses). All
@@ -280,7 +280,7 @@ pub fn from_signal(tenant: &str, signal: &Signal) -> UnifiedRecordEnvelope {
 }
 
 /// Build the cloud envelope for a run progress — the progress as `record`, with a
-/// `step:<id>` edge to its step and a labeled `think:<n>` edge to the reasoning
+/// `step:<id>` edge to its step and a labeled `decision:<n>` edge to the reasoning
 /// step it derives from (when set). The richest edge case in the graph.
 #[must_use]
 pub fn from_progress(tenant: &str, cycle: &str, progress: &Progress) -> UnifiedRecordEnvelope {
@@ -291,9 +291,9 @@ pub fn from_progress(tenant: &str, cycle: &str, progress: &Progress) -> UnifiedR
         obj.insert("id".into(), serde_json::Value::String(wire_id.clone()));
     }
     let mut edges = vec![Edge::to(format!("step:{cycle}.{}", progress.step_id))];
-    if let Some(step) = progress.think_step {
+    if let Some(step) = progress.note {
         edges.push(Edge {
-            target: format!("think:{step}"),
+            target: format!("decision:{step}"),
             relation: Some("realizes".into()),
         });
     }
@@ -308,17 +308,17 @@ pub fn from_progress(tenant: &str, cycle: &str, progress: &Progress) -> UnifiedR
     )
 }
 
-/// Build the cloud envelope for a reasoning step — the step as `record`, with a
-/// labeled `think:<n>` edge per dependency (the reasoning side's dependency
+/// Build the cloud envelope for a decision note — the note as `record`, with a
+/// labeled `decision:<n>` edge per dependency (the decision log's dependency
 /// graph). A dependency's relation is kept only if it's one of the schema's
-/// think relations (`supports`/`refutes`/`depends_on`); any other value is
+/// decision relations (`supports`/`refutes`/`depends_on`); any other value is
 /// dropped to unlabeled, mirroring the engine's allowlist.
-pub fn from_step(
+pub fn from_note(
     tenant: &str,
-    step: &ThinkStep,
+    note: &Note,
 ) -> Result<UnifiedRecordEnvelope, magistr_workflow_contracts::ReadError> {
     use magistr_workflow_contracts::{ReadError, ReadErrorKind};
-    let id = step
+    let id = note
         .record_id
         .as_deref()
         .filter(|id| !id.trim().is_empty())
@@ -328,15 +328,15 @@ pub fn from_step(
                 "This reasoning record has no identity.",
             )
         })?;
-    let record = serde_json::to_value(step)
+    let record = serde_json::to_value(note)
         .map_err(|error| ReadError::new(ReadErrorKind::Decode, error.to_string()))?;
-    let edges = step
+    let edges = note
         .dependencies
         .as_deref()
         .unwrap_or(&[])
         .iter()
         .map(|d| Edge {
-            target: format!("think:{}", d.step()),
+            target: format!("decision:{}", d.note()),
             relation: d
                 .relation()
                 .filter(|r| matches!(*r, "supports" | "refutes" | "depends_on"))
@@ -345,10 +345,10 @@ pub fn from_step(
         .collect();
     Ok(UnifiedRecordEnvelope::owner(
         tenant,
-        Family::Think,
-        Kind::ThinkStep,
+        Family::Decision,
+        Kind::Note,
         id.to_owned(),
-        step.timestamp.clone().unwrap_or_default(),
+        note.timestamp.clone().unwrap_or_default(),
         record,
         edges,
     ))
@@ -373,7 +373,7 @@ mod tests {
             notes: String::new(),
             acceptance: vec![],
             deps: vec!["saas-cloud-client".into()],
-            refs: vec!["think:3".into(), "signal:abc".into()],
+            refs: vec!["decision:3".into(), "signal:abc".into()],
             shared: false,
             reprioritize: None,
             status_proposal: None,
@@ -409,7 +409,7 @@ mod tests {
     fn from_task_builds_a_schema_valid_envelope_with_edges() {
         let envelope = from_task("magistr-676f38", &task(), &[], &[]);
         assert_eq!(envelope.edges.len(), 2);
-        assert_eq!(envelope.edges[0].target, "think:3");
+        assert_eq!(envelope.edges[0].target, "decision:3");
         assert_eq!(envelope.id, "saas-cloud-sync-roadmap");
         assert_schema_valid(&envelope);
     }
@@ -506,7 +506,7 @@ mod tests {
             created: "2026-06-08T00:00:00Z".into(),
             status: SignalStatus::New,
             enrichment: vec![],
-            refs: vec!["task:saas-cloud-sync-signal".into(), "think:5".into()],
+            refs: vec!["task:saas-cloud-sync-signal".into(), "decision:5".into()],
             surfaced_at: None,
             snooze_until: None,
             project_id: None,
@@ -519,7 +519,7 @@ mod tests {
     }
 
     #[test]
-    fn from_progress_builds_a_schema_valid_envelope_with_step_and_think_edges() {
+    fn from_progress_builds_a_schema_valid_envelope_with_step_and_decision_edges() {
         use crate::run::domain::progress::{Progress, ProgressType};
         let progress = Progress {
             id: 42,
@@ -530,7 +530,7 @@ mod tests {
             files_touched: vec!["src/run/engine/mod.rs".into()],
             tools_used: vec!["Edit".into()],
             result: String::new(),
-            think_step: Some(7),
+            note: Some(7),
         };
         let envelope = from_progress("magistr-676f38", "obj-2026-06-08T00:00:00Z", &progress);
         assert_eq!(envelope.id, "obj-2026-06-08T00:00:00Z.progress-42");
@@ -541,7 +541,7 @@ mod tests {
             envelope.edges[0].target,
             "step:obj-2026-06-08T00:00:00Z.impl-shipcloud"
         );
-        assert_eq!(envelope.edges[1].target, "think:7");
+        assert_eq!(envelope.edges[1].target, "decision:7");
         assert_eq!(envelope.edges[1].relation.as_deref(), Some("realizes"));
         assert_schema_valid(&envelope);
     }
@@ -561,12 +561,12 @@ mod tests {
     /// that routes around `Envelope::new` fails here instead of bleeding.
     #[test]
     fn every_family_stamps_the_source_project_on_the_record() {
+        use crate::decision::domain::note::Note;
         use crate::run::domain::check::{Check, CheckType};
         use crate::run::domain::goal::{Goal, GoalStatus, VerificationMode};
         use crate::run::domain::progress::{Progress, ProgressType};
         use crate::run::domain::step::{Step, StepStatus, StepType};
         use crate::signal::domain::{SignalKind, SignalStatus};
-        use crate::think::domain::step::ThinkStep;
         use serde_json::json;
 
         const US: &str = "magistr-676f38";
@@ -586,8 +586,8 @@ mod tests {
             snooze_until: None,
             project_id: None,
         };
-        let step: ThinkStep = serde_json::from_value(json!({
-            "step_number": 909,
+        let step: Note = serde_json::from_value(json!({
+            "note": 909,
             "record_id": "step-909",
             "estimated_total": 910,
             "purpose": "x",
@@ -605,7 +605,7 @@ mod tests {
             files_touched: vec![],
             tools_used: vec![],
             result: String::new(),
-            think_step: None,
+            note: None,
         };
         let run_step = Step {
             id: "impl-x".into(),
@@ -619,7 +619,7 @@ mod tests {
             checks: vec![],
             progress: vec![],
             waiting_reason: None,
-            think_branch: None,
+            decision_thread: None,
         };
         let check = Check {
             check_result_id: None,
@@ -651,7 +651,7 @@ mod tests {
         let built: Vec<(&str, UnifiedRecordEnvelope)> = vec![
             ("plan task", from_task(US, &owned_task, &[], &[])),
             ("signal", from_signal(US, &owned_signal)),
-            ("think step", from_step(US, &step).unwrap()),
+            ("decision note", from_note(US, &step).unwrap()),
             ("run progress", from_progress(US, cycle, &progress)),
             (
                 "run step",
@@ -763,7 +763,7 @@ mod tests {
             checks: vec![],
             progress: vec![],
             waiting_reason: None,
-            think_branch: None,
+            decision_thread: None,
         };
         let step_env = from_run_step(
             "magistr-676f38",
@@ -830,31 +830,31 @@ mod tests {
     }
 
     #[test]
-    fn from_step_builds_a_schema_valid_envelope_with_normalized_dep_edges() {
-        use crate::think::domain::step::ThinkStep;
+    fn from_note_builds_a_schema_valid_envelope_with_normalized_dep_edges() {
+        use crate::decision::domain::note::Note;
         use serde_json::json;
-        let step: ThinkStep = serde_json::from_value(json!({
-            "step_number": 909,
+        let step: Note = serde_json::from_value(json!({
+            "note": 909,
             "record_id": "step-909",
             "estimated_total": 910,
             "purpose": "x",
             "thought": "y",
             "outcome": "z",
-            "dependencies": [8, {"step": 1, "relation": "supports"}, {"step": 2, "relation": "weird"}],
+            "dependencies": [8, {"note": 1, "relation": "supports"}, {"note": 2, "relation": "weird"}],
             "timestamp": "2026-06-08T00:00:00Z"
         }))
         .unwrap();
-        let envelope = from_step("magistr-676f38", &step).unwrap();
+        let envelope = from_note("magistr-676f38", &step).unwrap();
         assert_eq!(envelope.id, "step-909");
         assert_eq!(envelope.edges.len(), 3);
         // bare dep → unlabeled
-        assert_eq!(envelope.edges[0].target, "think:8");
+        assert_eq!(envelope.edges[0].target, "decision:8");
         assert_eq!(envelope.edges[0].relation, None);
         // tagged, schema-valid relation → kept
-        assert_eq!(envelope.edges[1].target, "think:1");
+        assert_eq!(envelope.edges[1].target, "decision:1");
         assert_eq!(envelope.edges[1].relation.as_deref(), Some("supports"));
         // tagged, out-of-enum relation → dropped to unlabeled
-        assert_eq!(envelope.edges[2].target, "think:2");
+        assert_eq!(envelope.edges[2].target, "decision:2");
         assert_eq!(envelope.edges[2].relation, None);
         assert_schema_valid(&envelope);
     }

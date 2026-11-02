@@ -7,7 +7,7 @@
 //! first-party table (kind/file-class/path) does not already encode.
 //!
 //! Detection is hand-rolled token matching (no regex crate in no_std; the
-//! think:119 recipe keeps this module importing NOTHING so its declared
+//! decision:119 recipe keeps this module importing NOTHING so its declared
 //! capability set stays honestly empty).
 
 #![no_std]

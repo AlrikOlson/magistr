@@ -43,8 +43,8 @@ steps below create only missing planning records.
    using IDs prefixed by the task. Include a final `review`
    or `test` verification step. Valid types are `research`, `implement`,
    `test`, `review`, `config`, and `docs`.
-3. Record a new or materially changed plan with `think_record_step`, omitting
-   `step_number`, and link the returned step to the task with `plan_link`.
+3. Record a new or materially changed plan with `decision_record`, omitting
+   `note`, and link the returned note to the task with `plan_link`.
    Include implementation order, dependencies, file scope, tests, and acceptance
    evidence. If too large for a coherent change, record a dependency-aware
    plan split first.
@@ -59,9 +59,9 @@ without calling `start_step` again. For the next pending step, call `start_step`
 implement its bounded change, record significant progress with `record_progress`,
 and close it with `finish_step` and artifact references. Keep only one step
 active and do not restart completed steps. Record evidence-backed findings with
-`think_record_step` during research, implementation, and verification: what was
+`decision_record` during research, implementation, and verification: what was
 learned, what it changes, and the next useful check. Follow the shared runtime's
-guidance for real questions, branch membership, revisions, dependencies, and
+guidance for real questions, thread membership, revisions, dependencies, and
 synthesis. Update the plan
 when findings change the work; do not wait for a deviation or the final summary.
 For behavior changes, write meaningful failing tests, implement, and refactor
@@ -94,7 +94,7 @@ for delegation; the coordinating session owns shared run state and file scope.
    using `plan_complete_task` with its real `step:<verification-id>` run
    reference. Record discoveries as `idea` unless the user authorized another
    status. Update descriptions if the delivered scope changed.
-4. Record the final synthesis with `think_record_step`, linking the findings
+4. Record the final synthesis with `decision_record`, linking the findings
    and checks used and stating any remaining uncertainty. Finalize with
    `run_finish`. Inspect both responses; any refusal leaves the iteration incomplete.
    Recover supported lifecycle context before treating a refusal as a blocker.

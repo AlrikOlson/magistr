@@ -10,7 +10,7 @@ edit source, submit prompts or start an implementation loop.
 
 Start with `context`. Use `discover` for schemas and `execute` with
 `magistr.call(name, args)` for advanced read operations. Use run_status for current work and recorded checks, plan_status for readiness
-and blockers, think_engine_status(verbose: true) and think_get_step for findings,
+and blockers, decision_status(verbose: true) and decision_get for findings,
 and Magistr undo(action: "list", limit: 20, diff: true) for recorded changes.
 Read step details with `context(step_id: ...)`.
 Use exact titles in explanations, keeping internal identifiers out of prose.

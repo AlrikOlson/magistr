@@ -294,7 +294,7 @@ async fn a_task_projects_to_a_linear_issue_with_its_provenance() {
     let server = linear_server().await;
     let mut e = engine();
     add(&mut e, "c1", vec![]);
-    e.link_task("c1", "think:9").expect("think ref");
+    e.link_task("c1", "decision:9").expect("decision ref");
     opt_in(&mut e, "c1");
 
     let report = project_all(&mut e, &linear(&server), None)
@@ -315,7 +315,7 @@ async fn a_task_projects_to_a_linear_issue_with_its_provenance() {
     assert_eq!(input["teamId"], "team-uuid-1");
     let body = input["description"].as_str().expect("description");
     assert!(body.contains("- [ ] c1 works"), "acceptance as a checklist");
-    assert!(body.contains("think:9"), "provenance reaches Linear too");
+    assert!(body.contains("decision:9"), "provenance reaches Linear too");
 
     // The binding uses the human-readable identifier, not the UUID.
     assert_eq!(

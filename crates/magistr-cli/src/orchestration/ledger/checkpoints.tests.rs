@@ -224,7 +224,7 @@ fn a_fork_of_a_checkpoint_with_no_commit_is_refused_rather_than_guessed() {
 }
 
 #[test]
-fn the_default_branch_names_the_checkpoint_it_came_from() {
+fn the_default_thread_names_the_checkpoint_it_came_from() {
     assert_eq!(Checkpoints::default_branch("cp-4"), "magistr/cp-4");
 }
 

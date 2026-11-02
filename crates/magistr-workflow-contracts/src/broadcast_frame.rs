@@ -67,7 +67,7 @@ impl NativeFrame {
     pub fn decode(self) -> Option<(NativeEvent, Option<EventCursor>)> {
         let cursor = cursor_of(&self.payload);
         let event = match Family::parse(&self.family)? {
-            Family::Think => NativeEvent::Think(serde_json::from_value(self.payload).ok()?),
+            Family::Decision => NativeEvent::Decision(serde_json::from_value(self.payload).ok()?),
             Family::Run => NativeEvent::Run(serde_json::from_value(self.payload).ok()?),
             Family::Plan => NativeEvent::Plan(serde_json::from_value(self.payload).ok()?),
             Family::Signal => NativeEvent::Signal(serde_json::from_value(self.payload).ok()?),

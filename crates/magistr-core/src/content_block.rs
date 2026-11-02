@@ -12,7 +12,7 @@ pub enum ContentBlock {
     /// Plain text output from the assistant.
     Text { text: String },
 
-    /// Extended thinking / reasoning trace.
+    /// Extended thinking / decision log.
     Thinking { thinking: String, signature: String },
 
     /// The assistant wants to invoke a tool.

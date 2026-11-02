@@ -64,7 +64,7 @@ pub struct GetArgs {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct LinkArgs {
     pub id: String,
-    /// A cross-ref string: `think:N`, `step:X`, `progress:N`, `check:X`,
+    /// A cross-ref string: `decision:N`, `step:X`, `progress:N`, `check:X`,
     /// `task:X`, `signal:X`. `ref`/`crossref` accepted as forgiving aliases.
     #[serde(default, alias = "ref", alias = "crossref")]
     #[schemars(required, !default)]
@@ -89,9 +89,9 @@ pub struct ResearchArgs {
     /// External references consulted (URLs, doc ids, ministr symbol ids).
     #[serde(default)]
     pub sources: Vec<String>,
-    /// The think_* step number that motivated this enrichment (cross-ref'd).
+    /// The decision_* step number that motivated this enrichment (cross-ref'd).
     #[serde(default)]
-    pub think_step: Option<u32>,
+    pub note: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -200,7 +200,7 @@ impl SignalService {
 
     #[tool(
         name = "signal_link",
-        description = "Attach a typed cross-reference to a signal, fusing it into the think/run/plan graph.\n\nInputs: id (required), cross_ref (required — think:N | step:X | progress:N | check:X | task:X | signal:X).\n\nReturns: the updated signal. Duplicates are ignored.",
+        description = "Attach a typed cross-reference to a signal, fusing it into the decision/run/plan graph.\n\nInputs: id (required), cross_ref (required — decision:N | step:X | progress:N | check:X | task:X | signal:X).\n\nReturns: the updated signal. Duplicates are ignored.",
         annotations(
             title = "Link signal",
             read_only_hint = false,
@@ -236,7 +236,7 @@ impl SignalService {
 
     #[tool(
         name = "signal_research",
-        description = "Record one round of churning on a signal: append a durable enrichment { think_step?, sources[], summary, confidence } and advance the signal's lifecycle toward 'researched' (new→triaged→researched). When think_step is given it is cross-ref'd onto the signal so the reasoning is auditable.\n\nInputs: id (required), summary (required), confidence (0..1, clamped), sources (string[]), think_step (u32, optional).\n\nReturns: the updated signal. Rejects a promoted/dismissed (terminal) signal; never moves status backward.",
+        description = "Record one round of churning on a signal: append a durable enrichment { note?, sources[], summary, confidence } and advance the signal's lifecycle toward 'researched' (new→triaged→researched). When note is given it is cross-ref'd onto the signal so the reasoning is auditable.\n\nInputs: id (required), summary (required), confidence (0..1, clamped), sources (string[]), note (u32, optional).\n\nReturns: the updated signal. Rejects a promoted/dismissed (terminal) signal; never moves status backward.",
         annotations(
             title = "Research signal",
             read_only_hint = false,
@@ -254,7 +254,7 @@ impl SignalService {
             args.summary,
             args.confidence,
             args.sources,
-            args.think_step,
+            args.note,
         ))
     }
 

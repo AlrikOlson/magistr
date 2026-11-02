@@ -62,7 +62,7 @@ The `magistr` MCP connection (`magistr mcp --dir .`) provides source tools and t
 
 | Family | Purpose | Key tools |
 |--------|---------|-----------|
-| **think_*** | Reasoning trace: record steps, branch hypotheses, pin conclusions | `think_record_step`, `think_pin_step`, `think_trace_checkpoint` |
+| **decision_*** | Decision log: record notes, open threads for hypotheses, pin conclusions | `decision_record`, `decision_pin`, `decision_review` |
 | **run_*** | Run history: goals, steps, progress, checks and approvals | `run_open`, `arrange_steps`, `start_step`, `record_progress`, `check_step`, `run_finish` |
 | **plan_*** | The long-horizon plan-of-plans driving both | `plan_status`, `plan_next`, `plan_start_task`, `plan_complete_task` |
 | **signal_*** | Stakeholder signals: capture, research, surface, promote to the plan | `signal_capture`, `signal_pending`, `signal_research`, `signal_promote` |
@@ -70,11 +70,11 @@ The `magistr` MCP connection (`magistr mcp --dir .`) provides source tools and t
 ## Cross-referencing
 
 Link reasoning to runs:
-- On `think_record_step`, pass `execution_ref: \"step:<id>\"` to point at a run step.
-- On `record_progress`, pass `think_step: <N>` to point back at the motivating think_* step.
+- On `decision_record`, pass `run_ref: \"step:<id>\"` to point at a run step.
+- On `record_progress`, pass `note: <N>` to point back at the motivating decision note.
 
 Both halves resolve the same project identity from the working directory so
-traces auto-correlate.
+records auto-correlate.
 
 ## Quick-start workflow
 
@@ -82,10 +82,10 @@ First read `run_status` and, for plan work, `plan_status`. Resume a matching unf
 
 1. `run_open` — select the authorized scope or define a new goal; resume a matching unfinished scope without repeating setup
 2. `arrange_steps` — keep existing steps and add only missing work
-3. `think_record_step` — record the question, current evidence, and planned next check
+3. `decision_record` — record the question, current evidence, and planned next check
 4. `start_step` a pending step, or continue the active step; then `record_progress` → `finish_step` — do the work, recording findings and changed conclusions as evidence arrives
 5. `check_step` — execute and record the relevant checks
-6. `think_record_step` — synthesize the findings, link the steps used, and state remaining uncertainty
+6. `decision_record` — synthesize the findings, link the notes used, and state remaining uncertainty
 7. `run_finish` — finalize the goal after its acceptance criteria and checks pass
 
 {reasoning_guidance}

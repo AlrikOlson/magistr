@@ -49,7 +49,7 @@ pub struct Step {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub waiting_reason: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub think_branch: Option<String>,
+    pub decision_thread: Option<String>,
 }
 
 #[cfg(test)]

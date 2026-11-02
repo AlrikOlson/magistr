@@ -1,5 +1,5 @@
 //! Plan domain and the `plan_*` tool family — the long-horizon
-//! plan-of-plans that sits above `run_*` goals and links to `think_*`
+//! plan-of-plans that sits above `run_*` goals and links to `decision_*`
 //! reasoning. The foundation is the domain + engine + persistence; the rmcp
 //! wire adapter (`mcp::PlanService`) puts `plan_*` on the live MCP wire.
 

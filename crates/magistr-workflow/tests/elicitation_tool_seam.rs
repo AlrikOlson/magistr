@@ -33,14 +33,14 @@
 
 use std::sync::{Arc, Mutex};
 
+use magistr_workflow::decision::DecisionService;
+use magistr_workflow::decision::config::DecisionConfig;
+use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
-use magistr_workflow::think::ThinkService;
-use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::engine::core::ReasoningServer;
 use rmcp::{
     ClientHandler, RoleClient, ServiceExt,
     model::{
@@ -80,12 +80,12 @@ impl ClientHandler for EagerClient {
 }
 
 fn build_unified(project: &str) -> UnifiedService {
-    let mut cfg = ThinkConfig::default();
+    let mut cfg = DecisionConfig::default();
     cfg.display.color_output = false;
     let run = RunService::new(RunEngine::new(project.into()));
     let plan = PlanService::new(PlanEngine::new(project.into()), run.use_cases());
     UnifiedService::new(
-        ThinkService::new(ReasoningServer::new(cfg)),
+        DecisionService::new(ReasoningServer::new(cfg)),
         run,
         plan,
         SignalService::new(SignalEngine::new(project.into())),

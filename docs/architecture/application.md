@@ -269,7 +269,7 @@ workflow writer; HostedWork supplies its writer explicitly to LoopDriver.
 | Workflow event sequence | the owner's broadcaster | `seq` on every feed line, `EventCursor { epoch, sequence }` decoded | every frame that owner emits, whatever its family |
 | Workflow read provenance | the opened family persistence owner | `ReadSource::File(StoreStamp { inode, modified, length })`, `Missing` or `Memory` within a successful observation | that family's source is observed; it does not certify another family |
 | Workflow record stamp | the family engine | `updated_at` on tasks and signals; ids and timestamps on run actions and checks | that record is written |
-| Workflow schema version | the think history file | `schema_version` (1) | the file format changes; plan, signal and run files carry none |
+| Workflow schema version | the decision history file | `schema_version` (1) | the file format changes; plan, signal and run files carry none |
 | Workspace | admitted `WorkspaceService` | `WorkspaceIdentity { root, generation }` | the canonical root never; the generation on every owner admission |
 | Source revision | the selected bytes | `SourceSnapshot::revision()` (content-addressed) | any selected byte, mode, kind or explicit input |
 | Mutation receipt revision | the journal's resolved intent | `MutationReceipt::revision` | per applied intent, over the applied files only |

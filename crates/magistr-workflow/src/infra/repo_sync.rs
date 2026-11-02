@@ -1,14 +1,14 @@
 //! Git-native trace sync.
 //!
-//! Mirrors think/run trace records into the repository under
+//! Mirrors decision/run trace records into the repository under
 //! `.magistr/traces/` as a strict superset of the Agent Trace v0.1.0 standard
 //! (see `docs/SCHEMA.md`): every line is a valid Agent Trace record, and the
-//! full think/run payload rides in `metadata["dev.magistr"]`. One JSONL
+//! full decision/run payload rides in `metadata["dev.magistr"]`. One JSONL
 //! file per session; `shared` records are committed to git (one commit per
 //! session on close), `local` records go to a gitignored partition.
 //!
 //! This module is the **generic core**. It is parameterised over an opaque
-//! [`serde_json::Value`] payload and knows nothing about the think/run domain
+//! [`serde_json::Value`] payload and knows nothing about the decision/run domain
 //! types — keeping `infra` at the bottom of the dependency graph (DIP). The
 //! domain → record mapping (which `kind`, which `files_touched`) lives in the
 //! engines.
@@ -121,7 +121,7 @@ impl RecordCtx {
 
     /// Build one Agent Trace v0.1.0 record wrapping `payload`.
     ///
-    /// `family` is `"think"` or `"run"`; `kind` is `"step" | "goal" |
+    /// `family` is `"decision"` or `"run"`; `kind` is `"note" | "step" | "goal" |
     /// "task" | "action" | "check"`. `files` is the Agent Trace `files[]`
     /// attribution (build entries with [`file_attribution`]); pass an empty
     /// vec for records that attribute no code.
@@ -317,12 +317,12 @@ impl RepoSink {
     /// its `sessions/` (committed) partition, flipping
     /// `metadata["dev.magistr"].shared` to `true` on each.
     ///
-    /// When `step` is `Some(n)`, only records whose
-    /// `metadata.dev.magistr.record.step_number == n` are promoted (the
-    /// per-step curation path, think-only since run records have no step
+    /// When `note` is `Some(n)`, only records whose
+    /// `metadata.dev.magistr.record.note == n` are promoted (the
+    /// per-note curation path, decision-only since run records have no note
     /// number). When `kind` is `Some(k)`, only records whose
-    /// `metadata.dev.magistr.kind == k` are promoted (`step`/`task`/
-    /// `goal`/`action`/`check`) — the selector for run records. The two
+    /// `metadata.dev.magistr.kind == k` are promoted (`note`/`step`/
+    /// `goal`/`progress`/`check`) — the selector for run records. The two
     /// filters AND together; both `None` promotes every record in the session.
     /// Kept records are rewritten atomically (tmp + rename); the local file is
     /// removed when empty. Does **not** commit — the promoted records are now in
@@ -331,7 +331,7 @@ impl RepoSink {
     pub fn promote(
         &self,
         session_id: &str,
-        step: Option<u32>,
+        note: Option<u32>,
         kind: Option<&str>,
     ) -> std::io::Result<PromoteOutcome> {
         let local_path = self
@@ -356,10 +356,10 @@ impl RepoSink {
                 continue;
             }
             let mut rec: Value = serde_json::from_str(line).map_err(std::io::Error::other)?;
-            let step_ok = match step {
+            let note_ok = match note {
                 None => true,
                 Some(n) => {
-                    rec.pointer("/metadata/dev.magistr/record/step_number")
+                    rec.pointer("/metadata/dev.magistr/record/note")
                         .and_then(Value::as_u64)
                         == Some(u64::from(n))
                 }
@@ -372,7 +372,7 @@ impl RepoSink {
                         == Some(k)
                 }
             };
-            let selected = step_ok && kind_ok;
+            let selected = note_ok && kind_ok;
             if selected {
                 if let Some(ext) = rec
                     .pointer_mut("/metadata/dev.magistr")
@@ -488,9 +488,9 @@ fn is_index_lock_contention(e: &std::io::Error) -> bool {
 /// Agent Trace record (which shells `git rev-parse HEAD`), the `fsync`'d append,
 /// and any commit all happen on the worker thread — never on the caller's.
 pub struct MirrorJob {
-    /// `"think" | "run" | "plan"`.
+    /// `"decision" | "run" | "plan"`.
     pub family: &'static str,
-    /// Record kind (`"step" | "goal" | "task" | "action" | "check" | …`).
+    /// Record kind (`"note" | "step" | "goal" | "progress" | "check" | …`).
     pub kind: &'static str,
     /// Trace session id (one JSONL file per session).
     pub session_id: String,
@@ -629,8 +629,8 @@ mod tests {
         let worker = MirrorWorker::spawn(RepoSink::new(tmp.path()));
         // Local partition → no git, no commit: purely exercises async append.
         worker.submit(MirrorJob {
-            family: "think",
-            kind: "step",
+            family: "decision",
+            kind: "note",
             session_id: "s1".into(),
             shared: false,
             payload: json!({ "n": 1 }),
@@ -643,7 +643,7 @@ mod tests {
         let body = std::fs::read_to_string(&path).expect("append landed before flush returned");
         assert_eq!(body.lines().count(), 1);
         let rec: Value = serde_json::from_str(body.lines().next().unwrap()).unwrap();
-        assert_eq!(rec["metadata"]["dev.magistr"]["family"], "think");
+        assert_eq!(rec["metadata"]["dev.magistr"]["family"], "decision");
     }
 
     #[test]
@@ -715,8 +715,15 @@ mod tests {
 
     #[test]
     fn build_record_is_valid_agent_trace_envelope() {
-        let payload = json!({ "step_number": 64, "purpose": "x" });
-        let rec = ctx().build_record("think", "step", "proj-abc", true, payload.clone(), vec![]);
+        let payload = json!({ "note": 64, "purpose": "x" });
+        let rec = ctx().build_record(
+            "decision",
+            "note",
+            "proj-abc",
+            true,
+            payload.clone(),
+            vec![],
+        );
 
         // Agent Trace required fields present + correct.
         assert_eq!(rec["version"], "0.1.0");
@@ -731,8 +738,8 @@ mod tests {
         // Our extension carries the verbatim payload + metadata.
         let ext = &rec["metadata"]["dev.magistr"];
         assert_eq!(ext["schema"], "1");
-        assert_eq!(ext["family"], "think");
-        assert_eq!(ext["kind"], "step");
+        assert_eq!(ext["family"], "decision");
+        assert_eq!(ext["kind"], "note");
         assert_eq!(ext["session_id"], "proj-abc");
         assert_eq!(ext["shared"], true);
         assert_eq!(ext["record"], payload);
@@ -777,7 +784,7 @@ mod tests {
     fn append_routes_shared_and_local_partitions() {
         let tmp = TempDir::new().unwrap();
         let sink = RepoSink::new(tmp.path());
-        let rec = ctx().build_record("think", "step", "s1", true, json!({}), vec![]);
+        let rec = ctx().build_record("decision", "note", "s1", true, json!({}), vec![]);
 
         let shared_path = sink.append("s1", true, &rec).unwrap();
         let local_path = sink.append("s1", false, &rec).unwrap();
@@ -803,13 +810,13 @@ mod tests {
         sink.append(
             "s1",
             false,
-            &ctx().build_record("think", "step", "s1", false, json!({}), vec![]),
+            &ctx().build_record("decision", "note", "s1", false, json!({}), vec![]),
         )
         .unwrap();
         sink.append(
             "s2",
             false,
-            &ctx().build_record("think", "step", "s2", false, json!({}), vec![]),
+            &ctx().build_record("decision", "note", "s2", false, json!({}), vec![]),
         )
         .unwrap();
         let gi = std::fs::read_to_string(tmp.path().join(".magistr/traces/.gitignore")).unwrap();
@@ -857,7 +864,7 @@ mod tests {
         sink.append(
             "s1",
             true,
-            &c.build_record("think", "step", "s1", true, json!({"n": 1}), vec![]),
+            &c.build_record("decision", "note", "s1", true, json!({"n": 1}), vec![]),
         )
         .unwrap();
         sink.append(
@@ -869,7 +876,7 @@ mod tests {
         sink.append(
             "s1",
             false,
-            &c.build_record("think", "step", "s1", false, json!({"n": 3}), vec![]),
+            &c.build_record("decision", "note", "s1", false, json!({"n": 3}), vec![]),
         )
         .unwrap();
 
@@ -931,7 +938,7 @@ mod tests {
         sink.append(
             "s1",
             true,
-            &ctx().build_record("think", "step", "s1", true, json!({}), vec![]),
+            &ctx().build_record("decision", "note", "s1", true, json!({}), vec![]),
         )
         .unwrap();
         sink.commit_session("s1").unwrap();
@@ -943,15 +950,15 @@ mod tests {
 
     // ── Promotion (local → shared) ───────────────────────────────────────
 
-    /// Append three local think steps (numbers 1,2,3) to session `s1`.
-    fn seed_local_steps(sink: &RepoSink) {
+    /// Append three local decision notes (numbers 1,2,3) to session `s1`.
+    fn seed_local_notes(sink: &RepoSink) {
         for n in 1..=3u32 {
             let rec = ctx().build_record(
-                "think",
-                "step",
+                "decision",
+                "note",
                 "s1",
                 false,
-                json!({ "step_number": n }),
+                json!({ "note": n }),
                 vec![],
             );
             sink.append("s1", false, &rec).unwrap();
@@ -969,10 +976,10 @@ mod tests {
     }
 
     #[test]
-    fn promote_single_step_moves_one_and_keeps_rest() {
+    fn promote_single_note_moves_one_and_keeps_rest() {
         let tmp = TempDir::new().unwrap();
         let sink = RepoSink::new(tmp.path());
-        seed_local_steps(&sink);
+        seed_local_notes(&sink);
 
         let out = sink.promote("s1", Some(2), None).unwrap();
         assert_eq!(
@@ -987,17 +994,14 @@ mod tests {
         let shared = read_lines(&tmp.path().join(".magistr/traces/sessions/s1.jsonl"));
         assert_eq!(shared.len(), 1);
         assert_eq!(shared[0]["metadata"]["dev.magistr"]["shared"], true);
-        assert_eq!(
-            shared[0]["metadata"]["dev.magistr"]["record"]["step_number"],
-            2
-        );
+        assert_eq!(shared[0]["metadata"]["dev.magistr"]["record"]["note"], 2);
 
         // Kept records (1 and 3) survive in local/, untouched.
         let local = read_lines(&tmp.path().join(".magistr/traces/local/s1.jsonl"));
         let kept_steps: Vec<u64> = local
             .iter()
             .map(|r| {
-                r["metadata"]["dev.magistr"]["record"]["step_number"]
+                r["metadata"]["dev.magistr"]["record"]["note"]
                     .as_u64()
                     .unwrap()
             })
@@ -1009,7 +1013,7 @@ mod tests {
     fn promote_all_empties_local_and_removes_file() {
         let tmp = TempDir::new().unwrap();
         let sink = RepoSink::new(tmp.path());
-        seed_local_steps(&sink);
+        seed_local_notes(&sink);
 
         let out = sink.promote("s1", None, None).unwrap();
         assert_eq!(
@@ -1048,7 +1052,7 @@ mod tests {
     fn promote_nonmatching_step_keeps_everything() {
         let tmp = TempDir::new().unwrap();
         let sink = RepoSink::new(tmp.path());
-        seed_local_steps(&sink);
+        seed_local_notes(&sink);
         let out = sink.promote("s1", Some(99), None).unwrap();
         assert_eq!(
             out,
@@ -1078,7 +1082,7 @@ mod tests {
         let sink = RepoSink::new(tmp.path());
         seed_local_run(&sink);
 
-        // Run records have no step_number, so --kind is the selector.
+        // Run records have no note_number, so --kind is the selector.
         let out = sink.promote("s2", None, Some("action")).unwrap();
         assert_eq!(
             out,
@@ -1105,13 +1109,13 @@ mod tests {
     }
 
     #[test]
-    fn promote_step_and_kind_and_together() {
+    fn promote_note_and_kind_and_together() {
         let tmp = TempDir::new().unwrap();
         let sink = RepoSink::new(tmp.path());
-        seed_local_steps(&sink); // think steps 1,2,3 with kind "step"
+        seed_local_notes(&sink); // decision notes 1,2,3 with kind "note"
 
-        // step=2 AND kind=step → exactly the one record.
-        let out = sink.promote("s1", Some(2), Some("step")).unwrap();
+        // note=2 AND kind=note → exactly the one record.
+        let out = sink.promote("s1", Some(2), Some("note")).unwrap();
         assert_eq!(
             out,
             PromoteOutcome {

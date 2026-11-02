@@ -5,8 +5,8 @@ use magistr_workflow_contracts::{Observed, Signal, Task, WorkflowMutationError};
 
 use crate::cockpit::ProposalKind;
 
-/// The engines the cockpit acts through without the agent: the Trace
-/// tab's \[Pin\] and \[Checkpoint\], and the Plan tab's task,
+/// The engines the cockpit acts through without the agent: the decision
+/// log's \[Pin\] and \[Review\], and the Plan tab's task,
 /// proposal and signal actions. The in-process engines broadcast
 /// nothing, so the consumer answers the cockpit itself with an
 /// [`EngineEvent`](super::EngineEvent) built from the port's return —
@@ -15,23 +15,23 @@ use crate::cockpit::ProposalKind;
 /// have announced. Mutation outcomes retain source and effect until presentation. `Send +
 /// Sync` because the session task holds the port across its awaits.
 pub trait EnginePort: Send + Sync {
-    /// Pin or unpin the step.
+    /// Pin or unpin the note.
     ///
     /// # Errors
-    /// The engine's reason the step was not marked — an unknown step
+    /// The engine's reason the note was not marked — an unknown note
     /// number included.
     fn pin(
         &mut self,
-        step_number: u32,
+        note_number: u32,
         pinned: bool,
     ) -> Result<Observed<bool>, WorkflowMutationError>;
 
-    /// The trace-wide metacognitive checkpoint report, as the engine
+    /// The log-wide metacognitive review report, as the engine
     /// renders it.
     ///
     /// # Errors
     /// The engine's reason no report was taken.
-    fn checkpoint(&mut self) -> Result<serde_json::Value, String>;
+    fn review(&mut self) -> Result<serde_json::Value, String>;
 
     /// Mark the task in progress; the updated task comes back.
     ///

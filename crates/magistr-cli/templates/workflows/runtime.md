@@ -7,7 +7,7 @@ Use the single **magistr** MCP connection. Common tasks have direct typed tools:
 Find every other operation with `discover`, then request its exact schema with
 `discover({"operation":"name"})`. Execute it with
 `execute({"source":"return magistr.call('name', { /* schema arguments */ });"})`.
-This includes `plan_*`, `think_*`, `signal_*`, `tracker_*`, the remaining
+This includes `plan_*`, `decision_*`, `signal_*`, `tracker_*`, the remaining
 `run_*` and `magistr_*` operations, and workspace `map`, `files`, `command`,
 `undo`, `script` and health. Names in the instructions below refer to catalog
 operations; use direct tools where advertised and `execute` for the rest.
@@ -65,8 +65,8 @@ tooling.
 - `arrange_steps` step types are `research`, `implement`, `test`, `review`,
   `config`, and `docs`. Change lifecycle with `start_step` and `finish_step`;
   keep only one step active. Record material progress with `record_progress`.
-- Omit `step_number` in `think_record_step` to allocate it. Link the returned
-  step; total step count is not the next number. Use `think_step` to link a
+- Omit `note` in `decision_record` to allocate it. Link the returned
+  note; the total note count is not the next number. Use `note` to link a
   `record_progress` entry to reasoning.
 - Select verification by the changed behavior, affected dependencies, and
   acceptance criteria. Explicitly set `verification: "focused"` for bounded

@@ -22,14 +22,14 @@ use std::time::Duration;
 use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, DuplexStream, ReadHalf, WriteHalf};
 
+use magistr_workflow::decision::DecisionService;
+use magistr_workflow::decision::config::DecisionConfig;
+use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
-use magistr_workflow::think::ThinkService;
-use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::engine::core::ReasoningServer;
 use rmcp::ServiceExt;
 
 /// The revision under test. Both fields are optional before it and required
@@ -41,12 +41,12 @@ const PROTOCOL: &str = "2026-07-28";
 const REPLY_TIMEOUT: Duration = Duration::from_secs(10);
 
 fn build_unified() -> UnifiedService {
-    let mut cfg = ThinkConfig::default();
+    let mut cfg = DecisionConfig::default();
     cfg.display.color_output = false;
     let run = RunService::new(RunEngine::new("test-wire".into()));
     let plan = PlanService::new(PlanEngine::new("test-wire".into()), run.use_cases());
     UnifiedService::new(
-        ThinkService::new(ReasoningServer::new(cfg)),
+        DecisionService::new(ReasoningServer::new(cfg)),
         run,
         plan,
         SignalService::new(SignalEngine::new("test-wire".into())),

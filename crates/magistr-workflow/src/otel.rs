@@ -9,8 +9,8 @@
 //! - root span `workspace <project>`;
 //! - the run cycle nests `goal → step → progress/check` (a failed check
 //!   sets span status ERROR — the gate failed, not the step);
-//! - think steps become reasoning spans parented to the step named by their
-//!   `execution_ref` (`step:<id>`) when present, else to the root.
+//! - decision notes become reasoning spans parented to the step named by their
+//!   `run_ref` (`step:<id>`) when present, else to the root.
 //!
 //! Attribute policy: `gen_ai.operation.name` is set only where a semconv
 //! value genuinely fits (`invoke_agent` for goal/steps, `execute_tool`
@@ -19,7 +19,7 @@
 //! corpus always exports the same trace.
 //!
 //! Honest limits: the local run store holds the CURRENT cycle only (one
-//! goal tree per export); think steps without timestamps are skipped
+//! goal tree per export); decision notes without timestamps are skipped
 //! and counted, never fabricated; checks are zero-duration spans at their
 //! recorded instant.
 
@@ -27,9 +27,9 @@ use chrono::DateTime;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
+use crate::decision::domain::note::Note;
 use crate::run::domain::goal::Goal;
 use crate::run::domain::step::Step;
-use crate::think::domain::step::ThinkStep;
 use crate::trace_context::InboundTrace;
 
 /// A built export plus what was (honestly) left out.
@@ -112,7 +112,7 @@ pub(crate) fn span(
 pub fn build_otel<'a>(
     project: &str,
     run: Option<(&Goal, &[Step])>,
-    steps: impl Iterator<Item = &'a ThinkStep>,
+    steps: impl Iterator<Item = &'a Note>,
     inbound: Option<&InboundTrace>,
 ) -> OtelExport {
     let trace = match inbound {
@@ -231,7 +231,7 @@ pub fn build_otel<'a>(
         }
     }
 
-    // Think steps: reasoning spans, parented via execution_ref when it names a step.
+    // Decision notes: reasoning spans, parented via run_ref when it names a step.
     let step_span_of = |exec: Option<&str>| -> Option<String> {
         exec.and_then(|e| e.strip_prefix("step:"))
             .map(|t| span_id("step", t))
@@ -244,15 +244,15 @@ pub fn build_otel<'a>(
         let end = start + step.duration_ms.unwrap_or(1).max(1) * 1_000_000;
         bump(start, end, &mut min_start, &mut max_end);
         // Parent only to spans that exist in THIS export (the current run
-        // cycle's steps); historical execution_refs fall back to the root.
-        let parent = step_span_of(step.execution_ref.as_deref())
+        // cycle's steps); historical run_refs fall back to the root.
+        let parent = step_span_of(step.run_ref.as_deref())
             .filter(|p| spans.iter().any(|s| s["spanId"] == *p))
             .unwrap_or_else(|| root_id.clone());
         let mut attrs = vec![
             attr("gen_ai.agent.name", project),
-            attr("magistr.workflow.family", "think"),
+            attr("magistr.workflow.family", "decision"),
             attr("magistr.workflow.kind", "step"),
-            attr("magistr.workflow.id", &step.step_number.to_string()),
+            attr("magistr.workflow.id", &step.note.to_string()),
             attr("magistr.workflow.title", &step.purpose),
         ];
         if let Some(c) = step.confidence {
@@ -260,9 +260,9 @@ pub fn build_otel<'a>(
         }
         spans.push(span(
             &trace,
-            span_id("step", &step.step_number.to_string()),
+            span_id("step", &step.note.to_string()),
             Some(&parent),
-            &format!("reasoning step {}", step.step_number),
+            &format!("reasoning step {}", step.note),
             start,
             end,
             attrs,
@@ -388,11 +388,10 @@ pub fn validate_otlp_with_external_parent(body: &Value, external: Option<&str>) 
 mod tests {
     use super::*;
 
-    fn step(n: u32, ts: &str, exec: Option<&str>) -> ThinkStep {
-        let mut s: ThinkStep =
-            serde_json::from_str(&format!("{{\"step_number\":{n}}}")).expect("step");
+    fn step(n: u32, ts: &str, exec: Option<&str>) -> Note {
+        let mut s: Note = serde_json::from_str(&format!("{{\"note\":{n}}}")).expect("step");
         s.timestamp = Some(ts.into());
-        s.execution_ref = exec.map(str::to_owned);
+        s.run_ref = exec.map(str::to_owned);
         s.purpose = format!("step {n}");
         s
     }
@@ -456,7 +455,7 @@ mod tests {
         let reasoning = by_name("reasoning step 7");
         assert_eq!(progress["parentSpanId"], step_span["spanId"]);
         assert_eq!(check["parentSpanId"], step_span["spanId"]);
-        // execution_ref step:implement parents the reasoning span to the step.
+        // run_ref step:implement parents the reasoning span to the step.
         assert_eq!(reasoning["parentSpanId"], step_span["spanId"]);
         // Failed gate → ERROR status on the check span only.
         assert_eq!(check["status"]["code"], 2);
@@ -466,7 +465,7 @@ mod tests {
     #[test]
     fn ids_are_deterministic_and_steps_without_timestamps_are_counted_not_fabricated() {
         let (obj, run_steps) = cycle();
-        let mut no_ts: ThinkStep = serde_json::from_str("{\"step_number\":9}").unwrap();
+        let mut no_ts: Note = serde_json::from_str("{\"note\":9}").unwrap();
         no_ts.timestamp = None;
         let steps = [step(7, "2026-06-10T10:06:00Z", None), no_ts];
         let a = build_otel("proj", Some((&obj, &run_steps)), steps.iter(), None);

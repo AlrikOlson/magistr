@@ -60,13 +60,13 @@ impl RunEngine {
         title: String,
         step_type: StepType,
         estimate: Option<String>,
-        think_branch: Option<String>,
+        decision_thread: Option<String>,
     ) -> Result<Observed<()>, RunError> {
         let step_id = id.clone();
         let step_title = title.clone();
         let result = self.mutate(&[], |state| {
             state
-                .add_step(id, title, step_type, estimate, think_branch)
+                .add_step(id, title, step_type, estimate, decision_thread)
                 .map_err(Into::into)
         })?;
         self.broadcast(BroadcastFrame::StepAdded {
@@ -113,7 +113,7 @@ impl RunEngine {
         files_touched: Vec<String>,
         tools_used: Vec<String>,
         result: String,
-        think_step: Option<u32>,
+        note: Option<u32>,
     ) -> Result<Observed<Progress>, RunError> {
         let target = self.snapshot().admit_step(step_id)?.step_id;
         let result = self.mutate(&[&target], |state| {
@@ -125,7 +125,7 @@ impl RunEngine {
                     files_touched,
                     tools_used,
                     result,
-                    think_step,
+                    note,
                 )
                 .cloned()
                 .map_err(Into::into)
@@ -345,7 +345,7 @@ impl PersistedState {
         title: String,
         step_type: StepType,
         estimate: Option<String>,
-        think_branch: Option<String>,
+        decision_thread: Option<String>,
     ) -> Result<(), String> {
         if self.steps.iter().any(|step| step.id == id) {
             return Err(format!("step '{id}' already exists"));
@@ -368,7 +368,7 @@ impl PersistedState {
             checks: Vec::new(),
             progress: Vec::new(),
             waiting_reason: None,
-            think_branch,
+            decision_thread,
         });
         Ok(())
     }
@@ -428,7 +428,7 @@ impl PersistedState {
         files_touched: Vec<String>,
         tools_used: Vec<String>,
         result: String,
-        think_step: Option<u32>,
+        note: Option<u32>,
     ) -> Result<&Progress, String> {
         let tid = self.resolve_step_id(step_id)?;
         let idx = self.step_index(&tid)?;
@@ -446,7 +446,7 @@ impl PersistedState {
             files_touched,
             tools_used,
             result,
-            think_step,
+            note,
         };
         self.steps[idx].progress.push(progress);
         Ok(self.steps[idx].progress.last().unwrap())

@@ -1,5 +1,5 @@
 //! `PlanService` — the rmcp `ServerHandler` for the `plan_*` family,
-//! mirroring `RunService`. Unlike think/run there are NO deprecated aliases:
+//! mirroring `RunService`. Unlike decision/run there are NO deprecated aliases:
 //! `plan_*` is a brand-new family with no legacy names to carry.
 
 use std::path::PathBuf;
@@ -23,7 +23,7 @@ use crate::plan::engine::PlanEngine;
 use crate::plan::output_schemas;
 use crate::run::RunUseCases;
 
-const SERVER_INSTRUCTIONS: &str = r#"plan-* drives the project plan: the long-horizon plan-of-plans that sits above run_* goals and links to think_* reasoning.
+const SERVER_INSTRUCTIONS: &str = r#"plan-* drives the project plan: the long-horizon plan-of-plans that sits above run_* goals and links to decision_* reasoning.
 
 When to call which tool:
   - Add a phase/item to the plan          → plan_add_task
@@ -34,7 +34,7 @@ When to call which tool:
   - Pick the next ready task              → plan_next
   - Begin work on a task                  → plan_start_task
   - Close a task with proof-of-run       → plan_complete_task
-  - Attach a think:/task: cross-reference  → plan_link
+  - Attach a decision:/task: cross-reference  → plan_link
   - Record a research refresh + its steps  → plan_record_refresh
   - Reconstruct the plan / get state       → plan_status
   - Write PLAN.md and get a receipt     → plan_export

@@ -3,7 +3,7 @@
 # componentize with plugins/lang-pack-gleam/build.ps1 (or build.sh); the
 # committed guest.wasm is the shipped artifact.
 #
-# Same no-WASI discipline as the resolver and runner guests (think:119
+# Same no-WASI discipline as the resolver and runner guests (decision:119
 # recipe): no_std + alloc, panic = "abort", dlmalloc — the core module must
 # import NOTHING (this guest declares zero capabilities). The grammar bytes
 # and tag queries are embedded at build time; the carrier does no work.

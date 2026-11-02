@@ -24,15 +24,15 @@
 //! a projection "contains the summary" cannot be satisfied by the title coming
 //! along for the ride.
 
+use magistr_workflow::decision::DecisionService;
+use magistr_workflow::decision::config::DecisionConfig;
+use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::domain::{Task, TaskStatus};
 use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
-use magistr_workflow::think::ThinkService;
-use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::engine::core::ReasoningServer;
 use rmcp::{
     ServiceExt,
     model::{CallToolRequestParams, CallToolResult},
@@ -97,12 +97,12 @@ fn seeded_engine() -> PlanEngine {
 }
 
 fn build_unified() -> UnifiedService {
-    let mut cfg = ThinkConfig::default();
+    let mut cfg = DecisionConfig::default();
     cfg.display.color_output = false;
     let run = RunService::new(RunEngine::new("waterworks-seam".into()));
     let plan = PlanService::new(seeded_engine(), run.use_cases());
     UnifiedService::new(
-        ThinkService::new(ReasoningServer::new(cfg)),
+        DecisionService::new(ReasoningServer::new(cfg)),
         run,
         plan,
         SignalService::new(SignalEngine::new("waterworks-seam".into())),

@@ -219,7 +219,7 @@ async fn active_step(svc: &RunService) {
         step_type: None,
         estimate: None,
         after: None,
-        think_branch: None,
+        decision_thread: None,
     }))
     .await
     .unwrap();

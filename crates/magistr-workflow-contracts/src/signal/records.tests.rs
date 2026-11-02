@@ -95,7 +95,7 @@ fn merge_conflict_keeps_the_furthest_lifecycle_progress() {
 #[test]
 fn merge_same_rank_prefers_more_enrichment_then_memory() {
     let enrichment = Enrichment {
-        think_step: None,
+        note: None,
         sources: vec![],
         summary: "deeper".into(),
         confidence: 0.8,

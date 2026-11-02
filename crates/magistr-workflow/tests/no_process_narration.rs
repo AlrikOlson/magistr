@@ -56,8 +56,8 @@ const NEEDLES: &[Needle] = &[
     // Reasoning-trace citations use the real trace's 3+ digit step numbers;
     // wire-format fixtures in tests stay below 100 by convention.
     Needle {
-        label: "reasoning-trace step reference",
-        prefix: concat!("th", "ink:"),
+        label: "decision-log note reference",
+        prefix: concat!("deci", "sion:"),
         min_digits: 3,
     },
     Needle {
@@ -178,7 +178,7 @@ fn commit_msg_hook_present_and_covers_the_markers() {
     for marker in [
         concat!("hase", "[- ]"),
         concat!("ag", "a"),
-        concat!("hink", ":"),
+        concat!("ecision", ":"),
         concat!("HI", "-"),
         concat!("abot", "age"),
     ] {

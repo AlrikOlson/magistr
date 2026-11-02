@@ -1,7 +1,7 @@
 //! Durability of the run/plan/signal stores under concurrent server
-//! processes — the family-stores extension of `think_trace_durability.rs`.
+//! processes — the family-stores extension of `decision_trace_durability.rs`.
 //!
-//! Residue of the 2026-06-09 think incident: these three engines still did
+//! Residue of the 2026-06-09 decision incident: these three engines still did
 //! load-once-at-startup + whole-file-overwrite of their per-project
 //! `<project_id>.json`, so two live engines in the SAME project could clobber
 //! each other's acked mutations. The `*_clobber*` tests reproduce that loss
@@ -336,14 +336,14 @@ fn rejected_plan_and_signal_writes_preserve_bytes_and_retry_after_repair() {
     ] {
         std::fs::write(&plan_path, &bad).unwrap();
         std::fs::write(&signal_path, &bad).unwrap();
-        let PlanMutationError::Store(error) = plan.link_task("saved", "think:1").unwrap_err()
+        let PlanMutationError::Store(error) = plan.link_task("saved", "decision:1").unwrap_err()
         else {
             panic!("expected store refusal")
         };
         assert_eq!(error.kind, WriteErrorKind::Read(kind));
         assert_eq!(error.effect(), "none");
         let SignalMutationError::Store(error) =
-            signal.link(&captured.value.id, "think:1").unwrap_err()
+            signal.link(&captured.value.id, "decision:1").unwrap_err()
         else {
             panic!("expected store refusal")
         };
@@ -356,12 +356,12 @@ fn rejected_plan_and_signal_writes_preserve_bytes_and_retry_after_repair() {
     }
     std::fs::write(&plan_path, plan_bytes).unwrap();
     std::fs::write(&signal_path, signal_bytes).unwrap();
-    let saved = plan.link_task("saved", "think:1").unwrap();
+    let saved = plan.link_task("saved", "decision:1").unwrap();
     assert!(matches!(saved.source, ReadSource::File(_)));
     assert_eq!(saved.source, plan.observe().unwrap().source);
-    let saved = signal.link(&captured.value.id, "think:1").unwrap();
+    let saved = signal.link(&captured.value.id, "decision:1").unwrap();
     assert_eq!(saved.source, signal.observe().unwrap().source);
-    assert_eq!(saved.value.refs, ["think:1"]);
+    assert_eq!(saved.value.refs, ["decision:1"]);
 }
 
 #[test]

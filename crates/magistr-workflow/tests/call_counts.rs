@@ -20,6 +20,9 @@
 //! The last test covers soak behaviour: it proves the counter refuses to let
 //! a day of traffic be read as a verdict.
 
+use magistr_workflow::decision::DecisionService;
+use magistr_workflow::decision::config::DecisionConfig;
+use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::infra::{Domain, Persistence, PersistenceConfig};
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::unified::{Family, FamilySelection};
@@ -27,9 +30,6 @@ use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
-use magistr_workflow::think::ThinkService;
-use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::engine::core::ReasoningServer;
 use magistr_workflow::usage::{CallCounter, CallCounts, UNRECOGNIZED, Verdict};
 use rmcp::{
     ClientHandler, ServiceExt,
@@ -57,16 +57,16 @@ fn scratch(name: &str) -> PersistenceConfig {
 }
 
 fn build_unified(cfg: &PersistenceConfig, families: FamilySelection) -> UnifiedService {
-    let mut dcfg = ThinkConfig::default();
+    let mut dcfg = DecisionConfig::default();
     dcfg.display.color_output = false;
-    let think = ThinkService::new(ReasoningServer::new(dcfg));
+    let decision = DecisionService::new(ReasoningServer::new(dcfg));
     let run = RunService::new(RunEngine::new("test-abc123".into()));
     let plan = PlanService::new(PlanEngine::new("test-abc123".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
 
     // Every registered name, taken the same way the service does — so the
     // counter under test knows exactly the names a real deployment knows.
-    let svc = UnifiedService::new(think, run, plan, signal);
+    let svc = UnifiedService::new(decision, run, plan, signal);
     let known: Vec<String> = svc
         .list_tools_view()
         .into_iter()
@@ -115,7 +115,7 @@ async fn n_calls_over_the_wire_reads_n() {
     let cfg = scratch("exact");
     let (client, server) = pair(build_unified(&cfg, FamilySelection::all())).await;
 
-    // 5 successful plan_status calls and 2 think_engine_status calls.
+    // 5 successful plan_status calls and 2 decision_status calls.
     for _ in 0..5 {
         client
             .peer()
@@ -126,9 +126,9 @@ async fn n_calls_over_the_wire_reads_n() {
     for _ in 0..2 {
         client
             .peer()
-            .call_tool(CallToolRequestParams::new("think_engine_status"))
+            .call_tool(CallToolRequestParams::new("decision_status"))
             .await
-            .expect("think_engine_status succeeds");
+            .expect("decision_status succeeds");
     }
 
     let got = read_as_the_cli_would(&cfg);
@@ -138,7 +138,7 @@ async fn n_calls_over_the_wire_reads_n() {
         "5 calls must read 5, not 'roughly 5' and not 0 — counts: {:?}",
         got.counts
     );
-    assert_eq!(got.counts.get("think_engine_status"), Some(&2));
+    assert_eq!(got.counts.get("decision_status"), Some(&2));
     assert_eq!(got.total(), 7, "no phantom increments: {:?}", got.counts);
     assert!(
         !got.updated_at.is_empty(),
@@ -226,7 +226,7 @@ async fn unknown_names_do_not_mint_keys() {
         let _ = client
             .peer()
             .call_tool(CallToolRequestParams::new(format!(
-                "think_not_a_real_tool_{i}"
+                "decision_not_a_real_tool_{i}"
             )))
             .await;
     }

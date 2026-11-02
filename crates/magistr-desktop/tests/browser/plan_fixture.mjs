@@ -13,7 +13,7 @@ export function planFixture(){
   tasks[0].content={version:1,summary:"Return to the work you left.",facts:[{label:"Applies to",value:"Project reopening"}],
     sections:[{heading:"What changes",prose:"Keep the conversation and draft together when the project opens.",list:[{text:"Restore the saved conversation.",done:true},{text:"Keep unsent text ready to edit.",done:false}]}]};
   tasks[0].notes="Check reopening with a long conversation and an unsent message.";
-  tasks[2].status_proposal={suggested_status:"to_do",reason:"The release date has been discussed and is ready for a decision.",source:"think:41",proposed_at:"2026-10-15T08:00:00Z"};
+  tasks[2].status_proposal={suggested_status:"to_do",reason:"The release date has been discussed and is ready for a decision.",source:"decision:41",proposed_at:"2026-10-15T08:00:00Z"};
   const frontiers=[
     {feature:"Desktop",activity,items:[
       {id:"reopen",name:"Reopening",priority:100,status:"to_do",readiness:{state:"ready"}},

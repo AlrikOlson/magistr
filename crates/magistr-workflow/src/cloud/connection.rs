@@ -192,7 +192,7 @@ pub fn data_dir() -> PathBuf {
 /// This project's id — the key the record is filed under.
 #[must_use]
 pub fn project_id() -> String {
-    crate::think::config::resolve_project_id()
+    crate::decision::config::resolve_project_id()
 }
 
 /// The connection recorded for the project in the current working directory.

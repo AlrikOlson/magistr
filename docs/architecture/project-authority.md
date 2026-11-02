@@ -25,7 +25,7 @@ execution inputs once.
 ## One write path
 
 Every supported native mutation runs the first-party workflow application use
-case for its family. `ProjectAuthority::open` composes `ThinkUseCases`,
+case for its family. `ProjectAuthority::open` composes `DecisionUseCases`,
 `RunUseCases`, `PlanUseCases`, and `SignalUseCases` once, including the
 reciprocal plan/signal capabilities. NativeEngines calls their synchronous,
 typed methods directly. `ProjectAuthority::serve` wraps those same capabilities

@@ -87,7 +87,7 @@ pub fn client_with(
     // adopted, and is header-free when none was.
     Some(
         CloudClient::new(url, token)
-            .with_trace_context(&crate::think::config::resolve_project_id()),
+            .with_trace_context(&crate::decision::config::resolve_project_id()),
     )
 }
 

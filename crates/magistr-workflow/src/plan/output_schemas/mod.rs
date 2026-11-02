@@ -218,11 +218,11 @@ pub struct PlanGetOutput {
 }
 
 /// `plan_start_task`: the task plus the reference the agent wires into
-/// run/think.
+/// run/decision.
 #[derive(Serialize, JsonSchema)]
 pub struct StartTaskOutput {
     pub task: TaskOutput,
-    /// `task:<id>` — pass to run_open + a think execution_ref.
+    /// `task:<id>` — pass to run_open + a decision run_ref.
     #[serde(rename = "ref")]
     pub reference: String,
     pub hint: String,
@@ -232,7 +232,7 @@ pub struct StartTaskOutput {
 pub struct RefreshOutput {
     pub recorded: bool,
     pub summary: String,
-    pub think_steps: Vec<u32>,
+    pub notes: Vec<u32>,
     pub total_refreshes: usize,
 }
 

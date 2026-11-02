@@ -88,10 +88,10 @@ fn reasoning_lifecycle_is_available_to_workflow_and_plan_agents() {
     ] {
         assert!(permissions.contains("discover"));
         assert!(permissions.contains("execute"));
-        assert!(!permissions.contains("think_wipe_trace"));
-        assert!(!permissions.contains("think_export_trace"));
+        assert!(!permissions.contains("decision_wipe"));
+        assert!(!permissions.contains("decision_export"));
     }
-    assert!(!ToolPermissions::for_interview().contains("think_set_branch_status"));
+    assert!(!ToolPermissions::for_interview().contains("decision_set_thread_status"));
 }
 
 #[test]

@@ -431,11 +431,22 @@ run in this order:
    `.magistr-roadmap.yml` are converted by their configuration owner. A
    readiness that waits on dependencies is `dependent`; `waiting` is reserved
    for a named reason.
-4. `vocab-decision-family` and `vocab-request-family`: think and signal.
-5. `vocab-teams-checks`: lane, workstream and gate.
-6. `vocab-copy-gate`: desktop, website and docs copy, plus a check that fails
+4. `vocab-decision-family`: think, step, branch and session in the decision
+   log. The decision store moves from `think/` to `decisions/` after the plan
+   store has moved; every store rewrites `think:` to `decision:` and the
+   decision fields (`think_step` to `note`, a plan refresh's `think_steps` to
+   `notes`). Saved logs hold `notes` and `threads` keyed by `log_id`; a note's
+   number is `note`, and an open thread is stored as `open`. Every family's
+   codec moves one version for it. Owners older than these words lock in the
+   plan directory, so current owners hold their project lease under
+   `owners/decision-words/` and the move waits while an older lease is held.
+   The cloud record kind for a note is `note`, and the family id is
+   `decision`.
+5. `vocab-request-family`: signal.
+6. `vocab-teams-checks`: lane, workstream and gate.
+7. `vocab-copy-gate`: desktop, website and docs copy, plus a check that fails
    on a word from [Words the interface never shows](#words-the-interface-never-shows).
-7. `vocabulary-cutover`: ship the staged skills, then prove an end-to-end agent
+8. `vocabulary-cutover`: ship the staged skills, then prove an end-to-end agent
    run that uses only the new names.
 
 While the tasks land, a family that is not done yet still uses its old words.
@@ -460,10 +471,23 @@ These keep their spelling on purpose:
 - `receipt` in workspace writes (apply, mutation, source-write receipts) and in
   `execute` composition results is a different word from a check result and
   keeps its spelling here; `vocab-copy-gate` decides its public copy.
-- Words other families own stay until their task lands: `think_step`,
-  `think_branch` and the `execution_ref` field name (decision family), the
-  quality-gate words `gate`, `magistr_gate` and `custom_gates`, and
-  `workstream`, `track` and `lane` (teams and checks).
+- Words other families own stay until their task lands: the quality-gate words
+  `gate`, `magistr_gate` and `custom_gates`, and `workstream`, `track` and
+  `lane` (teams and checks).
+- `thinking` is the model's own reasoning (Claude's extended thinking, the
+  ACP tool kind `think`), not the decision log, and keeps its words. So do a
+  git branch, an agent or conversation session, and the
+  `think-and-ship` backend name and directory that older installations
+  upgrade from.
+- Repository mirroring writes the Agent Trace format, whose own words
+  (`.magistr/traces/`, its `sessions/` files and `session_id`) belong to that
+  format.
+- The recorded build session under `apps/website/public/demo` uses the words
+  of its day, so the website code that replays it reads those words.
+- The desktop's internal names and shown labels for the decision log
+  ("Reasoning", "Step 41", "Investigation") are copy; `vocab-copy-gate`
+  brings them to the glossary. The fields they read already use the stored
+  words.
 - The skill names `roadmap` and `roadmap-refresh` and their template files stay
   until `vocabulary-cutover` ships the staged `plan` skill; their text already
   uses the plan tools.

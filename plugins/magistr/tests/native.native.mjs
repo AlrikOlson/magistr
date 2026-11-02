@@ -251,7 +251,7 @@ test(
       const first = validate('context', await call('context'))
       assert.equal(first.phase, null)
       validate('plan', await call('plan_status'))
-      validate('findings', await call('think_engine_status', { verbose: true }))
+      validate('findings', await call('decision_status', { verbose: true }))
       assert.equal(phase(first, run), 'Phase not reported')
       await verifyWorkstreams(call, root)
       await verifyReadRecovery(

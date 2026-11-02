@@ -1,3 +1,4 @@
+use magistr_workflow::decision::engine::ReasoningServer;
 use magistr_workflow::infra::{Broadcaster, Domain, Persistence};
 use magistr_workflow::plan::PlanEngine;
 use magistr_workflow::run::engine::RunEngine;
@@ -5,7 +6,6 @@ use magistr_workflow::run::persistence::{
     Persistence as RunPersistence, PersistenceConfig as RunPersistenceConfig,
 };
 use magistr_workflow::signal::SignalEngine;
-use magistr_workflow::think::engine::ReasoningServer;
 
 use super::native_config::NativeConfig;
 
@@ -26,12 +26,12 @@ pub(crate) fn open_engines(
     let mut plan = open_plan(config, project_id.clone());
     let mut signal = open_signal(config, project_id.clone());
     let mut run = open_run(config, project_id.clone());
-    let think_config = config.think_config(&project_id);
-    let mut think = ReasoningServer::new_for_project(think_config, project_id);
+    let decision_config = config.decision_config(&project_id);
+    let mut decision = ReasoningServer::new_for_project(decision_config, project_id);
 
     if let Some(b) = broadcaster {
-        think = think.with_broadcaster(
-            magistr_workflow::think::broadcast::Broadcaster::from_engine(b.clone()),
+        decision = decision.with_broadcaster(
+            magistr_workflow::decision::broadcast::Broadcaster::from_engine(b.clone()),
         );
         run = run.with_broadcaster(magistr_workflow::run::broadcast::Broadcaster::from_engine(
             b.clone().with_execution(config.execution_context().key()),
@@ -43,7 +43,7 @@ pub(crate) fn open_engines(
             .with_broadcaster(magistr_workflow::signal::broadcast::Broadcaster::from_engine(b));
     }
 
-    (think, run, plan, signal)
+    (decision, run, plan, signal)
 }
 
 /// Open the project plan owner on its configured persistence.

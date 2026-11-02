@@ -849,7 +849,7 @@ async fn closed_local_and_provider_receivers_preserve_the_refused_action() {
             option_id: "allow".into(),
         },
         Cmd::Workspace(WorkspaceCmd::Undo { id: "op-2".into() }),
-        Cmd::Engine(EngineCmd::Checkpoint),
+        Cmd::Engine(EngineCmd::Review),
     ] {
         assert!(!session.forward(cmd.clone()));
         assert!(matches!(events.recv().await,
@@ -998,8 +998,8 @@ async fn a_start_during_a_response_or_inside_running_work_is_refused_in_words() 
     let (commands, receiver) = Commands::channel();
     let (session, mut opening) = idle_session(inbox);
     let task = session.spawn(receiver);
-    commands.send(Cmd::Prompt("think".into())).unwrap();
-    assert_eq!(next(&mut opening.prompts).await, "think");
+    commands.send(Cmd::Prompt("decision".into())).unwrap();
+    assert_eq!(next(&mut opening.prompts).await, "decision");
     commands.send(Cmd::Launch(LaunchAction::Next)).unwrap();
     assert!(matches!(
         next_observation(&mut events).await,

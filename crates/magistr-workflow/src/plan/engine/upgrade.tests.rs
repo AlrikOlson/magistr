@@ -11,18 +11,24 @@ fn omitted_item_origins_are_filled_once_and_authored_content_survives() {
     let bytes = PlanEngine::upgrade_document(OLD, "saved-project").unwrap();
     let old: Value = serde_json::from_slice(OLD).unwrap();
     let new: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(new["schema_version"], 2);
+    assert_eq!(new["schema_version"], 3);
     assert!(new.get("chunks").is_none());
     let (before, after) = (&old["chunks"][0], &new["tasks"][0]);
     assert_eq!(after["project_id"], "saved-project");
     assert_eq!(after["status"], "to_do");
-    assert_eq!(after["refs"], before["cross_refs"]);
+    let refs: Vec<String> = before["cross_refs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r.as_str().unwrap().replace("think:", "decision:"))
+        .collect();
+    assert_eq!(after["refs"], json!(refs), "notes take the decision words");
     for authored in ["id", "title", "name", "description", "notes", "acceptance"] {
         assert_eq!(after[authored], before[authored], "{authored}");
     }
     assert_eq!(new["preamble"], old["preamble"]);
     assert!(
-        bytes.starts_with(b"{\"schema_version\":2"),
+        bytes.starts_with(b"{\"schema_version\":3"),
         "the version leads the document"
     );
     assert_eq!(
@@ -91,7 +97,7 @@ fn every_stored_plan_word_takes_its_new_spelling() {
     assert_eq!(tasks[2]["retired_reason"], "Overtaken");
     assert_eq!(
         tasks[3]["refs"],
-        json!(["task:a", "step:verify", "progress:3", "think:9"]),
+        json!(["task:a", "step:verify", "progress:3", "decision:9"]),
         "run references take the run words and plan tasks take task: in one pass"
     );
     assert_eq!(tasks[3]["status_proposal"]["suggested_status"], "to_do");
@@ -136,5 +142,31 @@ fn foreign_origins_and_duplicate_items_are_never_relabelled() {
     assert!(
         PlanEngine::upgrade_document(&serde_json::to_vec(&value).unwrap(), "saved-project")
             .is_err()
+    );
+}
+
+#[test]
+fn a_plan_saved_before_the_decision_words_takes_them_once() {
+    let mut v2 = converted(OLD);
+    v2["schema_version"] = json!(2);
+    v2["tasks"][0]["refs"] = json!(["think:7", "task:saved", "step:verify"]);
+    v2["refreshes"] = json!([{"at": "2026-10-01", "summary": "Refreshed", "think_steps": [7, 8]}]);
+    let bytes =
+        PlanEngine::upgrade_document(&serde_json::to_vec(&v2).unwrap(), "saved-project").unwrap();
+    let new: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(new["schema_version"], 3);
+    assert_eq!(
+        new["tasks"][0]["refs"],
+        json!(["decision:7", "task:saved", "step:verify"]),
+        "only the note prefix changes"
+    );
+    assert_eq!(
+        new["refreshes"][0],
+        json!({"at": "2026-10-01", "summary": "Refreshed", "notes": [7, 8]})
+    );
+    assert_eq!(
+        PlanEngine::upgrade_document(&bytes, "saved-project").unwrap(),
+        bytes,
+        "a current document is unchanged"
     );
 }

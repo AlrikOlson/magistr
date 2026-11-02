@@ -42,13 +42,13 @@ pub struct Progress {
     #[serde(default)]
     pub files_touched: Vec<String>,
     /// Tools the agent CHOSE TO MENTION — a self-report, not a measurement.
-    /// See the same warning on `think::domain::step::Step::tools_used`; real
+    /// See the same warning on `decision::domain::note::Step::tools_used`; real
     /// invocation counts live in the workflow dispatcher.
     #[serde(default)]
     pub tools_used: Vec<String>,
     pub result: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub think_step: Option<u32>,
+    pub note: Option<u32>,
 }
 
 #[cfg(test)]

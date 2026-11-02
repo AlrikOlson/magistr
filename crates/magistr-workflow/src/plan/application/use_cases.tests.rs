@@ -107,7 +107,7 @@ fn native_blocker_commands_validate_and_clear_through_the_same_patch() {
                 waiting_on: Some(WaitingDraft {
                     kind: WaitingReason::Person,
                     reason: "Need owner input".into(),
-                    evidence: Some("think:7".into()),
+                    evidence: Some("decision:7".into()),
                 }),
                 ..TaskPatch::default()
             },
@@ -115,7 +115,7 @@ fn native_blocker_commands_validate_and_clear_through_the_same_patch() {
         .unwrap();
     assert_eq!(
         blocked.value.waiting_on.unwrap().evidence.as_deref(),
-        Some("think:7")
+        Some("decision:7")
     );
     assert!(
         app.update_task(

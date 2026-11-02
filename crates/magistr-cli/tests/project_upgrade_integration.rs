@@ -180,7 +180,7 @@ fn repair_converts_version_one_work_and_reasoning_before_checking_the_connection
         ),
         (
             "think/sessions/saved-project.json",
-            include_bytes!("../../magistr-workflow/src/think/fixtures/v1.json").as_slice(),
+            include_bytes!("../../magistr-workflow/src/decision/fixtures/v1.json").as_slice(),
         ),
         (
             "roadmap/sessions/saved-project.json",
@@ -221,7 +221,7 @@ fn repair_converts_version_one_work_and_reasoning_before_checking_the_connection
         assert_eq!(reader.plan_tasks().unwrap()[0].id, "saved");
         assert_eq!(reader.signal_list().unwrap()[0].id, "saved-signal");
         assert_eq!(
-            reader.think_step(7).unwrap().unwrap().record_id.as_deref(),
+            reader.note(7).unwrap().unwrap().record_id.as_deref(),
             Some("retained-step")
         );
         for (path, bytes) in &originals {

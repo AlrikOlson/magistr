@@ -16,6 +16,10 @@ const DECISIONS: &[u8] = include_bytes!("fixtures/before-run-words-think.json");
 /// references; its free text is replaced because it came from another project.
 const PLAN_WORDS: &[u8] = include_bytes!("fixtures/before-plan-words-plan.json");
 const SIGNALS: &[u8] = include_bytes!("fixtures/before-plan-words-signal.json");
+/// A real decision document saved after the plan words, before the decision
+/// words, trimmed: steps with `think:` and tagged dependencies, an open and a
+/// merged branch.
+const DECISION_WORDS: &[u8] = include_bytes!("fixtures/before-decision-words-decision.json");
 const PROJECT: &str = "magistr-5a5bc6";
 const EXECUTION: &str = "execution-key";
 
@@ -82,7 +86,7 @@ fn the_run_store_moves_once_and_keeps_its_original() {
     let run = read(data.join(format!(
         "run/executions/{EXECUTION}/sessions/{PROJECT}.json"
     )));
-    assert_eq!(run["schema_version"], 4);
+    assert_eq!(run["schema_version"], 5);
     assert_eq!(run["goal"]["status"], "finished");
     assert!(run.get("objective").is_none() && run.get("tasks").is_none());
     assert_eq!(run["steps"][0]["status"], "done");
@@ -145,7 +149,7 @@ fn plan_and_decision_references_saved_before_the_run_words_take_both_vocabularie
 
     assert!(!data.join("roadmap").exists());
     let plan = read(data.join(format!("plan/sessions/{PROJECT}.json")));
-    assert_eq!(plan["schema_version"], 2);
+    assert_eq!(plan["schema_version"], 3);
     let refs: Vec<&str> = plan["tasks"]
         .as_array()
         .unwrap()
@@ -155,33 +159,33 @@ fn plan_and_decision_references_saved_before_the_run_words_take_both_vocabularie
         .collect();
     assert!(refs.contains(&"step:verify-gates"), "{refs:?}");
     assert!(refs.contains(&"progress:4"), "{refs:?}");
-    assert!(refs.contains(&"think:834"), "{refs:?}");
+    assert!(refs.contains(&"decision:834"), "{refs:?}");
     assert!(
         !refs
             .iter()
             .any(|r| r.starts_with("task:") || r.starts_with("action:"))
     );
 
-    let decisions = read(data.join(format!("think/sessions/{PROJECT}.json")));
-    assert_eq!(decisions["schema_version"], 4);
-    let execution_refs: Vec<&str> = decisions["histories"][PROJECT]["steps"]
+    assert!(!data.join("think").exists());
+    let decisions = read(data.join(format!("decisions/sessions/{PROJECT}.json")));
+    assert_eq!(decisions["schema_version"], 5);
+    let run_refs: Vec<&str> = decisions["logs"][PROJECT]["notes"]
         .as_array()
         .unwrap()
         .iter()
-        .filter_map(|step| step["execution_ref"].as_str())
+        .filter_map(|note| note["run_ref"].as_str())
         .collect();
     assert_eq!(
-        execution_refs,
+        run_refs,
         ["progress:1", "step:ts1-native", "objective:shipped"],
         "recorded free text that is not a reference keeps its words"
     );
 
+    let moved = backup_of(&data, "think-before-decision-words-");
     assert_eq!(
-        fs::read(data.join(format!(
-            "backups/before-plan-words/think/sessions/{PROJECT}.json"
-        )))
-        .unwrap(),
-        DECISIONS
+        fs::read(moved.join(format!("sessions/{PROJECT}.json"))).unwrap(),
+        DECISIONS,
+        "the original decision store is recoverable byte for byte"
     );
     let moved = backup_of(&data, "roadmap-before-plan-words-");
     assert_eq!(
@@ -189,10 +193,10 @@ fn plan_and_decision_references_saved_before_the_run_words_take_both_vocabularie
         PLAN,
         "the original plan store is recoverable byte for byte"
     );
-    let converted = fs::read(data.join(format!("think/sessions/{PROJECT}.json"))).unwrap();
+    let converted = fs::read(data.join(format!("decisions/sessions/{PROJECT}.json"))).unwrap();
     StoreWordsUpgrade::apply(&config, PROJECT).unwrap();
     assert_eq!(
-        fs::read(data.join(format!("think/sessions/{PROJECT}.json"))).unwrap(),
+        fs::read(data.join(format!("decisions/sessions/{PROJECT}.json"))).unwrap(),
         converted
     );
 }
@@ -205,7 +209,7 @@ fn the_plan_store_moves_once_and_takes_the_plan_words() {
 
     let plan = read(data.join(format!("plan/sessions/{PROJECT}.json")));
     let original = json(PLAN_WORDS);
-    assert_eq!(plan["schema_version"], 2);
+    assert_eq!(plan["schema_version"], 3);
     assert!(plan.get("chunks").is_none());
     let tasks = plan["tasks"].as_array().unwrap();
     assert_eq!(tasks.len(), original["chunks"].as_array().unwrap().len());
@@ -250,14 +254,19 @@ fn the_plan_store_moves_once_and_takes_the_plan_words() {
     );
 
     let signals = read(data.join(format!("signal/sessions/{PROJECT}.json")));
-    assert_eq!(signals["schema_version"], 2);
+    assert_eq!(signals["schema_version"], 3);
     assert_eq!(
         signals["signals"][0]["refs"],
-        serde_json::json!(["task:net-prediction", "think:56", "think:57", "think:58"])
+        serde_json::json!([
+            "task:net-prediction",
+            "decision:56",
+            "decision:57",
+            "decision:58"
+        ])
     );
     assert_eq!(
         fs::read(data.join(format!(
-            "backups/before-plan-words/signal/sessions/{PROJECT}.json"
+            "backups/before-decision-words/signal/sessions/{PROJECT}.json"
         )))
         .unwrap(),
         SIGNALS
@@ -272,6 +281,123 @@ fn the_plan_store_moves_once_and_takes_the_plan_words() {
         after,
         "a second pass changes nothing"
     );
+}
+
+/// A store as the plan words left it: the plan, run and signal stores have
+/// moved, and the decision store still sits in `think/`.
+fn store_before_decision_words() -> (tempfile::TempDir, NativeConfig) {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("project");
+    fs::create_dir_all(root.join(".magistr")).unwrap();
+    fs::write(
+        root.join(".magistr/project.json"),
+        format!(r#"{{"project":{{"id":"{PROJECT}"}}}}"#),
+    )
+    .unwrap();
+    let config =
+        NativeConfig::from_lookup(&root, |_| None).with_data_dir(dir.path().join("data/workflow"));
+    let path = config
+        .data_dir()
+        .join(format!("think/sessions/{PROJECT}.json"));
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(path, DECISION_WORDS).unwrap();
+    (dir, config)
+}
+
+#[test]
+fn the_decision_store_moves_once_and_takes_the_decision_words() {
+    let (_dir, config) = store_before_decision_words();
+    let data = config.data_dir().to_path_buf();
+    let refused = StoreWordsUpgrade::ready(&config, PROJECT).unwrap_err();
+    assert!(
+        refused.to_string().contains("one-time upgrade"),
+        "{refused}"
+    );
+    StoreWordsUpgrade::apply(&config, PROJECT).unwrap();
+    StoreWordsUpgrade::ready(&config, PROJECT).unwrap();
+
+    assert!(!data.join("think").exists());
+    let path = data.join(format!("decisions/sessions/{PROJECT}.json"));
+    let decisions = read(path.clone());
+    assert_eq!(decisions["schema_version"], 5);
+    assert!(decisions.get("histories").is_none());
+    let log = &decisions["logs"][PROJECT];
+    assert!(log.get("steps").is_none() && log.get("branches").is_none());
+    let notes = log["notes"].as_array().unwrap();
+    assert_eq!(notes[0]["note"], 1752);
+    assert_eq!(notes[0]["run_ref"], "step:ttt-opponent");
+    assert_eq!(
+        notes[0]["dependencies"],
+        serde_json::json!([{"note": 1751, "relation": "supports"}])
+    );
+    let threads = log["threads"].as_array().unwrap();
+    let status = |id: &str| {
+        threads.iter().find(|t| t["id"] == id).unwrap()["status"]
+            .as_str()
+            .unwrap()
+            .to_owned()
+    };
+    assert_eq!(status("branch-1789601738023-0001"), "open");
+    assert_eq!(
+        status("branch-607f5db1-f3ad-449b-ac72-1cb45b759a9b"),
+        "merged"
+    );
+    assert!(threads.iter().all(|t| t.get("from_note").is_some()));
+    let text = String::from_utf8(fs::read(&path).unwrap()).unwrap();
+    assert!(
+        !text.contains("\"think:"),
+        "no stored reference keeps the old prefix"
+    );
+
+    let moved = backup_of(&data, "think-before-decision-words-");
+    assert_eq!(
+        fs::read(moved.join(format!("sessions/{PROJECT}.json"))).unwrap(),
+        DECISION_WORDS,
+        "the original is recoverable byte for byte"
+    );
+    let after = fs::read(&path).unwrap();
+    StoreWordsUpgrade::apply(&config, PROJECT).unwrap();
+    assert_eq!(
+        fs::read(&path).unwrap(),
+        after,
+        "a second pass changes nothing"
+    );
+
+    let reader = NativeReader::open(&config);
+    assert_eq!(reader.note(1754).unwrap().unwrap().note, 1754);
+}
+
+#[test]
+fn an_owner_from_before_the_decision_words_holds_the_decision_move_back() {
+    // Owners between the plan words and the decision words lock in the plan
+    // directory; current owners lock elsewhere, so this lock is never ours.
+    let (_dir, config) = store_before_decision_words();
+    let data = config.data_dir().to_path_buf();
+    let lock = data.join("plan/sessions/other-project.project-owner.lock");
+    fs::create_dir_all(lock.parent().unwrap()).unwrap();
+    let held = fs::File::options()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&lock)
+        .unwrap();
+    held.lock().unwrap();
+    let refused = StoreWordsUpgrade::apply(&config, PROJECT).unwrap_err();
+    assert_eq!(refused.kind(), std::io::ErrorKind::WouldBlock);
+    assert!(refused.to_string().contains("other-project"), "{refused}");
+    assert!(data.join("think").exists() && !data.join("decisions").exists());
+
+    drop(held);
+    let owner = ProjectAuthority::admit(&config, WriterRole::Host).unwrap();
+    assert!(!data.join("think").exists());
+    assert!(
+        data.join(crate::native::owner_lease::OWNER_LEASES)
+            .join(format!("{PROJECT}.project-owner.lock"))
+            .exists(),
+        "a current owner holds its lease outside every older place"
+    );
+    drop(owner);
 }
 
 fn backup_of(data: &Path, prefix: &str) -> PathBuf {
@@ -317,7 +443,7 @@ fn an_interrupted_move_keeps_exact_staged_records_and_rebuilds_the_rest() {
     assert!(!data.join("run/sessions/.staging-abc123").exists());
     assert_eq!(
         read(data.join(format!("run/sessions/{PROJECT}.json")))["schema_version"],
-        4
+        5
     );
 }
 

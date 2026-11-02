@@ -46,7 +46,7 @@ Call `plan_add_task` once per task. Parameters:
 - `description` — short plain-prose fallback for the structured content
 - `status` — leave at the default (`to_do`); use `idea` for ideas that are not ready
 
-Record the research that shaped the plan with `think_record_step` (one step for the synthesis is enough).
+Record the research that shaped the plan with `decision_record` (one step for the synthesis is enough).
 
 ## Plan Design Rules
 

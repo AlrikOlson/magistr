@@ -35,7 +35,7 @@ pub enum RunCommand {
         description: String,
         files_touched: Vec<String>,
         tools_used: Vec<String>,
-        think_step: Option<u32>,
+        note: Option<u32>,
     },
     /// `run_record_gate`. The report, when given, is a `(format, path)`
     /// the owner reads — so the path must be one the owner's process can

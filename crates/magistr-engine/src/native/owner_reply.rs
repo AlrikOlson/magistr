@@ -7,7 +7,7 @@ use magistr_workflow::run::domain::step::Step;
 use magistr_workflow::signal::application::SignalPromotion;
 use magistr_workflow::signal::domain::Signal;
 use magistr_workflow_contracts::Observed;
-use magistr_workflow_contracts::think::RecordedStep;
+use magistr_workflow_contracts::decision::RecordedNote;
 use serde::{Deserialize, Serialize};
 
 /// The value an [`OwnerCommand`](super::OwnerCommand) produces, exactly
@@ -31,7 +31,7 @@ pub enum OwnerReply {
     Signal(Observed<Signal>),
     /// The reasoning engine's answer to a recorded step: the formatted
     /// acceptance, or the refusal it printed.
-    ThinkStep(Box<RecordedStep>),
+    Note(Box<RecordedNote>),
     /// Whether the step is pinned after the command.
     Pinned(Observed<bool>),
     /// How many stale steps a fresh goal cleared.

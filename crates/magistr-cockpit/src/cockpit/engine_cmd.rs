@@ -10,15 +10,15 @@ use super::proposal_kind::ProposalKind;
 /// engines do not write.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum EngineCmd {
-    /// \[Pin\] / \[Unpin\] on an expanded step.
+    /// \[Pin\] / \[Unpin\] on an expanded note.
     Pin {
-        /// The step to mark.
-        step_number: u32,
+        /// The note to mark.
+        note: u32,
         /// The flag to set.
         pinned: bool,
     },
-    /// \[Checkpoint\]: the trace-wide metacognitive report.
-    Checkpoint,
+    /// \[Review\]: the log-wide metacognitive report.
+    Review,
     /// \[Start\] on a plan task: mark it in progress.
     StartTask {
         /// The task to start.

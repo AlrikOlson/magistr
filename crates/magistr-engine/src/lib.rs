@@ -52,13 +52,13 @@ pub use guard::{
 };
 pub use handle::{EngineEvent, EngineHandle, WorkflowEvent};
 pub use native::{
-    AttachError, AttachKind, AttachRefusal, CallerIdentity, Delivery, EventCursor, FeedCursor,
-    FeedStatus, GateOutput, MagistrFrame, McpAcceptor, NativeConfig, NativeEngines, NativeEvent,
-    NativeFrame, NativePlanSnapshot, NativeReader, NativeSnapshot, Observed, OwnerClient,
-    OwnerCommand, OwnerEndpoint, OwnerGeneration, OwnerReply, PlanBackend, PlanCommand, PlanData,
-    PlanFrame, ProjectAuthority, ReadError, ReadErrorKind, ReadSource, ReadState, Run, RunCommand,
-    RunData, RunFrame, SignalCommand, SignalFrame, StoreStamp, ThinkCommand, ThinkData, ThinkFrame,
-    WriterRole,
+    AttachError, AttachKind, AttachRefusal, CallerIdentity, DecisionCommand, DecisionData,
+    DecisionFrame, Delivery, EventCursor, FeedCursor, FeedStatus, GateOutput, MagistrFrame,
+    McpAcceptor, NativeConfig, NativeEngines, NativeEvent, NativeFrame, NativePlanSnapshot,
+    NativeReader, NativeSnapshot, Observed, OwnerClient, OwnerCommand, OwnerEndpoint,
+    OwnerGeneration, OwnerReply, PlanBackend, PlanCommand, PlanData, PlanFrame, ProjectAuthority,
+    ReadError, ReadErrorKind, ReadSource, ReadState, Run, RunCommand, RunData, RunFrame,
+    SignalCommand, SignalFrame, StoreStamp, WriterRole,
 };
 pub use plan::{PlanEvent, PlanManager, PlanProgress};
 pub use policy::{
@@ -74,12 +74,12 @@ pub use spec::SpecSummary;
 // The library's own wire types behind the NativeEngines verbs, re-exported
 // so engine hosts (the interface, the GUI) can drive them without depending on
 // magistr directly.
+pub use magistr_workflow::decision::domain::Note;
 pub use magistr_workflow::plan::domain::TaskStatus;
 pub use magistr_workflow::run::domain::check::CheckType;
 pub use magistr_workflow::run::domain::progress::ProgressType;
 pub use magistr_workflow::run::domain::step::StepType;
 pub use magistr_workflow::signal::domain::SignalKind;
-pub use magistr_workflow::think::domain::ThinkStep;
 pub use workflow::{
     HookAction, HookDispatcher, HookError, HookExecutionReport, HookExecutor, HookOutput,
     HookResolver, IterationState, IterationStatus, LifecycleEvent, LifecycleHook,

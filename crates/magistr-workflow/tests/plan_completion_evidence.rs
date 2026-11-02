@@ -296,8 +296,8 @@ fn without_an_evidence_capability_every_route_to_done_is_refused_and_planning_co
         TaskStatus::Waiting
     );
     assert_eq!(
-        plan.link_task("c1", "think:7").unwrap().value.refs,
-        vec!["think:7".to_owned()]
+        plan.link_task("c1", "decision:7").unwrap().value.refs,
+        vec!["decision:7".to_owned()]
     );
     assert_eq!(
         plan.add_task(task("shipped-last-year", TaskStatus::Done))

@@ -17,18 +17,18 @@ fn routine_reasoning_records_do_not_write_to_the_hosts_stderr() {
             .with_writer(std::io::stderr)
             .without_time()
             .init();
-        let mut config = magistr_workflow::think::config::ThinkConfig::default();
+        let mut config = magistr_workflow::decision::config::DecisionConfig::default();
         config.system.max_history_size = 1;
-        let mut owner = magistr_workflow::think::engine::core::ReasoningServer::new(config);
+        let mut owner = magistr_workflow::decision::engine::core::ReasoningServer::new(config);
         for _ in 0..3 {
-            let step = serde_json::from_value(serde_json::json!({
+            let note = serde_json::from_value(serde_json::json!({
                 "estimated_total":6,"purpose":"Record a material finding",
                 "context":"Observed session output","thought":"The shared owner retains the current facts.",
                 "outcome":"The result is available to every current reader.",
                 "rationale":"The contract is exercised through the actual reasoning owner.",
                 "next_action":"Verify the terminal presentation"
             })).unwrap();
-            owner.process_step_native(step).unwrap();
+            owner.process_note_native(note).unwrap();
         }
         return;
     }
@@ -77,15 +77,15 @@ fn call_lines(text: &str, macro_name: &str) -> Vec<usize> {
 /// Workflow owners and their protocol adapters.
 const OPERATIONAL: &[&str] = &[
     "infra/persistence.rs",
-    "think/persistence.rs",
-    "think/config.rs",
-    "think/engine/revisions.rs",
-    "think/engine/validation.rs",
-    "think/engine/branching.rs",
-    "think/engine/sessions.rs",
-    "think/engine/process.rs",
-    "think/engine/mutations.rs",
-    "think/engine/numbering.rs",
+    "decision/persistence.rs",
+    "decision/config.rs",
+    "decision/engine/revisions.rs",
+    "decision/engine/validation.rs",
+    "decision/engine/threading.rs",
+    "decision/engine/logs.rs",
+    "decision/engine/process.rs",
+    "decision/engine/mutations.rs",
+    "decision/engine/numbering.rs",
     "run/persistence.rs",
     "run/engine/mod.rs",
     "plan/engine/mod.rs",

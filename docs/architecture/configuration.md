@@ -8,11 +8,11 @@ inputs for tests and explicit callers. Each requested environment key is read
 at most once during resolution. No environment map is retained after parsing.
 
 The captured object supplies the store, socket policy, sanitized project-name
-override and typed think settings. Reader/writer admission and attachment use
-that same identity input. Opening engines materializes think settings from the
+override and typed decision settings. Reader/writer admission and attachment use
+that same identity input. Opening engines materializes decision settings from the
 captured object, the admitted project ID and native persistence. It does not
 call the workflow's ambient loader again. The native publisher owns the
-socket, so the think engine receives no broadcast path.
+socket, so the decision engine receives no broadcast path.
 
 ## Current project settings
 
@@ -55,8 +55,8 @@ migration requirement.
 | Short-socket directory | Trimmed `XDG_RUNTIME_DIR`, then `TMPDIR`, then `/tmp`. Existing Unix socket length limits and final short-path fallback remain. |
 | Strict validation, no color, sessions | Existing switches require exact `true`. `MAGISTR_WORKFLOW_AUTO_SESSION` currently also enables sessions; its old name imposes no retention requirement. |
 | History, branch, timeout and rollup limits | Existing integer variables accept trimmed values of at least one. Invalid, zero and out-of-range values keep defaults. Rollup pinned-floor enforcement remains in its owning engine. |
-| Think output format | `MAGISTR_WORKFLOW_OUTPUT_FORMAT` accepts console, JSON or Markdown case insensitively. |
-| Default think session | A valid explicit `MAGISTR_WORKFLOW_DEFAULT_SESSION_ID` wins and enables sessions. Otherwise enabled sessions use the admitted project ID. Session namespacing remains the workflow engine's responsibility. |
+| Decision output format | `MAGISTR_WORKFLOW_OUTPUT_FORMAT` accepts console, JSON or Markdown case insensitively. |
+| Default log | A valid explicit `MAGISTR_WORKFLOW_DEFAULT_SESSION_ID` wins and enables sessions. Otherwise enabled sessions use the admitted project ID. Session namespacing remains the workflow engine's responsibility. |
 
 The injected resolver never asks the host for a temporary directory. Its last
 fallback is an injected `TMPDIR` on Unix (or `TMP`, `TEMP`, `USERPROFILE` on
@@ -68,16 +68,16 @@ platform fallback, including macOS per-user temporary directories, is preserved.
 `configuration_sources()` reports field paths mapped to `ConfigSource`:
 built-in/platform default, named environment variable, explicit host override
 or admitted project identity. It exposes source names without environment
-values, credentials or rejected payloads. Warnings for rejected think settings
+values, credentials or rejected payloads. Warnings for rejected decision settings
 also omit the supplied values. Builder overrides update their field's source;
 configuration fields are read through accessors outside the native composition
 module.
 
 The shared
-[ThinkConfigResolution](../../crates/magistr-workflow/src/think/config_resolution.rs)
+[DecisionConfigResolution](../../crates/magistr-workflow/src/decision/config_resolution.rs)
 parser uses explicit persistence and injected input lookup. Its
-`ThinkConfig::with_persistence` initializer is independent of the environment.
-`load_config()` and `ThinkConfig::default()` currently read ambient inputs;
+`DecisionConfig::with_persistence` initializer is independent of the environment.
+`load_config()` and `DecisionConfig::default()` currently read ambient inputs;
 native engine composition uses the explicit path. These entry points may be
 removed with their callers; they are not protected interfaces.
 

@@ -3,18 +3,18 @@
 //! # The gap this closes
 //!
 //! Nothing in this system recorded that a tool was *invoked*. `corpus` records
-//! artifacts (tasks, think steps, signals); the plan records plan state;
+//! artifacts (tasks, decision notes, signals); the plan records plan state;
 //! the run trace records what an agent said it did. None of them answer "which
 //! verbs are actually hot?" — a question the tool-surface work needs before it
 //! can retire anything.
 //!
 //! # THE TRAP, labelled here because this is where a future miner will look
 //!
-//! `tools_used` on a think step **looks** like the answer and is poison. Mining
+//! `tools_used` on a decision note **looks** like the answer and is poison. Mining
 //! 191 session files (10,588 steps, 864 carrying the field) produces a clean
 //! distribution and a flattering headline — "25 of 48 tools never used, 54.6%
 //! of model-facing bytes retirable". Then check it against reality:
-//! `think_record_step` appears **3** times against **9,999** persisted steps, a
+//! `decision_record` appears **3** times against **9,999** persisted steps, a
 //! ~3,000x undercount on the hottest verb in the system, and `start_step` reads
 //! 0 minutes after being called. The field records what an agent chose to
 //! *mention*, and agents omit both the tool they are currently calling and the
@@ -35,13 +35,13 @@
 //! to re-verify serialized output and why `should_send` is structurally zero
 //! without a configured endpoint.
 //!
-//! A count of how many times `think_record_step` was called on this machine is
+//! A count of how many times `decision_record` was called on this machine is
 //! a different object:
 //!
 //! 1. **It is not content.** The key space is closed — the tool names this
 //!    binary itself registers — and the value is an integer. There is no
 //!    argument, no project text, no path, no identity.
-//! 2. **It is already derivable from what we write anyway.** The 9,999 think
+//! 2. **It is already derivable from what we write anyway.** The 9,999 decision
 //!    steps sitting in the same data dir *are* the evidence of 9,999 calls.
 //!    Counting does not create a new disclosure; it creates a cheaper read of
 //!    one that already exists — and one that also covers the read-only verbs
@@ -497,13 +497,13 @@ mod tests {
     #[test]
     fn n_calls_reads_n() {
         let cfg = scratch("exact");
-        let c = counter(&cfg, &["think_record_step", "check_step"]);
+        let c = counter(&cfg, &["decision_record", "check_step"]);
         for _ in 0..7 {
-            c.record("think_record_step", "2026-07-28T00:00:00Z");
+            c.record("decision_record", "2026-07-28T00:00:00Z");
         }
         c.record("check_step", "2026-07-28T00:00:01Z");
         let got = c.snapshot();
-        assert_eq!(got.counts.get("think_record_step"), Some(&7));
+        assert_eq!(got.counts.get("decision_record"), Some(&7));
         assert_eq!(got.counts.get("check_step"), Some(&1));
         assert_eq!(got.total(), 8);
     }
@@ -511,7 +511,7 @@ mod tests {
     #[test]
     fn unknown_names_share_one_bucket_and_never_mint_keys() {
         let cfg = scratch("bounded");
-        let c = counter(&cfg, &["think_record_step"]);
+        let c = counter(&cfg, &["decision_record"]);
         for i in 0..20 {
             c.record(&format!("attacker_{i}"), "2026-07-28T00:00:00Z");
         }
@@ -564,10 +564,10 @@ mod tests {
         let c = CallCounter::new(
             Persistence::new(&cfg, Domain::Usage),
             "proj-usage",
-            ["think_record_step".to_string()],
+            ["decision_record".to_string()],
             false,
         );
-        c.record("think_record_step", "2026-07-28T00:00:00Z");
+        c.record("decision_record", "2026-07-28T00:00:00Z");
         assert_eq!(c.snapshot(), CallCounts::default());
     }
 
@@ -594,7 +594,7 @@ mod tests {
     /// none of them may be called cold.
     #[test]
     fn day_one_zero_is_never_cold() {
-        let counts = soaked("think_record_step", 12, 1);
+        let counts = soaked("decision_record", 12, 1);
         match counts.verdict("signal_research") {
             Verdict::SoakTooShort(soak) => {
                 assert!(!soak.met);
@@ -705,8 +705,7 @@ mod tests {
     /// never silently qualify.
     #[test]
     fn counts_without_a_window_field_load_as_an_unmet_soak() {
-        let legacy =
-            r#"{"counts":{"think_record_step":90000},"updated_at":"2026-07-01T00:00:00Z"}"#;
+        let legacy = r#"{"counts":{"decision_record":90000},"updated_at":"2026-07-01T00:00:00Z"}"#;
         let counts: CallCounts =
             serde_json::from_str(legacy).expect("legacy files must still load");
         assert_eq!(counts.total(), 90_000);

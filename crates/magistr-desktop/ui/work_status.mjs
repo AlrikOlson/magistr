@@ -1,12 +1,12 @@
 import {element} from "./work_dom.mjs";
 import {readState} from "./work_records.mjs";
 import {renderSourceDetail} from "./source_details.mjs";
-const families=[["run","Work","work"],["plan","Plan","plan"],["think","Reasoning","reasoning"],["signals","Feedback","feedback"]];
+const families=[["run","Work","work"],["plan","Plan","plan"],["decisions","Reasoning","reasoning"],["signals","Feedback","feedback"]];
 function counts(kind,value){
   if(kind==="run"){const runs=[...(value.current?[value.current]:[]),...value.retained],steps=runs.flatMap(run=>run.steps);return [["Current work",value.current?1:0],["Saved work",value.retained.length],["Steps",steps.length],["Check attempts",steps.reduce((sum,step)=>sum+step.checks.length,0)]];}
   if(kind==="plan")return [["Plan items",value.tasks.length]];
   if(kind==="signals")return [["Feedback items",value.length]];
-  return [["Reasoning histories",value.sessions.length],["Recorded steps",value.sessions.reduce((sum,history)=>sum+history.steps.length,0)],["Investigations",value.sessions.reduce((sum,history)=>sum+(history.branches?.length??0),0)]];
+  return [["Reasoning histories",value.logs.length],["Recorded steps",value.logs.reduce((sum,history)=>sum+history.notes.length,0)],["Investigations",value.logs.reduce((sum,history)=>sum+(history.threads?.length??0),0)]];
 }
 function savedTime(source){
   if(source?.kind!=="file")return null;

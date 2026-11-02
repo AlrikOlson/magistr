@@ -14,7 +14,7 @@ fn no_subscribers_discards_before_fanout_can_race_with_registration() {
     };
 
     publisher
-        .emit(Family::Think, &serde_json::json!({"kind": "before"}))
+        .emit(Family::Decision, &serde_json::json!({"kind": "before"}))
         .unwrap();
     assert!(
         matches!(pending.try_recv(), Err(mpsc::error::TryRecvError::Empty)),
@@ -23,7 +23,7 @@ fn no_subscribers_discards_before_fanout_can_race_with_registration() {
 
     subscriber_tx.send(1).unwrap();
     publisher
-        .emit(Family::Think, &serde_json::json!({"kind": "after"}))
+        .emit(Family::Decision, &serde_json::json!({"kind": "after"}))
         .unwrap();
     let frame: serde_json::Value = serde_json::from_str(&pending.try_recv().unwrap()).unwrap();
     assert_eq!(frame["kind"], "after");

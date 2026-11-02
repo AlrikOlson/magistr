@@ -37,7 +37,7 @@ mod sync_test_gates {
     /// the backend saw it.
     fn family() -> Vec<std::path::PathBuf> {
         let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        ["plan", "run", "signal", "think"]
+        ["plan", "run", "signal", "decision"]
             .iter()
             .map(|f| manifest.join(format!("tests/cloud_{f}_sync.rs")))
             .collect()

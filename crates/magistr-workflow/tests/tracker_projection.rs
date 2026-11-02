@@ -97,7 +97,7 @@ async fn a_task_projects_to_an_issue_with_its_provenance() {
 
     let mut e = engine();
     add(&mut e, "c1", vec![]);
-    e.link_task("c1", "think:7").expect("think ref");
+    e.link_task("c1", "decision:7").expect("decision ref");
     e.link_task("c1", "step:projector").expect("run ref");
     opt_in(&mut e, "c1");
 
@@ -125,7 +125,7 @@ async fn a_task_projects_to_an_issue_with_its_provenance() {
     let json_text = footer.trim().trim_end_matches("-->").trim();
     let parsed: serde_json::Value = serde_json::from_str(json_text).expect("footer is JSON");
     assert_eq!(parsed["task"], "c1");
-    assert_eq!(parsed["think"][0], "think:7");
+    assert_eq!(parsed["decision"][0], "decision:7");
     assert_eq!(parsed["run"][0], "step:projector");
 
     // The binding is recorded, so the next run patches instead of creating.

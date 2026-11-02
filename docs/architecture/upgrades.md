@@ -43,17 +43,25 @@ Conversion is deterministic, so an interrupted copy can resume without minting
 new identities or replacing newer work. The older files remain byte-for-byte intact.
 
 The vocabulary cutover renames the family stores once, at admission and before
-any engine opens: `ship/` becomes `run/`, then `roadmap/` becomes `plan/`.
+any engine opens: `ship/` becomes `run/`, then `roadmap/` becomes `plan/`,
+then `think/` becomes `decisions/`.
 `StoreWordsUpgrade` owns where saved work lives and the order of the moves;
 each family's codec converts its own documents and decides what is old from
 the document's saved version, never from its references, because `task:`
 named a run step before the run words and names a plan task after the plan
-words. Plan and signal documents gain a leading `schema_version` (2), decision
-documents move to version 4 and run documents to version 4. A move stages
+words. Plan and signal documents gain a leading `schema_version` and move to
+version 3, decision documents to version 5 and run documents to version 5; the
+last step of each renames `think:` references to `decision:` and the decision
+fields (`think_step` to `note`, steps and branches to notes and threads). A
+move stages
 converted records beside the old directory, keeps exact staged records when an
 interrupted attempt resumes, publishes them next to the caller's own lock
 files, and keeps the original directory under `backups/`. It waits while an
-older owner still holds a lock in the old plan directory. Readers refuse a
+older owner still holds a lock where older owners held them (the old plan
+directory before the plan words, the plan directory until the decision
+words). Current owners hold their project lease under
+`owners/decision-words/`, so a lease anywhere older always belongs to an older
+owner; a later move of a family store moves that directory too. Readers refuse a
 document that is positively older than its family's current version; an
 unreadable document is reported by the family's reader instead.
 

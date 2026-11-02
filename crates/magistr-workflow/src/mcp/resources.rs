@@ -4,7 +4,7 @@
 //! clients can READ it without tool-call ceremony:
 //!
 //!   plan://view            the plan export (markdown)
-//!   decisions://pinned        pinned think steps — the durable conclusions
+//!   decisions://pinned        pinned decision notes — the durable conclusions
 //!   digest://since/{window}   recent activity (steps + task movement)
 //!
 //! Everything here is a pure projection over engine state — reads never
@@ -16,8 +16,8 @@
 
 use chrono::{DateTime, Duration, Utc};
 
+use crate::decision::domain::Note;
 use crate::plan::domain::Task;
-use crate::think::domain::ThinkStep;
 
 pub(crate) const PLAN_URI: &str = "plan://view";
 pub(crate) const PINNED_URI: &str = "decisions://pinned";
@@ -48,15 +48,12 @@ fn parse_ts(ts: Option<&str>) -> Option<DateTime<Utc>> {
 }
 
 /// Markdown view of every pinned step — the trace's load-bearing conclusions.
-pub(crate) fn pinned_markdown(steps: &[ThinkStep]) -> String {
+pub(crate) fn pinned_markdown(steps: &[Note]) -> String {
     let mut out = String::from("# Pinned decisions\n");
     let mut count = 0usize;
     for step in steps.iter().filter(|s| s.pinned == Some(true)) {
         count += 1;
-        out.push_str(&format!(
-            "\n## think:{} — {}\n",
-            step.step_number, step.purpose
-        ));
+        out.push_str(&format!("\n## decision:{} — {}\n", step.note, step.purpose));
         if let Some(ts) = &step.timestamp {
             out.push_str(&format!("_{ts}_\n"));
         }
@@ -73,7 +70,7 @@ pub(crate) fn pinned_markdown(steps: &[ThinkStep]) -> String {
 /// Markdown digest of activity since `now - window`: reasoning steps recorded
 /// and plan tasks that moved. A compact local "while you were away".
 pub(crate) fn digest_markdown(
-    steps: &[ThinkStep],
+    steps: &[Note],
     tasks: &[Task],
     now: DateTime<Utc>,
     window: Duration,
@@ -85,13 +82,13 @@ pub(crate) fn digest_markdown(
         human_window(window)
     );
 
-    let recent_steps: Vec<&ThinkStep> = steps
+    let recent_steps: Vec<&Note> = steps
         .iter()
         .filter(|s| parse_ts(s.timestamp.as_deref()).is_some_and(|t| t >= since))
         .collect();
     out.push_str(&format!("\n## Reasoning ({} steps)\n", recent_steps.len()));
     for step in &recent_steps {
-        out.push_str(&format!("- think:{} {}\n", step.step_number, step.purpose));
+        out.push_str(&format!("- decision:{} {}\n", step.note, step.purpose));
     }
 
     let moved: Vec<&Task> = tasks
@@ -125,11 +122,11 @@ fn human_window(window: Duration) -> String {
 mod tests {
     use super::*;
 
-    fn step(n: u32, ts: &str, pinned: bool) -> ThinkStep {
+    fn step(n: u32, ts: &str, pinned: bool) -> Note {
         // Every field is serde-defaulted; an empty object is the canonical
         // "blank step" without the struct needing a Default impl.
-        let mut s: ThinkStep = serde_json::from_str("{}").expect("blank step");
-        s.step_number = n;
+        let mut s: Note = serde_json::from_str("{}").expect("blank step");
+        s.note = n;
         s.purpose = format!("purpose {n}");
         s.outcome = format!("outcome {n}");
         s.timestamp = Some(ts.into());
@@ -155,9 +152,9 @@ mod tests {
             step(3, "2026-06-03T00:00:00+00:00", true),
         ];
         let md = pinned_markdown(&steps);
-        assert!(md.contains("think:1"));
-        assert!(!md.contains("think:2"));
-        assert!(md.contains("think:3"));
+        assert!(md.contains("decision:1"));
+        assert!(!md.contains("decision:2"));
+        assert!(md.contains("decision:3"));
     }
 
     #[test]
@@ -170,8 +167,8 @@ mod tests {
             step(2, "2026-06-10T08:00:00+00:00", false), // inside
         ];
         let md = digest_markdown(&steps, &[], now, Duration::hours(24));
-        assert!(!md.contains("think:1"));
-        assert!(md.contains("think:2"));
+        assert!(!md.contains("decision:1"));
+        assert!(md.contains("decision:2"));
         assert!(md.contains("Reasoning (1 steps)"));
     }
 }

@@ -1,6 +1,8 @@
 use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
+use magistr_workflow::decision::domain::{Log, Note};
+use magistr_workflow::decision::engine::ReasoningServer;
 use magistr_workflow::plan::PlanEngine;
 use magistr_workflow::plan::domain::{
     FocusState, Plan, Task, WorkstreamCatalog, WorkstreamFrontier, WorkstreamResolution,
@@ -12,15 +14,13 @@ use magistr_workflow::run::domain::step::Step;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::SignalEngine;
 use magistr_workflow::signal::domain::{Signal, Signals};
-use magistr_workflow::think::domain::{ThinkHistory, ThinkStep};
-use magistr_workflow::think::engine::ReasoningServer;
 
 use super::native_config::NativeConfig;
 use super::open_engines::open_engines;
 use super::snapshot::NativePlanSnapshot;
 use crate::plan::PlanProgress;
 use magistr_workflow_contracts::{
-    NativeSnapshot, Observed, PlanData, ReadError, RunData, ThinkData,
+    DecisionData, NativeSnapshot, Observed, PlanData, ReadError, RunData,
 };
 
 /// Validated queries over the four workflow owners.
@@ -34,7 +34,7 @@ pub struct NativeReader {
     /// obtains its source from the owner that performed the read.
     config: NativeConfig,
     plan: Arc<Mutex<PlanEngine>>,
-    think: Arc<Mutex<ReasoningServer>>,
+    decision: Arc<Mutex<ReasoningServer>>,
     run: Arc<Mutex<RunEngine>>,
     signal: Arc<Mutex<SignalEngine>>,
     observations: Arc<Mutex<NativeSnapshot>>,
@@ -79,14 +79,14 @@ impl NativeReader {
     pub fn open_for_project(config: &NativeConfig, project_id: String) -> Self {
         // Event publication belongs to the admitted project writer. An
         // observer opens no publisher and never acquires a write lease.
-        let (think, run, plan, signal) = open_engines(config, project_id.clone(), None);
-        Self::from_engines(project_id, config.clone(), think, run, plan, signal)
+        let (decision, run, plan, signal) = open_engines(config, project_id.clone(), None);
+        Self::from_engines(project_id, config.clone(), decision, run, plan, signal)
     }
 
     pub(crate) fn from_engines(
         project_id: String,
         config: NativeConfig,
-        think: ReasoningServer,
+        decision: ReasoningServer,
         run: RunEngine,
         plan: PlanEngine,
         signal: SignalEngine,
@@ -94,7 +94,7 @@ impl NativeReader {
         Self::from_shared(
             project_id,
             config,
-            Arc::new(Mutex::new(think)),
+            Arc::new(Mutex::new(decision)),
             Arc::new(Mutex::new(run)),
             Arc::new(Mutex::new(plan)),
             Arc::new(Mutex::new(signal)),
@@ -107,7 +107,7 @@ impl NativeReader {
     pub(crate) fn from_shared(
         project_id: String,
         config: NativeConfig,
-        think: Arc<Mutex<ReasoningServer>>,
+        decision: Arc<Mutex<ReasoningServer>>,
         run: Arc<Mutex<RunEngine>>,
         plan: Arc<Mutex<PlanEngine>>,
         signal: Arc<Mutex<SignalEngine>>,
@@ -116,7 +116,7 @@ impl NativeReader {
             project_id,
             config,
             plan,
-            think,
+            decision,
             run,
             signal,
             observations: Arc::new(Mutex::new(NativeSnapshot::default())),
@@ -177,11 +177,11 @@ impl NativeReader {
         result
     }
 
-    fn observe_think(&self) -> Result<Observed<ThinkData>, ReadError> {
+    fn observe_decision(&self) -> Result<Observed<DecisionData>, ReadError> {
         super::WorkflowUpgrade::ready(&self.config, &self.project_id)?;
-        let engine = lock(&self.think);
-        let result = engine.observe_sessions();
-        lock(&self.observations).think.record(result.clone());
+        let engine = lock(&self.decision);
+        let result = engine.observe_logs();
+        lock(&self.observations).decisions.record(result.clone());
         result
     }
 
@@ -192,32 +192,32 @@ impl NativeReader {
         let _ = self.observe_plan();
         let _ = self.observe_run();
         let _ = self.observe_signal();
-        let _ = self.observe_think();
+        let _ = self.observe_decision();
         lock(&self.observations).clone()
     }
 
-    /// Complete sessions from the same validated owner used by snapshots and MCP.
-    pub fn think_sessions(&self) -> Result<ThinkData, String> {
+    /// Complete logs from the same validated owner used by snapshots and MCP.
+    pub fn decision_logs(&self) -> Result<DecisionData, String> {
         Ok(self
-            .observe_think()
+            .observe_decision()
             .map_err(|error| error.to_string())?
             .value)
     }
 
-    /// None selects the default; a named session is resolved by the owner.
-    pub fn think_session(&self, session: Option<&str>) -> Result<Option<ThinkHistory>, String> {
+    /// None selects the default; a named log is resolved by the owner.
+    pub fn decision_log(&self, log: Option<&str>) -> Result<Option<Log>, String> {
         super::WorkflowUpgrade::ready(&self.config, &self.project_id).map_err(|e| e.to_string())?;
-        lock(&self.think)
-            .observe_session(session)
+        lock(&self.decision)
+            .observe_log(log)
             .map(|read| read.value)
             .map_err(|error| error.to_string())
     }
 
-    /// Stable project-wide lookup across every complete session.
-    pub fn think_step(&self, step_number: u32) -> Result<Option<ThinkStep>, String> {
+    /// Stable project-wide lookup across every complete log.
+    pub fn note(&self, note_number: u32) -> Result<Option<Note>, String> {
         super::WorkflowUpgrade::ready(&self.config, &self.project_id).map_err(|e| e.to_string())?;
-        lock(&self.think)
-            .observe_step(step_number, false)
+        lock(&self.decision)
+            .observe_note(note_number, false)
             .map(|read| read.value)
             .map_err(|error| error.to_string())
     }

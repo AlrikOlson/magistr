@@ -5,12 +5,12 @@
 use std::sync::{Arc, Mutex};
 
 use crate::cloud::client::{CloudClient, CloudError};
+use crate::decision::domain::Note;
+use crate::decision::engine::core::ReasoningServer;
 use crate::plan::PlanEngine;
 use crate::plan::domain::{Task, TrackerLink, TrackerOptIn};
 use crate::signal::SignalEngine;
 use crate::signal::domain::Signal;
-use crate::think::domain::ThinkStep;
-use crate::think::engine::core::ReasoningServer;
 
 /// Fetch the tenant's record envelopes for one family (`GET /v1/records?family=`).
 /// Pure transport — no engine access, safe to await without holding any lock.
@@ -151,16 +151,16 @@ pub fn apply_signal_records(
 }
 
 /// Adopt the complete reasoning batch by immutable record identity.
-pub fn apply_think_records(
+pub fn apply_decision_records(
     engine: &mut ReasoningServer,
     envelopes: &[serde_json::Value],
 ) -> Result<usize, CloudError> {
-    let steps = local_records::<ThinkStep>(envelopes, engine.project_id())?
+    let notes = local_records::<Note>(envelopes, engine.project_id())?
         .into_iter()
         .map(|(step, _)| step)
         .collect();
     engine
-        .adopt_steps(steps)
+        .adopt_notes(notes)
         .map(|observed| observed.value)
         .map_err(|error| CloudError::Local {
             saved: 0,
@@ -169,18 +169,18 @@ pub fn apply_think_records(
         })
 }
 
-pub async fn reconcile_think(
+pub async fn reconcile_decision(
     client: &CloudClient,
     engine: &mut ReasoningServer,
 ) -> Result<usize, CloudError> {
-    let envelopes = fetch_family(client, "think").await?;
-    apply_think_records(engine, &envelopes)
+    let envelopes = fetch_family(client, "decision").await?;
+    apply_decision_records(engine, &envelopes)
 }
 
 /// Attempt each family independently and retain every family's result.
 pub async fn reconcile_all(
     client: &CloudClient,
-    think: &Arc<Mutex<ReasoningServer>>,
+    decision: &Arc<Mutex<ReasoningServer>>,
     plan: &Arc<Mutex<PlanEngine>>,
     signal: &Arc<Mutex<SignalEngine>>,
 ) -> (
@@ -188,11 +188,11 @@ pub async fn reconcile_all(
     Result<usize, CloudError>,
     Result<usize, CloudError>,
 ) {
-    let think_result = match fetch_family(client, "think").await {
-        Ok(envelopes) => think
+    let decision_result = match fetch_family(client, "decision").await {
+        Ok(envelopes) => decision
             .lock()
             .map_err(invalid_record)
-            .and_then(|mut engine| apply_think_records(&mut engine, &envelopes)),
+            .and_then(|mut engine| apply_decision_records(&mut engine, &envelopes)),
         Err(error) => Err(error),
     };
     let plan_result = match fetch_family(client, "plan").await {
@@ -209,7 +209,7 @@ pub async fn reconcile_all(
             .and_then(|mut engine| apply_signal_records(&mut engine, &envelopes)),
         Err(error) => Err(error),
     };
-    (think_result, plan_result, signal_result)
+    (decision_result, plan_result, signal_result)
 }
 
 pub async fn reconcile_plan(

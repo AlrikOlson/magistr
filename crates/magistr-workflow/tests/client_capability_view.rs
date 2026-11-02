@@ -1,4 +1,4 @@
-//! End-to-end proof that `think_engine_status` reports what the client on the
+//! End-to-end proof that `decision_status` reports what the client on the
 //! other end of the request actually declared (plan task
 //! `mcp-stderr-observability-gap`).
 //!
@@ -30,20 +30,20 @@
 //! 5. `capability_source` names where the declaration was read from,
 //! 6. the client's own name and version cross the wire,
 //! 7. the pre-existing engine fields are untouched by the block (this carries
-//!    the claim that used to live in `think_mcp.rs`'s
+//!    the claim that used to live in `decision_mcp.rs`'s
 //!    `engine_status_call_returns_structured_content`),
 //! 8. and the block is present on the tool's declared outputSchema, so a client
 //!    reading only `tools/list` learns the field exists.
 
+use magistr_workflow::decision::DecisionService;
+use magistr_workflow::decision::config::DecisionConfig;
+use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::client_view::{SOURCE_INITIALIZE, SOURCE_NONE};
 use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
-use magistr_workflow::think::ThinkService;
-use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::engine::core::ReasoningServer;
 use rmcp::{
     ClientHandler, RoleClient, ServiceExt,
     model::{
@@ -96,13 +96,13 @@ impl ClientHandler for DeclaringClient {
 }
 
 fn build_unified(project: &str) -> UnifiedService {
-    let mut cfg = ThinkConfig::default();
+    let mut cfg = DecisionConfig::default();
     cfg.display.color_output = false;
-    let think = ThinkService::new(ReasoningServer::new(cfg));
+    let decision = DecisionService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new(project.into()));
     let plan = PlanService::new(PlanEngine::new(project.into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(think, run, plan, signal)
+    UnifiedService::new(decision, run, plan, signal)
 }
 
 type Client = rmcp::service::RunningService<RoleClient, DeclaringClient>;
@@ -122,19 +122,17 @@ async fn session(project: &str, declares: Declares) -> Client {
         .expect("client.serve failed")
 }
 
-/// The whole `think_engine_status` envelope, as the client sees it.
+/// The whole `decision_status` envelope, as the client sees it.
 async fn status(client: &Client) -> Value {
     let result = client
         .peer()
-        .call_tool(CallToolRequestParams::new(
-            "think_engine_status".to_string(),
-        ))
+        .call_tool(CallToolRequestParams::new("decision_status".to_string()))
         .await
-        .expect("think_engine_status failed");
+        .expect("decision_status failed");
     serde_json::to_value(
         result
             .structured_content
-            .expect("think_engine_status must return structuredContent"),
+            .expect("decision_status must return structuredContent"),
     )
     .expect("structuredContent must be JSON")
 }
@@ -257,7 +255,7 @@ async fn the_clients_own_name_and_version_cross_the_wire() {
     );
 }
 
-/// Carries the claim that used to live in `think_mcp.rs`'s
+/// Carries the claim that used to live in `decision_mcp.rs`'s
 /// `engine_status_call_returns_structured_content`, which called the handler
 /// directly and can no longer do so.
 #[tokio::test]
@@ -265,9 +263,9 @@ async fn the_engine_fields_are_untouched_by_the_client_block() {
     let s = status(&session("untouched", Declares::EVERYTHING).await).await;
     assert!(s["version"].is_string());
     assert!(s["persistence_enabled"].is_boolean());
-    assert!(s["sessions_enabled"].is_boolean());
+    assert!(s["logs_enabled"].is_boolean());
     assert!(
-        s["total_steps"].is_number(),
+        s["total_notes"].is_number(),
         "merging the client block must not displace the engine snapshot"
     );
 }
@@ -280,12 +278,12 @@ async fn the_client_block_is_declared_on_the_tools_output_schema() {
     let tools = svc.list_tools_view();
     let status = tools
         .iter()
-        .find(|t| t.name == "think_engine_status")
-        .expect("think_engine_status should be served");
+        .find(|t| t.name == "decision_status")
+        .expect("decision_status should be served");
     let schema = status
         .output_schema
         .as_ref()
-        .expect("think_engine_status declares an outputSchema");
+        .expect("decision_status declares an outputSchema");
     let json = serde_json::to_string(schema).expect("schema serializes");
     assert!(
         json.contains("\"client\""),

@@ -8,7 +8,9 @@ impl PlanEngine {
     /// Convert a saved plan document once. A document without a version was
     /// written before the plan words: it takes them here (tasks, features,
     /// waiting, retired, `task:` references) together with the run words its
-    /// references may still spell. Omitted item origins are filled from the
+    /// references may still spell. Version 2 was written before the decision
+    /// words: refresh records point at their decision `notes` and notes are
+    /// referenced as `decision:`. Omitted item origins are filled from the
     /// enclosing project's identity; explicitly different identities remain
     /// conflicts. A current document is returned unchanged, so the conversion
     /// is idempotent; the version, never the references, decides what is old.
@@ -17,7 +19,14 @@ impl PlanEngine {
         let mut changed = match value.get("schema_version").and_then(Value::as_u64) {
             None => {
                 rename_plan_words(&mut value)?;
+                rename_decision_words(&mut value)?;
                 CrossRef::upgrade_stored_refs(&mut value, StoredRefWords::BeforeRunWords);
+                value["schema_version"] = json!(PLAN_SCHEMA_VERSION);
+                true
+            }
+            Some(2) => {
+                rename_decision_words(&mut value)?;
+                CrossRef::upgrade_stored_refs(&mut value, StoredRefWords::BeforeDecisionWords);
                 value["schema_version"] = json!(PLAN_SCHEMA_VERSION);
                 true
             }
@@ -98,6 +107,17 @@ fn rename_plan_words(value: &mut Value) -> Result<(), ReadError> {
     }
     for focus in objects(document.get_mut("focuses")) {
         rename_key(focus, "group", "feature")?;
+    }
+    Ok(())
+}
+
+/// A refresh record lists the decision notes that motivated it as `notes`.
+fn rename_decision_words(value: &mut Value) -> Result<(), ReadError> {
+    let document = value
+        .as_object_mut()
+        .ok_or_else(|| schema("Expected a saved plan."))?;
+    for refresh in objects(document.get_mut("refreshes")) {
+        rename_key(refresh, "think_steps", "notes")?;
     }
     Ok(())
 }

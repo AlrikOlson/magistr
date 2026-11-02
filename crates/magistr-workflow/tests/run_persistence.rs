@@ -56,8 +56,8 @@ fn round_trip_goal_and_steps() {
     assert_eq!(engine2.goal.as_ref().unwrap().description, "Build auth");
     assert_eq!(engine2.steps.len(), 1);
     assert_eq!(engine2.steps[0].progress.len(), 1);
-    assert_eq!(engine2.steps[0].progress[0].think_step, Some(5));
-    assert_eq!(engine2.steps[0].think_branch, Some("alt-1".into()));
+    assert_eq!(engine2.steps[0].progress[0].note, Some(5));
+    assert_eq!(engine2.steps[0].decision_thread, Some("alt-1".into()));
 }
 
 #[test]

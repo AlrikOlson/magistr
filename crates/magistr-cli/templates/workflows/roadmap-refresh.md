@@ -13,7 +13,7 @@ tools. Do one focused research pass without starting an implementation goal.
    the user's topic or state one consequential stale area. If the plan is
    empty, report it rather than inventing unrelated implementation work.
 2. Ground real entry points, dependencies, and current behavior with workspace.
-   Record the research question with `think_record_step` and identify evidence
+   Record the research question with `decision_record` and identify evidence
    that could change the plan.
 3. Research current primary sources for APIs, versions, alternatives, and
    limitations. Compare findings against code and acceptance criteria. Record

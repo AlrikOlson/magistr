@@ -1,6 +1,6 @@
 use super::*;
+use crate::native::{DecisionFrame, GateOutput, MagistrFrame, PlanFrame, RunFrame, SignalFrame};
 use crate::native::{EventCursor, NativeEvent, OwnerGeneration};
-use crate::native::{GateOutput, MagistrFrame, PlanFrame, RunFrame, SignalFrame, ThinkFrame};
 use crate::workflow::WorkflowPhase;
 #[cfg(unix)]
 use magistr_workflow::infra::Broadcaster;
@@ -77,9 +77,9 @@ fn signal(id: &str) -> magistr_workflow::signal::domain::Signal {
     }
 }
 
-fn step(n: u32) -> magistr_workflow::think::domain::ThinkStep {
+fn note(n: u32) -> magistr_workflow::decision::domain::Note {
     serde_json::from_value(serde_json::json!({
-        "step_number": n,
+        "note": n,
         "estimated_total": 3,
         "purpose": "open",
         "context": "the edge",
@@ -88,7 +88,7 @@ fn step(n: u32) -> magistr_workflow::think::domain::ThinkStep {
         "next_action": "fold",
         "rationale": "strings stop here",
     }))
-    .expect("step")
+    .expect("note")
 }
 
 /// The line a publisher writes is what the edge decodes: every family's
@@ -98,15 +98,15 @@ fn step(n: u32) -> magistr_workflow::think::domain::ThinkStep {
 fn every_family_round_trips_through_the_wire_line() {
     let cases: Vec<(Family, serde_json::Value, NativeEvent)> = vec![
         (
-            Family::Think,
-            serde_json::to_value(ThinkFrame::StepAppended {
-                session_id: None,
-                step: Box::new(step(4)),
+            Family::Decision,
+            serde_json::to_value(DecisionFrame::NoteAppended {
+                log_id: None,
+                note: Box::new(note(4)),
             })
             .unwrap(),
-            NativeEvent::Think(ThinkFrame::StepAppended {
-                session_id: None,
-                step: Box::new(step(4)),
+            NativeEvent::Decision(DecisionFrame::NoteAppended {
+                log_id: None,
+                note: Box::new(note(4)),
             }),
         ),
         (

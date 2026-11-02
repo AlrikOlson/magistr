@@ -65,7 +65,7 @@ pub struct ProgressOutput {
     pub tools_used: Vec<String>,
     pub result: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub think_step: Option<u32>,
+    pub note: Option<u32>,
 }
 
 #[derive(Serialize, JsonSchema)]
@@ -119,7 +119,7 @@ pub struct StatusOutput {
     pub recent_progress: Vec<ProgressOutput>,
     pub checks: Vec<CheckRef>,
     pub artifacts: Vec<ArtifactRef>,
-    pub think_refs: Vec<ThinkRef>,
+    pub decision_refs: Vec<DecisionRef>,
 }
 
 #[derive(Serialize, JsonSchema)]
@@ -153,7 +153,7 @@ pub struct ArtifactRef {
 }
 
 #[derive(Serialize, JsonSchema)]
-pub struct ThinkRef {
+pub struct DecisionRef {
     pub step_id: String,
     pub ref_type: String,
     pub value: Value,

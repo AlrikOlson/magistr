@@ -94,7 +94,7 @@ mod tests {
         assert_eq!(
             PlanFrame::RefreshRecorded {
                 summary: "s".into(),
-                think_steps: vec![]
+                notes: vec![]
             }
             .record_meta(),
             ("refresh", false)

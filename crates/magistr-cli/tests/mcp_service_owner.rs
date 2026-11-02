@@ -33,7 +33,7 @@ async fn last_clone_releases_a_stable_owner_lock_and_store_changes_cannot_bypass
     let clone = owner.clone();
     let lock = cfg
         .data_dir()
-        .join("plan/sessions/lease.project-owner.lock");
+        .join("owners/decision-words/lease.project-owner.lock");
     assert!(lock.is_file());
     drop(owner);
     assert_eq!(refused(&root, &cfg).await.kind(), io::ErrorKind::WouldBlock);

@@ -50,7 +50,7 @@ where
 /// Every engine wired with `.with_cloud(..)` pushes FIRE-AND-FORGET: the
 /// mutation returns immediately and a detached `tokio` task does the HTTP round
 /// trip (`handle.spawn` in `plan/engine/mod.rs`, `signal/engine.rs`, and the
-/// think/run equivalents). So a test that mutates and asserts is racing its own
+/// decision/run equivalents). So a test that mutates and asserts is racing its own
 /// background task, and needs to wait for something.
 ///
 /// The four cloud sync tests used to wait for a fixed 400ms, each carrying the

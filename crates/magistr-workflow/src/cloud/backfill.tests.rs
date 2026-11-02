@@ -16,9 +16,9 @@ use crate::run::domain::step::{StepStatus, StepType};
 use crate::signal::domain::{SignalKind, SignalStatus};
 use serde_json::json;
 
-fn step(n: u32) -> ThinkStep {
+fn step(n: u32) -> Note {
     serde_json::from_value(json!({
-        "step_number": n,
+        "note": n,
         "record_id": format!("step-{n}"),
         "purpose": format!("step {n}"),
         "timestamp": "2026-06-09T00:00:00Z",
@@ -36,7 +36,7 @@ fn progress(id: u32, step: &str) -> Progress {
         files_touched: vec![],
         tools_used: vec![],
         result: String::new(),
-        think_step: None,
+        note: None,
     }
 }
 
@@ -64,7 +64,7 @@ fn run_cycle(progress: Vec<Progress>) -> (Goal, Vec<Step>) {
         checks: vec![],
         progress,
         waiting_reason: None,
-        think_branch: None,
+        decision_thread: None,
     };
     (goal, vec![step])
 }
@@ -129,15 +129,15 @@ fn collects_one_envelope_per_record_in_family_order() {
     )
     .unwrap();
 
-    // One envelope per record: 2 think + (1 goal + 1 step + 1 progress) + 3 + 1.
+    // One envelope per record: 2 decision + (1 goal + 1 step + 1 progress) + 3 + 1.
     assert_eq!(envelopes.len(), 9);
-    // Stable family order: think, run, plan, signal.
+    // Stable family order: decision, run, plan, signal.
     let families: Vec<Family> = envelopes.iter().map(|e| e.family).collect();
     assert_eq!(
         families,
         vec![
-            Family::Think,
-            Family::Think,
+            Family::Decision,
+            Family::Decision,
             Family::Run,
             Family::Run,
             Family::Run,
@@ -148,7 +148,7 @@ fn collects_one_envelope_per_record_in_family_order() {
         ]
     );
     // Kinds + cycle-scoped run identities carried through.
-    assert_eq!(envelopes[0].kind, Kind::ThinkStep);
+    assert_eq!(envelopes[0].kind, Kind::Note);
     assert_eq!(envelopes[2].kind, Kind::Goal);
     assert_eq!(envelopes[2].id, "obj-2026-06-09T00:00:00-00:00");
     assert_eq!(envelopes[3].kind, Kind::RunStep);
@@ -173,7 +173,7 @@ fn counts_match_the_collected_envelopes() {
     assert_eq!(
         counts,
         BackfillCounts {
-            think: 1,
+            decision: 1,
             run: 0,
             plan: 2,
             signal: 3,

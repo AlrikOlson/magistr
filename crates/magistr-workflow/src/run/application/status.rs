@@ -23,7 +23,7 @@ pub struct RunStatus {
     recent_progress: Vec<Progress>,
     checks: Vec<CheckRef>,
     artifacts: Vec<ArtifactRef>,
-    think_refs: Vec<ThinkRef>,
+    decision_refs: Vec<DecisionRef>,
 }
 
 impl RunStatus {
@@ -84,7 +84,7 @@ impl RunStatus {
                     })
                 })
                 .collect(),
-            think_refs: snapshot.steps.iter().flat_map(think_refs).collect(),
+            decision_refs: snapshot.steps.iter().flat_map(decision_refs).collect(),
         }
     }
 }
@@ -149,37 +149,37 @@ struct ArtifactRef {
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct ThinkRef {
+struct DecisionRef {
     step_id: String,
     ref_type: &'static str,
-    value: ThinkValue,
+    value: DecisionValue,
     #[serde(skip_serializing_if = "Option::is_none")]
     progress_id: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
-enum ThinkValue {
+enum DecisionValue {
     Branch(String),
     Step(u32),
 }
 
-fn think_refs(step: &Step) -> Vec<ThinkRef> {
+fn decision_refs(step: &Step) -> Vec<DecisionRef> {
     let mut refs = Vec::new();
-    if let Some(branch) = &step.think_branch {
-        refs.push(ThinkRef {
+    if let Some(branch) = &step.decision_thread {
+        refs.push(DecisionRef {
             step_id: step.id.clone(),
             ref_type: "branch",
-            value: ThinkValue::Branch(branch.clone()),
+            value: DecisionValue::Branch(branch.clone()),
             progress_id: None,
         });
     }
     for progress in &step.progress {
-        if let Some(note) = progress.think_step {
-            refs.push(ThinkRef {
+        if let Some(note) = progress.note {
+            refs.push(DecisionRef {
                 step_id: step.id.clone(),
                 ref_type: "step",
-                value: ThinkValue::Step(note),
+                value: DecisionValue::Step(note),
                 progress_id: Some(progress.id),
             });
         }

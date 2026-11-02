@@ -1,7 +1,7 @@
 //! NDJSON-over-Unix-socket fan-out, shared by every family.
 //!
 //! Every emitted frame carries a `family` tag so a single viewer can
-//! interleave `think_*` and `run_*` events on one timeline without
+//! interleave `decision_*` and `run_*` events on one timeline without
 //! maintaining two socket readers, a `seq` — the publisher's own counter,
 //! one per emitted frame across every family sharing the socket — and,
 //! when the publisher declared one, an `epoch`: which incarnation of the
@@ -347,7 +347,7 @@ mod tests {
         );
         let mut reader = BufReader::new(stream);
 
-        b.emit(Family::Think, &Sample { kind: "step", n: 7 })
+        b.emit(Family::Decision, &Sample { kind: "step", n: 7 })
             .unwrap();
 
         let mut line = String::new();
@@ -357,7 +357,7 @@ mod tests {
             .unwrap();
 
         let v: serde_json::Value = serde_json::from_str(line.trim()).unwrap();
-        assert_eq!(v["family"], "think");
+        assert_eq!(v["family"], "decision");
         assert_eq!(v["kind"], "step");
         assert_eq!(v["n"], 7);
         assert_eq!(v["seq"], 1, "the first frame is sequence one");
@@ -378,7 +378,7 @@ mod tests {
             .expect("spawn")
             .with_epoch(7);
         assert_eq!(b.epoch(), Some(7));
-        let think = b.clone();
+        let decision = b.clone();
         let run = b.clone();
 
         let stream = UnixStream::connect(&sock).await.unwrap();
@@ -388,8 +388,8 @@ mod tests {
         );
         let mut reader = BufReader::new(stream);
 
-        think
-            .emit(Family::Think, &Sample { kind: "step", n: 1 })
+        decision
+            .emit(Family::Decision, &Sample { kind: "step", n: 1 })
             .unwrap();
         run.emit(Family::Run, &Sample { kind: "task", n: 2 })
             .unwrap();
@@ -419,7 +419,7 @@ mod tests {
         assert_eq!(
             seen,
             vec![
-                ("think".to_owned(), 1),
+                ("decision".to_owned(), 1),
                 ("run".to_owned(), 2),
                 ("magistr".to_owned(), 3)
             ],
@@ -455,7 +455,7 @@ mod tests {
         let b = Broadcaster::spawn(sock.clone()).expect("spawn");
 
         // Nobody has connected yet. This frame has no destination.
-        b.emit(Family::Think, &Sample { kind: "lost", n: 1 })
+        b.emit(Family::Decision, &Sample { kind: "lost", n: 1 })
             .unwrap();
 
         let stream = UnixStream::connect(&sock).await.unwrap();
@@ -465,7 +465,7 @@ mod tests {
         );
         let mut reader = BufReader::new(stream);
 
-        b.emit(Family::Think, &Sample { kind: "kept", n: 2 })
+        b.emit(Family::Decision, &Sample { kind: "kept", n: 2 })
             .unwrap();
 
         let mut line = String::new();
@@ -568,7 +568,7 @@ mod tests {
     /// not produce a failure, it produces a *probability* of one — green
     /// on an idle laptop, red 93% of the time on a contended runner.
     /// A deliberate-breakage run that removed the wait from
-    /// `think_broadcast.rs` left the whole suite green while restoring
+    /// `decision_broadcast.rs` left the whole suite green while restoring
     /// the original CI flake.
     /// Behaviour cannot see that; only reachability can.
     ///
@@ -583,7 +583,7 @@ mod tests {
         let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         let files = [
             manifest.join("src/infra/broadcast.rs"),
-            manifest.join("tests/think_broadcast.rs"),
+            manifest.join("tests/decision_broadcast.rs"),
         ];
         // Split so this gate's own source does not match its own needle —
         // it scans the file it lives in, and the first run counted itself.

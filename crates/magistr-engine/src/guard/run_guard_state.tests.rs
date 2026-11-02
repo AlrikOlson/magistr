@@ -45,7 +45,7 @@ fn step(id: &str, checks: usize) -> Step {
             .collect(),
         progress: Vec::new(),
         waiting_reason: None,
-        think_branch: None,
+        decision_thread: None,
     }
 }
 

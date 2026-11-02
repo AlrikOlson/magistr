@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn clean_structural_output_has_no_findings() {
-        let clean = r#"{"families":{"think":{"step":42}},"edges":7,"relations":{"supports":3}}"#;
+        let clean = r#"{"families":{"decision":{"step":42}},"edges":7,"relations":{"supports":3}}"#;
         assert!(scan(clean).is_empty());
     }
 }

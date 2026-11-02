@@ -24,7 +24,7 @@ When to call which tool:
   - Record a new stakeholder signal       → signal_capture
   - Reconstruct the inbox / get counts     → signal_status
   - Read one signal by id                  → signal_get
-  - Attach a cross-ref (think:/task:/…)   → signal_link
+  - Attach a cross-ref (decision:/task:/…)   → signal_link
   - Churn on a signal (enrich + advance)   → signal_research
   - What's ready to raise (earned)         → signal_pending
   - Raise one to the human                 → signal_surface

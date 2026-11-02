@@ -38,15 +38,15 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use magistr_workflow::decision::DecisionService;
+use magistr_workflow::decision::config::DecisionConfig;
+use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::progress::tick_message;
 use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
-use magistr_workflow::think::ThinkService;
-use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::engine::core::ReasoningServer;
 use rmcp::{
     ClientHandler, RoleClient, ServiceExt,
     model::{
@@ -97,13 +97,13 @@ impl ClientHandler for TaskClient {
 }
 
 fn build_unified(project: &str) -> UnifiedService {
-    let mut cfg = ThinkConfig::default();
+    let mut cfg = DecisionConfig::default();
     cfg.display.color_output = false;
-    let think = ThinkService::new(ReasoningServer::new(cfg));
+    let decision = DecisionService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new(project.into()));
     let plan = PlanService::new(PlanEngine::new(project.into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(think, run, plan, signal)
+    UnifiedService::new(decision, run, plan, signal)
 }
 
 type Client = rmcp::service::RunningService<RoleClient, TaskClient>;

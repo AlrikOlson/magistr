@@ -3,9 +3,9 @@ import {prose} from "./work_prose.mjs";
 export function reasoningRow(step,open){
   const row=element("li","","reasoning-row"),body=element("div"),button=element("button",step.purpose,"plan-item-open");
   button.dataset.stepId=step.record_id;button.dataset.focusKey="step:"+step.record_id;button.onclick=open;
-  row.append(element("span","Step "+step.step_number,"reasoning-step-number"));
+  row.append(element("span","Step "+step.note,"reasoning-step-number"));
   body.append(button);
-  const labels=[step.branch_name,step.pinned?"Pinned":null,step.revised_by?"Revised":null].filter(Boolean);
+  const labels=[step.thread_name,step.pinned?"Pinned":null,step.revised_by?"Revised":null].filter(Boolean);
   if(labels.length)body.append(element("span",labels.join(" · "),"plan-item-state"));
   row.append(body);return row;
 }
@@ -13,7 +13,7 @@ export function reasoningStep(step,copy){
   const article=element("article","","work-record reasoning-step"),title=element("h3",step.purpose,"plan-track-title");title.tabIndex=-1;title.dataset.focusKey="reasoning-title";article.append(title);
   const date=step.timestamp?new Date(step.timestamp):null,time=element("time",date&&!Number.isNaN(date.getTime())?date.toLocaleString():"Not recorded");
   if(date&&!Number.isNaN(date.getTime()))time.dateTime=date.toISOString();
-  const facts=[["Step",String(step.step_number)],["Recorded",time]];
+  const facts=[["Step",String(step.note)],["Recorded",time]];
   if(step.pinned)facts.push(["Pinned","Yes"]);
   if(step.confidence!=null)facts.push(["Reported confidence",Math.round(step.confidence*100)+"%"]);
   const metadata=inlineFacts(facts);metadata.classList.add("work-reasoning-facts");article.append(metadata);

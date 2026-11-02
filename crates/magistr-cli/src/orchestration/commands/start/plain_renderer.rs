@@ -229,7 +229,7 @@ impl PlainRenderer {
             },
         );
         self.line(&format!("[tool] {title}"), out, err)?;
-        if tool_name(name) == "think_record_step" {
+        if tool_name(name) == "decision_record" {
             if let Some(outcome) = input["outcome"].as_str() {
                 self.preview(outcome, out, err)?;
             }
@@ -352,7 +352,7 @@ fn tool_title(name: &str, input: &Value) -> String {
     let tool = tool_name(name);
     match tool {
         "magistr_set_phase" => format!("Phase: {}", input["phase"].as_str().unwrap_or("unknown")),
-        "think_record_step" => format!(
+        "decision_record" => format!(
             "Finding: {}",
             input["purpose"].as_str().unwrap_or("Record finding")
         ),

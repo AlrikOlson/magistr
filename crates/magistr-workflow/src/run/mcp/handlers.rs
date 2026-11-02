@@ -55,7 +55,7 @@ pub struct PlanArgs {
     #[serde(default)]
     pub after: Option<String>,
     #[serde(default)]
-    pub think_branch: Option<String>,
+    pub decision_thread: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
@@ -94,7 +94,7 @@ pub struct RecordArgs {
     #[serde(default)]
     pub result: String,
     #[serde(default)]
-    pub think_step: Option<u32>,
+    pub note: Option<u32>,
 }
 
 fn default_progress_type() -> ProgressType {
@@ -265,7 +265,7 @@ impl RunService {
 
     #[tool(
         name = "arrange_steps",
-        description = "Add, remove, or reorder the steps of the open run.\n\nInputs: action ('add'|'remove'|'reorder'), step_id (required), title (required for add), step_type ('implement'|'test'|'review'|'config'|'docs'|'research'), estimate ('trivial'|'small'|'medium'|'large'), after (step_id to place after, for reorder), think_branch (optional cross-ref to a think_* branch).\n\nReturns: the updated step list.\n\nPitfalls: step_id must be unique within the run for 'add'. Cannot remove an active or done step.",
+        description = "Add, remove, or reorder the steps of the open run.\n\nInputs: action ('add'|'remove'|'reorder'), step_id (required), title (required for add), step_type ('implement'|'test'|'review'|'config'|'docs'|'research'), estimate ('trivial'|'small'|'medium'|'large'), after (step_id to place after, for reorder), decision_thread (optional cross-ref to a decision_* branch).\n\nReturns: the updated step list.\n\nPitfalls: step_id must be unique within the run for 'add'. Cannot remove an active or done step.",
         annotations(
             title = "Plan steps",
             read_only_hint = false,
@@ -285,7 +285,7 @@ impl RunService {
                 title: args.title,
                 step_type: args.step_type,
                 estimate: args.estimate,
-                think_branch: args.think_branch,
+                decision_thread: args.decision_thread,
             },
             PlanAction::Remove => PlanChange::Remove { id: args.step_id },
             PlanAction::Reorder => PlanChange::Reorder {
@@ -321,7 +321,7 @@ impl RunService {
 
     #[tool(
         name = "record_progress",
-        description = "Record progress on the active step. This is the primary workhorse — call it every time you do something: write code, run a command, make a decision, research something.\n\nInputs: step_id (optional — defaults to active step), type ('code'|'test'|'debug'|'research'|'config'|'refactor'|'review'), description (required), files_touched (string[]), tools_used (string[]), result (string), think_step (optional u32 — cross-ref to the think_* step that motivated this progress).\n\nReturns: the recorded progress with its assigned id.\n\nPitfalls: if no step is active and no step_id is provided, the call fails.",
+        description = "Record progress on the active step. This is the primary workhorse — call it every time you do something: write code, run a command, make a decision, research something.\n\nInputs: step_id (optional — defaults to active step), type ('code'|'test'|'debug'|'research'|'config'|'refactor'|'review'), description (required), files_touched (string[]), tools_used (string[]), result (string), note (optional u32 — cross-ref to the decision_* step that motivated this progress).\n\nReturns: the recorded progress with its assigned id.\n\nPitfalls: if no step is active and no step_id is provided, the call fails.",
         annotations(
             title = "Record progress",
             read_only_hint = false,
@@ -341,7 +341,7 @@ impl RunService {
             args.files_touched,
             args.tools_used,
             args.result,
-            args.think_step,
+            args.note,
         ))
     }
 
@@ -535,7 +535,7 @@ impl RunService {
     }
     #[tool(
         name = "run_status",
-        description = "Full state snapshot of the current run. Call this after context compaction to reconstruct where you are — goal, plan progress, active step, recent progress, pending checks, produced artifacts, and think_* cross-references.\n\nInputs: none.\n\nReturns: complete state including goal, steps with status counts, active step details, recent progress, all checks, all artifacts.\n\nPitfalls: none — this is the recovery tool. Call it whenever you're unsure of the current state.",
+        description = "Full state snapshot of the current run. Call this after context compaction to reconstruct where you are — goal, plan progress, active step, recent progress, pending checks, produced artifacts, and decision_* cross-references.\n\nInputs: none.\n\nReturns: complete state including goal, steps with status counts, active step details, recent progress, all checks, all artifacts.\n\nPitfalls: none — this is the recovery tool. Call it whenever you're unsure of the current state.",
         annotations(
             title = "Get status",
             read_only_hint = true,

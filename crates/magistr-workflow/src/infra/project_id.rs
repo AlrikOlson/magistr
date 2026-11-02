@@ -129,7 +129,7 @@ pub fn resolve_project_id_with(
 /// Project id derived purely from a filesystem path (no env overrides):
 /// `<basename>-<fnv1a_6hex(path)>`. This is the cwd half of
 /// [`resolve_project_id`], exposed so persisted records that carry their
-/// recording cwd (e.g. think steps) can be attributed to a project later —
+/// recording cwd (e.g. decision notes) can be attributed to a project later —
 /// the path is hashed as given, NOT canonicalized, because stored cwds were
 /// canonicalized at record time and may no longer exist on disk.
 pub fn project_id_for_path(path: &Path) -> String {

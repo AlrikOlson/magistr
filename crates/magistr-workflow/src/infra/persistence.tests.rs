@@ -96,7 +96,7 @@ fn data_dir_falls_back_to_the_os_temp_dir() {
 #[test]
 fn save_then_load_round_trip() {
     let tmp = TempDir::new().unwrap();
-    let p = Persistence::new(&cfg(&tmp), Domain::Think);
+    let p = Persistence::new(&cfg(&tmp), Domain::Decision);
     let val = Sample {
         name: "x".into(),
         count: 1,
@@ -109,9 +109,9 @@ fn save_then_load_round_trip() {
 #[test]
 fn workflow_use_disjoint_subdirs() {
     let tmp = TempDir::new().unwrap();
-    let t = Persistence::new(&cfg(&tmp), Domain::Think);
+    let t = Persistence::new(&cfg(&tmp), Domain::Decision);
     let s = Persistence::new(&cfg(&tmp), Domain::Run);
-    assert!(t.sessions_dir().ends_with("think/sessions"));
+    assert!(t.sessions_dir().ends_with("decisions/sessions"));
     assert!(s.sessions_dir().ends_with("run/sessions"));
     assert_ne!(t.sessions_dir(), s.sessions_dir());
 }
@@ -120,7 +120,7 @@ fn workflow_use_disjoint_subdirs() {
 fn plan_uses_its_own_subdir() {
     let tmp = TempDir::new().unwrap();
     let r = Persistence::new(&cfg(&tmp), Domain::Plan);
-    let t = Persistence::new(&cfg(&tmp), Domain::Think);
+    let t = Persistence::new(&cfg(&tmp), Domain::Decision);
     let s = Persistence::new(&cfg(&tmp), Domain::Run);
     assert!(r.sessions_dir().ends_with("plan/sessions"));
     assert_ne!(r.sessions_dir(), t.sessions_dir());
@@ -152,7 +152,7 @@ fn atomic_write_leaves_no_tmp_behind() {
 #[test]
 fn load_missing_returns_none() {
     let tmp = TempDir::new().unwrap();
-    let p = Persistence::new(&cfg(&tmp), Domain::Think);
+    let p = Persistence::new(&cfg(&tmp), Domain::Decision);
     let back: Option<Sample> = p.load("does-not-exist").unwrap();
     assert!(back.is_none());
 }
@@ -162,7 +162,7 @@ fn disabled_persistence_is_noop() {
     let tmp = TempDir::new().unwrap();
     let mut c = cfg(&tmp);
     c.enabled = false;
-    let p = Persistence::new(&c, Domain::Think);
+    let p = Persistence::new(&c, Domain::Decision);
     let val = Sample {
         name: "z".into(),
         count: 3,

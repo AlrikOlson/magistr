@@ -1,20 +1,13 @@
 use super::*;
 
 impl Edit<'_> {
-    pub fn record_refresh(
-        &mut self,
-        summary: String,
-        think_steps: Vec<u32>,
-    ) -> Result<usize, String> {
+    pub fn record_refresh(&mut self, summary: String, notes: Vec<u32>) -> Result<usize, String> {
         self.plan.refreshes.push(RefreshNote {
             at: Self::now(),
             summary: summary.clone(),
-            think_steps: think_steps.clone(),
+            notes: notes.clone(),
         });
-        self.record_event(PlanFrame::RefreshRecorded {
-            summary,
-            think_steps,
-        });
+        self.record_event(PlanFrame::RefreshRecorded { summary, notes });
         Ok(self.plan.refreshes.len())
     }
 

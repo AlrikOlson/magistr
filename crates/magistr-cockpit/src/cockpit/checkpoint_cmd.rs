@@ -8,11 +8,11 @@ use magistr_domain::workflow::CheckpointReason;
 /// posts the outcome back as a
 /// [`CheckpointEvent`](super::CheckpointEvent).
 ///
-/// Not to be confused with [`EngineCmd::Checkpoint`], which is
+/// Not to be confused with [`EngineCmd::Review`], which is
 /// magistr's *trace* checkpoint — a metacognitive report over
 /// the reasoning. This one is a state of the session and its tree.
 ///
-/// [`EngineCmd::Checkpoint`]: super::EngineCmd::Checkpoint
+/// [`EngineCmd::Review`]: super::EngineCmd::Review
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CheckpointCmd {
     /// Take a checkpoint under the name the spine already minted.

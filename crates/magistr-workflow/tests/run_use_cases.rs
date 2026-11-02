@@ -87,7 +87,7 @@ async fn native_and_mcp_views_share_one_engine_and_response_contract() {
             step_type: None,
             estimate: None,
             after: None,
-            think_branch: None,
+            decision_thread: None,
         }))
         .await
         .unwrap();

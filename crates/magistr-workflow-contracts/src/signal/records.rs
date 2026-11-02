@@ -106,9 +106,9 @@ impl SignalStatus {
 /// produced it, the sources consulted, a summary, a confidence, and a stamp.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Enrichment {
-    /// The `think_*` step number that produced this enrichment, if any.
+    /// The `decision_*` step number that produced this enrichment, if any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub think_step: Option<u32>,
+    pub note: Option<u32>,
     /// External references consulted (URLs, doc ids, ministr symbol ids).
     #[serde(default)]
     pub sources: Vec<String>,
@@ -144,7 +144,7 @@ pub struct Signal {
     /// Append-only agent enrichment trail.
     #[serde(default)]
     pub enrichment: Vec<Enrichment>,
-    /// Typed cross-refs into the think/run/plan graph in `prefix:value`
+    /// Typed cross-refs into the decision/run/plan graph in `prefix:value`
     /// wire form (the `signal:` variant is written by the promotion path).
     #[serde(default)]
     pub refs: Vec<String>,
@@ -158,7 +158,7 @@ pub struct Signal {
     /// until this RFC 3339 instant passes. Set by `signal_snooze`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub snooze_until: Option<String>,
-    /// LOCAL-only origin stamp (store-prune-think-signal): which project
+    /// LOCAL-only origin stamp (store-prune-decision-signal): which project
     /// captured this signal. Stamped at capture; `None` on every signal
     /// recorded before the stamp existed, which is the unprovable-origin case
     /// and means `prune` will keep it unless an operator names it explicitly.
@@ -185,7 +185,7 @@ pub struct Signals {
 
 /// The saved signal format: version 2 spells references and their field
 /// (`refs`) in the plan words.
-pub const SIGNALS_SCHEMA_VERSION: u32 = 2;
+pub const SIGNALS_SCHEMA_VERSION: u32 = 3;
 
 impl Default for Signals {
     fn default() -> Self {
@@ -207,7 +207,7 @@ impl Default for Signals {
 /// surviving the union is the anti-clobber property. Known caveat
 /// (documented): same-rank field edits to the SAME signal (e.g. two
 /// concurrent `surface` stamps) keep only one side — the LWW tradeoff the
-/// think merge also accepted.
+/// decision merge also accepted.
 pub fn merge_signal_stores(memory: &Signals, disk: Signals) -> Signals {
     let mut merged = memory.clone();
     for disk_signal in disk.signals {

@@ -28,7 +28,7 @@ pub fn build_tracker_port_in(
     let provider = config.provider.as_deref().unwrap_or_default();
     // SEP-414 downstream half: resolved once here, so adding a provider gets
     // trace propagation by calling one builder rather than by remembering to.
-    let project = crate::think::config::resolve_project_id();
+    let project = crate::decision::config::resolve_project_id();
     // NO PROVIDER IS NAMED IN THIS FILE. The single provider wiring point
     // lives in tracker::registry::PROVIDERS, and the list of known providers in
     // the refusal is rendered from that same table — so the two cannot drift.

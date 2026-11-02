@@ -7,8 +7,8 @@
 //!   recorded in the run engine, and refuses `done` until a check is
 //!   recorded — no plan file is consulted anywhere;
 //! - the four families end the iteration cross-referenced:
-//!   `task:X` → `step:X` (plan ↔ run), `think:N` → `step:X`
-//!   (think ↔ run) and `task:X` → `think:N` (plan ↔ think), plus a
+//!   `task:X` → `step:X` (plan ↔ run), `decision:N` → `step:X`
+//!   (decision ↔ run) and `task:X` → `decision:N` (plan ↔ decision), plus a
 //!   signal record, all persisted under the temp data dir.
 
 use std::path::Path;
@@ -186,10 +186,10 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
     .await;
     phase_ok(&client, "execute").await;
 
-    // ── Think open, cross-referenced to the task ───────────────────────
+    // ── Decision open, cross-referenced to the task ───────────────────────
     let open = ok(
         &client,
-        "think_record_step",
+        "decision_record",
         json!({
             "purpose": "open the fixture iteration",
             "context": "e2e",
@@ -198,15 +198,15 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
             "next_action": "start_step",
             "rationale": "one task, one commit",
             "estimated_total": 2,
-            "execution_ref": format!("step:{STEP}")
+            "run_ref": format!("step:{STEP}")
         }),
     )
     .await;
-    let step = open["step_number"].as_u64().expect("step_number");
+    let step = open["note"].as_u64().expect("note");
     ok(
         &client,
         "plan_link",
-        json!({"id": TASK, "ref": format!("think:{step}")}),
+        json!({"id": TASK, "ref": format!("decision:{step}")}),
     )
     .await;
 
@@ -219,7 +219,7 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
             "type": "code",
             "description": "edit the fixture source",
             "files_touched": ["src/lib.rs"],
-            "think_step": step
+            "note": step
         }),
     )
     .await;
@@ -237,7 +237,7 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
         "{rows:?}"
     );
 
-    // ── Close: task, task (with proof of run), goal, signal, think ──
+    // ── Close: task, task (with proof of run), goal, signal, decision ──
     ok(&client, "finish_step", json!({"step_id": STEP})).await;
     let done = ok(
         &client,
@@ -263,7 +263,7 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
     .await;
     ok(
         &client,
-        "think_record_step",
+        "decision_record",
         json!({
             "purpose": "close the fixture iteration",
             "context": "e2e",
@@ -272,8 +272,8 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
             "next_action": "stop",
             "rationale": "acceptance met",
             "estimated_total": 2,
-            "execution_ref": format!("step:{STEP}"),
-            "is_final_step": true
+            "run_ref": format!("step:{STEP}"),
+            "is_final_note": true
         }),
     )
     .await;
@@ -287,19 +287,22 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
         .map(|a| a.iter().filter_map(Value::as_str).collect())
         .unwrap_or_default();
     assert!(refs.contains(&format!("step:{STEP}").as_str()), "{refs:?}");
-    assert!(refs.contains(&format!("think:{step}").as_str()), "{refs:?}");
+    assert!(
+        refs.contains(&format!("decision:{step}").as_str()),
+        "{refs:?}"
+    );
     assert_eq!(record["status"], "done");
     assert_eq!(ok(&client, "plan_next", json!({})).await, Value::Null);
 
     let run = ok(&client, "run_status", json!({})).await;
     assert_eq!(run["goal"]["status"], "finished", "{run}");
     assert_eq!(run["goal"]["scope"], format!("task:{TASK}"));
-    let think_refs = run["think_refs"].as_array().expect("think_refs");
+    let decision_refs = run["decision_refs"].as_array().expect("decision_refs");
     assert!(
-        think_refs
+        decision_refs
             .iter()
             .any(|r| r["step_id"] == STEP && r["value"] == step),
-        "{think_refs:?}"
+        "{decision_refs:?}"
     );
     let checks = run["checks"].as_array().expect("checks");
     assert_eq!(checks.len(), 3);
@@ -309,14 +312,14 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
             .all(|c| c["step_id"] == STEP && c["verified"] == true)
     );
 
-    let think = ok(&client, "think_get_step", json!({"step_number": step})).await;
-    assert_eq!(think["execution_ref"], format!("step:{STEP}"), "{think}");
+    let decision = ok(&client, "decision_get", json!({"note": step})).await;
+    assert_eq!(decision["run_ref"], format!("step:{STEP}"), "{decision}");
 
     let signals = ok(&client, "signal_status", json!({})).await;
     assert_ne!(signals, Value::Null);
 
     // ── Persisted under the temp store, one file per family ────────────
-    for family in ["plan", "think", "signal"] {
+    for family in ["plan", "decisions", "signal"] {
         assert!(
             has_session_file(&data_dir, family),
             "{family} session file missing"

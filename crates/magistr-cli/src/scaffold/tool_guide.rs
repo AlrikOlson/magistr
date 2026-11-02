@@ -18,7 +18,7 @@ Call advanced operations through `execute`:
 return magistr.call("plan_status", {});
 ```
 
-The same catalog includes plan, reasoning (`think_*`), feedback (`signal_*`),
+The same catalog includes plan, reasoning (`decision_*`), feedback (`signal_*`),
 runs and resumption (`run_*`), quality gates (`magistr_gate`), and all
 workspace operations: `map`, `files`, `command`, `undo`, `script`, health and indexing.
 Discover each operation before using it; do not guess argument names. Direct

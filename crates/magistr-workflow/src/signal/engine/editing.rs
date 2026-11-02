@@ -66,7 +66,7 @@ impl Edit<'_> {
             surfaced_at: None,
             snooze_until: None,
             // Stamp origin at the record, so a later prune can prove ownership
-            // rather than guess it (store-prune-think-signal).
+            // rather than guess it (store-prune-decision-signal).
             project_id: Some(self.project_id.clone()),
         });
         let snapshot = self.signals.signals.last().unwrap().clone();
@@ -104,7 +104,7 @@ impl Edit<'_> {
         summary: String,
         confidence: f64,
         sources: Vec<String>,
-        think_step: Option<u32>,
+        note: Option<u32>,
     ) -> Result<&Signal, String> {
         if summary.trim().is_empty() {
             return Err("research summary is empty".into());
@@ -119,7 +119,7 @@ impl Edit<'_> {
 
         // Append the enrichment, time-stamped by the engine.
         self.signals.signals[idx].enrichment.push(Enrichment {
-            think_step,
+            note,
             sources,
             summary,
             confidence: confidence.clamp(0.0, 1.0),
@@ -131,9 +131,9 @@ impl Edit<'_> {
             self.signals.signals[idx].status = SignalStatus::Researched;
         }
 
-        // Cross-ref the motivating think step (deduped, validated wire form).
-        if let Some(n) = think_step {
-            let wire = crate::infra::CrossRef::ThinkStep(n).to_wire();
+        // Cross-ref the motivating decision note (deduped, validated wire form).
+        if let Some(n) = note {
+            let wire = crate::infra::CrossRef::Note(n).to_wire();
             if !self.signals.signals[idx].refs.contains(&wire) {
                 self.signals.signals[idx].refs.push(wire);
             }

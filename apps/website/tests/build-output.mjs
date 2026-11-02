@@ -95,7 +95,7 @@ for (const [path, html] of localDocuments) {
 }
 
 console.log("\nPublic language:");
-const jargon = /TUI2|GUI2|tui2|gui2|think-and-ship|Workbench|think:|run:|chunk-id|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder/;
+const jargon = /TUI2|GUI2|tui2|gui2|think-and-ship|Workbench|think:|decision:\d|run:|chunk-id|workflow server|native state|admitted|typed command|[Ff]light [Rr]ecorder/;
 const commentary = /\bHarbor\b|on purpose|design system|typographic hierarchy/i;
 for (const [name, html] of productPages) {
   const text = textOf(html);

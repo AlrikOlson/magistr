@@ -2,10 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::decision_command::DecisionCommand;
 use super::plan_command::PlanCommand;
 use super::run_command::RunCommand;
 use super::signal_command::SignalCommand;
-use super::think_command::ThinkCommand;
 
 /// One typed mutation, carried out by the owner's own
 /// [`NativeEngines`](super::NativeEngines) through
@@ -20,7 +20,7 @@ pub enum OwnerCommand {
     /// A plan mutation.
     Plan(PlanCommand),
     /// A reasoning-trace mutation.
-    Think(ThinkCommand),
+    Decision(DecisionCommand),
     /// An execution-trace mutation.
     Run(RunCommand),
     /// A signal-inbox mutation.

@@ -422,7 +422,7 @@ fn merge_unions_refreshes_and_notes_without_duplicates() {
     memory.refreshes.push(RefreshNote {
         at: "2026-06-09T10:00:00+00:00".into(),
         summary: "shared".into(),
-        think_steps: vec![1],
+        notes: vec![1],
     });
     memory.notes.push(NoteSection {
         heading: "Vision".into(),
@@ -432,12 +432,12 @@ fn merge_unions_refreshes_and_notes_without_duplicates() {
     disk.refreshes.push(RefreshNote {
         at: "2026-06-09T10:00:00+00:00".into(),
         summary: "shared".into(),
-        think_steps: vec![1],
+        notes: vec![1],
     });
     disk.refreshes.push(RefreshNote {
         at: "2026-06-09T09:00:00+00:00".into(),
         summary: "disk-only".into(),
-        think_steps: vec![],
+        notes: vec![],
     });
     disk.notes.push(NoteSection {
         heading: "vision".into(), // case-insensitive duplicate
@@ -619,7 +619,7 @@ fn writing_a_blocker_leaves_every_other_stored_task_untouched() {
     tasks[idx].waiting_on = Some(WaitingOn {
         kind: WaitingReason::Disproved,
         reason: "measurement disproved the central assumption".into(),
-        evidence: Some("think:42".into()),
+        evidence: Some("decision:42".into()),
         waiting_since: "2026-08-07T00:00:00+00:00".into(),
     });
 

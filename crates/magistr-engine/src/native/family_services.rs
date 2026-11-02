@@ -2,6 +2,9 @@
 
 use std::sync::{Arc, Mutex};
 
+use magistr_workflow::decision::DecisionService;
+use magistr_workflow::decision::application::DecisionUseCases;
+use magistr_workflow::decision::engine::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::application::PlanUseCases;
 use magistr_workflow::plan::{PlanEngine, PlanService};
@@ -11,9 +14,6 @@ use magistr_workflow::run::application::RunUseCases;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::application::SignalUseCases;
 use magistr_workflow::signal::{SignalEngine, SignalService};
-use magistr_workflow::think::ThinkService;
-use magistr_workflow::think::application::ThinkUseCases;
-use magistr_workflow::think::engine::ReasoningServer;
 
 /// An engine as its service holds it: shared, locked per call.
 type Shared<T> = Arc<Mutex<T>>;
@@ -22,7 +22,7 @@ type Shared<T> = Arc<Mutex<T>>;
 /// disposable views over these capabilities, with no separate workflow state.
 #[derive(Clone)]
 pub(crate) struct FamilyServices {
-    pub(crate) think: ThinkUseCases,
+    pub(crate) decision: DecisionUseCases,
     pub(crate) run: RunUseCases,
     pub(crate) plan: PlanUseCases,
     pub(crate) signal: SignalUseCases,
@@ -36,13 +36,13 @@ impl FamilyServices {
     /// capability, when composed, is what lets those receipts certify a
     /// source; without it the run family refuses every completion.
     pub(crate) fn compose(
-        think: ReasoningServer,
+        decision: ReasoningServer,
         run: RunEngine,
         plan: PlanEngine,
         signal: SignalEngine,
         evidence: Option<Arc<dyn EvidencePort>>,
     ) -> Self {
-        let think = ThinkUseCases::new(Arc::new(Mutex::new(think)));
+        let decision = DecisionUseCases::new(Arc::new(Mutex::new(decision)));
         let mut run = RunUseCases::new(Arc::new(Mutex::new(run)));
         if let Some(evidence) = evidence {
             run = run.with_evidence(evidence);
@@ -51,7 +51,7 @@ impl FamilyServices {
         let signal = SignalUseCases::new(Arc::new(Mutex::new(signal))).with_plan(plan.engine());
         let plan = plan.with_signal(signal.engine());
         Self {
-            think,
+            decision,
             run,
             plan,
             signal,
@@ -70,7 +70,7 @@ impl FamilyServices {
         let plan =
             PlanUseCases::new(self.plan.engine(), run.clone()).with_signal(self.signal.engine());
         Self {
-            think: self.think.clone(),
+            decision: self.decision.clone(),
             run,
             plan,
             signal: self.signal.clone(),
@@ -82,12 +82,12 @@ impl FamilyServices {
         feed: &magistr_workflow::infra::Broadcaster,
         execution_key: &str,
     ) -> std::io::Result<()> {
-        let (think, run, plan, signal) = self.engines();
-        think
+        let (decision, run, plan, signal) = self.engines();
+        decision
             .lock()
             .map_err(|_| std::io::Error::other("The reasoning publisher could not be attached."))?
             .set_broadcaster(
-                magistr_workflow::think::broadcast::Broadcaster::from_engine(feed.clone()),
+                magistr_workflow::decision::broadcast::Broadcaster::from_engine(feed.clone()),
             );
         run.lock()
             .map_err(|_| std::io::Error::other("The task publisher could not be attached."))?
@@ -111,7 +111,7 @@ impl FamilyServices {
     /// The MCP transport's view of the same services.
     pub(crate) fn unified(&self) -> UnifiedService {
         UnifiedService::new(
-            ThinkService::from_use_cases(self.think.clone()),
+            DecisionService::from_use_cases(self.decision.clone()),
             RunService::from_use_cases(self.run.clone()),
             PlanService::from_use_cases(self.plan.clone()),
             SignalService::from_use_cases(self.signal.clone()),
@@ -129,7 +129,7 @@ impl FamilyServices {
         Shared<SignalEngine>,
     ) {
         (
-            self.think.engine(),
+            self.decision.engine(),
             self.run.engine(),
             self.plan.engine(),
             self.signal.engine(),

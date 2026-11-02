@@ -3,11 +3,11 @@
 //! use), must produce a shape whose serialization contains none of them —
 //! and, stronger, no free-text input string at all.
 
-use magistr_workflow::cloud::build::{from_step, from_task};
+use magistr_workflow::cloud::build::{from_note, from_task};
 use magistr_workflow::cloud::envelope::UnifiedRecordEnvelope;
+use magistr_workflow::decision::domain::note::Note;
 use magistr_workflow::plan::domain::Task;
 use magistr_workflow::telemetry::{extract, scan};
-use magistr_workflow::think::domain::step::ThinkStep;
 
 const SALT: &[u8] = b"itest-install-salt";
 
@@ -21,9 +21,9 @@ const PLANTED: &[&str] = &[
     "-----BEGIN RSA PRIVATE KEY-----",
 ];
 
-fn planted_step() -> ThinkStep {
+fn planted_step() -> Note {
     serde_json::from_value(serde_json::json!({
-        "step_number": 7,
+        "note": 7,
         "record_id": "step-7",
         "estimated_total": 9,
         "purpose": format!("Investigate the leak of {}", PLANTED[0]),
@@ -49,7 +49,7 @@ fn planted_task() -> Task {
         "notes": "",
         "acceptance": [format!("no more {}", PLANTED[2])],
         "deps": [],
-        "refs": ["think:7", "step:verify"],
+        "refs": ["decision:7", "step:verify"],
         "shared": false,
         "created_at": "2026-06-10T00:00:00Z",
         "updated_at": "2026-06-10T02:30:00Z",
@@ -59,7 +59,7 @@ fn planted_task() -> Task {
 
 fn envelopes() -> Vec<UnifiedRecordEnvelope> {
     vec![
-        from_step("tenant-x", &planted_step()).unwrap(),
+        from_note("tenant-x", &planted_step()).unwrap(),
         from_task("tenant-x", &planted_task(), &[], &[]),
     ]
 }
@@ -95,9 +95,9 @@ fn planted_secrets_never_survive_extraction() {
 fn no_input_string_survives_serialization() {
     // Closed vocabulary legitimately shared between input and output.
     const VOCAB: &[&str] = &[
-        "think",
+        "decision",
         "plan",
-        "step",
+        "note",
         "task",
         "in_progress",
         "done",
@@ -183,8 +183,8 @@ fn wire_report_satisfies_the_ingest_contract() {
 #[test]
 fn structure_survives_what_text_does_not() {
     let shape = extract(&envelopes(), SALT).expect("clean shape");
-    // Two records: one think.step, one plan.task.
-    assert_eq!(shape.records.get("think.step"), Some(&1));
+    // Two records: one decision.note, one plan.task.
+    assert_eq!(shape.records.get("decision.note"), Some(&1));
     assert_eq!(shape.records.get("plan.task"), Some(&1));
     // The task's lifecycle state survives as vocabulary.
     assert_eq!(shape.statuses.get("plan.task.in_progress"), Some(&1));

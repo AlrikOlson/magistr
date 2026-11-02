@@ -7,7 +7,7 @@
 //! tracker, the deliberation that produced it is gone. This system holds the
 //! reasoning and the plan in the same graph as the work, so a projected item can
 //! carry acceptance criteria as a checklist, dependencies as real blocking
-//! links, and the `think:`/`step:` refs that produced the decision, in a footer
+//! links, and the `decision:`/`step:` refs that produced the decision, in a footer
 //! a machine can read back. That payload is the product; the transport is
 //! commodity.
 //!
@@ -347,11 +347,11 @@ pub fn preview_verdict(
 /// bytes; an unstable footer would change `content_hash` on every run and defeat
 /// the no-op skip.
 fn provenance_footer(task: &Task, project_id: &str) -> String {
-    let mut think: Vec<&str> = Vec::new();
+    let mut decision: Vec<&str> = Vec::new();
     let mut run: Vec<&str> = Vec::new();
     for r in &task.refs {
-        if r.starts_with("think:") {
-            think.push(r);
+        if r.starts_with("decision:") {
+            decision.push(r);
         } else if r.starts_with("step:") || r.starts_with("progress:") || r.starts_with("check:") {
             run.push(r);
         }
@@ -366,7 +366,7 @@ fn provenance_footer(task: &Task, project_id: &str) -> String {
         "name": task.name,
         "status": task.status,
         "deps": task.deps,
-        "think": think,
+        "decision": decision,
         "run": run,
     });
     format!("{FOOTER_OPEN} {payload} {FOOTER_CLOSE}\n")
@@ -937,7 +937,7 @@ mod tests {
     fn the_body_carries_acceptance_and_provenance() {
         let mut e = engine();
         add(&mut e, "c1", vec![]);
-        e.link_task("c1", "think:46").expect("link think");
+        e.link_task("c1", "decision:46").expect("link decision");
         e.link_task("c1", "step:projector").expect("link task");
 
         let task = e.plan().tasks[0].clone();
@@ -958,7 +958,7 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(footer).expect("footer is JSON");
         assert_eq!(parsed["task"], "c1");
         assert_eq!(parsed["project"], "proj");
-        assert_eq!(parsed["think"][0], "think:46");
+        assert_eq!(parsed["decision"][0], "decision:46");
         assert_eq!(parsed["run"][0], "step:projector");
     }
 
@@ -968,8 +968,8 @@ mod tests {
     fn the_footer_is_stable_across_renders() {
         let mut e = engine();
         add(&mut e, "c1", vec![]);
-        e.link_task("c1", "think:1").expect("ref");
-        e.link_task("c1", "think:2").expect("ref");
+        e.link_task("c1", "decision:1").expect("ref");
+        e.link_task("c1", "decision:2").expect("ref");
         let task = e.plan().tasks[0].clone();
         let caps = TrackerCapabilities::full();
         let a = to_work_item(&e, &task, "fake", &caps);

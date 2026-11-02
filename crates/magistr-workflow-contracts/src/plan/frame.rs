@@ -23,7 +23,7 @@ pub enum PlanFrame {
     },
     RefreshRecorded {
         summary: String,
-        think_steps: Vec<u32>,
+        notes: Vec<u32>,
     },
 }
 

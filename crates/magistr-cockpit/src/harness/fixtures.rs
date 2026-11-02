@@ -11,8 +11,8 @@
 //! wire's: a live line missing a field is dropped by that same decoder.
 
 use magistr_workflow_contracts::{
-    Check, CheckType, Goal, GoalStatus, NativeFrame, Progress, ProgressType, Signal, SignalKind,
-    SignalStatus, Step, StepStatus, StepType, Task, TaskStatus, ThinkStep, VerificationMode,
+    Check, CheckType, Goal, GoalStatus, NativeFrame, Note, Progress, ProgressType, Signal,
+    SignalKind, SignalStatus, Step, StepStatus, StepType, Task, TaskStatus, VerificationMode,
 };
 use magistr_workflow_contracts::{NativeEvent, NativeSnapshot};
 use serde_json::{Value, json};
@@ -70,9 +70,9 @@ pub fn signal(id: &str) -> Signal {
 
 /// A main-line reasoning step with nothing but its number.
 #[must_use]
-pub fn step(number: u32) -> ThinkStep {
-    ThinkStep {
-        step_number: number,
+pub fn step(number: u32) -> Note {
+    Note {
+        note: number,
         estimated_total: 0,
         purpose: String::new(),
         context: String::new(),
@@ -82,21 +82,21 @@ pub fn step(number: u32) -> ThinkStep {
         rationale: String::new(),
         confidence: None,
         uncertainty_notes: None,
-        revises_step: None,
+        revises_note: None,
         revision_reason: None,
         revised_by: None,
-        is_final_step: None,
-        branch_from: None,
-        branch_id: None,
-        branch_name: None,
+        is_final_note: None,
+        thread_from: None,
+        thread_id: None,
+        thread_name: None,
         tools_used: None,
         dependencies: None,
         timestamp: None,
         duration_ms: None,
-        session_id: None,
+        log_id: None,
         pinned: None,
         cwd: None,
-        execution_ref: None,
+        run_ref: None,
         record_id: None,
     }
 }
@@ -132,7 +132,7 @@ pub fn run_step(id: &str, title: &str) -> Step {
         checks: Vec::new(),
         progress: Vec::new(),
         waiting_reason: None,
-        think_branch: None,
+        decision_thread: None,
     }
 }
 
@@ -148,7 +148,7 @@ pub fn progress_record(id: u32, description: &str) -> Progress {
         files_touched: Vec::new(),
         tools_used: Vec::new(),
         result: String::new(),
-        think_step: None,
+        note: None,
     }
 }
 
@@ -220,7 +220,7 @@ pub fn signals_from(partials: Vec<Value>) -> Vec<Signal> {
 /// The steps a list of partial records describes — [`step_from`] over
 /// each.
 #[must_use]
-pub fn steps_from(partials: Vec<Value>) -> Vec<ThinkStep> {
+pub fn steps_from(partials: Vec<Value>) -> Vec<Note> {
     partials.into_iter().map(step_from).collect()
 }
 
@@ -265,7 +265,7 @@ pub fn frame(family: &str, kind: &str, payload: Value) -> NativeEvent {
             fill_signal(&signal(id_of(partial, "id")), partial)
         });
         fill_record(object, "step", |partial| {
-            let number = partial["step_number"].as_u64().unwrap_or(0);
+            let number = partial["note"].as_u64().unwrap_or(0);
             let number = u32::try_from(number).unwrap_or(u32::MAX);
             fill(&step(number), partial)
         });
@@ -308,8 +308,8 @@ pub fn signal_from(partial: Value) -> Signal {
 
 /// The step a partial record describes, the rest filled in from [`step`].
 #[must_use]
-pub fn step_from(partial: Value) -> ThinkStep {
-    let number = u32::try_from(partial["step_number"].as_u64().unwrap_or(0)).unwrap_or(u32::MAX);
+pub fn step_from(partial: Value) -> Note {
+    let number = u32::try_from(partial["note"].as_u64().unwrap_or(0)).unwrap_or(u32::MAX);
     serde_json::from_value(fill(&step(number), &partial)).expect("a filled step decodes")
 }
 
@@ -367,7 +367,7 @@ macro_rules! to_value_via_serde {
     };
 }
 
-to_value_via_serde!(Task, Signal, ThinkStep, Goal, Step, Progress, Check);
+to_value_via_serde!(Task, Signal, Note, Goal, Step, Progress, Check);
 
 fn id_of<'a>(partial: &'a Value, key: &str) -> &'a str {
     partial[key].as_str().unwrap_or_default()

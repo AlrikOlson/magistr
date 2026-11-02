@@ -639,7 +639,7 @@ mod tests {
         let e = LiveEmitter::disabled();
         assert!(!e.is_enabled());
         e.tool_call(&ToolCall {
-            tool: "think_record_step",
+            tool: "decision_record",
             start_nanos: 1,
             end_nanos: 2,
             ..Default::default()
@@ -653,8 +653,8 @@ mod tests {
     /// start instant precisely so it does not.
     #[test]
     fn two_calls_to_one_tool_are_two_spans() {
-        let a = crate::otel::span_id("mcp.call", "p:think_record_step:100");
-        let b = crate::otel::span_id("mcp.call", "p:think_record_step:200");
+        let a = crate::otel::span_id("mcp.call", "p:decision_record:100");
+        let b = crate::otel::span_id("mcp.call", "p:decision_record:200");
         assert_ne!(a, b);
     }
 
@@ -875,7 +875,7 @@ mod tests {
     #[test]
     fn identity_attributes_reach_the_span() {
         let span = built(&ToolCall {
-            tool: "think_record_step",
+            tool: "decision_record",
             request_id: Some("42"),
             protocol_version: Some("2025-11-25"),
             client_name: Some("claude-code"),
@@ -953,13 +953,13 @@ mod tests {
         );
         let start = 1_234_567_890;
         let correlation = emitter
-            .correlation("think_record_step", start)
+            .correlation("decision_record", start)
             .expect("an enabled lane correlates");
 
         let inner = emitter.inner.as_ref().expect("enabled");
         let span = crate::otel::span(
             &correlation.trace_id,
-            call_span_id(&inner.project, "think_record_step", start),
+            call_span_id(&inner.project, "decision_record", start),
             None,
             "x",
             start,
@@ -1005,7 +1005,7 @@ mod tests {
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "bbbbbbbbbbbbbbbb".to_string(),
             None,
-            "mcp think_record_step",
+            "mcp decision_record",
             10,
             20,
             vec![crate::otel::attr("magistr.workflow.project", "p")],

@@ -1,8 +1,8 @@
 # First-party workflow and workspace subsystems
 
 Decision: accepted on 10 September 2026, authorized by the project owner.
-Native reasoning `think:712` supersedes the adapter-based receipt plan in
-`think:710`. Workflow source and typed use cases, the Workspace reference source,
+Native reasoning `decision:712` supersedes the adapter-based receipt plan in
+`decision:710`. Workflow source and typed use cases, the Workspace reference source,
 and its native Rust engine are now repository-local.
 The accepted target is one Rust-native Magistr product. Native workspace
 service composition, Unix client attachment and the production launcher are
@@ -338,7 +338,7 @@ The adopted trees carried surfaces that were products in their own right.
 | magistr `[[bin]]` (`src/main.rs`, `src/cli/*`: serve, init, skills, plan, tracker, otel, cloud, telemetry commands) | Deleted by `arch-14f4` | No Magistr code invoked it and it was not released; the seam tests that executed or parsed it were deleted, and the library plumbing the served `tracker_*` tools reached through it moved to `tracker::host` |
 | magistr bundled `skills/` and `skill-clients/` (embedded by `build.rs`) | Embedding and client trees deleted by `arch-14f4`; `skills/` retained inside the crate as the `skill_evaluations` input | Magistr ships its own `.claude/skills`; no Magistr code reads the tree |
 | magistr `examples/cloud_census.rs` | Deleted by `arch-14f4` | Example of the cloud sync surface, not a dependency |
-| magistr cloud sync, tracker mirroring, OTel export | Retained as served, caller-invoked capabilities | Reachable through the served tool families (`tracker_*`, `think_export_trace`) and the library's manual operations (`project_all`, `sweep::reconcile`, cloud push/pull/outbox) |
+| magistr cloud sync, tracker mirroring, OTel export | Retained as served, caller-invoked capabilities | Reachable through the served tool families (`tracker_*`, `decision_export`) and the library's manual operations (`project_all`, `sweep::reconcile`, cloud push/pull/outbox) |
 | magistr background cadences (tracker push schedule, tracker sweep floor, cloud realtime subscriber and its tracker doorbell, the push receipt store) | Retired by `audit-260912-37-integration-promises`; automatic cadences deferred | Magistr's composition root starts nothing in the background, so the served contract must not promise it: `tracker_setup` advertises no push interval and refuses one by name, and the library no longer carries a schedule nobody composed. An automatic cadence stays deferred until a single host-owned, opt-in, cancellable implementation has product justification, composed in `open_engines` under the engines' authority — never a second writer or daemon. Push receipts persisted by the standalone server under `tracker/receipts/` are never read again; tracker configuration, credentials, sweep watermarks and the cloud connection record are unchanged inputs of the manual paths |
 | magistr `contract/`, `shared/`, `docs/`, `tests/` | Retained | Inputs of retained tests and of the `workflow-source` gate; upstream packaging files (`deny.toml`, `CHANGELOG`, `CONTRIBUTING`, `SECURITY`, `CODE_OF_CONDUCT`, `docs/deploy`, `RELEASING`, `DEPLOYMENT`, `scripts/`) deleted by `arch-14f4` |
 | Workspace reference source (`subsystems/workspace/reference`, including the Bun server and vendored guests) | Retain | The parity oracle behind the required `workspace-reference` gate; never in the production dependency graph |
@@ -376,7 +376,7 @@ The unfinished receipt implementation is preserved as a blocked checkpoint,
 including regressions and runner work. Its temporary MCP interceptions and
 duplicate policy must be replaced during migration. It has not passed the
 integrated or full required gates and is not committed or finalized.
-Its goal/task recovery remains native `think:714`. On the owner's request
+Its goal/task recovery remains native `decision:714`. On the owner's request
 to continue on `main`, the exact draft (16 tracked changes and nine untracked
 source files) moved to the verified recovery bundle
 `magistr-main-integration-20260910T190025Z/receipt-draft` in the maintainer's

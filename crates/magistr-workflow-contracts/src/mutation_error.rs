@@ -47,8 +47,8 @@ impl WorkflowMutationError {
     }
 }
 
-impl From<crate::think::StepError> for WorkflowMutationError {
-    fn from(error: crate::think::StepError) -> Self {
+impl From<crate::decision::NoteError> for WorkflowMutationError {
+    fn from(error: crate::decision::NoteError) -> Self {
         Self {
             code: error.kind().into(),
             effect: error.effect().into(),

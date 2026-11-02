@@ -93,10 +93,10 @@ fn upsert_signal_keeps_newer_local_lifecycle_progress() {
 
 /// sync-project-scope, the signal family's copy: with an org token every
 /// project in the org shares one cloud tenant, so `apply_signal_records` filters
-/// on the record's project stamp exactly as plan and think do.
+/// on the record's project stamp exactly as plan and decision do.
 ///
 /// This gate is here because it was NOT: neutralising `record_is_local` reddened
-/// the plan and think files and left this one entirely green, so the one line
+/// the plan and decision files and left this one entirely green, so the one line
 /// standing between the signal store and every other project's signals could
 /// have been deleted to applause. The rule is per-FAMILY, and so is its proof.
 #[test]

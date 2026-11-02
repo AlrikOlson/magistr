@@ -340,7 +340,7 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     assert_eq!(still_live["records"][0]["id"], "attached");
 
     use std::os::unix::fs::MetadataExt;
-    let lock_path = data.join("plan/sessions/owner-test.project-owner.lock");
+    let lock_path = data.join("owners/decision-words/owner-test.project-owner.lock");
     let lock_inode = std::fs::metadata(&lock_path).expect("owner lock").ino();
     owner.child.kill().await.expect("kill owner");
     owner.child.wait().await.expect("owner reaped");
@@ -366,7 +366,7 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
         .call("plan_get", json!({"ids":["acknowledged"]}))
         .await;
     assert_eq!(fresh["records"][0]["id"], "acknowledged", "{fresh}");
-    let status = restarted.call("think_engine_status", json!({})).await;
+    let status = restarted.call("decision_status", json!({})).await;
     assert_eq!(
         status["version"],
         env!("CARGO_PKG_VERSION"),
@@ -551,7 +551,7 @@ async fn a_reader_command_answers_beside_the_running_owner_without_a_lease() {
         .await;
     assert_eq!(added["value"]["id"], "visible", "{added}");
 
-    let lease = data.join("plan/sessions/owner-test.project-owner.lock");
+    let lease = data.join("owners/decision-words/owner-test.project-owner.lock");
     let before = std::fs::read(&lease).expect("the service owns the project");
     // `magistr plan status` is a reader: it takes no lease, so it answers
     // while the owner holds the project, and it sees the owner's write.

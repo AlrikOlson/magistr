@@ -196,7 +196,7 @@ pub struct WaitingOnArgs {
     #[serde(default)]
     #[schemars(required, !default)]
     pub reason: String,
-    /// Optional proof — a cross-ref (think:N | task:id | step:X).
+    /// Optional proof — a cross-ref (decision:N | task:id | step:X).
     #[serde(default)]
     pub evidence: Option<String>,
 }
@@ -289,7 +289,7 @@ pub struct LinkArgs {
     #[serde(default)]
     #[schemars(required, !default)]
     pub id: String,
-    /// A reference: `think:N`, `step:X`, `progress:N`, `check:X`, `task:X`.
+    /// A reference: `decision:N`, `step:X`, `progress:N`, `check:X`, `task:X`.
     #[serde(default, rename = "ref")]
     #[schemars(required, !default)]
     pub reference: String,
@@ -298,9 +298,9 @@ pub struct LinkArgs {
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct RecordRefreshArgs {
     pub summary: String,
-    /// think step ids that motivated the mutation.
+    /// decision note ids that motivated the mutation.
     #[serde(default)]
-    pub think_steps: Vec<u32>,
+    pub notes: Vec<u32>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -620,7 +620,7 @@ impl PlanService {
 
     #[tool(
         name = "plan_start_task",
-        description = "Begin work on a task: marks it in_progress and returns the `task:<id>` reference. Wire that reference into run_open (as the goal's scope/ref) and into a think step's execution_ref, then plan_link the resulting task:/think: refs back to close the loop.\n\nInputs: id (required).\n\nReturns: { task, backref, hint }.\n\nPitfalls: only to-do work with no waiting reason and all dependencies completed can start. The writer rechecks current records.",
+        description = "Begin work on a task: marks it in_progress and returns the `task:<id>` reference. Wire that reference into run_open (as the goal's scope/ref) and into a decision note's run_ref, then plan_link the resulting task:/decision: refs back to close the loop.\n\nInputs: id (required).\n\nReturns: { task, backref, hint }.\n\nPitfalls: only to-do work with no waiting reason and all dependencies completed can start. The writer rechecks current records.",
         annotations(
             title = "Start task",
             read_only_hint = false,
@@ -635,7 +635,7 @@ impl PlanService {
     ) -> Result<CallToolResult, ErrorData> {
         Self::present(self.application.start_task(&args.id).map(|observed| observed.map(|task| serde_json::json!({
             "task": task, "ref": CrossRef::PlanTask(args.id).to_wire(),
-            "hint": "pass `ref` to run_open and a think execution_ref, then plan_link the resulting task:/think: refs back",
+            "hint": "pass `ref` to run_open and a decision run_ref, then plan_link the resulting task:/decision: refs back",
         }))))
     }
 
@@ -662,7 +662,7 @@ impl PlanService {
 
     #[tool(
         name = "plan_link",
-        description = "Attach a reference to a task, fusing the three families into one graph. Validated against the reference wire format; duplicates are ignored.\n\nInputs: id (required), ref (required — think:N | step:X | progress:N | check:X | task:X).\n\nReturns: the updated task.",
+        description = "Attach a reference to a task, fusing the three families into one graph. Validated against the reference wire format; duplicates are ignored.\n\nInputs: id (required), ref (required — decision:N | step:X | progress:N | check:X | task:X).\n\nReturns: the updated task.",
         annotations(
             title = "Link task",
             read_only_hint = false,
@@ -680,7 +680,7 @@ impl PlanService {
 
     #[tool(
         name = "plan_record_refresh",
-        description = "Append a datestamped refresh note recording a plan mutation and the think step ids that motivated it (the /roadmap-refresh provenance, made first-class).\n\nInputs: summary (required), think_steps (u32[]).\n\nReturns: { recorded, summary, think_steps, total_refreshes }.",
+        description = "Append a datestamped refresh note recording a plan mutation and the decision note ids that motivated it (the /roadmap-refresh provenance, made first-class).\n\nInputs: summary (required), notes (u32[]).\n\nReturns: { recorded, summary, notes, total_refreshes }.",
         annotations(
             title = "Record refresh note",
             read_only_hint = false,
@@ -695,11 +695,11 @@ impl PlanService {
     ) -> Result<CallToolResult, ErrorData> {
         match self
             .application
-            .record_refresh(args.summary.clone(), args.think_steps.clone())
+            .record_refresh(args.summary.clone(), args.notes.clone())
         {
             Ok(total) => Self::present(Ok(total.map(|total| {
                 serde_json::json!({
-                    "recorded": true, "summary": args.summary, "think_steps": args.think_steps,
+                    "recorded": true, "summary": args.summary, "notes": args.notes,
                     "total_refreshes": total,
                 })
             }))),
@@ -1037,7 +1037,7 @@ mod tests {
         let out = patch(
             &svc,
             r#"{"id":"c","waiting_on":{"kind":"person","reason":"  needs a decision  ",
-                "evidence":"think:42"}}"#,
+                "evidence":"decision:42"}}"#,
         )
         .await;
 
@@ -1046,7 +1046,7 @@ mod tests {
         // Trimmed by the engine's validator, not by this seam — the seam is
         // asserted to PASS THROUGH rather than to clean up after the caller.
         assert_eq!(b["reason"], "needs a decision");
-        assert_eq!(b["evidence"], "think:42");
+        assert_eq!(b["evidence"], "decision:42");
         assert!(
             !b["waiting_since"].as_str().unwrap_or_default().is_empty(),
             "a waiting reason must be stamped: {out}"
@@ -1239,11 +1239,11 @@ mod tests {
 
     #[test]
     fn link_takes_ref_and_no_other_spelling() {
-        let canonical: LinkArgs = serde_json::from_str(r#"{"id":"x","ref":"think:5"}"#).unwrap();
-        assert_eq!(canonical.reference, "think:5");
+        let canonical: LinkArgs = serde_json::from_str(r#"{"id":"x","ref":"decision:5"}"#).unwrap();
+        assert_eq!(canonical.reference, "decision:5");
         for retired in ["cross_ref", "crossref"] {
             let old: LinkArgs =
-                serde_json::from_str(&format!(r#"{{"id":"x","{retired}":"think:5"}}"#)).unwrap();
+                serde_json::from_str(&format!(r#"{{"id":"x","{retired}":"decision:5"}}"#)).unwrap();
             assert!(old.reference.is_empty(), "{retired} is not read");
         }
     }

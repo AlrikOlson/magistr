@@ -155,7 +155,7 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
             if page["nextOffset"] is None: break
             offset = page["nextOffset"]
         for name in ["map","files","command","undo","script","workspace_status","plan_add_task",
-                     "think_record_step","run_open","run_finish","signal_capture"]:
+                     "decision_record","run_open","run_finish","signal_capture"]:
             self.assertIn(name, operations)
         for name, tool in tools.items():
             if name in ("discover","execute"): continue

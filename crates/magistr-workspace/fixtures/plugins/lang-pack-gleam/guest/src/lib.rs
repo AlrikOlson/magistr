@@ -5,7 +5,7 @@
 //! the Tier-1 symbol indexer, and a file-class heuristic; the grammar
 //! executes in the engine child's registry lanes, never here.
 //!
-//! no_std by the think:119 recipe so the module imports NOTHING — this
+//! no_std by the decision:119 recipe so the module imports NOTHING — this
 //! guest declares zero capabilities and the sandbox's default-deny has
 //! nothing to even consider.
 

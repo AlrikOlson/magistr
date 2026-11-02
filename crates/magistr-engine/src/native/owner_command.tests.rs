@@ -1,5 +1,5 @@
 use super::*;
-use crate::native::{OwnerReply, ThinkCommand};
+use crate::native::{DecisionCommand, OwnerReply};
 use magistr_workflow::run::domain::step::StepType;
 use magistr_workflow_contracts::{Observed, ReadSource};
 
@@ -15,9 +15,9 @@ fn every_family_survives_the_wire() {
             id: "c".into(),
             feature: None,
         }),
-        OwnerCommand::Think(ThinkCommand::Checkpoint),
-        OwnerCommand::Think(ThinkCommand::PinStep {
-            step_number: 3,
+        OwnerCommand::Decision(DecisionCommand::Review),
+        OwnerCommand::Decision(DecisionCommand::Pin {
+            note: 3,
             pinned: true,
         }),
         OwnerCommand::Run(RunCommand::AddStep {
@@ -40,22 +40,24 @@ fn every_family_survives_the_wire() {
         );
     }
     let json = serde_json::to_value(&commands[1]).expect("value");
-    assert_eq!(json["family"], "think");
-    assert_eq!(json["verb"], "checkpoint");
+    assert_eq!(json["family"], "decision");
+    assert_eq!(json["verb"], "review");
 }
 
 #[test]
 fn replies_that_carry_primitives_survive_the_wire() {
     for reply in [
-        OwnerReply::ThinkStep(Box::new(magistr_workflow_contracts::think::RecordedStep {
-            project_id: "project".into(),
-            step: serde_json::from_value(serde_json::json!({
-                "step_number": 1, "record_id": "record-1", "purpose": "investigation"
-            }))
-            .unwrap(),
-            source: ReadSource::Memory,
-            report: serde_json::json!({}),
-        })),
+        OwnerReply::Note(Box::new(
+            magistr_workflow_contracts::decision::RecordedNote {
+                project_id: "project".into(),
+                note: serde_json::from_value(serde_json::json!({
+                    "note": 1, "record_id": "record-1", "purpose": "investigation"
+                }))
+                .unwrap(),
+                source: ReadSource::Memory,
+                report: serde_json::json!({}),
+            },
+        )),
         OwnerReply::Pinned(Observed {
             value: true,
             source: ReadSource::Memory,

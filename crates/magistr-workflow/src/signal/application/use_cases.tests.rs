@@ -50,7 +50,7 @@ fn native_capture_and_research_enforce_validation_before_mutation() {
         .unwrap();
     assert_eq!(updated.value.status, SignalStatus::Researched);
     assert_eq!(updated.value.enrichment[0].confidence, 1.0);
-    assert_eq!(updated.value.refs, ["think:42"]);
+    assert_eq!(updated.value.refs, ["decision:42"]);
     assert_eq!(app.pending(None, &[], None).unwrap(), [updated.value]);
 }
 
@@ -88,7 +88,7 @@ async fn mcp_and_native_views_share_state_and_logical_error_classification() {
             summary: "Evidence".into(),
             confidence: 0.8,
             sources: vec!["local source".into()],
-            think_step: Some(9),
+            note: Some(9),
         }))
         .await
         .unwrap();
@@ -109,10 +109,10 @@ fn native_link_and_terminal_mutations_keep_domain_rules() {
         app.link(&signal.value.id, "unknown:value"),
         Err(SignalError::InvalidArgs(_))
     ));
-    app.link(&signal.value.id, "think:8").unwrap();
+    app.link(&signal.value.id, "decision:8").unwrap();
     assert_eq!(
-        app.link(&signal.value.id, "think:8").unwrap().value.refs,
-        ["think:8"]
+        app.link(&signal.value.id, "decision:8").unwrap().value.refs,
+        ["decision:8"]
     );
     assert!(
         app.snooze(&signal.value.id, None)

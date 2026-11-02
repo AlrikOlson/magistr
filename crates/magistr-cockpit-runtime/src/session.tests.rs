@@ -510,7 +510,7 @@ async fn an_absent_port_is_refused_by_name_rather_than_answered_with_silence() {
         .send(Cmd::Workspace(WorkspaceCmd::Map))
         .expect("command sent");
     commands_tx
-        .send(Cmd::Engine(magistr_cockpit::cockpit::EngineCmd::Checkpoint))
+        .send(Cmd::Engine(magistr_cockpit::cockpit::EngineCmd::Review))
         .expect("command sent");
     commands_tx
         .send(Cmd::Checkpoint(
@@ -525,7 +525,7 @@ async fn an_absent_port_is_refused_by_name_rather_than_answered_with_silence() {
     ));
     assert!(matches!(
         next(&mut messages).await,
-        Msg::Engine(magistr_cockpit::engine::EngineEvent::PortFailed { what, error, .. }) if what == "checkpoint" && error.contains("no engine port")
+        Msg::Engine(magistr_cockpit::engine::EngineEvent::PortFailed { what, error, .. }) if what == "review" && error.contains("no engine port")
     ));
     assert!(matches!(
         next(&mut messages).await,

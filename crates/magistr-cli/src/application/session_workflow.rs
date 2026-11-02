@@ -40,7 +40,7 @@ pub(super) fn observe(snapshot: &mut Arc<NativeSnapshot>, event: EngineEvent) ->
                             invalidate(&mut Arc::make_mut(snapshot).signals);
                         }
                     }
-                    NativeEvent::Think(_) => invalidate_think(snapshot),
+                    NativeEvent::Decision(_) => invalidate_decision(snapshot),
                     NativeEvent::Magistr(_) => return false,
                 }
             }
@@ -50,8 +50,8 @@ pub(super) fn observe(snapshot: &mut Arc<NativeSnapshot>, event: EngineEvent) ->
             invalidate_all(snapshot);
             true
         }
-        EngineEvent::Pinned { .. } | EngineEvent::Checkpoint { .. } => {
-            invalidate_think(snapshot);
+        EngineEvent::Pinned { .. } | EngineEvent::Review { .. } => {
+            invalidate_decision(snapshot);
             true
         }
         EngineEvent::PortFailed { .. } => false,
@@ -67,9 +67,9 @@ fn invalidate<T>(state: &mut ReadState<T>) {
     }
 }
 
-fn invalidate_think(snapshot: &mut Arc<NativeSnapshot>) {
-    if matches!(&snapshot.think, ReadState::Current(_)) {
-        invalidate(&mut Arc::make_mut(snapshot).think);
+fn invalidate_decision(snapshot: &mut Arc<NativeSnapshot>) {
+    if matches!(&snapshot.decisions, ReadState::Current(_)) {
+        invalidate(&mut Arc::make_mut(snapshot).decisions);
     }
 }
 
@@ -77,12 +77,12 @@ fn invalidate_all(snapshot: &mut Arc<NativeSnapshot>) {
     let current = matches!(&snapshot.plan, ReadState::Current(_))
         || matches!(&snapshot.run, ReadState::Current(_))
         || matches!(&snapshot.signals, ReadState::Current(_))
-        || matches!(&snapshot.think, ReadState::Current(_));
+        || matches!(&snapshot.decisions, ReadState::Current(_));
     if current {
         let snapshot = Arc::make_mut(snapshot);
         invalidate(&mut snapshot.plan);
         invalidate(&mut snapshot.run);
         invalidate(&mut snapshot.signals);
-        invalidate(&mut snapshot.think);
+        invalidate(&mut snapshot.decisions);
     }
 }

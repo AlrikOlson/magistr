@@ -3,7 +3,7 @@
 //! concern / bug / feedback raised about the project; the local store is a
 //! CACHE of the cloud system-of-record (the wire contract is
 //! `contract/signal-envelope.schema.json`; the cloud client syncs against
-//! it). Additive: a fourth family beside `think_*`, `run_*`, and
+//! it). Additive: a fourth family beside `decision_*`, `run_*`, and
 //! `plan_*`, mirroring the plan module's domain → engine → mcp shape.
 
 pub mod application;

@@ -20,7 +20,7 @@
 //! This module is the boundary through which a plan task is *projected* into
 //! one of them and reconciled back — carrying the thing that makes this system
 //! different from a generic sync tool: a task's acceptance criteria, its
-//! dependencies, and its cross-references into the `think_*` reasoning and
+//! dependencies, and its cross-references into the `decision_*` reasoning and
 //! `run_*` proof that produced it.
 //!
 //! It is emphatically NOT an issue-CRUD surface. Linear, Atlassian and GitHub

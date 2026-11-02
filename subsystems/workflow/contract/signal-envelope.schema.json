@@ -73,7 +73,7 @@
       "items": { "$ref": "#/$defs/Enrichment" }
     },
     "refs": {
-      "description": "Typed cross-references into the think/run/plan graph, in the existing `prefix:value` wire form (infra/cross_ref.rs), extended with the `signal:` variant (Phase 29b). Bidirectional: promoting a signal writes `task:<id>` here and `signal:<id>` onto the task.",
+      "description": "Typed cross-references into the decision/run/plan graph, in the existing `prefix:value` wire form (infra/cross_ref.rs), extended with the `signal:` variant (Phase 29b). Bidirectional: promoting a signal writes `task:<id>` here and `signal:<id>` onto the task.",
       "type": "array",
       "items": { "$ref": "#/$defs/CrossRef" }
     }
@@ -127,13 +127,13 @@
       }
     },
     "Enrichment": {
-      "description": "One agent enrichment record (Phase 29d): the reasoning step that motivated it, the external sources consulted, a summary, and a confidence. Append-only.",
+      "description": "One agent enrichment record (Phase 29d): the decision note that motivated it, the external sources consulted, a summary, and a confidence. Append-only.",
       "type": "object",
       "additionalProperties": false,
       "required": ["summary", "confidence", "at"],
       "properties": {
-        "think_step": {
-          "description": "The think_* step number that produced this enrichment (cross-ref into the reasoning trace).",
+        "note": {
+          "description": "The decision note that produced this enrichment (cross-ref into the decision log).",
           "type": "integer",
           "minimum": 0
         },
@@ -157,9 +157,9 @@
       }
     },
     "CrossRef": {
-      "description": "A cross-reference in the existing wire form `prefix:value`. `prefix` is one of the think/run/plan families plus `signal`. Mirrors infra/cross_ref.rs::CrossRef::from_wire so the same parser accepts it.",
+      "description": "A cross-reference in the existing wire form `prefix:value`. `prefix` is one of the decision/run/plan families plus `signal`. Mirrors infra/cross_ref.rs::CrossRef::from_wire so the same parser accepts it.",
       "type": "string",
-      "pattern": "^(think|task|action|check|task|signal):.+$"
+      "pattern": "^(decision|task|action|check|task|signal):.+$"
     }
   },
   "examples": [
@@ -186,7 +186,7 @@
       },
       "enrichment": [
         {
-          "think_step": 867,
+          "note": 867,
           "sources": [
             "https://github.com/cursor/agent-trace",
             "sym-…plan::export::export_markdown"
@@ -196,7 +196,7 @@
           "at": "2026-06-08T01:12:00Z"
         }
       ],
-      "refs": ["think:867", "task:richer-roadmap-export"]
+      "refs": ["decision:867", "task:richer-roadmap-export"]
     }
   ]
 }

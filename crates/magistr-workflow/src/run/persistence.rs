@@ -15,7 +15,7 @@ use crate::run::domain::step::Step;
 #[path = "persistence_upgrade.rs"]
 mod upgrade;
 
-const SCHEMA_VERSION: u32 = 4;
+const SCHEMA_VERSION: u32 = 5;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct PersistedState {
@@ -194,7 +194,7 @@ impl Persistence {
     }
 
     pub fn new(cfg: &PersistenceConfig) -> Self {
-        // Partition under `run/` so the think family writes to its own
+        // Partition under `run/` so the decision family writes to its own
         // sibling subdirectory and the two never share a `<project>.json`
         // path. Mirrors the layout used by `crate::infra::Persistence`.
         let sessions_dir = cfg.data_dir.join("run").join("sessions");

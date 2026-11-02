@@ -1,10 +1,10 @@
 export function reasoningFixture(){
-  const step={record_id:"decision-41",step_number:41,estimated_total:42,purpose:"Keep each conversation with its saved message",context:"Reopening a project should restore the same conversation.",
+  const step={record_id:"decision-41",note:41,estimated_total:42,purpose:"Keep each conversation with its saved message",context:"Reopening a project should restore the same conversation.",
     thought:"The conversation already owns its saved message. Read that record before the editor opens.",rationale:"A second saved message would drift from the conversation.",outcome:"Keep one writer and restore the recorded text.",
     next_action:"Check reopening with an unsent message.",timestamp:"2026-10-15T08:05:00Z",pinned:true,tools_used:["Source inspection"]};
-  return {state:"current",data:{source:{kind:"memory"},value:{sessions:[
-    {session_id:null,steps:[step,{...step,record_id:"decision-43",step_number:43,purpose:"Check whether reopening needs a second saved message",branch_id:"storage",pinned:false}],branches:[{id:"storage",name:"Does reopening need another saved message?",from_step:41,steps:[],status:"merged",merged_into:41,created_at:step.timestamp,depth:1}],completed:false,created_at:step.timestamp},
-    {session_id:"review",steps:[{...step,record_id:"decision-42",step_number:42,purpose:"Inspect the installation result",pinned:false,dependencies:[{step:41,relation:"supports"}]}],branches:[],completed:true,created_at:step.timestamp}
+  return {state:"current",data:{source:{kind:"memory"},value:{logs:[
+    {log_id:null,notes:[step,{...step,record_id:"decision-43",note:43,purpose:"Check whether reopening needs a second saved message",thread_id:"storage",pinned:false}],threads:[{id:"storage",name:"Does reopening need another saved message?",from_note:41,notes:[],status:"merged",merged_into:41,created_at:step.timestamp,depth:1}],completed:false,created_at:step.timestamp},
+    {log_id:"review",notes:[{...step,record_id:"decision-42",note:42,purpose:"Inspect the installation result",pinned:false,dependencies:[{note:41,relation:"supports"}]}],threads:[],completed:true,created_at:step.timestamp}
   ]}}};
 }
 export async function reasoningScene(app,capture){

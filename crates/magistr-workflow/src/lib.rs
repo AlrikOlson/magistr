@@ -18,7 +18,7 @@
 //! tool totals: a number nothing derives is a number that goes stale, which is
 //! how this page came to claim two families when there were four.
 //!
-//! - `think_*` — the reasoning trace. Steps, branches, revisions, confidence,
+//! - `decision_*` — the decision log. Steps, branches, revisions, confidence,
 //!   and conclusions worth pinning. Answers *why*.
 //! - `run_*` — the run history. Goals, steps, progress, checks,
 //!   artifacts. Answers *what was actually done*.
@@ -44,7 +44,7 @@
 //!
 //! The composed server is [`mcp::unified::UnifiedService`], and which families
 //! it exposes is decided once at startup by [`mcp::unified::FamilySelection`].
-//! Each family is also usable on its own — [`think::ThinkService`],
+//! Each family is also usable on its own — [`decision::DecisionService`],
 //! [`run::RunService`], [`plan::PlanService`],
 //! [`signal::SignalService`] — and each wraps a plain engine you can drive
 //! without any MCP wire at all, such as [`plan::PlanEngine`] and
@@ -60,6 +60,7 @@
 
 pub mod cloud;
 pub mod content;
+pub mod decision;
 pub mod infra;
 pub mod mcp;
 pub mod otel;
@@ -70,7 +71,6 @@ pub mod plan;
 pub mod run;
 pub mod signal;
 pub mod telemetry;
-pub mod think;
 pub mod trace_context;
 pub mod tracker;
 pub mod usage;

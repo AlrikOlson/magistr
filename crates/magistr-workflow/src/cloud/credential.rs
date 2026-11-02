@@ -66,7 +66,7 @@ pub fn provider_key(profile: &str) -> String {
 /// disconnect the rest.
 #[must_use]
 pub fn default_profile() -> String {
-    normalize_profile(&crate::think::config::resolve_project_id())
+    normalize_profile(&crate::decision::config::resolve_project_id())
 }
 
 /// Fold a profile name to the form used as a store key and written to config.

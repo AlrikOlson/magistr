@@ -109,7 +109,7 @@ fn add_step() {
 }
 
 #[test]
-fn add_step_with_think_branch() {
+fn add_step_with_decision_thread() {
     let mut e = engine();
     e.set_goal("Goal".into(), vec![], vec![], String::new())
         .unwrap();
@@ -121,7 +121,7 @@ fn add_step_with_think_branch() {
         Some("alt-approach".into()),
     )
     .unwrap();
-    assert_eq!(e.steps[0].think_branch, Some("alt-approach".into()));
+    assert_eq!(e.steps[0].decision_thread, Some("alt-approach".into()));
 }
 
 #[test]
@@ -304,7 +304,7 @@ fn record_progress_on_active_step() {
         .unwrap()
         .value;
     assert_eq!(progress.id, 1);
-    assert_eq!(progress.think_step, Some(42));
+    assert_eq!(progress.note, Some(42));
     assert_eq!(progress.step_id, "t1");
 }
 
@@ -329,7 +329,7 @@ fn record_progress_explicit_step_id() {
         .unwrap()
         .value;
     assert_eq!(progress.progress_type, ProgressType::Test);
-    assert_eq!(progress.think_step, None);
+    assert_eq!(progress.note, None);
 }
 
 #[test]
@@ -586,7 +586,7 @@ fn status_empty() {
 }
 
 #[test]
-fn status_with_think_refs() {
+fn status_with_decision_refs() {
     let mut e = engine();
     e.set_goal("Goal".into(), vec![], vec![], String::new())
         .unwrap();
@@ -610,7 +610,7 @@ fn status_with_think_refs() {
     )
     .unwrap();
     let s = e.status();
-    let refs = s["think_refs"].as_array().unwrap();
+    let refs = s["decision_refs"].as_array().unwrap();
     assert_eq!(refs.len(), 2);
     assert!(
         refs.iter()
@@ -672,7 +672,7 @@ fn export_markdown() {
     let md = e.export("markdown");
     assert!(md.contains("Build it"));
     assert!(md.contains("Do thing"));
-    assert!(md.contains("think #3"));
+    assert!(md.contains("decision #3"));
     assert!(md.contains("[pass] cargo test"));
 }
 
@@ -896,7 +896,7 @@ fn full_sdlc_flow() {
     assert_eq!(status["goal"]["status"], "finished");
     assert_eq!(status["steps"]["done"], 4);
 
-    let refs = status["think_refs"].as_array().unwrap();
+    let refs = status["decision_refs"].as_array().unwrap();
     assert!(
         refs.iter()
             .any(|r| r["ref_type"] == "branch" && r["value"] == "jwt-approach")

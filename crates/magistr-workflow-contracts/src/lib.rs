@@ -11,12 +11,13 @@ pub use content::{
 mod family;
 mod mutation_error;
 pub use mutation_error::WorkflowMutationError;
+pub mod decision;
 pub mod plan;
 pub mod run;
 pub mod signal;
-pub mod think;
 pub use family::Family;
 mod broadcast_frame;
+mod decision_thread;
 mod delivery;
 mod event_cursor;
 mod feed_cursor;
@@ -29,11 +30,11 @@ mod owner_generation;
 mod plan_progress;
 mod read_state;
 mod store_stamp;
-mod think_branch;
 mod write_error;
 pub use write_error::{WriteError, WriteErrorKind};
 
 pub use broadcast_frame::NativeFrame;
+pub use decision_thread::DecisionThread;
 pub use delivery::Delivery;
 pub use event_cursor::EventCursor;
 pub use feed_cursor::FeedCursor;
@@ -41,13 +42,13 @@ pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
 pub use magistr_frame::MagistrFrame;
 pub use native_event::NativeEvent;
-pub use native_snapshot::{NativeSnapshot, PlanData, Run, RunData, ThinkData};
+pub use native_snapshot::{DecisionData, NativeSnapshot, PlanData, Run, RunData};
 pub use owner_generation::OwnerGeneration;
 pub use plan_progress::PlanProgress;
 pub use read_state::{Observed, ReadError, ReadErrorKind, ReadSource, ReadState};
 pub use store_stamp::StoreStamp;
-pub use think_branch::ThinkBranch;
 
+pub use decision::{DecisionFrame, DepEdge, NextAction, Note, ThreadStatus};
 pub use plan::{
     PLAN_SCHEMA_VERSION, PlanFrame, ReprioritizeProposal, StatusProposal, Task, TaskStatus,
     TitleProposal, WaitingOn, WaitingReason,
@@ -59,6 +60,5 @@ pub use run::{
 pub use signal::{
     Enrichment, SIGNALS_SCHEMA_VERSION, Signal, SignalFrame, SignalKind, SignalStatus,
 };
-pub use think::{BranchStatus, DepEdge, NextAction, ThinkFrame, ThinkStep};
 
 pub use family::{EPOCH_KEY, SEQ_KEY};

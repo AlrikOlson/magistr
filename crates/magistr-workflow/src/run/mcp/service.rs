@@ -32,7 +32,7 @@ When to call which tool:
   - Wiping every run (destructive)              → run_reset
 
 Open a run before arranging steps, and arrange steps before starting them.
-The `think_step` field on record_progress links progress back to the reasoning
+The `note` field on record_progress links progress back to the reasoning
 step that motivated it. Every JSON-returning tool advertises an outputSchema and
 emits structuredContent; prefer parsing that over the text content."#;
 

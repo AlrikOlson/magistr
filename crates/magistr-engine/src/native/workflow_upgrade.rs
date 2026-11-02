@@ -204,8 +204,9 @@ fn older_root(current: &Path) -> Option<PathBuf> {
 }
 
 /// Family directories in the current store and in the older standalone store,
-/// whose run family was still named `ship` and plan family `roadmap`.
-const CURRENT_FAMILIES: [&str; 4] = ["think", "run", "plan", "signal"];
+/// whose run family was still named `ship`, plan family `roadmap` and
+/// decision family `think`.
+const CURRENT_FAMILIES: [&str; 4] = ["decisions", "run", "plan", "signal"];
 const OLDER_FAMILIES: [&str; 4] = ["think", "ship", "roadmap", "signal"];
 
 fn records(root: &Path, id: &str, families: [&str; 4]) -> io::Result<Vec<PathBuf>> {
@@ -259,7 +260,7 @@ fn converted_records(
     id: &str,
     records: Vec<(PathBuf, Vec<u8>)>,
 ) -> io::Result<Vec<(PathBuf, Vec<u8>)>> {
-    use magistr_workflow::{plan::PlanEngine, run, signal::SignalEngine, think};
+    use magistr_workflow::{decision, plan::PlanEngine, run, signal::SignalEngine};
     use std::collections::BTreeMap;
     let execution = super::ExecutionContext::new(&config.workflow_root(), "default")?;
     let execution_root = Path::new("run/executions").join(execution.key());
@@ -316,6 +317,10 @@ fn converted_records(
             } else {
                 bytes
             }
+        } else if let Ok(rest) = relative.strip_prefix("think") {
+            // The older store names the decision family `think`.
+            target = Path::new("decisions").join(rest);
+            bytes
         } else if relative == Path::new("signal/sessions").join(format!("{id}.json")) {
             SignalEngine::upgrade_document(&bytes, id).map_err(io::Error::other)?
         } else {
@@ -330,12 +335,13 @@ fn converted_records(
         }
     }
     if !histories.is_empty() {
-        let owner = think::persistence::Persistence::for_project(&config.persistence_config(), id);
+        let owner =
+            decision::persistence::Persistence::for_project(&config.persistence_config(), id);
         let bytes = owner
             .upgrade_documents(&histories)
             .map_err(io::Error::other)?;
         converted.insert(
-            Path::new("think/sessions").join(format!("{id}.json")),
+            Path::new("decisions/sessions").join(format!("{id}.json")),
             bytes,
         );
     }

@@ -1,7 +1,7 @@
 //! `UnifiedService` — the single MCP server that exposes every tool family.
 //!
 //! Routes an incoming `tools/call` to the family that CLAIMS its name prefix:
-//! [`ThinkService`], [`RunService`], [`PlanService`] or [`SignalService`].
+//! [`DecisionService`], [`RunService`], [`PlanService`] or [`SignalService`].
 //! Which of them a given deployment actually serves is decided once at startup
 //! by [`FamilySelection`]; this layer only dispatches.
 //!
@@ -39,10 +39,10 @@ use super::resources::{
 };
 use super::tasks::{Eligibility, HeartbeatSeed};
 
+use crate::decision::DecisionService;
 use crate::plan::PlanService;
 use crate::run::RunService;
 use crate::signal::SignalService;
-use crate::think::ThinkService;
 use crate::usage::CallCounter;
 
 const SERVER_INSTRUCTIONS: &str = r#"magistr — unified MCP server for plan-driven reasoning + execution.
@@ -53,24 +53,24 @@ for the namespace it mirrors itself through:
   plan_* (17 tools)   the long-horizon plan-of-plans (drives the project)
   tracker_* (2 tools)    plan's mirroring namespace — project the plan into an
                          issue tracker through one provider-agnostic port
-  think_*   (13 tools)   reasoning trace
+  decision_*   (13 tools)   decision log
   run_*      (7 tools)  run history: open a run, read its status, finish it
   approval_* (2 tools)  the run family's approvals: ask a person, wait for the answer
   step verbs (5 tools)  arrange_steps, start_step, record_progress, check_step, finish_step
   signal_*  (10 tools)   stakeholder signals (capture/research/surface/promote + inbox verbs)
 
 plan_* sits above run_*: a plan task is realized by a run, which is
-motivated by think reasoning. Link reasoning to a run through execution_ref on
-think_record_step (e.g. "step:auth-refactor"), and progress back to reasoning
-through the think_step field on record_progress. All families resolve the same
+motivated by decision reasoning. Link reasoning to a run through run_ref on
+decision_record (e.g. "step:auth-refactor"), and progress back to reasoning
+through the note field on record_progress. All families resolve the same
 project identity from the working directory so their records correlate.
 "#;
 
-/// Single MCP server exposing the `think_*`, `run_*`, `plan_*`, and
+/// Single MCP server exposing the `decision_*`, `run_*`, `plan_*`, and
 /// `signal_*` families.
 #[derive(Clone)]
 pub struct UnifiedService {
-    think: Arc<ThinkService>,
+    decision: Arc<DecisionService>,
     run: Arc<RunService>,
     plan: Arc<PlanService>,
     signal: Arc<SignalService>,
@@ -96,7 +96,7 @@ pub struct UnifiedService {
 
 impl UnifiedService {
     pub fn new(
-        think: ThinkService,
+        decision: DecisionService,
         run: RunService,
         plan: PlanService,
         signal: SignalService,
@@ -105,7 +105,7 @@ impl UnifiedService {
         // themselves rather than a hand-written list — and BEFORE any family
         // selection is applied, because a deselected family's tool is still a
         // real name and a refused call is still a call worth counting.
-        let known: Vec<String> = think
+        let known: Vec<String> = decision
             .list_tools_view()
             .into_iter()
             .chain(run.list_tools_view())
@@ -114,7 +114,7 @@ impl UnifiedService {
             .map(|t| t.name.to_string())
             .collect();
         Self {
-            think: Arc::new(think),
+            decision: Arc::new(decision),
             run: Arc::new(run),
             plan: Arc::new(plan),
             signal: Arc::new(signal),
@@ -250,13 +250,13 @@ impl UnifiedService {
         let correlation = self.live.correlation(&tool, started);
         let dispatch = async {
             let outcome = match Self::route_of(&request.name) {
-                Some(Family::Think) => self.think.call_tool(request, context).await,
+                Some(Family::Decision) => self.decision.call_tool(request, context).await,
                 Some(Family::Run) => self.run.call_tool(request, context).await,
                 Some(Family::Plan) => self.plan.call_tool(request, context).await,
                 Some(Family::Signal) => self.signal.call_tool(request, context).await,
                 None => Err(ErrorData::invalid_params(
                     format!(
-                        "unknown tool '{}'; expected a think_*, run_*, plan_*, or signal_* \
+                        "unknown tool '{}'; expected a decision_*, run_*, plan_*, or signal_* \
                          name",
                         request.name
                     ),
@@ -350,8 +350,8 @@ impl UnifiedService {
     /// [`Self::route_of`] documents).
     pub fn list_tools_view(&self) -> Vec<rmcp::model::Tool> {
         let mut tools = Vec::new();
-        if self.families.contains(Family::Think) {
-            tools.extend(self.think.list_tools_view());
+        if self.families.contains(Family::Decision) {
+            tools.extend(self.decision.list_tools_view());
         }
         if self.families.contains(Family::Run) {
             tools.extend(self.run.list_tools_view());
@@ -384,7 +384,7 @@ impl UnifiedService {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Family {
-    Think,
+    Decision,
     Run,
     Plan,
     Signal,
@@ -394,7 +394,7 @@ impl Family {
     /// Every family this server serves. Callers that describe the surface —
     /// the instructions block, the generated CLAUDE.md — iterate this instead
     /// of hand-listing families, so adding a fifth can't leave a doc behind.
-    pub const ALL: [Family; 4] = [Family::Think, Family::Run, Family::Plan, Family::Signal];
+    pub const ALL: [Family; 4] = [Family::Decision, Family::Run, Family::Plan, Family::Signal];
 
     /// Every tool-name prefix this family CLAIMS, without trailing
     /// underscores, canonical one first.
@@ -415,7 +415,7 @@ impl Family {
     /// is what lets every caller derive from it rather than special-case it.
     pub fn prefixes(self) -> &'static [&'static str] {
         match self {
-            Family::Think => &["think"],
+            Family::Decision => &["decision"],
             Family::Run => &["run", "approval"],
             Family::Plan => &["plan", "tracker"],
             Family::Signal => &["signal"],
@@ -444,7 +444,7 @@ impl Family {
     pub fn verbs(self) -> &'static [&'static str] {
         match self {
             Family::Run => &crate::run::mcp::STEP_VERBS,
-            Family::Think | Family::Plan | Family::Signal => &[],
+            Family::Decision | Family::Plan | Family::Signal => &[],
         }
     }
 
@@ -505,7 +505,7 @@ impl Family {
 /// Resolved once in `build_unified` and never consulted again per request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FamilySelection {
-    think: bool,
+    decision: bool,
     run: bool,
     plan: bool,
     signal: bool,
@@ -545,13 +545,13 @@ pub const FAMILIES_ENV: &str = "MAGISTR_WORKFLOW_FAMILIES";
 
 /// Tools that legitimately have NO `outputSchema`, with the reason.
 ///
-/// One entry, and it is a real exemption rather than a gap: `think_export_trace`
+/// One entry, and it is a real exemption rather than a gap: `decision_export`
 /// returns markdown, console text or JSON depending on the `format` argument, so
 /// there is no single shape to declare. Declaring one would be a lie a client
 /// could validate against.
 pub const SCHEMA_EXEMPT: &[(&str, &str)] = &[
     (
-        "think_export_trace",
+        "decision_export",
         "output shape is format-dependent (markdown | console | json); no single schema can describe it",
     ),
     (
@@ -601,7 +601,7 @@ impl FamilySelection {
     #[must_use]
     pub const fn all() -> Self {
         Self {
-            think: true,
+            decision: true,
             run: true,
             plan: true,
             signal: true,
@@ -612,7 +612,7 @@ impl FamilySelection {
     /// so a trailing comma is not an error; a token that names nothing is.
     pub fn parse(raw: &str) -> Result<Self, FamilySelectionError> {
         let mut sel = Self {
-            think: false,
+            decision: false,
             run: false,
             plan: false,
             signal: false,
@@ -644,7 +644,7 @@ impl FamilySelection {
 
     fn set(&mut self, family: Family) {
         match family {
-            Family::Think => self.think = true,
+            Family::Decision => self.decision = true,
             Family::Run => self.run = true,
             Family::Plan => self.plan = true,
             Family::Signal => self.signal = true,
@@ -655,7 +655,7 @@ impl FamilySelection {
     #[must_use]
     pub fn contains(self, family: Family) -> bool {
         match family {
-            Family::Think => self.think,
+            Family::Decision => self.decision,
             Family::Run => self.run,
             Family::Plan => self.plan,
             Family::Signal => self.signal,
@@ -702,7 +702,7 @@ impl UnifiedService {
             entry(
                 PINNED_URI,
                 "Pinned decisions",
-                "Pinned think steps — the trace's durable, load-bearing conclusions.",
+                "Pinned decision notes — the trace's durable, load-bearing conclusions.",
             ),
             entry(
                 DIGEST_DEFAULT_URI,
@@ -809,11 +809,11 @@ impl ServerHandler for UnifiedService {
             return Ok(Self::text_resource(uri, guard.export("markdown")));
         }
         if uri == PINNED_URI {
-            let engine = self.think.engine();
+            let engine = self.decision.engine();
             let guard = engine.lock().map_err(|_| Self::lock_poisoned())?;
             return Ok(Self::text_resource(
                 uri,
-                pinned_markdown(&guard.history().steps),
+                pinned_markdown(&guard.history().notes),
             ));
         }
         if let Some(spec) = uri.strip_prefix(DIGEST_PREFIX) {
@@ -824,9 +824,9 @@ impl ServerHandler for UnifiedService {
                 )
             })?;
             let steps = {
-                let engine = self.think.engine();
+                let engine = self.decision.engine();
                 let guard = engine.lock().map_err(|_| Self::lock_poisoned())?;
-                guard.history().steps.clone()
+                guard.history().notes.clone()
             };
             let tasks = {
                 let engine = self.plan.engine();
@@ -933,8 +933,8 @@ mod tests {
             run.use_cases(),
         );
         UnifiedService::new(
-            ThinkService::new(crate::think::engine::core::ReasoningServer::new(
-                crate::think::config::ThinkConfig::default(),
+            DecisionService::new(crate::decision::engine::core::ReasoningServer::new(
+                crate::decision::config::DecisionConfig::default(),
             )),
             run,
             plan,
@@ -958,8 +958,8 @@ mod tests {
     #[test]
     fn route_of_recognizes_all_four_prefixes() {
         assert_eq!(
-            UnifiedService::route_of("think_record_step"),
-            Some(Family::Think)
+            UnifiedService::route_of("decision_record"),
+            Some(Family::Decision)
         );
         assert_eq!(UnifiedService::route_of("run_open"), Some(Family::Run));
         assert_eq!(

@@ -271,7 +271,7 @@ mod tests {
     ) -> UnifiedRecordEnvelope {
         UnifiedRecordEnvelope::owner(
             "tenant-x",
-            Family::Think,
+            Family::Decision,
             kind,
             id,
             "2026-06-10T00:00:00Z",
@@ -302,14 +302,14 @@ mod tests {
             ),
         ];
         let shape = extract(&envs, SALT).expect("clean shape");
-        assert_eq!(shape.statuses.get("think.task.done"), Some(&1));
-        assert_eq!(shape.statuses.get("think.task.other"), Some(&1));
+        assert_eq!(shape.statuses.get("decision.task.done"), Some(&1));
+        assert_eq!(shape.statuses.get("decision.task.other"), Some(&1));
     }
 
     #[test]
     fn structure_is_preserved_topology_tools_lifetimes() {
         let mut env = envelope(
-            Kind::ThinkStep,
+            Kind::Note,
             "7",
             json!({
                 "status": "done",
@@ -317,7 +317,7 @@ mod tests {
             }),
             vec![
                 Edge {
-                    target: "think:6".into(),
+                    target: "decision:6".into(),
                     relation: Some("supports".into()),
                 },
                 Edge {

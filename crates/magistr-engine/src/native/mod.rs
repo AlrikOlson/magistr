@@ -1,7 +1,7 @@
 //! Magistr's native workflow store and owner protocol.
 //!
 //! Magistr links its `magistr_workflow` library and runs its four engines —
-//! plan, think (reasoning trace), run (run history) and signal — in
+//! plan, decision (decision log), run (run history) and signal — in
 //! this process. State lives under the resolved Magistr workflow data root,
 //! keyed by `project.id` in `.magistr/project.json`.
 //! Agent tools and native views use Magistr's admitted owners; no standalone
@@ -78,13 +78,13 @@ pub mod project_authority;
 mod project_location;
 mod working_copy_lease;
 pub use working_copy_lease::WorkingCopyLease;
+pub mod decision_command;
+pub mod decision_thread;
 pub mod plan_backend;
 pub mod plan_command;
 pub mod run_command;
 pub mod signal_command;
 pub mod snapshot;
-pub mod think_branch;
-pub mod think_command;
 #[cfg(windows)]
 mod user_sid;
 pub mod workspace_socket_path;
@@ -97,6 +97,8 @@ pub use broadcast_frame::NativeFrame;
 pub use build_identity::BuildIdentity;
 pub use caller_identity::CallerIdentity;
 pub use check_type_for::check_type_for;
+pub use decision_command::DecisionCommand;
+pub use decision_thread::DecisionThread;
 pub use delivery::Delivery;
 pub use event_cursor::EventCursor;
 pub use execution_context::ExecutionContext;
@@ -105,10 +107,10 @@ pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
 pub use local_stream::LocalStream;
 pub use magistr_frame::MagistrFrame;
-pub use magistr_workflow::think::ConfigSource;
+pub use magistr_workflow::decision::ConfigSource;
 pub use magistr_workflow_contracts::{
-    NativeSnapshot, Observed, PlanData, ReadError, ReadErrorKind, ReadSource, ReadState, Run,
-    RunData, StoreStamp, ThinkData,
+    DecisionData, NativeSnapshot, Observed, PlanData, ReadError, ReadErrorKind, ReadSource,
+    ReadState, Run, RunData, StoreStamp,
 };
 pub use mcp_acceptor::McpAcceptor;
 pub use native_config::NativeConfig;
@@ -135,8 +137,6 @@ pub use project_location::ProjectLocation;
 pub use run_command::RunCommand;
 pub use signal_command::SignalCommand;
 pub use snapshot::NativePlanSnapshot;
-pub use think_branch::ThinkBranch;
-pub use think_command::ThinkCommand;
 pub use workspace_socket_path::workspace_socket_path;
 pub use writer_role::WriterRole;
 
@@ -151,6 +151,9 @@ pub use magistr_workflow::infra::{
 };
 // The workflow's own typed frames — what its engines hand their broadcaster
 // — are the events every surface folds, under the family's name.
+pub use magistr_workflow::decision::broadcast::BroadcastFrame as DecisionFrame;
+pub use magistr_workflow::decision::domain::{DepEdge, NextAction, Note, ThreadStatus};
+pub use magistr_workflow::decision::domain::{NoteError, RecordedNote};
 pub use magistr_workflow::plan::broadcast::PlanFrame;
 pub use magistr_workflow::plan::domain::{
     FocusState, Plan, Readiness, ReprioritizeProposal, StatusProposal, Task, TaskStatus,
@@ -176,6 +179,3 @@ pub use magistr_workflow::run::domain::step::{Step, StepStatus, StepType};
 pub use magistr_workflow::run::report::{ReportRecord, TestResults};
 pub use magistr_workflow::signal::broadcast::SignalFrame;
 pub use magistr_workflow::signal::domain::{Enrichment, Signal, SignalKind, SignalStatus};
-pub use magistr_workflow::think::broadcast::BroadcastFrame as ThinkFrame;
-pub use magistr_workflow::think::domain::{BranchStatus, DepEdge, NextAction, ThinkStep};
-pub use magistr_workflow::think::domain::{RecordedStep, StepError};

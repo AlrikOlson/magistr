@@ -46,7 +46,7 @@
 //! asked twice.
 //!
 //! The choice of *this* question over the two alternatives considered is
-//! forced by part 4. A destructive confirmation before `think_wipe_trace` has no
+//! forced by part 4. A destructive confirmation before `decision_wipe` has no
 //! working collapse: with no human there, it must either wipe unconfirmed (the
 //! guard buys nothing) or refuse (the collapse becomes a failure path). Asking
 //! `tracker_setup` which team to mirror into collapses to "error, pass `--into`"

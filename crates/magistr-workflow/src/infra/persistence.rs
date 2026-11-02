@@ -17,7 +17,7 @@ const DATA_DIR_VAR: &str = "MAGISTR_WORKFLOW_DATA_DIR";
 /// Which tool family's subdirectory to read or write under.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Domain {
-    Think,
+    Decision,
     Run,
     Plan,
     Signal,
@@ -36,7 +36,7 @@ pub enum Domain {
 impl Domain {
     fn dir_name(self) -> &'static str {
         match self {
-            Self::Think => "think",
+            Self::Decision => "decisions",
             Self::Run => "run",
             Self::Plan => "plan",
             Self::Signal => "signal",
@@ -59,7 +59,7 @@ impl PersistenceConfig {
     /// A blank `MAGISTR_WORKFLOW_DATA_DIR` falls through to the platform chain
     /// rather than resolving to the empty path. Set-but-empty is how a shell
     /// exports a variable it failed to compute, and taking it literally would
-    /// point one family at a relative `think/sessions` under the working
+    /// point one family at a relative `decision/sessions` under the working
     /// directory while every family that guarded against it kept using the
     /// real data root — the same process, its records split across two roots.
     pub fn from_env() -> Self {

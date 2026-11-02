@@ -144,10 +144,10 @@ export function pane(E, m, width, handlers) {
               () => handlers.select('source', file),
             ),
           )
-        if (a.think_step)
+        if (a.note)
           body.push(
             button('reason-' + a.id, 'Inspect the recorded finding', () =>
-              handlers.select('finding', { step_number: a.think_step }),
+              handlers.select('finding', { note: a.note }),
             ),
           )
       }
@@ -211,17 +211,17 @@ export function pane(E, m, width, handlers) {
             ),
           )
         for (const ref of (c.refs ?? []).slice(0, 10)) {
-          if (/^think:\d+$/.test(ref))
+          if (/^decision:\d+$/.test(ref))
             body.push(
               button('ref-' + ref, 'Inspect linked finding', () =>
                 handlers.select('finding', {
-                  step_number: Number(ref.slice(6)),
+                  note: Number(ref.slice("decision:".length)),
                 }),
               ),
             )
         }
       } else body.push(text('This work is no longer available.'))
-    } else if (d?.step_number) {
+    } else if (d?.note) {
       body.push(
         text(d.purpose, true),
         text(d.outcome),
@@ -240,7 +240,7 @@ export function pane(E, m, width, handlers) {
           button(
             'finding-' + number,
             'Inspect supporting finding ' + number,
-            () => handlers.select('finding', { step_number: number }),
+            () => handlers.select('finding', { note: number }),
           ),
         )
       }
@@ -445,18 +445,18 @@ export function pane(E, m, width, handlers) {
     body.push(text('Recorded findings', true))
     for (const s of pinned.slice(0, LIMIT))
       body.push(
-        button('step-' + s.step_number, clean(s.purpose, 140), () =>
+        button('step-' + s.note, clean(s.purpose, 140), () =>
           handlers.select('finding', s),
         ),
       )
     if (!pinned.length) body.push(text('No pinned findings.'))
-    const latest = slot.value.next_step_number - 1
+    const latest = slot.value.next_note - 1
     if (latest > 0)
       body.push(
         button(
           'latest-finding',
           'Inspect the latest finding',
-          () => handlers.select('finding', { step_number: latest }),
+          () => handlers.select('finding', { note: latest }),
           'l',
         ),
       )

@@ -27,15 +27,15 @@
 
 use std::sync::{Arc, Mutex};
 
+use magistr_workflow::decision::DecisionService;
+use magistr_workflow::decision::config::DecisionConfig;
+use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::progress::{FIRST_TICK, tick_message};
 use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
-use magistr_workflow::think::ThinkService;
-use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::engine::core::ReasoningServer;
 use rmcp::{
     ClientHandler, ServiceExt,
     model::{
@@ -63,13 +63,13 @@ impl ClientHandler for RecordingClient {
 }
 
 fn build_unified(project: &str) -> UnifiedService {
-    let mut cfg = ThinkConfig::default();
+    let mut cfg = DecisionConfig::default();
     cfg.display.color_output = false;
-    let think = ThinkService::new(ReasoningServer::new(cfg));
+    let decision = DecisionService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new(project.into()));
     let plan = PlanService::new(PlanEngine::new(project.into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(think, run, plan, signal)
+    UnifiedService::new(decision, run, plan, signal)
 }
 
 async fn pair(
@@ -314,7 +314,7 @@ async fn a_fast_call_emits_no_progress_at_all() {
 
     client
         .peer()
-        .call_tool(call("think_engine_status", args(json!({}))))
+        .call_tool(call("decision_status", args(json!({}))))
         .await
         .unwrap();
 

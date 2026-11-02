@@ -41,7 +41,7 @@ fn display(value: &Value, depth: usize) -> String {
                 .unwrap_or("The operation failed.")
         );
     }
-    if value["step_number"].is_number() && value["outcome_excerpt"].is_string() {
+    if value["note"].is_number() && value["outcome_excerpt"].is_string() {
         return "Finding recorded.".into();
     }
     if let Some(tasks) = value["steps"].as_array() {

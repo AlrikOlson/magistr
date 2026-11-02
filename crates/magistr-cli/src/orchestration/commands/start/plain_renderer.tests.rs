@@ -140,7 +140,7 @@ fn findings_and_phases_are_concise_and_long_results_show_their_tail() {
             &mut err,
         )
         .unwrap();
-    renderer.render(&tool("finding", "mcp__magistr__think_record_step", json!({"purpose":"Retain spending","outcome":"The owner keeps the reported amount.","thought":"private record detail","estimated_total":6})), &mut out, &mut err).unwrap();
+    renderer.render(&tool("finding", "mcp__magistr__decision_record", json!({"purpose":"Retain spending","outcome":"The owner keeps the reported amount.","thought":"private record detail","estimated_total":6})), &mut out, &mut err).unwrap();
     let lines = (0..30)
         .map(|n| format!("line {n}"))
         .collect::<Vec<_>>()

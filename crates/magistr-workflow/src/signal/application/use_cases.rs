@@ -83,13 +83,13 @@ impl SignalUseCases {
         summary: String,
         confidence: f64,
         sources: Vec<String>,
-        think_step: Option<u32>,
+        note: Option<u32>,
     ) -> Result<Observed<Signal>, SignalError> {
         if summary.trim().is_empty() {
             return Err(SignalError::InvalidArgs("research summary is empty".into()));
         }
         self.lock()?
-            .research(id, summary, confidence, sources, think_step)
+            .research(id, summary, confidence, sources, note)
             .map_err(SignalError::invalid_state)
     }
 

@@ -14,7 +14,7 @@ fn version_one_work_keeps_content_and_gets_stable_execution_identities() {
     let bytes = Persistence::upgrade_document(OLD, "saved-project").unwrap();
     let old: Value = serde_json::from_slice(OLD).unwrap();
     let new: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(new["schema_version"], 4);
+    assert_eq!(new["schema_version"], 5);
     assert_eq!(new["project_id"], old["project_id"]);
     assert_eq!(new["goal"], old["objective"]);
     assert_eq!(new["next_progress_id"], old["next_action_id"]);
@@ -23,7 +23,7 @@ fn version_one_work_keeps_content_and_gets_stable_execution_identities() {
     assert_eq!(step["checks"], old["tasks"][0]["checks"]);
     let progress = &step["progress"][0];
     assert_eq!(progress["step_id"], "one");
-    assert_eq!(progress["think_step"], 7);
+    assert_eq!(progress["note"], 7);
     assert!(progress.get("deliberate_step").is_none());
     assert_eq!(
         new["execution"]["run_id"],
@@ -46,7 +46,7 @@ fn version_two_work_takes_the_run_words_once() {
     let bytes = Persistence::upgrade_document(V2, "magistr-5a5bc6").unwrap();
     let old: Value = serde_json::from_slice(V2).unwrap();
     let new: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(new["schema_version"], 4);
+    assert_eq!(new["schema_version"], 5);
     for retired in ["objective", "tasks", "next_action_id"] {
         assert!(new.get(retired).is_none(), "{retired}");
     }
@@ -143,10 +143,7 @@ fn saved_cycles_and_existing_check_result_identities_survive_conversion() {
         new["saved_cycles"][0]["execution"],
         json!({"run_id":"saved-run","steps":{"one":"saved-instance"}})
     );
-    assert_eq!(
-        new["saved_cycles"][0]["steps"][0]["progress"][0]["think_step"],
-        7
-    );
+    assert_eq!(new["saved_cycles"][0]["steps"][0]["progress"][0]["note"], 7);
     assert_eq!(new["selection_revision"], 9);
 }
 
@@ -210,8 +207,63 @@ fn version_three_work_names_plan_tasks_with_the_task_prefix_once() {
     let upgraded =
         Persistence::upgrade_document(&serde_json::to_vec(&v3).unwrap(), "magistr-5a5bc6").unwrap();
     let new: Value = serde_json::from_slice(&upgraded).unwrap();
-    assert_eq!(new["schema_version"], 4);
+    assert_eq!(new["schema_version"], 5);
     assert_eq!(new["goal"]["scope"], "task:saved-chunk");
+    assert_eq!(
+        Persistence::upgrade_document(&upgraded, "magistr-5a5bc6").unwrap(),
+        upgraded,
+        "a current document is unchanged"
+    );
+}
+
+#[test]
+fn version_four_progress_points_at_its_decision_note_once() {
+    let current = Persistence::upgrade_document(V2, "magistr-5a5bc6").unwrap();
+    let new: Value = serde_json::from_slice(&current).unwrap();
+    let progress = |document: &Value| {
+        document["steps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|step| step["progress"].as_array().unwrap().clone())
+            .collect::<Vec<_>>()
+    };
+    let notes: Vec<_> = progress(&new)
+        .iter()
+        .filter_map(|entry| entry["note"].as_u64())
+        .collect();
+    assert_eq!(notes, [1315, 1316], "version 2 progress keeps its notes");
+
+    let mut v4 = new.clone();
+    v4["schema_version"] = json!(4);
+    for step in v4["steps"].as_array_mut().unwrap() {
+        for entry in step["progress"].as_array_mut().unwrap() {
+            let entry = entry.as_object_mut().unwrap();
+            if let Some(note) = entry.remove("note") {
+                entry.insert("think_step".into(), note);
+            }
+        }
+    }
+    v4["goal"]["scope"] = json!("task:saved-task");
+    v4["steps"][0]["progress"][0]["result"] = json!("think:15");
+    let upgraded =
+        Persistence::upgrade_document(&serde_json::to_vec(&v4).unwrap(), "magistr-5a5bc6").unwrap();
+    let after: Value = serde_json::from_slice(&upgraded).unwrap();
+    assert_eq!(after["schema_version"], 5);
+    assert_eq!(after["goal"]["scope"], "task:saved-task");
+    assert_eq!(after["steps"][0]["progress"][0]["result"], "decision:15");
+    assert!(
+        progress(&after)
+            .iter()
+            .all(|entry| entry.get("think_step").is_none())
+    );
+    assert_eq!(
+        progress(&after)
+            .iter()
+            .filter_map(|entry| entry["note"].as_u64())
+            .collect::<Vec<_>>(),
+        [1315, 1316]
+    );
     assert_eq!(
         Persistence::upgrade_document(&upgraded, "magistr-5a5bc6").unwrap(),
         upgraded,

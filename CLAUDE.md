@@ -23,7 +23,7 @@ The `magistr` MCP connection (`magistr mcp --dir .`) provides source tools and t
 
 | Family | Purpose | Key tools |
 |--------|---------|-----------|
-| **think_*** | Reasoning trace: record steps, branch hypotheses, pin conclusions | `think_record_step`, `think_pin_step`, `think_trace_checkpoint` |
+| **decision_*** | Decision log: record notes, open threads for hypotheses, pin conclusions | `decision_record`, `decision_pin`, `decision_review` |
 | **run_*** | Run history: goals, steps, progress, checks and approvals | `run_open`, `arrange_steps`, `start_step`, `record_progress`, `check_step`, `run_finish` |
 | **plan_*** | The long-horizon plan-of-plans driving both | `plan_status`, `plan_next`, `plan_start_task`, `plan_complete_task` |
 | **signal_*** | Stakeholder signals: capture, research, surface, promote to the plan | `signal_capture`, `signal_pending`, `signal_research`, `signal_promote` |
@@ -31,11 +31,11 @@ The `magistr` MCP connection (`magistr mcp --dir .`) provides source tools and t
 ## Cross-referencing
 
 Link reasoning to runs:
-- On `think_record_step`, pass `execution_ref: "step:<id>"` to point at a run step.
-- On `record_progress`, pass `think_step: <N>` to point back at the motivating think_* step.
+- On `decision_record`, pass `run_ref: "step:<id>"` to point at a run step.
+- On `record_progress`, pass `note: <N>` to point back at the motivating decision note.
 
 Both halves resolve the same project identity from the working directory so
-traces auto-correlate.
+records auto-correlate.
 
 ## Quick-start workflow
 
@@ -43,16 +43,16 @@ First read `run_status` and, for plan work, `plan_status`. Resume a matching unf
 
 1. `run_open` — select the authorized scope or define a new goal; resume a matching unfinished scope without repeating setup
 2. `arrange_steps` — keep existing steps and add only missing work
-3. `think_record_step` — record the question, current evidence, and planned next check
+3. `decision_record` — record the question, current evidence, and planned next check
 4. `start_step` a pending step, or continue the active step; then `record_progress` → `finish_step` — do the work, recording findings and changed conclusions as evidence arrives
 5. `check_step` — execute and record the relevant checks
-6. `think_record_step` — synthesize the findings, link the steps used, and state remaining uncertainty
+6. `decision_record` — synthesize the findings, link the notes used, and state remaining uncertainty
 7. `run_finish` — finalize the goal after its acceptance criteria and checks pass
 
 ## Record findings while you work
 
 The user should be able to follow what was learned, which alternatives were
-checked, and why the work changed direction. Use `think_record_step` throughout
+checked, and why the work changed direction. Use `decision_record` throughout
 substantive work, not just to open and close an iteration. Record concise,
 user-readable summaries of evidence and conclusions; do not write private
 internal deliberation, tool transcripts, or an invented account after the work.
@@ -62,28 +62,28 @@ internal deliberation, tool transcripts, or an invented account after the work.
   constraint changes the plan. State the question, evidence (source, code or
   check), conclusion, and next action. An execution log is not a substitute.
 - For a concrete alternative, uncertain assumption, or diagnostic question that
-  needs its own investigation, start a branch with `branch_from` set to the
-  actual originating step and `branch_name` phrased as the question being
-  explored. Omit `step_number` to allocate it. Read the returned `branch.id`.
-- Continue that investigation with its exact `branch_id` on every follow-up
+  needs its own investigation, open a thread with `thread_from` set to the
+  actual originating note and `thread_name` phrased as the question being
+  explored. Omit `note` to allocate it. Read the returned `thread.id`.
+- Continue that investigation with its exact `thread_id` on every follow-up
   finding. Do not accidentally append those findings to the main line or start
-  a new branch for each observation. Parallel or nested investigations each
+  a new thread for each observation. Parallel or nested investigations each
   keep their own question and recorded origin.
 - When findings are used, record a main-line synthesis with `dependencies`
-  pointing to the supporting branch steps. Then call `think_set_branch_status`
-  with `status: "merged"` and `merged_into` set to that synthesis step.
+  pointing to the supporting thread notes. Then call `decision_set_thread_status`
+  with `status: "merged"` and `merged_into` set to that synthesis note.
   A rejected idea can still produce useful findings: mark the investigation
   merged when its findings informed the result. Use `abandoned` only for an
   investigation stopped without using its findings, and record why.
-- Correct an earlier conclusion with `revises_step` and `revision_reason`;
-  preserve the earlier record. Link related execution through `execution_ref`
-  and `record_progress.think_step`. Use meaningful names in prose rather than raw
+- Correct an earlier conclusion with `revises_note` and `revision_reason`;
+  preserve the earlier record. Link related execution through `run_ref`
+  and `record_progress.note`. Use meaningful names in prose rather than raw
   identifiers. Omit confidence unless there is a defensible basis for it.
 - Before closing, review investigations opened for this work. Record their
-  conclusions and actual use, or leave them active with an explicit unresolved
+  conclusions and actual use, or leave them open with an explicit unresolved
   question and next action. Do not mark unfinished investigations merged.
 
-Use branches for real investigations, not to satisfy a quota or decorate a
+Use threads for real investigations, not to satisfy a quota or decorate a
 graph. Straightforward work can remain linear. Never invent alternatives,
 evidence, outcomes, relationships, or confidence. Keep records brief enough to
 read while the work is happening.

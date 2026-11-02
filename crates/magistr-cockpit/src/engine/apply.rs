@@ -12,7 +12,7 @@ use crate::cockpit::EngineCmd;
 /// consumer posts back to the cockpit as
 /// [`Msg::Engine`](crate::cockpit::Msg::Engine). A refusal becomes
 /// [`EngineEvent::PortFailed`] carrying the command and naming what
-/// was asked. A checkpoint report is rendered to lines here, so the
+/// was asked. A review report is rendered to lines here, so the
 /// cockpit never sees JSON.
 ///
 /// A mutation's answer — the updated task or signal — comes back as a
@@ -22,19 +22,14 @@ use crate::cockpit::EngineCmd;
 /// engines write no socket of their own.
 pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
     let answer = match cmd {
-        EngineCmd::Pin {
-            step_number,
-            pinned,
-        } => port
-            .pin(*step_number, *pinned)
-            .map(|_| EngineEvent::Pinned {
-                step_number: *step_number,
-                pinned: *pinned,
-            }),
-        EngineCmd::Checkpoint => port
-            .checkpoint()
+        EngineCmd::Pin { note, pinned } => port.pin(*note, *pinned).map(|_| EngineEvent::Pinned {
+            note: *note,
+            pinned: *pinned,
+        }),
+        EngineCmd::Review => port
+            .review()
             .map_err(WorkflowMutationError::rejected)
-            .map(|report| EngineEvent::Checkpoint {
+            .map(|report| EngineEvent::Review {
                 lines: lines(&report),
             }),
         EngineCmd::StartTask { id } => {

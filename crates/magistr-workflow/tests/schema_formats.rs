@@ -2,6 +2,9 @@
 //! `format` (schemars' uint32/uint64/…) — MCP clients warn `unknown format
 //! ignored` for them on every connect (task: schema-format-warnings).
 
+use magistr_workflow::decision::config::DecisionConfig;
+use magistr_workflow::decision::engine::core::ReasoningServer;
+use magistr_workflow::decision::mcp::service::DecisionService;
 use magistr_workflow::mcp::unified::UnifiedService;
 use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::plan::mcp::PlanService;
@@ -9,9 +12,6 @@ use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::run::mcp::RunService;
 use magistr_workflow::signal::engine::SignalEngine;
 use magistr_workflow::signal::mcp::SignalService;
-use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::engine::core::ReasoningServer;
-use magistr_workflow::think::mcp::service::ThinkService;
 use serde_json::Value;
 
 const STANDARD_FORMATS: &[&str] = &[
@@ -36,13 +36,13 @@ const STANDARD_FORMATS: &[&str] = &[
 ];
 
 fn build_unified() -> UnifiedService {
-    let mut cfg = ThinkConfig::default();
+    let mut cfg = DecisionConfig::default();
     cfg.display.color_output = false;
-    let think = ThinkService::new(ReasoningServer::new(cfg));
+    let decision = DecisionService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new("test-schema".into()));
     let plan = PlanService::new(PlanEngine::new("test-schema".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-schema".into()));
-    UnifiedService::new(think, run, plan, signal)
+    UnifiedService::new(decision, run, plan, signal)
 }
 
 /// Collect every `format` string in a schema, with a JSON-pointer-ish path.

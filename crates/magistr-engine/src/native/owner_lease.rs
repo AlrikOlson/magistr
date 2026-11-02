@@ -2,11 +2,18 @@ use std::fs::{File, TryLockError};
 use std::io;
 use std::path::{Path, PathBuf};
 
-use magistr_workflow::infra::{Broadcaster, Domain, Persistence};
+use magistr_workflow::infra::Broadcaster;
 
 use super::native_config::NativeConfig;
 use super::owner_generation::OwnerGeneration;
 use super::writer_role::WriterRole;
+
+/// Where admitted owners hold their project leases in a persistent store.
+/// The directory names the store's vocabulary, so a lease held anywhere else
+/// belongs to an older owner that still writes the older layout; a store-words
+/// move refuses while one runs. A later move of a family store moves this
+/// directory with it.
+pub(crate) const OWNER_LEASES: &str = "owners/decision-words";
 
 /// The lock file `role` contends on for `project_id` on the store `tas`
 /// names — under the persistent store, or the project's `.magistr/` when
@@ -14,9 +21,9 @@ use super::writer_role::WriterRole;
 /// from, so the endpoint is keyed by exactly what the lease is.
 pub(crate) fn lock_path(tas: &NativeConfig, project_id: &str, _role: WriterRole) -> PathBuf {
     if tas.persist {
-        Persistence::new(&tas.persistence_config(), Domain::Plan)
-            .path_for(project_id)
-            .with_extension("project-owner.lock")
+        tas.data_dir()
+            .join(OWNER_LEASES)
+            .join(format!("{project_id}.project-owner.lock"))
     } else {
         tas.workflow_root().join(".magistr/project-owner.lock")
     }

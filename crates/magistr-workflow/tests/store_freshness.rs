@@ -364,149 +364,132 @@ fn signal_failure_keeps_the_last_committed_memory_and_observation() {
 
 #[test]
 fn reasoning_reads_preserve_authored_ids_numbers_and_file_bytes() {
-    use magistr_workflow::think::{
-        config::ThinkConfig, domain::ThinkStep, engine::ReasoningServer,
+    use magistr_workflow::decision::{
+        config::DecisionConfig, domain::Note, engine::ReasoningServer,
     };
     use magistr_workflow_contracts::ReadErrorKind;
     let tmp = TempDir::new().unwrap();
-    let mut config = ThinkConfig {
+    let mut config = DecisionConfig {
         persistence: infra_cfg(&tmp),
-        ..ThinkConfig::default()
+        ..DecisionConfig::default()
     };
     config.display.color_output = false;
     let mut writer = ReasoningServer::new_for_project(config.clone(), "proj".into());
     for number in [7, 9] {
-        let step: ThinkStep = serde_json::from_value(serde_json::json!({
-            "step_number": number, "estimated_total": 10, "purpose": "check",
-            "context": "read integrity", "thought": format!("step {number}"),
+        let note: Note = serde_json::from_value(serde_json::json!({
+            "note": number, "estimated_total": 10, "purpose": "check",
+            "context": "read integrity", "thought": format!("note {number}"),
             "outcome": "observed", "next_action": "continue", "rationale": "preserve identity"
         }))
         .unwrap();
-        assert!(writer.process_step_native(step).is_ok());
+        assert!(writer.process_note_native(note).is_ok());
     }
-    let persistence =
-        magistr_workflow::think::persistence::Persistence::for_project(&config.persistence, "proj");
+    let persistence = magistr_workflow::decision::persistence::Persistence::for_project(
+        &config.persistence,
+        "proj",
+    );
     let path = persistence.store_path().unwrap();
     let original = std::fs::read(&path).unwrap();
-    let before = writer.observe_session(None).unwrap().map(Option::unwrap);
+    let before = writer.observe_log(None).unwrap().map(Option::unwrap);
     let reader = ReasoningServer::new_for_project(config, "proj".into());
-    let after = reader.observe_session(None).unwrap().map(Option::unwrap);
+    let after = reader.observe_log(None).unwrap().map(Option::unwrap);
     assert_eq!(
-        after
-            .value
-            .steps
-            .iter()
-            .map(|s| s.step_number)
-            .collect::<Vec<_>>(),
+        after.value.notes.iter().map(|s| s.note).collect::<Vec<_>>(),
         vec![7, 9]
     );
     assert_eq!(
         after
             .value
-            .steps
+            .notes
             .iter()
             .map(|s| &s.record_id)
             .collect::<Vec<_>>(),
         before
             .value
-            .steps
+            .notes
             .iter()
             .map(|s| &s.record_id)
             .collect::<Vec<_>>()
     );
     assert_eq!(std::fs::read(&path).unwrap(), original);
     let mut invalid: serde_json::Value = serde_json::from_slice(&original).unwrap();
-    invalid["histories"]["proj"]["steps"][1]["step_number"] = serde_json::json!(7);
+    invalid["logs"]["proj"]["notes"][1]["note"] = serde_json::json!(7);
     let bytes = serde_json::to_vec(&invalid).unwrap();
     std::fs::write(&path, &bytes).unwrap();
     assert_eq!(
-        reader.observe_session(None).unwrap_err().kind,
+        reader.observe_log(None).unwrap_err().kind,
         ReadErrorKind::Identity
     );
     assert_eq!(std::fs::read(&path).unwrap(), bytes);
 }
 
 #[test]
-fn reasoning_reads_complete_explicit_sessions_independently_of_writer_and_cache() {
-    use magistr_workflow::think::{
-        config::ThinkConfig, domain::ThinkStep, engine::ReasoningServer,
-        persistence::Persistence as ThinkPersistence,
+fn reasoning_reads_complete_explicit_logs_independently_of_writer_and_cache() {
+    use magistr_workflow::decision::{
+        config::DecisionConfig, domain::Note, engine::ReasoningServer,
+        persistence::Persistence as DecisionPersistence,
     };
     use magistr_workflow_contracts::{ReadErrorKind, ReadSource};
     for persisted in [false, true] {
         let tmp = TempDir::new().unwrap();
-        let mut config = ThinkConfig {
+        let mut config = DecisionConfig {
             persistence: infra_cfg(&tmp),
-            ..ThinkConfig::default()
+            ..DecisionConfig::default()
         };
         config.persistence.enabled = persisted;
         config.display.color_output = false;
-        config.features.enable_sessions = true;
+        config.features.enable_logs = true;
         config.system.max_history_size = 2;
-        config.system.session_timeout = 0;
+        config.system.log_timeout = 0;
         let mut writer = ReasoningServer::new_for_project(config.clone(), "proj".into());
-        assert!(writer.observe_sessions().unwrap().value.sessions.is_empty());
-        assert!(writer.observe_session(None).unwrap().value.is_none());
-        assert!(writer.observe_session(Some(" ")).is_err());
-        assert!(
-            writer
-                .observe_session(Some("missing"))
-                .unwrap()
-                .value
-                .is_none()
-        );
-        let step = |number, session: Option<&str>| -> ThinkStep {
+        assert!(writer.observe_logs().unwrap().value.logs.is_empty());
+        assert!(writer.observe_log(None).unwrap().value.is_none());
+        assert!(writer.observe_log(Some(" ")).is_err());
+        assert!(writer.observe_log(Some("missing")).unwrap().value.is_none());
+        let note = |number, log: Option<&str>| -> Note {
             serde_json::from_value(serde_json::json!({
-                "step_number": number, "estimated_total": 20, "purpose": "analysis",
-                "context": "session scope", "thought": format!("saved evidence {number}"),
+                "note": number, "estimated_total": 20, "purpose": "analysis",
+                "context": "log scope", "thought": format!("saved evidence {number}"),
                 "outcome": "observed", "next_action": "continue", "rationale": "preserve scope",
-                "session_id": session,
+                "log_id": log,
             }))
             .unwrap()
         };
-        writer.process_step_native(step(1, None)).unwrap();
+        writer.process_note_native(note(1, None)).unwrap();
         for number in 2..=7 {
             writer
-                .process_step_native(step(number, Some("chosen")))
+                .process_note_native(note(number, Some("chosen")))
                 .unwrap();
         }
-        let mut branch = step(8, Some("chosen"));
-        branch.branch_from = Some(2);
-        branch.branch_name = Some("Saved investigation".into());
-        writer.process_step_native(branch).unwrap();
-        let chosen = writer
-            .observe_session(Some("chosen"))
-            .unwrap()
-            .value
-            .unwrap();
-        assert_eq!(chosen.steps.len(), 7);
+        let mut thread = note(8, Some("chosen"));
+        thread.thread_from = Some(2);
+        thread.thread_name = Some("Saved investigation".into());
+        writer.process_note_native(thread).unwrap();
+        let chosen = writer.observe_log(Some("chosen")).unwrap().value.unwrap();
+        assert_eq!(chosen.notes.len(), 7);
         assert_eq!(
-            chosen.branches.as_ref().unwrap()[0].name,
+            chosen.threads.as_ref().unwrap()[0].name,
             "Saved investigation"
         );
-        writer.process_step_native(step(9, Some("other"))).unwrap();
-        writer.cleanup_expired_sessions(true);
+        writer.process_note_native(note(9, Some("other"))).unwrap();
+        writer.cleanup_expired_logs(true);
         assert_eq!(
-            writer
-                .observe_session(Some("chosen"))
-                .unwrap()
-                .value
-                .as_ref(),
+            writer.observe_log(Some("chosen")).unwrap().value.as_ref(),
             Some(&chosen)
         );
         assert_eq!(
-            writer.observe_session(None).unwrap().value.unwrap().steps[0].step_number,
+            writer.observe_log(None).unwrap().value.unwrap().notes[0].note,
             1
         );
         assert_eq!(
-            writer.observe_step(2, false).unwrap().value.unwrap(),
-            chosen.steps[0]
+            writer.observe_note(2, false).unwrap().value.unwrap(),
+            chosen.notes[0]
         );
-        let all = writer.observe_sessions().unwrap();
-        assert_eq!(all.value.sessions.len(), 3);
+        let all = writer.observe_logs().unwrap();
+        assert_eq!(all.value.logs.len(), 3);
         assert!(
             writer
-                .observe_session(Some("not-recorded"))
+                .observe_log(Some("not-recorded"))
                 .unwrap()
                 .value
                 .is_none()
@@ -516,38 +499,30 @@ fn reasoning_reads_complete_explicit_sessions_independently_of_writer_and_cache(
             continue;
         }
         let detached = ReasoningServer::new_for_project(config.clone(), "proj".into());
-        assert_eq!(detached.observe_sessions().unwrap(), all);
-        let store = ThinkPersistence::for_project(&config.persistence, "proj");
+        assert_eq!(detached.observe_logs().unwrap(), all);
+        let store = DecisionPersistence::for_project(&config.persistence, "proj");
         let path = store.store_path().unwrap();
         let bytes = std::fs::read(&path).unwrap();
         assert_eq!(
-            detached
-                .observe_session(Some("chosen"))
-                .unwrap()
-                .value
-                .as_ref(),
+            detached.observe_log(Some("chosen")).unwrap().value.as_ref(),
             Some(&chosen)
         );
         assert_eq!(std::fs::read(&path).unwrap(), bytes, "reads never write");
         let mut invalid: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-        invalid["histories"]["proj__other"]["session_id"] = serde_json::json!("proj__chosen");
+        invalid["logs"]["proj__other"]["log_id"] = serde_json::json!("proj__chosen");
         let corrupted = serde_json::to_vec(&invalid).unwrap();
         std::fs::write(&path, &corrupted).unwrap();
         assert_eq!(
-            writer.observe_sessions().unwrap_err().kind,
+            writer.observe_logs().unwrap_err().kind,
             ReadErrorKind::Identity
         );
-        assert!(detached.observe_session(Some("chosen")).is_err());
-        assert!(detached.observe_step(2, false).is_err());
-        assert!(detached.observe_session(Some("missing")).is_err());
+        assert!(detached.observe_log(Some("chosen")).is_err());
+        assert!(detached.observe_note(2, false).is_err());
+        assert!(detached.observe_log(Some("missing")).is_err());
         assert_eq!(std::fs::read(&path).unwrap(), corrupted);
         std::fs::write(&path, &bytes).unwrap();
         assert_eq!(
-            detached
-                .observe_session(Some("chosen"))
-                .unwrap()
-                .value
-                .unwrap(),
+            detached.observe_log(Some("chosen")).unwrap().value.unwrap(),
             chosen
         );
     }

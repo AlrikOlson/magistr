@@ -436,8 +436,8 @@ impl RunEngine {
 
             for progress in &step.progress {
                 let step_ref = progress
-                    .think_step
-                    .map(|s| format!(" (think #{s})"))
+                    .note
+                    .map(|s| format!(" (decision #{s})"))
                     .unwrap_or_default();
                 out.push_str(&format!(
                     "  - {:?}: {}{}\n",

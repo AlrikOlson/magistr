@@ -142,7 +142,7 @@ those live integrations.
 
 The source-adoption task changes Rust tests in two files:
 
-- [`tests/think_config.rs`](../../crates/magistr-workflow/tests/think_config.rs): two
+- [`tests/decision_config.rs`](../../crates/magistr-workflow/tests/decision_config.rs): two
   current-directory identity tests re-execute in a disposable, unmarked
   project child process. This prevents Magistr's ancestor project marker
   from changing their fixture inputs, while preserving the original
@@ -206,7 +206,7 @@ the actual integrated main checkout. Workspace source adoption, ownership, and
 `SourceSnapshot` production remain later tasks.
 
 The uncommitted receipt draft remains an unverified recovery checkpoint:
-native `think:714`, architecture closeout `think:715`, and the exact recovery
+native `decision:714`, architecture closeout `decision:715`, and the exact recovery
 bundle identified in [owned subsystems](../../docs/architecture/owned-subsystems.md#delivery-and-preserved-work).
 The owner requested main-only development; completed commits and the active
 extraction moved to `main`, and this run's isolated worktree was retired.

@@ -5,24 +5,28 @@ use serde_json::{Value, json};
 impl Persistence {
     /// Convert a saved run document once: version 1 gains its execution
     /// identities, versions 1 and 2 take the run vocabulary (goal, steps,
-    /// progress, waiting, done, finished), and versions 1 to 3 name plan
-    /// tasks `task:` instead of `chunk:`. Current readers stay strict and
+    /// progress, waiting, done, finished), versions 1 to 3 name plan tasks
+    /// `task:` instead of `chunk:`, and versions 1 to 4 point progress at its
+    /// decision `note` and name notes `decision:`. Current readers stay strict and
     /// never invent identities. The caller holds the owner/document locks and
     /// retains the original bytes.
     pub fn upgrade_document(bytes: &[u8], project_id: &str) -> Result<Vec<u8>, ReadError> {
         let mut value: Value = serde_json::from_slice(bytes).map_err(schema)?;
         let version = value["schema_version"].as_u64();
         match version {
-            Some(1..=3) => {
+            Some(1..=4) => {
                 // Run documents never stored run references as strings, so only
-                // the plan task prefix changes here, whatever the version.
-                crate::infra::CrossRef::upgrade_stored_refs(
-                    &mut value,
-                    crate::infra::StoredRefWords::BeforePlanWords,
-                );
-                if version != Some(3) {
+                // the plan task and note prefixes change here.
+                let words = if version == Some(4) {
+                    crate::infra::StoredRefWords::BeforeDecisionWords
+                } else {
+                    crate::infra::StoredRefWords::BeforePlanWords
+                };
+                crate::infra::CrossRef::upgrade_stored_refs(&mut value, words);
+                if matches!(version, Some(1 | 2)) {
                     rename_document_words(&mut value)?;
                 }
+                for_each_cycle(&mut value, rename_note_words)?;
                 if version == Some(1) {
                     upgrade_cycle(&mut value, project_id)?;
                     let object = value
@@ -76,10 +80,18 @@ impl Persistence {
 /// Rename the run family's stored words in a version 1 or 2 document: the
 /// selected cycle and every saved cycle.
 fn rename_document_words(value: &mut Value) -> Result<(), ReadError> {
+    for_each_cycle(value, rename_cycle_words)
+}
+
+/// Apply `rename` to the selected cycle and every saved cycle.
+fn for_each_cycle(
+    value: &mut Value,
+    rename: fn(&mut serde_json::Map<String, Value>) -> Result<(), ReadError>,
+) -> Result<(), ReadError> {
     let document = value
         .as_object_mut()
         .ok_or_else(|| schema("Expected saved work."))?;
-    rename_cycle_words(document)?;
+    rename(document)?;
     if let Some(cycles) = document
         .get_mut("saved_cycles")
         .and_then(Value::as_array_mut)
@@ -88,7 +100,22 @@ fn rename_document_words(value: &mut Value) -> Result<(), ReadError> {
             let cycle = cycle
                 .as_object_mut()
                 .ok_or_else(|| schema("Expected a saved cycle."))?;
-            rename_cycle_words(cycle)?;
+            rename(cycle)?;
+        }
+    }
+    Ok(())
+}
+
+/// Progress points at the decision note that motivated it as `note`.
+fn rename_note_words(cycle: &mut serde_json::Map<String, Value>) -> Result<(), ReadError> {
+    let Some(steps) = cycle.get_mut("steps").and_then(Value::as_array_mut) else {
+        return Ok(());
+    };
+    for step in steps.iter_mut().filter_map(Value::as_object_mut) {
+        if let Some(progress) = step.get_mut("progress").and_then(Value::as_array_mut) {
+            for entry in progress.iter_mut().filter_map(Value::as_object_mut) {
+                rename_key(entry, "think_step", "note")?;
+            }
         }
     }
     Ok(())
@@ -163,15 +190,12 @@ fn upgrade_cycle(value: &mut Value, project_id: &str) -> Result<(), ReadError> {
                     if let Some(progress) = progress.as_object_mut()
                         && let Some(step) = progress.remove("deliberate_step")
                     {
-                        if progress
-                            .get("think_step")
-                            .is_some_and(|current| current != &step)
-                        {
+                        if progress.get("note").is_some_and(|current| current != &step) {
                             return Err(schema(
-                                "A saved progress refers to two different reasoning steps; the original is unchanged.",
+                                "A saved progress refers to two different decision notes; the original is unchanged.",
                             ));
                         }
-                        progress.insert("think_step".into(), step);
+                        progress.insert("note".into(), step);
                     }
                 }
             }

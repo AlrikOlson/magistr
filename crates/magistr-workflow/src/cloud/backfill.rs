@@ -3,7 +3,7 @@
 //! Cloud sync is write-through on *mutation* only, so an
 //! agent that connects after it already has local history shows nothing in the
 //! cloud until it next mutates each record. `magistr sync push` closes
-//! that gap: it walks the persisted think/run/plan/signal stores, builds the
+//! that gap: it walks the persisted decision/run/plan/signal stores, builds the
 //! same envelopes the write-through path builds (via [`crate::cloud::build`]),
 //! and `PUT`s each to `/v1/records`.
 //!
@@ -12,7 +12,7 @@
 //! re-running after a partial push simply re-PUTs everything, and the already-
 //! landed records collapse to dedups.
 //!
-//! Scope mirrors the write-through path **exactly**: think steps, run *progress*,
+//! Scope mirrors the write-through path **exactly**: decision notes, run *progress*,
 //! plan tasks, signals. Run goals/checks/steps are not pushed by
 //! write-through (no stable wire id) and stay deferred to `saas-cloud-sync-all`
 //! — this back-fill does not silently widen that scope.
@@ -20,16 +20,16 @@
 use crate::cloud::build;
 use crate::cloud::client::{CloudClient, PushOutcome};
 use crate::cloud::envelope::{Family, UnifiedRecordEnvelope};
+use crate::decision::domain::note::Note;
 use crate::plan::domain::Plan;
 use crate::run::domain::goal::Goal;
 use crate::run::domain::step::Step;
 use crate::signal::domain::Signal;
-use crate::think::domain::step::ThinkStep;
 
 /// Per-family record counts in a collected back-fill (the dry-run report).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct BackfillCounts {
-    pub think: usize,
+    pub decision: usize,
     pub run: usize,
     pub plan: usize,
     pub signal: usize,
@@ -39,7 +39,7 @@ impl BackfillCounts {
     /// Total records across all four families.
     #[must_use]
     pub fn total(&self) -> usize {
-        self.think + self.run + self.plan + self.signal
+        self.decision + self.run + self.plan + self.signal
     }
 
     /// Derive the per-family breakdown from a built envelope list.
@@ -48,7 +48,7 @@ impl BackfillCounts {
         let mut c = Self::default();
         for e in envelopes {
             match e.family {
-                Family::Think => c.think += 1,
+                Family::Decision => c.decision += 1,
                 Family::Run => c.run += 1,
                 Family::Plan => c.plan += 1,
                 Family::Signal => c.signal += 1,
@@ -60,18 +60,18 @@ impl BackfillCounts {
 
 /// Build the cloud envelopes for every local record across the four families,
 /// reusing the write-through builders. Pure and network-free — the unit-test
-/// seam for the whole back-fill. Order is stable: think, run, plan, signal.
+/// seam for the whole back-fill. Order is stable: decision, run, plan, signal.
 pub fn collect_envelopes<'a>(
     tenant: &str,
-    steps: impl Iterator<Item = &'a ThinkStep>,
+    notes: impl Iterator<Item = &'a Note>,
     run: Option<(&Goal, &[Step])>,
     plan: &Plan,
     signals: &[Signal],
 ) -> Result<Vec<UnifiedRecordEnvelope>, magistr_workflow_contracts::ReadError> {
     let mut out = Vec::new();
     out.extend(
-        steps
-            .map(|s| build::from_step(tenant, s))
+        notes
+            .map(|note| build::from_note(tenant, note))
             .collect::<Result<Vec<_>, _>>()?,
     );
     // The run cycle backfills with the SAME cycle-scoped identities as the

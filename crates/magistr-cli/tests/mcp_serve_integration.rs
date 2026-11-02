@@ -379,7 +379,7 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_run() {
         "magistr_gate",
         "magistr_set_phase",
         "magistr_format",
-        "think_record_step",
+        "decision_record",
         "check_step",
         "plan_next",
         "plan_status",

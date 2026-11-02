@@ -458,17 +458,17 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/v1/graph/neighbors"))
-            .and(query_param("endpoint", "think:9"))
+            .and(query_param("endpoint", "decision:9"))
             .respond_with(
                 ResponseTemplate::new(200)
-                    .set_body_json(json!({ "endpoint": "think:9", "neighbors": [] })),
+                    .set_body_json(json!({ "endpoint": "decision:9", "neighbors": [] })),
             )
             .mount(&server)
             .await;
 
         let client = CloudClient::new(server.uri(), "tok");
-        let graph = client.neighbors("think:9").await.unwrap();
-        assert_eq!(graph["endpoint"], "think:9");
+        let graph = client.neighbors("decision:9").await.unwrap();
+        assert_eq!(graph["endpoint"], "decision:9");
     }
 
     /// Live read against the REAL deployed backend (lists the tenant's records —

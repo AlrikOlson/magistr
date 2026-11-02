@@ -62,16 +62,16 @@ export function fixture() {
     plan,
     context,
     finding: {
-      step_number: 3,
+      note: 3,
       purpose: 'Use the existing search service',
       outcome: 'Reuse its matching rules.',
       dependencies: [],
     },
     findings: {
-      next_step_number: 4,
+      next_note: 4,
       pinned: [
         {
-          step_number: 3,
+          note: 3,
           purpose: 'Use the existing search service',
           outcome_excerpt: 'Reuse its matching rules.',
         },
@@ -209,7 +209,7 @@ export function answer(f, server, tool, args) {
             }
           : null,
       }
-    case 'think_engine_status':
+    case 'decision_status':
       return f.findings
     case 'plan_get':
       return {
@@ -220,7 +220,7 @@ export function answer(f, server, tool, args) {
         returned: 1,
         fields: [],
       }
-    case 'think_get_step':
+    case 'decision_get':
       return f.finding
     default:
       throw Error('Unexpected read: ' + tool)

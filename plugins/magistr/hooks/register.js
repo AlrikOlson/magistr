@@ -32,7 +32,7 @@ const READS = [
   ['run', 'magistr', 'run_status', {}],
   ['plan', 'magistr', 'plan_status', {}],
   ['context', 'magistr', 'context', {}],
-  ['findings', 'magistr', 'think_engine_status', { verbose: true }],
+  ['findings', 'magistr', 'decision_status', { verbose: true }],
   ['focus', 'magistr', 'plan_focus_get', {}],
   ['workspace', 'magistr', 'workspace_status', {}],
   ['changes', 'magistr', 'undo', { action: 'list', limit: 40, diff: true }],
@@ -235,8 +235,8 @@ async function drainDetails($) {
               : kind === 'finding'
                 ? [
                     'magistr',
-                    'think_get_step',
-                    { step_number: item.step_number, resolve_latest: true },
+                    'decision_get',
+                    { note: item.note, resolve_latest: true },
                     'finding',
                   ]
                 : ['magistr', 'read', { file: item, budget: 3000 }, 'source']
@@ -601,7 +601,7 @@ async function command($, e) {
       /^\d+$/.test(name) &&
       Number.isSafeInteger(Number(name)) &&
       Number(name) > 0
-        ? { step_number: Number(name) }
+        ? { note: Number(name) }
         : list?.find((t) => t.title === name)
     if (!item)
       return {
@@ -711,7 +711,7 @@ export function register(on) {
           redraw($)
           return
         }
-        return select($, 'finding', { step_number: number })
+        return select($, 'finding', { note: number })
       },
       filter: (value) => {
         model.filter = clean(value, 120)

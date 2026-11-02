@@ -50,7 +50,7 @@ test("reasoning threads keep the investigation visible beside complete evidence"
 });
 test("reasoning pagination never connects a partial investigation to its conclusion",async({app})=>{
   await open(app,"Reasoning");
-  await app.evaluate(()=>{const f=window.__fixture,h=f.workflow.think.data.value.sessions[0],base=h.steps[0];h.steps=Array.from({length:62},(_,i)=>({...base,record_id:"paged-"+i,step_number:i+1,purpose:"Finding "+i,pinned:false,branch_id:i>1?"large":null}));h.branches=[{id:"large",name:"Follow the complete investigation",from_step:1,merged_into:2,status:"merged"}];f.publish("release",{workflow_revision:1});});
+  await app.evaluate(()=>{const f=window.__fixture,h=f.workflow.decisions.data.value.logs[0],base=h.notes[0];h.notes=Array.from({length:62},(_,i)=>({...base,record_id:"paged-"+i,note:i+1,purpose:"Finding "+i,pinned:false,thread_id:i>1?"large":null}));h.threads=[{id:"large",name:"Follow the complete investigation",from_note:1,merged_into:2,status:"merged"}];f.publish("release",{workflow_revision:1});});
   const surface=app.getByRole("region",{name:"Reasoning canvas",exact:true});await expect(surface.locator(".decision-piece")).toHaveCount(50);
   await expect(surface.getByRole("button",{name:"Follow investigation: Follow the complete investigation",exact:true})).toHaveCount(1);
   await expect(surface.getByRole("button",{name:"Follow conclusion: Follow the complete investigation",exact:true})).toHaveCount(0);

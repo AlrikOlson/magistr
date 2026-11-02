@@ -24,11 +24,11 @@ impl Access {
                 | "plan_status"
                 | "plan_next"
                 | "plan_get"
-                | "think_engine_status"
-                | "think_search_trace"
-                | "think_get_step"
-                | "think_sessions"
-                | "think_session"
+                | "decision_status"
+                | "decision_search"
+                | "decision_get"
+                | "decision_logs"
+                | "decision_log"
                 | "signal_pending"
         ) {
             return true;
@@ -44,12 +44,12 @@ impl Access {
             "plan_retire_task"
             | "plan_reprioritize"
             | "plan_link"
-            | "think_record_step"
-            | "think_pin_step"
-            | "think_trace_checkpoint"
-            | "think_set_branch_status"
-            | "think_step_impact"
-            | "think_revise_estimate"
+            | "decision_record"
+            | "decision_pin"
+            | "decision_review"
+            | "decision_set_thread_status"
+            | "decision_impact"
+            | "decision_revise_estimate"
             | "signal_capture" => true,
             _ => false,
         }

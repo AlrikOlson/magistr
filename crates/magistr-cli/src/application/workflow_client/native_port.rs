@@ -10,7 +10,7 @@ use magistr_cockpit::engine::EnginePort;
 /// The production [`EnginePort`]: the same admitted in-process
 /// [`NativeEngines`] the entry point opened for the store snapshot,
 /// acting on the shared store the way the MCP server's verbs do — a pin
-/// is `think_pin_step`, a checkpoint is `think_checkpoint`. The store
+/// is `decision_pin`, a review is `decision_review`. The store
 /// merges on write, so the agent's `magistr mcp` on the same
 /// project sees the mutation too.
 pub struct NativeEnginePort {
@@ -28,16 +28,16 @@ impl NativeEnginePort {
 impl EnginePort for NativeEnginePort {
     fn pin(
         &mut self,
-        step_number: u32,
+        note_number: u32,
         pinned: bool,
     ) -> Result<Observed<bool>, WorkflowMutationError> {
         self.engines
-            .think_pin_step(step_number, pinned)
+            .decision_pin(note_number, pinned)
             .map_err(Into::into)
     }
 
-    fn checkpoint(&mut self) -> Result<serde_json::Value, String> {
-        self.engines.think_checkpoint()
+    fn review(&mut self) -> Result<serde_json::Value, String> {
+        self.engines.decision_review()
     }
 
     fn start_task(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError> {

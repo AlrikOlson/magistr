@@ -48,7 +48,7 @@ The full-record read remains available for those IDs.
 | Plan | `PlanData`: tasks and progress from the same read | `PlanEngine` |
 | Execution | `RunData`: selected and retained runs from the same read | `RunEngine` |
 | Signals | `Vec<Signal>` | `SignalEngine` |
-| Reasoning | `ThinkData`: complete saved sessions, steps and branches | `ReasoningServer` |
+| Reasoning | `DecisionData`: complete saved logs, notes and threads | `ReasoningServer` |
 
 Each observation preserves both its value and its provenance:
 

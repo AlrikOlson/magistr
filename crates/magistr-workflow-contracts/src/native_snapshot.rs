@@ -3,10 +3,10 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::decision::Log;
 use crate::plan::{Task, WorkstreamCatalog, workstream_catalog};
 use crate::run::{Goal, Step, StepStatus};
 use crate::signal::Signal;
-use crate::think::ThinkHistory;
 use crate::{PlanProgress, ReadError, ReadState};
 
 /// Plan records and progress derived from the same validated observation.
@@ -61,18 +61,16 @@ impl RunData {
     }
 }
 
-/// Complete reasoning sessions from one validated project observation.
+/// Complete decision logs from one validated project observation.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
-pub struct ThinkData {
-    pub sessions: Vec<ThinkHistory>,
+pub struct DecisionData {
+    pub logs: Vec<Log>,
 }
 
-impl ThinkData {
-    /// None addresses the default session. Named identities are canonical.
-    pub fn session(&self, id: Option<&str>) -> Option<&ThinkHistory> {
-        self.sessions
-            .iter()
-            .find(|history| history.session_id.as_deref() == id)
+impl DecisionData {
+    /// None addresses the default log. Named identities are canonical.
+    pub fn log(&self, id: Option<&str>) -> Option<&Log> {
+        self.logs.iter().find(|log| log.log_id.as_deref() == id)
     }
 }
 
@@ -83,7 +81,7 @@ pub struct NativeSnapshot {
     pub plan: ReadState<PlanData>,
     pub run: ReadState<RunData>,
     pub signals: ReadState<Vec<Signal>>,
-    pub think: ReadState<ThinkData>,
+    pub decisions: ReadState<DecisionData>,
 }
 
 impl NativeSnapshot {
@@ -98,7 +96,7 @@ impl NativeSnapshot {
         self.plan.needs_retry()
             || self.run.needs_retry()
             || self.signals.needs_retry()
-            || self.think.needs_retry()
+            || self.decisions.needs_retry()
     }
 
     /// A worker failed before it could report individual family observations.
@@ -108,7 +106,7 @@ impl NativeSnapshot {
         self.plan.record(Err(error.clone()));
         self.run.record(Err(error.clone()));
         self.signals.record(Err(error.clone()));
-        self.think.record(Err(error));
+        self.decisions.record(Err(error));
         self
     }
 }

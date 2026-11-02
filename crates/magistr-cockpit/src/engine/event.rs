@@ -9,7 +9,7 @@ use crate::cockpit::EngineCmd;
 /// feed's attachment, its typed events with how each was delivered, the
 /// store read whole, and the answers of the
 /// [`EnginePort`](super::EnginePort) — the in-process engines broadcast
-/// nothing, so a cockpit-made pin or checkpoint comes back this way
+/// nothing, so a cockpit-made pin or review comes back this way
 /// rather than on the socket.
 // `Event` carries a whole record (see `NativeEvent`), consumed as an
 // invalidation when it leaves the inbox. Only validated owner reads are
@@ -33,15 +33,15 @@ pub enum EngineEvent {
     /// Invalidate retained work records and ask the session's read coordinator
     /// to validate and publish all owners.
     Refresh,
-    /// The port marked the step at the cockpit's ask.
+    /// The port marked the note at the cockpit's ask.
     Pinned {
-        /// The step that was marked.
-        step_number: u32,
+        /// The note that was marked.
+        note: u32,
         /// The flag now in effect.
         pinned: bool,
     },
-    /// The port took a trace checkpoint: the report, line by line.
-    Checkpoint {
+    /// The port took a decision-log review: the report, line by line.
+    Review {
         /// The report's lines.
         lines: Vec<String>,
     },
@@ -49,7 +49,7 @@ pub enum EngineEvent {
     PortFailed {
         /// The refused command, so the dock can restore its answer.
         cmd: EngineCmd,
-        /// What was asked (`pin 7`, `checkpoint`).
+        /// What was asked (`pin 7`, `review`).
         what: String,
         /// The engine's reason.
         error: String,

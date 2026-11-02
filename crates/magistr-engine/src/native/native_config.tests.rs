@@ -276,9 +276,9 @@ fn captured_settings_do_not_consult_the_lookup_again() {
     use std::cell::RefCell;
     use std::collections::BTreeMap;
     let vars = RefCell::new(BTreeMap::from([
-        ("MAGISTR_WORKFLOW_ENABLE_SESSIONS", "true"),
+        ("MAGISTR_WORKFLOW_ENABLE_LOGS", "true"),
         ("MAGISTR_WORKFLOW_STRICT_MODE", "true"),
-        ("MAGISTR_WORKFLOW_RECENT_STEPS_LIMIT", "17"),
+        ("MAGISTR_WORKFLOW_RECENT_NOTES_LIMIT", "17"),
         ("TMPDIR", "/captured/tmp"),
     ]));
     let reads = RefCell::new(BTreeMap::<String, usize>::new());
@@ -289,16 +289,16 @@ fn captured_settings_do_not_consult_the_lookup_again() {
     let count = reads.borrow().clone();
     vars.borrow_mut().clear();
     for project in ["first-project", "second-project"] {
-        let think = cfg.think_config(project);
-        assert!(think.validation.strict_mode);
-        assert_eq!(think.system.recent_steps_limit, 17);
-        assert_eq!(think.features.default_session_id.as_deref(), Some(project));
-        assert!(think.persistence.enabled);
+        let decision = cfg.decision_config(project);
+        assert!(decision.validation.strict_mode);
+        assert_eq!(decision.system.recent_notes_limit, 17);
+        assert_eq!(decision.features.default_log_id.as_deref(), Some(project));
+        assert!(decision.persistence.enabled);
         assert_eq!(
-            think.persistence.data_dir,
+            decision.persistence.data_dir,
             PathBuf::from("/captured/tmp/magistr/workflow")
         );
-        assert!(think.broadcast.path.is_none());
+        assert!(decision.broadcast.path.is_none());
     }
     assert_eq!(*reads.borrow(), count);
     assert!(count.values().all(|&calls| calls == 1));
@@ -315,7 +315,7 @@ fn effective_sources_track_native_precedence_and_builder_overrides() {
             ("MAGISTR_WORKFLOW_PERSIST", " false "),
             ("MAGISTR_WORKFLOW_STRICT_MODE", "true"),
             ("MAGISTR_WORKFLOW_BROADCAST_PATH", "/secret-looking/socket"),
-            ("MAGISTR_WORKFLOW_DEFAULT_SESSION_ID", "sensitive/session"),
+            ("MAGISTR_WORKFLOW_DEFAULT_LOG_ID", "sensitive/log"),
         ]),
     );
     let sources = cfg.configuration_sources();
@@ -331,13 +331,10 @@ fn effective_sources_track_native_precedence_and_builder_overrides() {
         sources["validation.strict_mode"],
         ConfigSource::Environment("MAGISTR_WORKFLOW_STRICT_MODE")
     );
-    assert_eq!(
-        sources["features.default_session_id"],
-        ConfigSource::Default
-    );
+    assert_eq!(sources["features.default_log_id"], ConfigSource::Default);
     let diagnostic = format!("{sources:?}");
     assert!(!diagnostic.contains("/secret-looking/socket"));
-    assert!(!diagnostic.contains("sensitive/session"));
+    assert!(!diagnostic.contains("sensitive/log"));
     let updated = cfg
         .with_data_dir("/builder/store")
         .persist(true)
@@ -354,54 +351,57 @@ fn effective_sources_track_native_precedence_and_builder_overrides() {
             ConfigSource::Explicit
         );
     }
-    let think = updated.think_config("project");
-    assert!(think.persistence.enabled);
-    assert_eq!(think.persistence.data_dir, PathBuf::from("/builder/store"));
-    assert!(think.broadcast.path.is_none());
+    let decision = updated.decision_config("project");
+    assert!(decision.persistence.enabled);
+    assert_eq!(
+        decision.persistence.data_dir,
+        PathBuf::from("/builder/store")
+    );
+    assert!(decision.broadcast.path.is_none());
 }
 
 #[test]
-fn explicit_session_is_frozen_while_automatic_sessions_follow_admission() {
+fn explicit_log_is_frozen_while_automatic_logs_follow_admission() {
     let cfg = NativeConfig::from_lookup(
         "/project",
         lookup(vec![
-            ("MAGISTR_WORKFLOW_AUTO_SESSION", "true"),
-            ("MAGISTR_WORKFLOW_DEFAULT_SESSION_ID", "chosen-session"),
+            ("MAGISTR_WORKFLOW_AUTO_LOG", "true"),
+            ("MAGISTR_WORKFLOW_DEFAULT_LOG_ID", "chosen-log"),
         ]),
     );
     assert_eq!(
-        cfg.think_config("admitted-project")
+        cfg.decision_config("admitted-project")
             .features
-            .default_session_id
+            .default_log_id
             .as_deref(),
-        Some("chosen-session")
+        Some("chosen-log")
     );
     let automatic = NativeConfig::from_lookup(
         "/project",
-        lookup(vec![("MAGISTR_WORKFLOW_ENABLE_SESSIONS", "true")]),
+        lookup(vec![("MAGISTR_WORKFLOW_ENABLE_LOGS", "true")]),
     );
     assert_eq!(
-        automatic.configuration_sources()["features.default_session_id"],
+        automatic.configuration_sources()["features.default_log_id"],
         ConfigSource::ProjectIdentity
     );
     assert_eq!(
         automatic
-            .think_config("admitted-project")
+            .decision_config("admitted-project")
             .features
-            .default_session_id
+            .default_log_id
             .as_deref(),
         Some("admitted-project")
     );
 }
 
 #[test]
-fn injected_empty_lookup_has_a_deterministic_fallback_and_no_ambient_think_settings() {
+fn injected_empty_lookup_has_a_deterministic_fallback_and_no_ambient_decision_settings() {
     let cfg = NativeConfig::from_lookup("/project", |_| None);
     assert_eq!(cfg.data_dir, PathBuf::from("/tmp/magistr/workflow"));
-    let think = cfg.think_config("project");
-    assert!(!think.validation.strict_mode);
-    assert!(!think.features.enable_sessions);
-    assert_eq!(think.system.recent_steps_limit, 3);
+    let decision = cfg.decision_config("project");
+    assert!(!decision.validation.strict_mode);
+    assert!(!decision.features.enable_logs);
+    assert_eq!(decision.system.recent_notes_limit, 3);
     assert_eq!(
         cfg.configuration_sources()["persistence.data_dir"],
         ConfigSource::Default

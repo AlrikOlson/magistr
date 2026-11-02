@@ -134,7 +134,7 @@ def proxy(executable):
                     "content": [{"type": "content", "content": {
                         "type": "text", "text": TOOL_ERROR + "\nChecking the next result."}}]})
             update({"sessionUpdate": "tool_call", "toolCallId": "native-rich-progress",
-                    "title": PROGRESS_TOOL_TITLE, "kind": "think", "status": "in_progress"})
+                    "title": PROGRESS_TOOL_TITLE, "kind": "decision", "status": "in_progress"})
             while not cancelled.is_set() and not (directory / "finish").exists():
                 count += 1
                 text(f"{STREAM_PREFIX}{count:04d}: new result café 日本語 👩🏽‍💻.\n\n")

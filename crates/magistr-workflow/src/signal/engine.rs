@@ -271,8 +271,8 @@ impl SignalEngine {
 
     /// Record one round of the agent "churning" on a signal: append
     /// a durable [`Enrichment`] (stamped `at = now`), advance the lifecycle
-    /// toward `Researched`, and — when a motivating `think_step` is given —
-    /// cross-ref it as `think:<N>` so the reasoning is auditable from the signal.
+    /// toward `Researched`, and — when a motivating `note` is given —
+    /// cross-ref it as `decision:<N>` so the reasoning is auditable from the signal.
     ///
     /// Status rules (validated, never backward): `New`/`Triaged` advance to
     /// `Researched`; an already-`Researched` signal stays `Researched` (a signal
@@ -286,10 +286,10 @@ impl SignalEngine {
         summary: String,
         confidence: f64,
         sources: Vec<String>,
-        think_step: Option<u32>,
+        note: Option<u32>,
     ) -> Result<Observed<Signal>, SignalMutationError> {
         self.mutate(|edit| {
-            edit.research(id, summary, confidence, sources, think_step)
+            edit.research(id, summary, confidence, sources, note)
                 .cloned()
         })
     }
@@ -297,7 +297,7 @@ impl SignalEngine {
     /// Attach a validated cross-ref to a signal (deduped). Powers `signal_link`
     /// and the reciprocal `task:<id>` written by promotion. The ref is
     /// validated + normalized via [`crate::infra::CrossRef`], so only the forms
-    /// that type accepts get through: `think:`, `step:`, `progress:`, `check:`,
+    /// that type accepts get through: `decision:`, `step:`, `progress:`, `check:`,
     /// `task:`, `signal:` and `ext:<provider>/<external_id>`.
     ///
     /// The `ext:` form arrived with the tracker seam and this list did not
@@ -528,7 +528,7 @@ mod tests {
     }
 
     #[test]
-    fn research_appends_enrichment_advances_and_crossrefs_think() {
+    fn research_appends_enrichment_advances_and_crossrefs_decision() {
         let mut e = engine();
         let id = e
             .capture(SignalKind::Concern, "dana".into(), "perf is bad".into())
@@ -555,10 +555,10 @@ mod tests {
             "profiled it; the export is O(n^2)"
         );
         assert_eq!(s.value.enrichment[0].confidence, 0.8);
-        assert_eq!(s.value.enrichment[0].think_step, Some(69));
+        assert_eq!(s.value.enrichment[0].note, Some(69));
         assert!(!s.value.enrichment[0].at.is_empty());
-        // The motivating think step is cross-ref'd onto the signal.
-        assert!(s.value.refs.contains(&"think:69".to_string()));
+        // The motivating decision note is cross-ref'd onto the signal.
+        assert!(s.value.refs.contains(&"decision:69".to_string()));
     }
 
     #[test]
@@ -629,8 +629,8 @@ mod tests {
         let s = e2.get(&id).unwrap();
         assert_eq!(s.status, SignalStatus::Researched);
         assert_eq!(s.enrichment.len(), 1);
-        assert_eq!(s.enrichment[0].think_step, Some(42));
-        assert!(s.refs.contains(&"think:42".to_string()));
+        assert_eq!(s.enrichment[0].note, Some(42));
+        assert!(s.refs.contains(&"decision:42".to_string()));
     }
 
     /// Capture a signal and research it to `confidence` so it's `Researched`

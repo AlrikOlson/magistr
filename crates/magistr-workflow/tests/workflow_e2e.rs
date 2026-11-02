@@ -5,11 +5,14 @@
 //!   - a name the server does not serve fails with its replacement named.
 //!
 //! Replaces the structural input/output-schema parity tests that lived
-//! in `think_mcp.rs` and `run_mcp.rs` — those still run as cheap
+//! in `decision_mcp.rs` and `run_mcp.rs` — those still run as cheap
 //! sanity checks, but this test exercises the actual wire path.
 
 use std::sync::Arc;
 
+use magistr_workflow::decision::DecisionService;
+use magistr_workflow::decision::config::DecisionConfig;
+use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
@@ -18,9 +21,6 @@ use magistr_workflow::run::application::{
 };
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
-use magistr_workflow::think::ThinkService;
-use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::engine::core::ReasoningServer;
 use rmcp::{
     ClientHandler, ServiceExt,
     model::{CallToolRequestParams, ListToolsResult},
@@ -74,9 +74,9 @@ impl EvidencePort for Evidence {
 }
 
 fn build_unified() -> UnifiedService {
-    let mut cfg = ThinkConfig::default();
+    let mut cfg = DecisionConfig::default();
     cfg.display.color_output = false;
-    let think = ThinkService::new(ReasoningServer::new(cfg));
+    let decision = DecisionService::new(ReasoningServer::new(cfg));
     let run = RunService::from_use_cases(
         RunService::new(RunEngine::new("test-abc123".into()))
             .use_cases()
@@ -86,7 +86,7 @@ fn build_unified() -> UnifiedService {
     );
     let plan = PlanService::new(PlanEngine::new("test-abc123".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
-    UnifiedService::new(think, run, plan, signal)
+    UnifiedService::new(decision, run, plan, signal)
 }
 
 async fn pair() -> (
@@ -117,7 +117,7 @@ async fn tools_list_serves_unique_typed_operations_for_every_workflow_family() {
         tools.tools.iter().map(|tool| tool.name.as_ref()).collect();
     assert_eq!(names.len(), tools.tools.len(), "duplicate tool names");
     for required in [
-        "think_record_step",
+        "decision_record",
         "run_open",
         "arrange_steps",
         "start_step",
@@ -271,7 +271,7 @@ async fn plan_cross_family_linkage_over_the_wire() {
     a.insert("title".to_string(), Value::String("Wire it".to_string()));
     assert_ne!(call("plan_add_task", a).await.is_error, Some(true));
 
-    // start_task → in_progress + the task:<id> reference for run/think.
+    // start_task → in_progress + the task:<id> reference for run/decision.
     let mut s = serde_json::Map::new();
     s.insert("id".to_string(), Value::String("phase-1".to_string()));
     let started = call("plan_start_task", s).await;
@@ -279,10 +279,10 @@ async fn plan_cross_family_linkage_over_the_wire() {
     assert_eq!(sc["value"]["ref"], "task:phase-1");
     assert_eq!(sc["value"]["task"]["status"], "in_progress");
 
-    // link a think step to the task.
+    // link a decision note to the task.
     let mut l = serde_json::Map::new();
     l.insert("id".to_string(), Value::String("phase-1".to_string()));
-    l.insert("ref".to_string(), Value::String("think:1".to_string()));
+    l.insert("ref".to_string(), Value::String("decision:1".to_string()));
     assert_ne!(call("plan_link", l).await.is_error, Some(true));
 
     // Completion is governed by the run's receipts on every route, the
@@ -334,7 +334,7 @@ async fn plan_cross_family_linkage_over_the_wire() {
     let dc = done.structured_content.expect("complete structured");
     assert_eq!(dc["value"]["status"], "done");
     let refs = dc["value"]["refs"].as_array().unwrap();
-    assert!(refs.iter().any(|r| r == "think:1"));
+    assert!(refs.iter().any(|r| r == "decision:1"));
     assert!(refs.iter().any(|r| r == "step:wire-it"));
 
     // record a refresh note.
@@ -343,10 +343,7 @@ async fn plan_cross_family_linkage_over_the_wire() {
         "summary".to_string(),
         Value::String("shipped phase-1".to_string()),
     );
-    r.insert(
-        "think_steps".to_string(),
-        Value::Array(vec![Value::from(8)]),
-    );
+    r.insert("notes".to_string(), Value::Array(vec![Value::from(8)]));
     let refreshed = call("plan_record_refresh", r).await;
     let rc = refreshed.structured_content.expect("refresh structured");
     assert_eq!(rc["value"]["total_refreshes"], 1);
@@ -395,10 +392,10 @@ async fn resources_list_and_read_end_to_end() {
     ] {
         step.insert(k.into(), Value::String(v.into()));
     }
-    step.insert("step_number".into(), Value::from(1));
+    step.insert("note".into(), Value::from(1));
     step.insert("estimated_total".into(), Value::from(1));
     step.insert("pinned".into(), Value::Bool(true));
-    let req = CallToolRequestParams::new("think_record_step").with_arguments(step);
+    let req = CallToolRequestParams::new("decision_record").with_arguments(step);
     peer.call_tool(req).await.expect("record step");
 
     let mut task = serde_json::Map::new();

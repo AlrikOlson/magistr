@@ -219,7 +219,7 @@ mod tests {
     fn latest_only_per_key_keeps_the_newest_envelope() {
         let outbox = Outbox::new(None);
         outbox.enqueue("run/task/a".into(), json!({"v": 1}));
-        outbox.enqueue("think/step/9".into(), json!({"v": 1}));
+        outbox.enqueue("decision/step/9".into(), json!({"v": 1}));
         outbox.enqueue("run/task/a".into(), json!({"v": 2}));
 
         assert_eq!(outbox.len(), 2);
@@ -232,10 +232,10 @@ mod tests {
     fn overflow_drops_the_oldest() {
         let outbox = Outbox::new(None);
         for n in 0..=OUTBOX_CAP {
-            outbox.enqueue(format!("think/step/{n}"), json!(n));
+            outbox.enqueue(format!("decision/step/{n}"), json!(n));
         }
         assert_eq!(outbox.len(), OUTBOX_CAP);
-        assert!(!entry_keys(&outbox).contains(&"think/step/0".to_string()));
+        assert!(!entry_keys(&outbox).contains(&"decision/step/0".to_string()));
     }
 
     #[test]
@@ -265,12 +265,12 @@ mod tests {
 
         // Another persist (e.g. a later enqueue of a DIFFERENT record) must
         // not bring s1 back from the disk copy…
-        outbox.enqueue("think/step/2".into(), json!({"n": 2}));
-        assert_eq!(entry_keys(&outbox), vec!["think/step/2"]);
+        outbox.enqueue("decision/step/2".into(), json!({"n": 2}));
+        assert_eq!(entry_keys(&outbox), vec!["decision/step/2"]);
 
         // …and a fresh process loading the file must not see it either.
         let reloaded = Outbox::new(Some(path));
-        assert_eq!(entry_keys(&reloaded), vec!["think/step/2"]);
+        assert_eq!(entry_keys(&reloaded), vec!["decision/step/2"]);
 
         // A NEWER envelope for the same record queues normally (digest differs).
         reloaded.enqueue("signal/signal/s1".into(), json!({"id": "s1", "v": 2}));

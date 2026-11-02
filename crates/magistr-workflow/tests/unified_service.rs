@@ -1,26 +1,26 @@
 //! End-to-end smoke test for the UnifiedService: all four families register
-//! together and expose the full 56-tool surface (think 13, run 14, plan 17,
+//! together and expose the full 56-tool surface (decision 13, run 14, plan 17,
 //! tracker 2, signal 10 — all canonical).
 
 use std::collections::BTreeSet;
 
+use magistr_workflow::decision::DecisionService;
+use magistr_workflow::decision::config::DecisionConfig;
+use magistr_workflow::decision::engine::core::ReasoningServer;
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
-use magistr_workflow::think::ThinkService;
-use magistr_workflow::think::config::ThinkConfig;
-use magistr_workflow::think::engine::core::ReasoningServer;
 
 fn build_unified() -> UnifiedService {
-    let mut cfg = ThinkConfig::default();
+    let mut cfg = DecisionConfig::default();
     cfg.display.color_output = false;
-    let think = ThinkService::new(ReasoningServer::new(cfg));
+    let decision = DecisionService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new("test-abc123".into()));
     let plan = PlanService::new(PlanEngine::new("test-abc123".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
-    UnifiedService::new(think, run, plan, signal)
+    UnifiedService::new(decision, run, plan, signal)
 }
 
 #[test]
@@ -30,13 +30,13 @@ fn lists_56_canonical_tools_across_four_families() {
     assert_eq!(
         tools.len(),
         56,
-        "expected 13 think_* + 14 run (run_*, approval_*, step verbs) + 17 plan_* + 2 tracker_* + 10 signal_*, got {}",
+        "expected 13 decision_* + 14 run (run_*, approval_*, step verbs) + 17 plan_* + 2 tracker_* + 10 signal_*, got {}",
         tools.len()
     );
 
     let names: BTreeSet<String> = tools.iter().map(|t| t.name.to_string()).collect();
     let count = |prefix: &str| names.iter().filter(|n| n.starts_with(prefix)).count();
-    assert_eq!(count("think_"), 13, "13 think_* tools");
+    assert_eq!(count("decision_"), 13, "13 decision_* tools");
     assert_eq!(
         count("run_"),
         7,
@@ -129,7 +129,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 /// holds). Second — and this is the fact that did not exist when the line was
 /// first drawn — `FamilySelection` now lets an operator drop `signal_*`
 /// entirely, so all-families is no longer the only payload on offer: a
-/// think-only deployment stays at ~42 KB.
+/// decision-only deployment stays at ~42 KB.
 ///
 /// The headroom is deliberately thin now (~4 KB over the measured 135,524 B).
 /// That is the point. The next thing that wants to grow the surface should
@@ -285,7 +285,7 @@ fn tools_list_payload_stays_within_budget() {
 /// THE FLOOR, and the reason the ceiling above is safe to have.
 ///
 /// The Inputs/Returns/Pitfalls prose is why agents recover against this server
-/// — `think_record_step`'s own pitfall section has twice caught a live
+/// — `decision_record`'s own pitfall section has twice caught a live
 /// XML-serialization failure. Under client-side schema deferral the description
 /// is *precisely* what survives into context, so it matters more, not less.
 ///
@@ -318,14 +318,14 @@ fn descriptions_stay_substantial() {
     };
 
     // Demanded by exact value: the sections, on the tools that earned them.
-    let record_step = describe("think_record_step");
+    let record_step = describe("decision_record");
     assert!(
         record_step.contains("Pitfalls:"),
-        "think_record_step lost its Pitfalls section — the prose that caught a live failure"
+        "decision_record lost its Pitfalls section — the prose that caught a live failure"
     );
     assert!(
         record_step.contains("</thought>"),
-        "think_record_step lost the XML-serialization warning naming the closing tag"
+        "decision_record lost the XML-serialization warning naming the closing tag"
     );
     assert!(
         describe("check_step").contains("PREFER passing `command`"),
@@ -503,8 +503,8 @@ fn advertised_count(instructions: &str, family: &str) -> Option<usize> {
 fn route_of_classifies_tools_by_family() {
     use magistr_workflow::mcp::UnifiedFamily;
     assert_eq!(
-        UnifiedService::route_of("think_record_step"),
-        Some(UnifiedFamily::Think)
+        UnifiedService::route_of("decision_record"),
+        Some(UnifiedFamily::Decision)
     );
     assert_eq!(
         UnifiedService::route_of("run_open"),
@@ -577,7 +577,7 @@ fn default_selection_is_byte_identical_to_no_selection() {
 /// A narrowed deployment serves exactly its families — nothing leaks through.
 #[test]
 fn a_narrowed_deployment_lists_only_its_families() {
-    let sel = FamilySelection::parse("think,plan").expect("valid selection");
+    let sel = FamilySelection::parse("decision,plan").expect("valid selection");
     let svc = build_with(sel);
     let names: BTreeSet<String> = svc
         .list_tools_view()
@@ -585,11 +585,9 @@ fn a_narrowed_deployment_lists_only_its_families() {
         .map(|t| t.name.to_string())
         .collect();
 
-    assert!(
-        names.iter().all(|n| n.starts_with("think_")
-            || n.starts_with("plan_")
-            || n.starts_with("tracker_"))
-    );
+    assert!(names.iter().all(|n| n.starts_with("decision_")
+        || n.starts_with("plan_")
+        || n.starts_with("tracker_")));
     assert_eq!(names.iter().filter(|n| n.starts_with("run_")).count(), 0);
     assert_eq!(names.iter().filter(|n| n.starts_with("signal_")).count(), 0);
     // 13 reasoning tools plus 17 plan and 2 tracker tools.
@@ -599,22 +597,24 @@ fn a_narrowed_deployment_lists_only_its_families() {
 /// THE SAVING, measured through the ceiling's own instrument.
 ///
 /// Recorded as an exact-ish assertion rather than prose so it fails when the
-/// surface moves: a think-only deployment is the smallest useful one, and if it
+/// surface moves: a decision-only deployment is the smallest useful one, and if it
 /// ever stops being dramatically cheaper than the full surface, family selection
 /// has stopped earning its complexity.
 #[test]
 fn narrowing_measurably_shrinks_the_payload() {
     let full = tools_list_bytes(&build_unified());
-    let think_only = tools_list_bytes(&build_with(FamilySelection::parse("think").expect("valid")));
+    let decision_only = tools_list_bytes(&build_with(
+        FamilySelection::parse("decision").expect("valid"),
+    ));
 
     assert!(
-        think_only < full / 2,
-        "a think-only deployment should cost well under half the full surface; \
-         got {think_only} vs {full}"
+        decision_only < full / 2,
+        "a decision-only deployment should cost well under half the full surface; \
+         got {decision_only} vs {full}"
     );
     println!(
-        "full: {full} B  think-only: {think_only} B  saved: {} B",
-        full - think_only
+        "full: {full} B  decision-only: {decision_only} B  saved: {} B",
+        full - decision_only
     );
 }
 
@@ -658,7 +658,7 @@ fn tracker_rides_the_plan_family_and_cannot_be_orphaned() {
 /// the tools never having existed.
 #[test]
 fn an_unknown_family_is_refused_by_name() {
-    let err = FamilySelection::parse("think,roadmpa").expect_err("typo must not be tolerated");
+    let err = FamilySelection::parse("decision,roadmpa").expect_err("typo must not be tolerated");
     assert_eq!(
         err,
         FamilySelectionError::Unknown {
@@ -670,7 +670,10 @@ fn an_unknown_family_is_refused_by_name() {
         msg.contains("roadmpa"),
         "the message must name the offending token: {msg}"
     );
-    assert!(msg.contains("think"), "and list the known families: {msg}");
+    assert!(
+        msg.contains("decision"),
+        "and list the known families: {msg}"
+    );
 }
 
 /// An empty selection would be a server that can do nothing. Refused.
@@ -686,10 +689,10 @@ fn an_empty_selection_is_refused() {
 /// (Tolerating these is what keeps the strict unknown-token rule reasonable.)
 #[test]
 fn selection_parsing_is_forgiving_about_shape_but_not_about_names() {
-    let sel = FamilySelection::parse(" Think , RUN, ").expect("shape noise is tolerated");
-    assert!(sel.contains(Family::Think) && sel.contains(Family::Run));
+    let sel = FamilySelection::parse(" Decision , RUN, ").expect("shape noise is tolerated");
+    assert!(sel.contains(Family::Decision) && sel.contains(Family::Run));
     assert!(!sel.contains(Family::Plan) && !sel.contains(Family::Signal));
-    assert_eq!(sel.summary(), "think_*, run_*");
+    assert_eq!(sel.summary(), "decision_*, run_*");
 }
 
 /// LISTING AND DISPATCH MUST AGREE.
@@ -705,12 +708,12 @@ fn selection_parsing_is_forgiving_about_shape_but_not_about_names() {
 #[test]
 fn every_listed_tool_routes_to_an_exposed_family() {
     for spec in [
-        "think",
+        "decision",
         "run",
         "signal",
         "plan",
-        "think,signal",
-        "think,run,plan,signal",
+        "decision,signal",
+        "decision,run,plan,signal",
     ] {
         let sel = FamilySelection::parse(spec).expect("valid selection");
         let svc = build_with(sel);
@@ -746,11 +749,11 @@ fn every_listed_tool_routes_to_an_exposed_family() {
 /// as a property rather than a comment.
 #[test]
 fn the_surface_does_not_vary_between_views() {
-    let svc = build_with(FamilySelection::parse("think,signal").expect("valid"));
+    let svc = build_with(FamilySelection::parse("decision,signal").expect("valid"));
     assert_eq!(tools_list_bytes(&svc), tools_list_bytes(&svc));
     assert_eq!(
         svc.families(),
-        FamilySelection::parse("signal,think").expect("valid")
+        FamilySelection::parse("signal,decision").expect("valid")
     );
 }
 
@@ -907,8 +910,8 @@ fn the_known_schema_gap_stays_closed() {
 ///     omission is documented where it is felt, in `plan::output_schemas`.
 ///
 /// WHAT WAS CONSIDERED AND NOT DONE — the same `///`-leaks-into-schema defect
-/// exists elsewhere in production (`ThinkStep::tools_used` ships a
-/// forensic finding about a call-count undercount into `think_record_step`'s
+/// exists elsewhere in production (`Note::tools_used` ships a
+/// forensic finding about a call-count undercount into `decision_record`'s
 /// schema; trimming it was measured at −352 B). Reclaiming ~4 of those would
 /// have fit this feature under the old line. It was rejected as the WRONG
 /// reason to do it: trimming other families' documentation to pay for this
@@ -1061,7 +1064,7 @@ fn the_two_budgets_measure_different_things() {
     let victim = schema_added
         .iter_mut()
         .find(|t| t.output_schema.is_none())
-        .expect("think_export_trace is the declared exemption and carries no output schema");
+        .expect("decision_export is the declared exemption and carries no output schema");
     let mut blob = serde_json::Map::new();
     blob.insert("type".into(), serde_json::Value::String("object".into()));
     blob.insert(

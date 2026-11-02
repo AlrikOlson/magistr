@@ -68,7 +68,7 @@ async fn absent_provider_reports_every_failed_control_and_keeps_local_controls_a
         );
     }
     commands
-        .send(Cmd::Engine(magistr_cockpit::cockpit::EngineCmd::Checkpoint))
+        .send(Cmd::Engine(magistr_cockpit::cockpit::EngineCmd::Review))
         .unwrap();
     let event = tokio::time::timeout(Duration::from_secs(2), events.recv())
         .await
