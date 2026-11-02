@@ -3,7 +3,7 @@ title: Concepts
 description: Understand the records Magistr keeps and how they relate to your project.
 section: concepts
 order: 1
-related: [roadmap, reasoning, sessions, storage]
+related: [plan, reasoning, sessions, storage]
 ---
 Magistr stores project records that a connected coding agent can read and update.
 These records describe planned work, decisions, execution, and evidence. Your
@@ -14,19 +14,19 @@ source files remain in your repository.
 | Record | What it means |
 | --- | --- |
 | Project | The shared identity and settings for the work you are building. |
-| Roadmap | Deliverables, their priorities, dependencies, and status. |
-| Workstream | A named area of the roadmap, such as account access or reporting. |
-| Chunk | One deliverable with acceptance criteria and dependencies. |
-| Goal | The result an active work plan is trying to achieve. It can serve a chunk or a direct request. |
+| Plan | Deliverables, their priorities, dependencies, and status. |
+| Workstream | A named area of the plan, such as account access or reporting. |
+| Task | One deliverable with acceptance criteria and dependencies. |
+| Goal | The result an active work plan is trying to achieve. It can serve a task or a direct request. |
 | Task | One step in that work plan, such as investigating a failure or implementing a change. |
 | Action | A recorded account of work performed on a task. |
 
-A project can have several workstreams. Each contains chunks. When a chunk is
+A project can have several workstreams. Each contains tasks. When a task is
 implemented, its goal and task plan explain how it will be delivered.
-Completing one task does not by itself complete the chunk.
+Completing one task does not by itself complete the task.
 
-**Priority** expresses importance. A **dependency** says another chunk must
-finish first. A pending chunk may therefore be waiting, while a ready chunk
+**Priority** expresses importance. A **dependency** says another task must
+finish first. A pending task may therefore be waiting, while a ready task
 has satisfied its prerequisites.
 
 For example, a reporting feature might need a data import before it can generate
@@ -53,7 +53,7 @@ deployment. An artifact link alone does not establish that its contents passed
 verification.
 
 A **signal** is saved feedback, a question, an idea, or a reported problem.
-Investigation can lead to a linked roadmap chunk, a dismissal, or a decision
+Investigation can lead to a linked plan task, a dismissal, or a decision
 to wait.
 
 ## Sessions and saved work
@@ -63,7 +63,7 @@ outlive that conversation and be read by another connected agent.
 
 | Information | What carries over |
 | --- | --- |
-| Roadmap, saved reasoning, work plans, checks, feedback | Available through Magistr for the same project. |
+| Plan, saved reasoning, work plans, checks, feedback | Available through Magistr for the same project. |
 | Source files and commits | Available through the repository and working copy. |
 | Conversation history | Kept by the host that recorded it; Magistr-managed conversations have their own saved history. |
 | Model, authentication, and host permissions | Belong to the agent or to the settings used for a particular launch. |

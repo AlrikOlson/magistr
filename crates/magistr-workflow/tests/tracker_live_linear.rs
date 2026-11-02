@@ -132,7 +132,7 @@ async fn a_real_round_trip_preserves_the_content_hash() {
 /// justified by a comment claiming Linear returns states in workflow order. It
 /// does not. A default team has TWO `started` states — In Progress (position 2)
 /// and In Review (position 1002) — and the API returned In Review first, so an
-/// in-progress chunk was filed under In Review.
+/// in-progress task was filed under In Review.
 ///
 /// This asserts the state we actually land in is the EARLIEST started state by
 /// position, which is the only stable reading of "the in-progress column".
@@ -158,7 +158,7 @@ async fn in_progress_lands_in_the_earliest_started_state_not_whichever_came_firs
 
     assert_eq!(
         name, "In Progress",
-        "an in-progress chunk landed in {name:?}. `first of each type wins` picked \
+        "an in-progress task landed in {name:?}. `first of each type wins` picked \
          the wrong one of the team's two `started` states: the API does not return \
          states in workflow order, so the map must sort by position first"
     );
@@ -193,7 +193,7 @@ async fn state_name_of(key: &str, identifier: &str) -> String {
 /// link and nothing anywhere reports it.
 ///
 /// It also pins the DIRECTION. Linear stores one relation from the blocker's
-/// side, so `relate_items(from, blocked_by)` has to invert its arguments. An
+/// side, so `relate_items(from, waiting_on)` has to invert its arguments. An
 /// inverted-argument bug produces a relation that exists and points backwards,
 /// which reads as success everywhere except a human's eyes.
 #[tokio::test]
@@ -395,7 +395,7 @@ async fn a_fresh_team_resolves_on_the_immediate_reprobe_or_the_seeding_lag_is_re
 
 /// The definitive round trip: not a hand-written body approximating what the
 /// projector emits, but `project_all` itself driving the real adapter against
-/// the real API, with a chunk that has acceptance criteria and therefore the
+/// the real API, with a task that has acceptance criteria and therefore the
 /// full heading + checklist + provenance-footer shape.
 ///
 /// This exists because a hand-written probe MISLED me: I wrote
@@ -406,8 +406,8 @@ async fn a_fresh_team_resolves_on_the_immediate_reprobe_or_the_seeding_lag_is_re
 #[tokio::test]
 #[ignore = "talks to the real Linear API; needs LINEAR_API_KEY + LINEAR_TEAM"]
 async fn the_projectors_own_body_survives_linears_markdown_normalization() {
-    use magistr_workflow::roadmap::domain::ChunkStatus;
-    use magistr_workflow::roadmap::engine::RoadmapEngine;
+    use magistr_workflow::plan::domain::TaskStatus;
+    use magistr_workflow::plan::engine::PlanEngine;
     use magistr_workflow::tracker::project::project_all;
 
     let Some((key, team)) = live() else {
@@ -416,11 +416,11 @@ async fn the_projectors_own_body_survives_linears_markdown_normalization() {
     };
     let tracker = tracker(&key, &team);
 
-    let mut e = RoadmapEngine::new("live-smoke".into());
-    e.add_chunk(
+    let mut e = PlanEngine::new("live-smoke".into());
+    e.add_task(
         "footer-shape".into(),
         "live smoke — projector body shape".into(),
-        ChunkStatus::Pending,
+        TaskStatus::ToDo,
         10,
         "Created by the magistr live smoke test. Safe to delete.".into(),
         vec![
@@ -430,7 +430,7 @@ async fn the_projectors_own_body_survives_linears_markdown_normalization() {
         vec![],
         false,
     )
-    .expect("add chunk");
+    .expect("add task");
     e.set_tracker_opt_in("footer-shape", "linear", true)
         .expect("opt in");
 
@@ -471,7 +471,7 @@ async fn the_projectors_own_body_survives_linears_markdown_normalization() {
         "ROUND-TRIP LOSS: the hash of what came back differs from the hash we \
          recorded when we wrote it, so every inbound event on this issue would \
          be misjudged. sent labels {:?}, got back {:?}",
-        "roadmap:<band>",
+        "plan:<band>",
         back.labels
     );
 }

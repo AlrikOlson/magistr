@@ -14,14 +14,11 @@ fn fixture() -> (tempfile::TempDir, SnapshotReads) {
 
 #[tokio::test]
 async fn failed_worker_retains_success_and_marks_unread_families_unavailable() {
-    let before = fixtures::snapshot(vec![fixtures::chunk("selected")], Vec::new());
+    let before = fixtures::snapshot(vec![fixtures::task("selected")], Vec::new());
     let failed = read_with(before.clone(), || panic!("injected worker failure")).await;
-    assert_eq!(
-        failed.roadmap.last_successful(),
-        before.roadmap.last_successful()
-    );
+    assert_eq!(failed.plan.last_successful(), before.plan.last_successful());
     assert!(matches!(
-        failed.roadmap,
+        failed.plan,
         ReadState::Stale {
             error: ReadError {
                 kind: ReadErrorKind::Interrupted,
@@ -38,7 +35,7 @@ async fn failed_worker_retains_success_and_marks_unread_families_unavailable() {
 async fn delayed_read_publishes_before_a_later_failure_and_cannot_resurrect_current() {
     let (_temp, reads) = fixture();
     let (inbox, mut messages) = Inbox::channel();
-    let initial = fixtures::snapshot(vec![fixtures::chunk("selected")], Vec::new());
+    let initial = fixtures::snapshot(vec![fixtures::task("selected")], Vec::new());
     let (started, waiting) = tokio::sync::oneshot::channel();
     let (release, held) = std::sync::mpsc::channel();
     let first_reads = reads.clone();
@@ -70,12 +67,9 @@ async fn delayed_read_publishes_before_a_later_failure_and_cannot_resurrect_curr
     let Some(Msg::Engine(EngineEvent::Seed(second))) = messages.recv().await else {
         panic!("second read");
     };
-    assert!(first.roadmap.current().is_ok());
-    assert!(second.roadmap.current().is_err());
-    assert_eq!(
-        second.roadmap.last_successful(),
-        first.roadmap.last_successful()
-    );
+    assert!(first.plan.current().is_ok());
+    assert!(second.plan.current().is_err());
+    assert_eq!(second.plan.last_successful(), first.plan.last_successful());
     assert_eq!(*reads.seen.lock().await, second);
 }
 
@@ -130,7 +124,7 @@ async fn closing_observation_releases_an_explicit_refresh_waiting_for_the_coordi
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn invalidation_during_a_read_suppresses_its_current_publication_until_the_retry() {
     let (_temp, reads) = fixture();
-    let initial = fixtures::snapshot(vec![fixtures::chunk("selected")], Vec::new());
+    let initial = fixtures::snapshot(vec![fixtures::task("selected")], Vec::new());
     let setup = initial.clone();
     reads.observe(None, true, move || setup).await;
     let (inbox, mut messages) = Inbox::channel();
@@ -161,19 +155,19 @@ async fn invalidation_during_a_read_suppresses_its_current_publication_until_the
     let Some(Msg::Engine(EngineEvent::Seed(failed))) = messages.recv().await else {
         panic!("retry result");
     };
-    assert!(matches!(failed.roadmap, ReadState::Stale { .. }));
+    assert!(matches!(failed.plan, ReadState::Stale { .. }));
     assert_eq!(
-        failed.roadmap.current().unwrap_err().kind,
+        failed.plan.current().unwrap_err().kind,
         ReadErrorKind::Interrupted
     );
     assert_eq!(
-        failed.roadmap.last_successful().unwrap().value.chunks[0].id,
+        failed.plan.last_successful().unwrap().value.tasks[0].id,
         "selected"
     );
-    let recovered = fixtures::snapshot(vec![fixtures::chunk("selected")], Vec::new());
+    let recovered = fixtures::snapshot(vec![fixtures::task("selected")], Vec::new());
     reads.observe(Some(&inbox), true, move || recovered).await;
     let Some(Msg::Engine(EngineEvent::Seed(recovered))) = messages.recv().await else {
         panic!("recovery result");
     };
-    assert!(recovered.roadmap.current().is_ok());
+    assert!(recovered.plan.current().is_ok());
 }

@@ -3,7 +3,7 @@ use super::*;
 fn test_config() -> WorkflowConfig {
     WorkflowConfig {
         project_dir: "/tmp/test".into(),
-        spec_path: "ROADMAP.md".into(),
+        spec_path: "PLAN.md".into(),
         quality_gate: Some(QualityGateConfig {
             check: "cargo check".into(),
             test: "cargo test".into(),

@@ -1,5 +1,5 @@
 //! Miscellaneous commands: detect, reset, completions, man-pages,
-//! learn, memory, plugins, roadmap, mcp-proxy, mcp, acp-agent.
+//! learn, memory, plugins, plan, mcp-proxy, mcp, acp-agent.
 
 use crate::detect;
 
@@ -26,7 +26,7 @@ pub(crate) fn flag_if_low<T>(d: &detect::detection::Detection<T>) -> &'static st
 // ─── MCP ────────────────────────────────────────────────────────────────────
 
 mod audit_roster_edit;
-mod build_roadmap_generation_prompt;
+mod build_plan_generation_prompt;
 mod build_template_vars;
 mod cmd_acp_agent;
 mod cmd_codex_remove;
@@ -42,23 +42,23 @@ mod cmd_man_pages;
 mod cmd_mcp_proxy;
 mod cmd_memory;
 mod cmd_people;
+mod cmd_plan;
 mod cmd_plugins;
 mod cmd_policy;
 mod cmd_reset;
-mod cmd_roadmap;
 mod cmd_runs;
 mod cmd_workspace;
 mod completions_install_path;
 mod edit_roster;
 mod ensure_no_existing_scaffold;
 mod login_provider;
+mod plan_native_render;
 mod print_post_scaffold_validation;
 mod print_smart_stack;
 mod print_wizard_summary;
-mod roadmap_native_render;
 
 pub use audit_roster_edit::audit_roster_edit;
-pub use build_roadmap_generation_prompt::build_roadmap_generation_prompt;
+pub use build_plan_generation_prompt::build_plan_generation_prompt;
 pub use build_template_vars::build_template_vars;
 pub use cmd_acp_agent::cmd_acp_agent;
 pub use cmd_codex_remove::cmd_codex_remove;
@@ -74,10 +74,10 @@ pub use cmd_man_pages::cmd_man_pages;
 pub use cmd_mcp_proxy::cmd_mcp_proxy;
 pub use cmd_memory::cmd_memory;
 pub use cmd_people::cmd_people;
+pub use cmd_plan::cmd_plan;
 pub use cmd_plugins::cmd_plugins;
 pub use cmd_policy::cmd_policy;
 pub use cmd_reset::cmd_reset;
-pub use cmd_roadmap::cmd_roadmap;
 pub use cmd_runs::cmd_runs;
 pub use cmd_workspace::cmd_workspace;
 pub use completions_install_path::completions_install_path;

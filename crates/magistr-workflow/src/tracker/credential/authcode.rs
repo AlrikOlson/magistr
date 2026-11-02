@@ -741,7 +741,7 @@ mod tests {
         );
     }
 
-    /// THE GAP THIS CHUNK EXISTS TO CLOSE, at the level of one function. A Jira
+    /// THE GAP THIS TASK EXISTS TO CLOSE, at the level of one function. A Jira
     /// credential is refreshable from the store ONLY if the store kept the
     /// client secret — Atlassian requires it on the refresh. A profile rebuilt
     /// with an empty secret would look correct here and fail at the token

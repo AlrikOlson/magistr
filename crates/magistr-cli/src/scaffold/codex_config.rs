@@ -118,8 +118,8 @@ impl CodexConfig {
                 .and_then(Item::as_array)
                 .cloned()
                 .unwrap_or_default();
-            if !denied.iter().any(|v| v.as_str() == Some("roadmap_export")) {
-                denied.push("roadmap_export");
+            if !denied.iter().any(|v| v.as_str() == Some("plan_export")) {
+                denied.push("plan_export");
                 put(&mut doc, "magistr", "disabled_tools", value(denied));
             }
         }

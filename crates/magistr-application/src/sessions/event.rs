@@ -37,13 +37,13 @@ pub enum AgentEvent {
         /// stays unbound rather than naming a guess.
         model: Option<String>,
     },
-    /// A chunk of the agent's message.
+    /// A task of the agent's message.
     Text(String),
-    /// A chunk of the agent's thinking.
+    /// A task of the agent's thinking.
     Thought(String),
-    /// A chunk of the user's message, echoed by the agent.
+    /// A task of the user's message, echoed by the agent.
     UserText(String),
-    /// An image content block on a message chunk. The cockpit decodes
+    /// An image content block on a message task. The cockpit decodes
     /// it in the fold, where the terminal's cell size is known.
     Image(ImageBlock),
     /// The agent started a tool call.
@@ -171,7 +171,7 @@ pub enum AgentEvent {
         /// The request's session-unique cockpit id.
         id: u64,
     },
-    /// A chunk of raw output from one of the agent's terminals — the
+    /// A task of raw output from one of the agent's terminals — the
     /// bytes the command wrote, escapes and all, in order — kept by
     /// terminal id for the interface that displays them.
     Terminal {

@@ -126,7 +126,7 @@ fn invalid_proposals_leave_the_journal_unchanged() {
                 1 => base.run_id = "another-run".into(),
                 2 => base.digest = "different".into(),
                 3 => body.context.code_revision = "changed".into(),
-                4 => body.context.roadmap_revision = "changed".into(),
+                4 => body.context.plan_revision = "changed".into(),
                 5 => body.context.routing_history_revision = "changed".into(),
                 6 => body.context.constraints.push("changed".into()),
                 _ => body.tasks[0].dependencies.push("missing".into()),

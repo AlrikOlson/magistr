@@ -472,7 +472,7 @@ mod wire_id_tests {
     fn active_step_wire_id_is_cycle_scoped() {
         let mut engine = RunEngine::new("magistr-test".into());
         engine
-            .set_goal("chunk:x — test".into(), vec![], vec![], String::new())
+            .set_goal("task:x — test".into(), vec![], vec![], String::new())
             .unwrap();
         engine
             .add_step(
@@ -504,7 +504,7 @@ mod wire_id_tests {
     fn no_active_step_means_no_wire_id() {
         let mut engine = RunEngine::new("magistr-test".into());
         engine
-            .set_goal("chunk:x — test".into(), vec![], vec![], String::new())
+            .set_goal("task:x — test".into(), vec![], vec![], String::new())
             .unwrap();
         assert_eq!(engine.active_step_wire_id(), None);
     }

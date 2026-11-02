@@ -59,7 +59,7 @@
 //! module charges and is correct. The primary limits are not modelled — one
 //! bucket per `(provider, transport)` cannot hold two windows, and no verb
 //! weight can express a complexity score. That gap is recorded rather than
-//! papered over; see `projects-v2-primary-limit-unmodelled` on the roadmap.
+//! papered over; see `projects-v2-primary-limit-unmodelled` on the plan.
 //!
 //! [`LinearTracker`](crate::tracker::LinearTracker) charges a flat 1 for every
 //! call including mutations. That is honest for Linear, which bills complexity
@@ -155,7 +155,7 @@ impl OwnerKind {
 }
 
 /// Which credential a Projects v2 board will actually accept — the answer to a
-/// question that cost a whole chunk to settle, recorded here so the board lane
+/// question that cost a whole task to settle, recorded here so the board lane
 /// reads it instead of re-deriving it.
 ///
 /// THE FINDING: a GitHub App INSTALLATION token cannot reach a USER-owned
@@ -329,7 +329,7 @@ impl BoardAddress {
     }
 }
 
-/// A resolved board: what every later sub-chunk needs before it can do anything.
+/// A resolved board: what every later step needs before it can do anything.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Board {
     /// The `ProjectV2` node id. The only thing the field and item mutations take.
@@ -1014,7 +1014,7 @@ pub enum Unexpressible {
 /// choice rather than inheriting one.
 ///
 /// THE COST, stated here rather than buried: leaving the column alone means a
-/// chunk obsoleted while *In Progress* keeps reading "In Progress" on a closed
+/// task retired while *In Progress* keeps reading "In Progress" on a closed
 /// issue, so a board filter on Status is wrong for exactly those items. That
 /// was accepted deliberately over writing "Done", which would assert something
 /// false about abandoned work in a column that is read on its own.
@@ -1294,7 +1294,7 @@ impl ProjectsV2Client {
 }
 
 // ---------------------------------------------------------------------------
-// Identity — one chunk, one twin per provider.
+// Identity — one task, one twin per provider.
 // ---------------------------------------------------------------------------
 
 /// The GitHub issue coordinate the Issues adapter already minted:
@@ -1302,7 +1302,7 @@ impl ProjectsV2Client {
 ///
 /// Parsing rather than accepting any string is what makes the DRAFT failure mode
 /// unreachable. A `ProjectV2` item wraps an issue, a pull request, or a draft;
-/// a draft has no issue behind it, so a chunk that acquired one would own a
+/// a draft has no issue behind it, so a task that acquired one would own a
 /// second twin that can never be reconciled back to anything the Issues
 /// adapter knows. There
 /// is no draft mutation anywhere in this module and no entry point that could
@@ -1356,7 +1356,7 @@ impl IssueCoordinate {
 ///
 /// `id` is DERIVED STATE and the whole point of the identity layer. It is a
 /// GitHub-and-board-specific node id; putting it in the shared link record
-/// beside `owner/repo#number` would give one chunk two GitHub twins with no rule
+/// beside `owner/repo#number` would give one task two GitHub twins with no rule
 /// about which is authoritative when they disagree. Both sibling adapters
 /// already refused the same trade — `github.rs` keeps issue database ids out of
 /// `external_id`, and `linear.rs::uuid_of` states the general reason: the id a
@@ -1421,7 +1421,7 @@ impl ProjectsV2Client {
     /// The board item for an issue already linked by the Issues adapter,
     /// attaching it if it is not there yet.
     ///
-    /// THE ONLY WAY to obtain a [`BoardItem`], which is what makes "one chunk,
+    /// THE ONLY WAY to obtain a [`BoardItem`], which is what makes "one task,
     /// one twin per provider" structural rather than a convention. It takes the
     /// `external_id` the link record already holds, so it cannot invent an
     /// identity, and it returns an item whose id the caller is expected to spend
@@ -1544,7 +1544,7 @@ impl ProjectsV2Client {
 /// the idiom `github.rs` established.
 ///
 /// Deliberately NOT `github`. A board and a repository's issues are different
-/// destinations with different link records: the same chunk can be mirrored to
+/// destinations with different link records: the same task can be mirrored to
 /// both, and a shared key would make one overwrite the other's `external_id`.
 pub const PROVIDER: &str = "github_projects";
 
@@ -1573,19 +1573,19 @@ fn build_registered(request: &ProviderBuild<'_>) -> Result<Box<dyn TrackerPort>,
 /// that already exists, and [`IssueCoordinate::parse`] is the only door onto
 /// one. The alternative GitHub offers — a DRAFT item, which a board can mint
 /// from nothing — carries no issue, so it could never be reconciled with the
-/// `github` provider's link record for the same chunk, and the identity layer
+/// `github` provider's link record for the same task, and the identity layer
 /// made it unreachable on purpose rather than merely discouraged.
 ///
 /// So [`Self::upsert_item`] refuses an item with no `external_id`, naming the
 /// fix. The projector reports that as a rejection and continues to the next
-/// chunk, which is the right shape: one chunk that has not reached GitHub
-/// Issues yet must not cost the board the chunks that have.
+/// task, which is the right shape: one task that has not reached GitHub
+/// Issues yet must not cost the board the tasks that have.
 ///
 /// # What it does not do
 ///
 /// It reports no labels, no assignee and no blocking links, because a board has
 /// none of those. In particular it does NOT claim labels in order to receive
-/// the `roadmap:<band>` label the projector would then send: that would buy
+/// the `plan:<band>` label the projector would then send: that would buy
 /// [`ProjectsV2Client::band_write_for`] a caller at the cost of a false answer
 /// in the capability contract, and the contract is what every other degradation
 /// in the projector is decided from.
@@ -1593,12 +1593,12 @@ pub struct ProjectsV2Tracker {
     client: ProjectsV2Client,
     /// States this run declined to write, accumulated for ONE end-of-run
     /// sentence. Per-item warnings were the thing the decision
-    /// specifically rejected: a board of obsoleted chunks would otherwise emit
-    /// the same paragraph once per chunk.
+    /// specifically rejected: a board of retired tasks would otherwise emit
+    /// the same paragraph once per task.
     left_unchanged: Mutex<Vec<LeftUnchanged>>,
 }
 
-/// The refusal for a chunk the board cannot file because nothing has minted its
+/// The refusal for a task the board cannot file because nothing has minted its
 /// issue yet.
 ///
 /// A free function for the same reason `no_lifecycle_field_refusal` is one:
@@ -1607,7 +1607,7 @@ pub struct ProjectsV2Tracker {
 fn no_issue_to_file_refusal(board: &str, title: &str) -> TrackerError {
     TrackerError::Unsupported(format!(
         "'{title}' has no GitHub issue yet, and a board files issues that already exist rather \
-         than creating them. Mirror this roadmap to GitHub Issues first — `tracker on --provider \
+         than creating them. Mirror this plan to GitHub Issues first — `tracker on --provider \
          github --into <owner>/<repo>` then `tracker push` — and the board will pick it up on the \
          next push. Nothing was written to board {board}."
     ))
@@ -1723,7 +1723,7 @@ impl TrackerPort for ProjectsV2Tracker {
     ///
     /// The board holds no field this system authors: the title, body, labels
     /// and assignee all live on the issue, and the one column written here is
-    /// derived from the chunk's own status. So there is nothing for the
+    /// derived from the task's own status. So there is nothing for the
     /// ownership policy to reconcile against, and answering "I hold no prior
     /// version of this" is true. The default would instead surface the
     /// `fetch_since` refusal above into a path the projector swallows with
@@ -2055,7 +2055,7 @@ mod tests {
         );
     }
 
-    /// Nothing happened, so nothing is said — a run with no obsoleted chunks
+    /// Nothing happened, so nothing is said — a run with no retired tasks
     /// must not print a summary about zero of them.
     #[test]
     fn no_non_writes_produces_no_sentence_at_all() {

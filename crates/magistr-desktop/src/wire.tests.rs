@@ -31,7 +31,7 @@ fn catalog_frames_preserve_full_ownership_and_omit_transcript_and_request_detail
         owned_conversations: vec!["chat-history".into(), "planning-history".into()],
         conversation: Some(magistr_application::sessions::Conversation {
             id: "planning-history".into(),
-            purpose: SessionPurpose::Roadmap,
+            purpose: SessionPurpose::Plan,
             name: Some("Plan the next release".into()),
             provider: "copilot".into(),
         }),
@@ -74,7 +74,7 @@ fn catalog_frames_preserve_full_ownership_and_omit_transcript_and_request_detail
     assert_eq!(session["status"], "Waiting for you");
     assert_eq!(session["target"]["address"], session["address"]);
     assert_eq!(session["target"]["conversation"], "planning-history");
-    assert_eq!(session["conversation"]["purpose"], "roadmap");
+    assert_eq!(session["conversation"]["purpose"], "plan");
     assert_eq!(
         session["owned_conversations"],
         serde_json::json!(["chat-history", "planning-history"])

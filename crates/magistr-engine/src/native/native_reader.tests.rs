@@ -1,5 +1,5 @@
 use super::*;
-use crate::native::{ChunkStatus, NativeEngines, ProjectAuthority, WriterRole};
+use crate::native::{NativeEngines, ProjectAuthority, TaskStatus, WriterRole};
 
 fn fixture() -> (tempfile::TempDir, NativeConfig, NativeEngines) {
     let temp = tempfile::tempdir().unwrap();
@@ -13,19 +13,19 @@ fn fixture() -> (tempfile::TempDir, NativeConfig, NativeEngines) {
     (temp, config, writer)
 }
 
-fn add(writer: &NativeEngines, id: &str, priority: u32, group: Option<&str>) {
+fn add(writer: &NativeEngines, id: &str, priority: u32, feature: Option<&str>) {
     writer
-        .roadmap_add_chunk(
+        .plan_add_task(
             id.into(),
             format!("Work {id}"),
             String::new(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             priority,
             String::new(),
             vec![],
             vec![],
             None,
-            group.map(str::to_owned),
+            feature.map(str::to_owned),
         )
         .unwrap();
 }
@@ -35,37 +35,35 @@ fn current_workstreams_refresh_without_redirecting_closed_or_missing_names() {
     let (_temp, config, writer) = fixture();
     add(&writer, "old", 1, Some("Rust"));
     add(&writer, "desktop", 20, Some("Rust desktop"));
-    add(&writer, "ungrouped", 10, None);
+    add(&writer, "unassigned", 10, None);
     let observer = NativeReader::open_for_project(&config, "workstream-read".into());
     assert_eq!(
-        observer.roadmap_workstreams().unwrap().current_names(),
+        observer.plan_workstreams().unwrap().current_names(),
         ["Rust", "Rust desktop"]
     );
-    writer
-        .roadmap_set_status("old", ChunkStatus::Obsoleted)
-        .unwrap();
-    let catalog = observer.roadmap_workstreams().unwrap();
+    writer.plan_set_status("old", TaskStatus::Retired).unwrap();
+    let catalog = observer.plan_workstreams().unwrap();
     assert_eq!(catalog.current_names(), ["Rust desktop"]);
-    assert_eq!(catalog.history["Rust"].obsoleted, 1);
-    assert_eq!(catalog.ungrouped.counts.total, 1);
-    assert_eq!(observer.roadmap_chunks().unwrap().len(), 3);
+    assert_eq!(catalog.history["Rust"].retired, 1);
+    assert_eq!(catalog.unassigned.counts.total, 1);
+    assert_eq!(observer.plan_tasks().unwrap().len(), 3);
 
-    let refusal = observer.roadmap_resolve_track("Rust").unwrap_err();
+    let refusal = observer.plan_resolve_track("Rust").unwrap_err();
     assert!(refusal.contains("no unfinished work"), "{refusal}");
     assert!(refusal.contains("Rust desktop"), "{refusal}");
-    assert!(observer.roadmap_next_in_track("Rust").is_err());
-    assert!(observer.roadmap_frontier(Some("Rust des")).is_err());
+    assert!(observer.plan_next_in_track("Rust").is_err());
+    assert!(observer.plan_frontier(Some("Rust des")).is_err());
     assert_eq!(
-        observer.roadmap_resolve_track("Rust des").unwrap(),
+        observer.plan_resolve_track("Rust des").unwrap(),
         "Rust desktop"
     );
-    assert_eq!(observer.roadmap_next().unwrap().unwrap().id, "ungrouped");
-    let ungrouped = observer.roadmap_frontier(None).unwrap();
-    assert_eq!(ungrouped.items.len(), 1);
-    assert_eq!(ungrouped.items[0].id, "ungrouped");
+    assert_eq!(observer.plan_next().unwrap().unwrap().id, "unassigned");
+    let unassigned = observer.plan_frontier(None).unwrap();
+    assert_eq!(unassigned.items.len(), 1);
+    assert_eq!(unassigned.items[0].id, "unassigned");
     assert_eq!(
         observer
-            .roadmap_next_in_track("Rust desktop")
+            .plan_next_in_track("Rust desktop")
             .unwrap()
             .unwrap()
             .id,
@@ -73,20 +71,20 @@ fn current_workstreams_refresh_without_redirecting_closed_or_missing_names() {
     );
 
     writer
-        .roadmap_set_group("desktop", Some("Interface".into()))
+        .plan_set_feature("desktop", Some("Interface".into()))
         .unwrap();
-    assert!(observer.roadmap_next_in_track("Rust desktop").is_err());
+    assert!(observer.plan_next_in_track("Rust desktop").is_err());
     assert_eq!(
-        observer.roadmap_workstreams().unwrap().current_names(),
+        observer.plan_workstreams().unwrap().current_names(),
         ["Interface"]
     );
     writer
-        .roadmap_set_status("desktop", ChunkStatus::Obsoleted)
+        .plan_set_status("desktop", TaskStatus::Retired)
         .unwrap();
-    let catalog = observer.roadmap_workstreams().unwrap();
+    let catalog = observer.plan_workstreams().unwrap();
     assert!(catalog.current.is_empty());
-    assert_eq!(catalog.history["Interface"].obsoleted, 1);
-    assert_eq!(observer.roadmap_next().unwrap().unwrap().id, "ungrouped");
+    assert_eq!(catalog.history["Interface"].retired, 1);
+    assert_eq!(observer.plan_next().unwrap().unwrap().id, "unassigned");
 }
 
 #[test]
@@ -96,26 +94,26 @@ fn selection_refuses_an_unreadable_store_and_recovers_without_cached_success() {
     let (_temp, config, writer) = fixture();
     add(&writer, "work", 1, Some("Current"));
     let observer = NativeReader::open_for_project(&config, "workstream-read".into());
-    assert_eq!(observer.roadmap_next().unwrap().unwrap().id, "work");
+    assert_eq!(observer.plan_next().unwrap().unwrap().id, "work");
     let path =
-        Persistence::new(&config.persistence_config(), Domain::Roadmap).path_for("workstream-read");
+        Persistence::new(&config.persistence_config(), Domain::Plan).path_for("workstream-read");
     let original = std::fs::read(&path).unwrap();
-    std::fs::write(&path, b"{ invalid roadmap").unwrap();
+    std::fs::write(&path, b"{ invalid plan").unwrap();
 
-    assert!(observer.roadmap_chunks().is_err());
-    assert!(observer.roadmap_next().is_err());
-    assert!(observer.roadmap_next_in_track("Current").is_err());
-    assert!(observer.roadmap_resolve_track("Current").is_err());
-    assert!(observer.roadmap_workstreams().is_err());
-    assert!(observer.roadmap_frontier(Some("Current")).is_err());
+    assert!(observer.plan_tasks().is_err());
+    assert!(observer.plan_next().is_err());
+    assert!(observer.plan_next_in_track("Current").is_err());
+    assert!(observer.plan_resolve_track("Current").is_err());
+    assert!(observer.plan_workstreams().is_err());
+    assert!(observer.plan_frontier(Some("Current")).is_err());
     let newly_opened = NativeReader::open_for_project(&config, "workstream-read".into());
-    assert!(newly_opened.roadmap_chunks().is_err());
-    assert!(newly_opened.roadmap_next().is_err());
+    assert!(newly_opened.plan_tasks().is_err());
+    assert!(newly_opened.plan_next().is_err());
 
     std::fs::write(&path, original).unwrap();
-    assert_eq!(observer.roadmap_next().unwrap().unwrap().id, "work");
+    assert_eq!(observer.plan_next().unwrap().unwrap().id, "work");
     assert_eq!(
-        observer.roadmap_workstreams().unwrap().current_names(),
+        observer.plan_workstreams().unwrap().current_names(),
         ["Current"]
     );
 }
@@ -128,7 +126,7 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
     let (_temp, config, writer) = fixture();
     add(&writer, "work", 1, Some("Current"));
     writer
-        .run_open("Keep the plan".into(), vec![], vec![], "chunk:work".into())
+        .run_open("Keep the plan".into(), vec![], vec![], "task:work".into())
         .unwrap();
     writer
         .add_step(
@@ -158,8 +156,8 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
     let persistence = config.persistence_config();
     let paths = [
         (
-            "roadmap",
-            Persistence::new(&persistence, Domain::Roadmap).path_for("workstream-read"),
+            "plan",
+            Persistence::new(&persistence, Domain::Plan).path_for("workstream-read"),
         ),
         (
             "run",
@@ -196,7 +194,7 @@ fn family_failures_retain_exact_records_across_clones_and_recover_independently(
                 failed[family]["data"]["last"], good[family]["data"],
                 "{family}"
             );
-            for other in ["roadmap", "run", "signals", "think"] {
+            for other in ["plan", "run", "signals", "think"] {
                 if other != family {
                     assert_eq!(
                         failed[other], good[other],
@@ -236,13 +234,13 @@ fn observed_deletion_is_current_empty_and_does_not_clear_other_families() {
     let observer = NativeReader::open_for_project(&config, "workstream-read".into());
     let before = observer.snapshot();
     let path =
-        Persistence::new(&config.persistence_config(), Domain::Roadmap).path_for("workstream-read");
+        Persistence::new(&config.persistence_config(), Domain::Plan).path_for("workstream-read");
     std::fs::remove_file(path).unwrap();
     let empty = observer.snapshot();
-    assert_eq!(empty.roadmap.current().unwrap().source, ReadSource::Missing);
-    assert!(empty.roadmap.current().unwrap().value.chunks.is_empty());
+    assert_eq!(empty.plan.current().unwrap().source, ReadSource::Missing);
+    assert!(empty.plan.current().unwrap().value.tasks.is_empty());
     assert_eq!(empty.signals, before.signals);
-    assert_eq!(observer.roadmap_next().unwrap(), None);
+    assert_eq!(observer.plan_next().unwrap(), None);
 }
 
 #[test]
@@ -252,12 +250,12 @@ fn a_family_read_holds_its_owner_until_the_retained_observation_is_recorded() {
     let (_temp, config, writer) = fixture();
     add(&writer, "first", 1, None);
     let observer = NativeReader::open_for_project(&config, "workstream-read".into());
-    observer.roadmap_chunks().unwrap();
+    observer.plan_tasks().unwrap();
     let cache = lock(&observer.observations);
     let first = observer.clone();
-    let first_read = std::thread::spawn(move || first.roadmap_chunks().unwrap());
+    let first_read = std::thread::spawn(move || first.plan_tasks().unwrap());
     let deadline = Instant::now() + Duration::from_secs(5);
-    while observer.roadmap.try_lock().is_ok() {
+    while observer.plan.try_lock().is_ok() {
         assert!(
             Instant::now() < deadline,
             "the first reader did not acquire its owner"
@@ -266,7 +264,7 @@ fn a_family_read_holds_its_owner_until_the_retained_observation_is_recorded() {
     }
     add(&writer, "second", 2, None);
     let second = observer.clone();
-    let second_read = std::thread::spawn(move || second.roadmap_chunks().unwrap());
+    let second_read = std::thread::spawn(move || second.plan_tasks().unwrap());
     drop(cache);
     // The external write may precede the first file open. The second read
     // must still be the observation retained after both callers finish.
@@ -274,11 +272,11 @@ fn a_family_read_holds_its_owner_until_the_retained_observation_is_recorded() {
     assert_eq!(second_read.join().unwrap().len(), 2);
     assert_eq!(
         lock(&observer.observations)
-            .roadmap
+            .plan
             .current()
             .unwrap()
             .value
-            .chunks
+            .tasks
             .len(),
         2
     );

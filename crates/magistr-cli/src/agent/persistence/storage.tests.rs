@@ -625,7 +625,7 @@ fn a_settlement_cannot_change_working_copy_provider_or_purpose() {
     unrelated.provider = "another-agent".into();
     assert!(insert_session(&conn, &unrelated).is_err());
     unrelated.provider = record.provider.clone();
-    unrelated.purpose = magistr_application::sessions::SessionPurpose::Roadmap;
+    unrelated.purpose = magistr_application::sessions::SessionPurpose::Plan;
     assert!(insert_session(&conn, &unrelated).is_err());
     assert_eq!(get_session(&conn, "host").unwrap().unwrap(), record);
 }

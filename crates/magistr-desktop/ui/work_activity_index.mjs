@@ -2,7 +2,7 @@ import {element} from "./work_dom.mjs";
 import {matchesText,pageControls} from "./work_search.mjs";
 import {renderAction,renderArtifact} from "./work_activity.mjs";
 export function renderActivityIndex(run,actions,view){
-  const root=element("section","","work-record work-activity-index"),title=element("h3","Activity and produced items","roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="activity-index-title";root.append(title);
+  const root=element("section","","work-record work-activity-index"),title=element("h3","Activity and produced items","plan-track-title");title.tabIndex=-1;title.dataset.focusKey="activity-index-title";root.append(title);
   if(!run){root.append(element("p","No work is selected."));return root;}
   root.append(element("p",run.goal.description,"work-index-goal"));
   const entries=run.steps.flatMap(step=>[...step.progress.map((record,index)=>({step,record,index,kind:"activity"})),...step.artifacts.map((record,index)=>({step,record,index,kind:"items"}))]);

@@ -4,7 +4,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// How much project-wide verification a goal requires before its
-/// roadmap chunk can complete. New work defaults to focused checks selected
+/// plan task can complete. New work defaults to focused checks selected
 /// for the change's scope. Existing stored goals retain their contract.
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]

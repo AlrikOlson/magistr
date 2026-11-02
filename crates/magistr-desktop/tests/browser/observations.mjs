@@ -1,6 +1,6 @@
 // Deterministic native observations shared by Storybook and headless WebKit.
 import { workSnapshot } from "./work_fixture.mjs";
-import { roadmapFixture } from "./roadmap_fixture.mjs";
+import { planFixture } from "./plan_fixture.mjs";
 const text=(tag,value,start)=>({tag,text:value,start,children:[]});
 const paragraph=(value,start)=>text("p",value,start);
 function frame(session,name,project="Magistr",directory="/Projects/magistr") {
@@ -63,10 +63,10 @@ export function workspaceSeed() {
     {path:".magistr/project.json",action:"Create file",ownership:"Managed by Magistr",reason:null,selectable:true,before:null,after:'{\n  "name": "New project",\n  "language": "Rust"\n}\n',diff:null},
     {path:"AGENTS.md",action:"Update file",ownership:"Shared file",reason:"Only the Magistr instructions will change. Your project notes stay in place.",selectable:true,before:"# Project notes\n",after:"# Project notes\n\nUse focused checks for this project.\n",diff:"@@ -1 +1,3 @@\n # Project notes\n+\n+Use focused checks for this project.\n"},
     {path:".claude/settings.json",action:"Keep file",ownership:"Your file",reason:"This file has been edited. Its current contents will be kept.",selectable:false,before:'{ "permissions": { "allow": [] } }',after:"",diff:null},
-    ...Array.from({length:10},(_,index)=>({path:".agents/skills/"+["craft","next","validate","roadmap","roadmap-refresh","signals","handoff","workspace-routing","init","next-loop"][index]+"/SKILL.md",action:"Create file",ownership:"Managed by Magistr",reason:null,selectable:true,before:null,after:"# Project workflow\n\nRead the current project state before starting work.\n\n"+Array.from({length:12},()=>"- Keep each change focused and verify the affected behavior.").join("\n"),diff:null}))
+    ...Array.from({length:10},(_,index)=>({path:".agents/skills/"+["craft","next","validate","plan","roadmap-refresh","signals","handoff","workspace-routing","init","next-loop"][index]+"/SKILL.md",action:"Create file",ownership:"Managed by Magistr",reason:null,selectable:true,before:null,after:"# Project workflow\n\nRead the current project state before starting work.\n\n"+Array.from({length:12},()=>"- Keep each change focused and verify the affected behavior.").join("\n"),diff:null}))
   ]};
-  const roadmap=roadmapFixture();
-  return {preferences:{theme:"dark",reduce_motion:true},frames,history,setup,workflow:{...workSnapshot(),roadmap:roadmap.records},roadmap:roadmap.overview,projects:[{id:"magistr",name:"Magistr",directory:"/Projects/magistr"},{id:"website",name:"Website",directory:"/Projects/website"}]};
+  const plan=planFixture();
+  return {preferences:{theme:"dark",reduce_motion:true},frames,history,setup,workflow:{...workSnapshot(),plan:plan.records},plan:plan.overview,projects:[{id:"magistr",name:"Magistr",directory:"/Projects/magistr"},{id:"website",name:"Website",directory:"/Projects/website"}]};
 }
 export function install(seed) {
   const frames=new Map(seed.frames.map(frame=>[frame.address.session,frame])),calls=[];
@@ -76,20 +76,20 @@ export function install(seed) {
     name:seed.projects.find(p=>p.directory===f.address.workspace)?.name??"Project",conversation:f.conversation,status:f.status,closed:f.closed,
     pending:f.pending.map(({id,title})=>({id,title})),activity:f.activity,usage:f.usage,model:f.model,work:f.work}));
   const emit=()=>{if(subscription){const f=frames.get(subscription.session);subscription.channel.onmessage({...structuredClone(f),stream:subscription.stream,sequence:++f.sequence});}};
-  window.__fixture={calls,frames,workflow:seed.workflow,roadmap:seed.roadmap,history:seed.history,saved,handlers:{},publish(session,patch){Object.assign(frames.get(session),patch);if(subscription?.session===session)emit();catalog?.onmessage({stream:1,sequence:++stream,sessions:sessions()});}};
+  window.__fixture={calls,frames,workflow:seed.workflow,plan:seed.plan,history:seed.history,saved,handlers:{},publish(session,patch){Object.assign(frames.get(session),patch);if(subscription?.session===session)emit();catalog?.onmessage({stream:1,sequence:++stream,sessions:sessions()});}};
   window.__TAURI__={core:{Channel:class{},async invoke(command,args={}) {
     calls.push({command,args:JSON.parse(JSON.stringify(args))});
     if(window.__fixture.handlers[command])return window.__fixture.handlers[command](args);
     switch(command) {
-      case "read_roadmap_item":{
-        const state=window.__fixture.workflow.roadmap;
+      case "read_plan_item":{
+        const state=window.__fixture.workflow.plan;
         const wrap=value=>{
-          const record=value.chunks.find(record=>record.id===args.id);if(!record)return null;
+          const record=value.tasks.find(record=>record.id===args.id);if(!record)return null;
           const document=source=>({nodes:[{tag:"p",text:source,children:[],start:0}],limited:false});
-          const relation=id=>{const item=value.chunks.find(item=>item.id===id);return {id,title:item?.title??null,status:item?.status??null,group:item?.group??null};};
-          const overview=window.__fixture.roadmap,frontiers=(overview.state==="current"?overview.data:overview.data?.last)?.value.frontiers??[];
+          const relation=id=>{const item=value.tasks.find(item=>item.id===id);return {id,title:item?.title??null,status:item?.status??null,feature:item?.feature??null};};
+          const overview=window.__fixture.plan,frontiers=(overview.state==="current"?overview.data:overview.data?.last)?.value.frontiers??[];
           return {record:structuredClone(record),readiness:frontiers.flatMap(track=>track.items).find(item=>item.id===record.id)?.readiness??{state:"inactive"},
-            dependencies:record.deps.map(relation),dependents:value.chunks.filter(item=>item.deps.includes(record.id)).map(item=>relation(item.id)),
+            dependencies:record.deps.map(relation),dependents:value.tasks.filter(item=>item.deps.includes(record.id)).map(item=>relation(item.id)),
             description:document(record.description),notes:document(record.notes),
             requirements:record.acceptance.map(document),sections:(record.content?.sections??[]).map(section=>document(section.prose??""))};
         };
@@ -97,7 +97,7 @@ export function install(seed) {
           state.state==="stale"?{state:"stale",data:{...state.data,last:{...state.data.last,value:wrap(state.data.last.value)}}}:state;
         return {address:args.address,id:args.id,revision:frames.get(args.address.session).workflow_revision??0,item};
       }
-      case "read_workflow":return {address:args.address,revision:frames.get(args.address.session).workflow_revision??0,snapshot:structuredClone(window.__fixture.workflow),roadmap:structuredClone(window.__fixture.roadmap)};
+      case "read_workflow":return {address:args.address,revision:frames.get(args.address.session).workflow_revision??0,snapshot:structuredClone(window.__fixture.workflow),plan:structuredClone(window.__fixture.plan)};
       case "overview":return {directory:null,reduce_motion:false,sessions:sessions(),projects:seed.projects,attachment_limits:{file_bytes:8388608}};
       case "subscribe_catalog":catalog=args.channel;catalog.onmessage({stream:1,sequence:++stream,sessions:sessions()});return 1;
       case "subscribe_file_drops":case "subscribe_exit":case "acknowledge":case "session_action":return;

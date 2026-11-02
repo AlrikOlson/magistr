@@ -43,7 +43,7 @@ fn project() -> tempfile::TempDir {
     )
     .unwrap();
     std::fs::write(
-        dir.path().join(".magistr-roadmap.yml"),
+        dir.path().join(".magistr-plan.yml"),
         "# protected legacy project fixture\n",
     )
     .unwrap();
@@ -86,7 +86,7 @@ fn project_policy_decisions_match_between_cockpit_and_agent_session_for_both_run
             (
                 request(
                     "Write",
-                    serde_json::json!({"file_path": ".magistr-roadmap.yml"}),
+                    serde_json::json!({"file_path": ".magistr-plan.yml"}),
                     Some(ToolKind::Edit),
                 ),
                 PermissionOutcome::Deny,

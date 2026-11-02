@@ -69,7 +69,7 @@ impl NativeFrame {
         let event = match Family::parse(&self.family)? {
             Family::Think => NativeEvent::Think(serde_json::from_value(self.payload).ok()?),
             Family::Run => NativeEvent::Run(serde_json::from_value(self.payload).ok()?),
-            Family::Roadmap => NativeEvent::Roadmap(serde_json::from_value(self.payload).ok()?),
+            Family::Plan => NativeEvent::Plan(serde_json::from_value(self.payload).ok()?),
             Family::Signal => NativeEvent::Signal(serde_json::from_value(self.payload).ok()?),
             Family::Magistr => NativeEvent::Magistr(serde_json::from_value(self.payload).ok()?),
         };

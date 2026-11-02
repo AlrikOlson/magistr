@@ -1,4 +1,4 @@
-//! The native workspace tools over MCP (chunk arch-14c10): a thin rmcp
+//! The native workspace tools over MCP (task arch-14c10): a thin rmcp
 //! adapter over [`magistr_workspace::service::WorkspaceService`].
 //!
 //! Everything the retained server promised its clients is served here and

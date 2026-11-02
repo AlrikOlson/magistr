@@ -21,9 +21,9 @@ impl Access {
                 | "map"
                 | "workspace_status"
                 | "run_status"
-                | "roadmap_status"
-                | "roadmap_next"
-                | "roadmap_get"
+                | "plan_status"
+                | "plan_next"
+                | "plan_get"
                 | "think_engine_status"
                 | "think_search_trace"
                 | "think_get_step"
@@ -37,13 +37,13 @@ impl Access {
             return false;
         }
         match name {
-            "roadmap_add_chunk" | "roadmap_update_chunk" => args
+            "plan_add_task" | "plan_update_task" => args
                 .get("status")
-                .is_none_or(|v| matches!(v.as_str(), Some("pending" | "backlog"))),
-            "roadmap_set_status" => matches!(args["status"].as_str(), Some("pending" | "backlog")),
-            "roadmap_obsolete_chunk"
-            | "roadmap_reprioritize"
-            | "roadmap_link"
+                .is_none_or(|v| matches!(v.as_str(), Some("to_do" | "idea"))),
+            "plan_set_status" => matches!(args["status"].as_str(), Some("to_do" | "idea")),
+            "plan_retire_task"
+            | "plan_reprioritize"
+            | "plan_link"
             | "think_record_step"
             | "think_pin_step"
             | "think_trace_checkpoint"

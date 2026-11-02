@@ -126,7 +126,7 @@ pub struct ToolCall<'a> {
 /// START.
 ///
 /// This function existing is what makes trace-to-log correlation possible
-/// without restructuring the emitter. The filing chunk for the log lane budgeted
+/// without restructuring the emitter. The filing task for the log lane budgeted
 /// for "a real restructure" because the span is built AFTER the call returns —
 /// which is true of the span object and false of its id: project, tool and start
 /// instant are all in hand before the await, and neither the end timestamp nor
@@ -811,22 +811,22 @@ mod tests {
     #[test]
     fn a_tool_call_is_a_server_span() {
         let span = built(&ToolCall {
-            tool: "roadmap_next",
+            tool: "plan_next",
             ..Default::default()
         });
         assert_eq!(span["kind"], json!(2), "SPAN_KIND_SERVER");
     }
 
     /// SPAN NAME. The spec says `{mcp.method.name} {target}` with the tool as
-    /// target — "tools/call roadmap_next", not our old "mcp roadmap_next". And
+    /// target — "tools/call plan_next", not our old "mcp plan_next". And
     /// the name and the attribute must not be able to disagree.
     #[test]
     fn the_span_name_is_method_plus_target_and_agrees_with_the_attribute() {
         let span = built(&ToolCall {
-            tool: "roadmap_next",
+            tool: "plan_next",
             ..Default::default()
         });
-        assert_eq!(span["name"], json!("tools/call roadmap_next"));
+        assert_eq!(span["name"], json!("tools/call plan_next"));
         let method = attr_of(&span, "mcp.method.name").expect("mcp.method.name is REQUIRED");
         assert_eq!(method, "tools/call");
         assert!(
@@ -862,7 +862,7 @@ mod tests {
     #[test]
     fn a_successful_call_carries_no_error_attributes() {
         let span = built(&ToolCall {
-            tool: "roadmap_next",
+            tool: "plan_next",
             ..Default::default()
         });
         assert_eq!(span["status"]["code"], json!(0));
@@ -914,7 +914,7 @@ mod tests {
     #[test]
     fn the_invented_rpc_attributes_are_gone() {
         let span = built(&ToolCall {
-            tool: "roadmap_next",
+            tool: "plan_next",
             ..Default::default()
         });
         assert!(attr_of(&span, "rpc.system").is_none());
@@ -922,7 +922,7 @@ mod tests {
         // The two we always had right stay.
         assert_eq!(
             attr_of(&span, "gen_ai.tool.name").as_deref(),
-            Some("roadmap_next")
+            Some("plan_next")
         );
         assert_eq!(
             attr_of(&span, "gen_ai.operation.name").as_deref(),

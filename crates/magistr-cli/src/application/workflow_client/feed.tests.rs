@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 #[cfg(unix)]
-use magistr_engine::{Delivery, NativeEvent, RoadmapFrame};
+use magistr_engine::{Delivery, NativeEvent, PlanFrame};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::*;
@@ -19,16 +19,16 @@ async fn next(rx: &mut UnboundedReceiver<Msg>) -> EngineEvent {
     }
 }
 
-/// The socket line a publisher at `epoch` writes for a changed chunk as
+/// The socket line a publisher at `epoch` writes for a changed task as
 /// its `seq`th frame — the bytes `Broadcaster::emit` produces.
 #[cfg(unix)]
-fn chunk_line(id: &str, epoch: u64, seq: u64) -> Vec<u8> {
-    let mut payload = serde_json::to_value(RoadmapFrame::ChunkChanged {
-        chunk: fixtures::chunk(id),
+fn task_line(id: &str, epoch: u64, seq: u64) -> Vec<u8> {
+    let mut payload = serde_json::to_value(PlanFrame::TaskChanged {
+        task: fixtures::task(id),
     })
     .expect("a frame serializes");
     let object = payload.as_object_mut().expect("an object");
-    object.insert("family".to_owned(), serde_json::json!("roadmap"));
+    object.insert("family".to_owned(), serde_json::json!("plan"));
     object.insert("seq".to_owned(), serde_json::json!(seq));
     object.insert("epoch".to_owned(), serde_json::json!(epoch));
     let mut line = serde_json::to_string(&payload).expect("json");
@@ -71,13 +71,13 @@ async fn waits_for_the_socket_decodes_lines_and_reattaches_after_a_hangup() {
     );
 
     let mut bytes = b"not json\n".to_vec();
-    bytes.extend(chunk_line("a", 1, 7));
+    bytes.extend(task_line("a", 1, 7));
     server.write_all(&bytes).await.expect("write");
     assert_eq!(
         next(&mut rx).await,
         EngineEvent::Event {
-            event: NativeEvent::Roadmap(RoadmapFrame::ChunkChanged {
-                chunk: fixtures::chunk("a"),
+            event: NativeEvent::Plan(PlanFrame::TaskChanged {
+                task: fixtures::task("a"),
             }),
             delivery: Delivery::First,
         },
@@ -100,14 +100,14 @@ async fn waits_for_the_socket_decodes_lines_and_reattaches_after_a_hangup() {
     // The cursor survived the hangup: the next frame is in order only
     // if nothing was missed meanwhile — here two frames were.
     server
-        .write_all(&chunk_line("b", 1, 10))
+        .write_all(&task_line("b", 1, 10))
         .await
         .expect("write");
     assert_eq!(
         next(&mut rx).await,
         EngineEvent::Event {
-            event: NativeEvent::Roadmap(RoadmapFrame::ChunkChanged {
-                chunk: fixtures::chunk("b"),
+            event: NativeEvent::Plan(PlanFrame::TaskChanged {
+                task: fixtures::task("b"),
             }),
             delivery: Delivery::Gap { missed: 2 },
         }
@@ -138,11 +138,11 @@ async fn deliveries_follow_the_publishers_sequence_and_a_new_owner_is_noticed() 
     assert!(requested(&link).await, "the attachment's own request");
 
     let mut bytes = Vec::new();
-    bytes.extend(chunk_line("a", 3, 1));
-    bytes.extend(chunk_line("b", 3, 2));
-    bytes.extend(chunk_line("b", 3, 2)); // the same frame again
-    bytes.extend(chunk_line("c", 4, 1)); // a new owner's first frame
-    bytes.extend(chunk_line("d", 4, 2));
+    bytes.extend(task_line("a", 3, 1));
+    bytes.extend(task_line("b", 3, 2));
+    bytes.extend(task_line("b", 3, 2)); // the same frame again
+    bytes.extend(task_line("c", 4, 1)); // a new owner's first frame
+    bytes.extend(task_line("d", 4, 2));
     server.write_all(&bytes).await.expect("write");
 
     let mut deliveries = Vec::new();
@@ -278,10 +278,10 @@ async fn duplicates_and_phase_output_do_not_request_reads_but_a_gap_does() {
     next(&mut events).await;
     next(&mut events).await;
     assert!(requested(&link).await);
-    stream.write_all(&chunk_line("one", 1, 1)).await.unwrap();
+    stream.write_all(&task_line("one", 1, 1)).await.unwrap();
     next(&mut events).await;
     assert!(requested(&link).await);
-    stream.write_all(&chunk_line("one", 1, 1)).await.unwrap();
+    stream.write_all(&task_line("one", 1, 1)).await.unwrap();
     assert!(matches!(
         next(&mut events).await,
         EngineEvent::Event {

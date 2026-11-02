@@ -29,13 +29,13 @@ pub const SHAPE_SCHEMA: &str = "telemetry-shape/1";
 /// closed lifecycle vocabularies. Anything else maps to `"other"` so a
 /// free-text status field can never smuggle content out.
 const STATUS_VOCAB: &[&str] = &[
-    // roadmap chunks
-    "backlog",
-    "pending",
+    // plan tasks
+    "idea",
+    "to_do",
     "in_progress",
-    "blocked",
+    "waiting",
     "done",
-    "obsoleted",
+    "retired",
     // run goal/tasks
     "defined",
     "planned",
@@ -228,7 +228,7 @@ pub fn extract(
         }
 
         // Lifetime bucket: envelope `updated` when set, else the record's own
-        // lifecycle timestamps (chunks carry `updated_at`, run tasks
+        // lifecycle timestamps (tasks carry `updated_at`, run tasks
         // `completed_at` — builders don't copy them up to the envelope).
         // Timestamps are parsed, never emitted — only the bucket name is.
         let end = env.updated.as_deref().or_else(|| {
@@ -293,17 +293,17 @@ mod tests {
     #[test]
     fn statuses_outside_the_vocabulary_collapse_to_other() {
         let envs = vec![
-            envelope(Kind::Chunk, "c1", json!({"status": "done"}), vec![]),
+            envelope(Kind::Task, "c1", json!({"status": "done"}), vec![]),
             envelope(
-                Kind::Chunk,
+                Kind::Task,
                 "c2",
                 json!({"status": "AKIAIOSFODNN7EXAMPLE"}),
                 vec![],
             ),
         ];
         let shape = extract(&envs, SALT).expect("clean shape");
-        assert_eq!(shape.statuses.get("think.chunk.done"), Some(&1));
-        assert_eq!(shape.statuses.get("think.chunk.other"), Some(&1));
+        assert_eq!(shape.statuses.get("think.task.done"), Some(&1));
+        assert_eq!(shape.statuses.get("think.task.other"), Some(&1));
     }
 
     #[test]

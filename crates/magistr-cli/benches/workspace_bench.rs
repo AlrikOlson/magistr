@@ -1,4 +1,4 @@
-//! The native workspace perf harness (chunk arch-14c10b): the retained
+//! The native workspace perf harness (task arch-14c10b): the retained
 //! constitution gates measured natively — tier-0 usefulness within 5 s of
 //! first start, 500k LOC to tier 1 in under 60 s, references p95 under
 //! 50 ms, worker round-trip p95 under 1 ms — over the retained synthetic

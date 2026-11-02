@@ -1,36 +1,39 @@
-use magistr_workflow::roadmap::domain::{Chunk, ChunkStatus};
+use magistr_workflow::plan::domain::{Task, TaskStatus};
 
-use crate::roadmap::RoadmapProgress;
+use crate::plan::PlanProgress;
 
-/// Project a magistr roadmap onto the engine's progress snapshot.
+/// Project a magistr plan onto the engine's progress snapshot.
 ///
-/// A chunk is a task; a workstream (`group`) is a phase. Obsoleted chunks
-/// are history and count toward nothing — the roadmap that carries 73 of
+/// A task is a task; a workstream (`feature`) is a phase. Retired tasks
+/// are history and count toward nothing — the plan that carries 73 of
 /// them would otherwise read as one-third done before any work.
 #[must_use]
-pub fn progress_from_chunks(chunks: &[Chunk]) -> RoadmapProgress {
-    let live = chunks.iter().filter(|c| c.status != ChunkStatus::Obsoleted);
+pub fn progress_from_tasks(tasks: &[Task]) -> PlanProgress {
+    let live = tasks.iter().filter(|c| c.status != TaskStatus::Retired);
     let mut total_tasks = 0u32;
     let mut checked_tasks = 0u32;
-    // group → (live, done)
-    let mut groups: std::collections::BTreeMap<&str, (u32, u32)> = Default::default();
-    for chunk in live {
+    // feature → (live, done)
+    let mut features: std::collections::BTreeMap<&str, (u32, u32)> = Default::default();
+    for task in live {
         total_tasks += 1;
-        let done = chunk.status == ChunkStatus::Done;
+        let done = task.status == TaskStatus::Done;
         if done {
             checked_tasks += 1;
         }
-        if let Some(group) = chunk.group.as_deref() {
-            let entry = groups.entry(group).or_insert((0, 0));
+        if let Some(feature) = task.feature.as_deref() {
+            let entry = features.entry(feature).or_insert((0, 0));
             entry.0 += 1;
             if done {
                 entry.1 += 1;
             }
         }
     }
-    let total_phases = u32::try_from(groups.len()).unwrap_or(u32::MAX);
-    let completed_phases = groups.values().filter(|(live, done)| live == done).count();
-    RoadmapProgress {
+    let total_phases = u32::try_from(features.len()).unwrap_or(u32::MAX);
+    let completed_phases = features
+        .values()
+        .filter(|(live, done)| live == done)
+        .count();
+    PlanProgress {
         total_tasks,
         checked_tasks,
         total_phases,

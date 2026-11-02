@@ -68,7 +68,7 @@ async fn host_reconnect_loads_the_same_session_without_repeating_history() {
         let task = interactive_session(config, connector, inbox, None).spawn(receiver);
         let prompt = |text: &str| {
             if planning {
-                Cmd::RoadmapPrompt(text.into())
+                Cmd::PlanPrompt(text.into())
             } else {
                 Cmd::Prompt(text.into())
             }
@@ -90,10 +90,7 @@ async fn host_reconnect_loads_the_same_session_without_repeating_history() {
         commands.send(prompt("Continue")).unwrap();
         let (restored, agent) = opened.recv().await.unwrap();
         assert_eq!(restored.resume.as_deref(), Some("retained-session"));
-        assert_eq!(
-            restored.history.purpose() == SessionPurpose::Roadmap,
-            planning
-        );
+        assert_eq!(restored.history.purpose() == SessionPurpose::Plan, planning);
         assert!(restored.prompt.is_empty());
         assert_eq!(
             turn_text(&mut events).await,
@@ -172,7 +169,7 @@ fn replaying_agent() -> (
 async fn host_connector_preserves_choices_and_separates_planning_configuration() {
     for (command, planning) in [
         (Cmd::Prompt("Continue".into()), false),
-        (Cmd::RoadmapPrompt("Plan".into()), true),
+        (Cmd::PlanPrompt("Plan".into()), true),
     ] {
         let dir = tempfile::tempdir().unwrap();
         let mut config = AgentConfig::new("old opening", dir.path()).model("chosen");
@@ -193,10 +190,7 @@ async fn host_connector_preserves_choices_and_separates_planning_configuration()
             .unwrap();
         assert_eq!(actual.model.as_deref(), Some("chosen"));
         assert!(actual.prompt.is_empty() && actual.resume.is_none());
-        assert_eq!(
-            actual.history.purpose() == SessionPurpose::Roadmap,
-            planning
-        );
+        assert_eq!(actual.history.purpose() == SessionPurpose::Plan, planning);
         assert!(actual.workflow_permissions);
         assert!(
             matches!(events.recv().await, Some(Msg::Agent(AgentEvent::PromptRejected { error, .. })) if error.contains("connection refused"))

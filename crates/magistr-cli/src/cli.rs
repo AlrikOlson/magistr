@@ -189,7 +189,7 @@ pub enum Command {
         gate_only: bool,
     },
 
-    /// Run ready roadmap work in fresh agent sessions
+    /// Run ready plan work in fresh agent sessions
     NextLoop {
         /// Loop only on this feature (exact name or unambiguous fragment)
         #[arg(long)]
@@ -305,7 +305,7 @@ pub enum Command {
         dir: PathBuf,
     },
 
-    /// Claude Code hook guard: reads the hook JSON on stdin and the run/roadmap
+    /// Claude Code hook guard: reads the hook JSON on stdin and the run/plan
     /// state, and exits 2 with the reason on stderr to block the event
     Guard {
         /// Which hook is asking: `stop` (end of turn) or `commit` (PreToolUse on Bash)
@@ -331,12 +331,12 @@ pub enum Command {
         limit: usize,
     },
 
-    /// Show, generate or export the project roadmap
+    /// Show, generate or export the project plan
     #[command(subcommand_required = false)]
-    Roadmap {
-        /// Roadmap action
+    Plan {
+        /// Plan action
         #[command(subcommand)]
-        action: Option<RoadmapAction>,
+        action: Option<PlanAction>,
     },
 
     /// Export current project config as a shareable preset (.magistr-preset.toml)
@@ -829,17 +829,17 @@ pub enum PolicyAction {
     },
 }
 
-/// Actions for the `magistr roadmap` subcommand.
+/// Actions for the `magistr plan` subcommand.
 #[derive(Debug, Subcommand)]
-pub enum RoadmapAction {
-    /// Show current roadmap progress (default if no action specified)
+pub enum PlanAction {
+    /// Show current plan progress (default if no action specified)
     Show {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,
     },
 
-    /// Generate a new roadmap from a high-level goal
+    /// Generate a new plan from a high-level goal
     Generate {
         /// What you want to build (e.g. "add REST API with auth")
         goal: String,
@@ -853,21 +853,21 @@ pub enum RoadmapAction {
         backend: BackendFlag,
     },
 
-    /// Show the next ready chunk (magistr roadmap backend)
+    /// Show the next ready task (magistr plan backend)
     Next {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,
     },
 
-    /// Roadmap status snapshot — counts, regions, next ready chunk (magistr backend; `--json` for the raw roadmap_status)
+    /// Plan status snapshot — counts, regions, next ready task (magistr backend; `--json` for the raw plan_status)
     Status {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
         dir: PathBuf,
     },
 
-    /// Regenerate ROADMAP.md from the roadmap store (magistr export, or the YAML source)
+    /// Regenerate PLAN.md from the plan store (magistr export, or the YAML source)
     Export {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
@@ -1173,7 +1173,7 @@ mod tests;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 pub enum GuardEvent {
     /// End of the assistant's turn (Stop hook): a shipped goal's own
-    /// roadmap chunk must be closed; unrelated worktree changes are preserved.
+    /// plan task must be closed; unrelated worktree changes are preserved.
     Stop,
     /// A Bash tool call (PreToolUse hook): `git commit` needs green, verified
     /// gates, and grep, rg, find or sed over the workspace is routed to

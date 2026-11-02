@@ -138,7 +138,7 @@ impl ResolvedSessionSpec {
             config.model.as_deref(),
         )?;
         let mut mcp_servers = resolved_mcp_servers(&config.cwd)?;
-        if config.history.purpose() == SessionPurpose::Roadmap {
+        if config.history.purpose() == SessionPurpose::Plan {
             for server in &mut mcp_servers {
                 if let McpServer::Stdio(server) = server
                     && server.name == "magistr"
@@ -188,7 +188,7 @@ impl ResolvedSessionSpec {
     /// no source-write authority.
     #[must_use]
     pub fn with_source_route(mut self, source: SourceRoute) -> Self {
-        self.source = if self.config.history.purpose() == SessionPurpose::Roadmap {
+        self.source = if self.config.history.purpose() == SessionPurpose::Plan {
             SourceRoute::Refused(SourceRefusal::NoAuthority)
         } else {
             source
@@ -371,9 +371,7 @@ impl ResolvedSessionSpec {
     pub fn into_session_policy(self) -> (Box<dyn SessionPolicy>, NoninteractivePolicy) {
         let policy: Box<dyn SessionPolicy> = match self.config.history.purpose() {
             SessionPurpose::Conversation => Box::new(self.policy),
-            SessionPurpose::Roadmap => {
-                Box::new(super::purpose_policy::RoadmapPolicy::new(self.policy))
-            }
+            SessionPurpose::Plan => Box::new(super::purpose_policy::PlanPolicy::new(self.policy)),
         };
         (policy, self.handling)
     }

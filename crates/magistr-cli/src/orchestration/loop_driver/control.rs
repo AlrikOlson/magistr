@@ -16,7 +16,7 @@ impl Control {
                 id: run.state().run_id.clone(),
                 mode: run.run_state().mode,
                 track: run.track().map(str::to_owned),
-                chunk: run.state().native_chunk_id.clone(),
+                task: run.state().native_task_id.clone(),
                 iteration: run.display_iteration(),
                 limit: run.max_iterations(),
                 phase: WorkPhase::Starting,
@@ -96,11 +96,11 @@ impl Control {
             state.phase = WorkPhase::Starting;
         });
     }
-    pub(super) fn begin(&self, run: &IterationLoop, chunk: Option<String>) {
+    pub(super) fn begin(&self, run: &IterationLoop, task: Option<String>) {
         self.update(|state| {
             state.iteration = run.display_iteration();
             state.track = run.track().map(str::to_owned);
-            state.chunk = chunk;
+            state.task = task;
             state.phase = WorkPhase::Running;
         });
     }

@@ -101,7 +101,7 @@ struct TeamSchema {
     states_by_type: HashMap<String, String>,
     /// `label name -> label id`. Names ARE retained here, unlike states,
     /// because a label has no type to match on — the name IS the identity, and
-    /// `roadmap:<band>` is a name we author rather than one a team invented.
+    /// `plan:<band>` is a name we author rather than one a team invented.
     labels_by_name: HashMap<String, String>,
 }
 
@@ -123,8 +123,8 @@ pub struct LinearTracker {
     /// one up per issue would spend the complexity budget on nothing.
     projects: Mutex<HashMap<String, String>>,
     /// The uuid of the roof `upsert_initiative` raised, held so every
-    /// subsequent `upsert_group` can file its project under it. `None` means no
-    /// initiative was asked for OR raising it failed — either way the groups
+    /// subsequent `upsert_feature` can file its project under it. `None` means no
+    /// initiative was asked for OR raising it failed — either way the features
     /// degrade to standing on their own, which is the port's contract.
     initiative: Mutex<Option<String>>,
     /// The W3C `traceparent` to send downstream, resolved ONCE at construction.
@@ -398,15 +398,15 @@ impl LinearTracker {
     /// Our three-valued container state as Linear's project state string.
     ///
     /// Linear also has `paused` and `canceled`; both are absent here and that is
-    /// deliberate. They record a human's intent to stop, which the roadmap does
+    /// deliberate. They record a human's intent to stop, which the plan does
     /// not know, so mapping something onto them would overwrite a decision with
-    /// a guess. A project a human paused keeps its state until a chunk moves.
-    fn project_state(state: crate::tracker::domain::GroupState) -> &'static str {
-        use crate::tracker::domain::GroupState;
+    /// a guess. A project a human paused keeps its state until a task moves.
+    fn project_state(state: crate::tracker::domain::FeatureState) -> &'static str {
+        use crate::tracker::domain::FeatureState;
         match state {
-            GroupState::NotStarted => "planned",
-            GroupState::Active => "started",
-            GroupState::Complete => "completed",
+            FeatureState::NotStarted => "planned",
+            FeatureState::Active => "started",
+            FeatureState::Complete => "completed",
         }
     }
 
@@ -416,14 +416,14 @@ impl LinearTracker {
     /// lowercase state strings. Conflating the two is a 400 waiting to happen.
     ///
     /// `Proposed` and `Canceled` are never authored, for the `paused` reason
-    /// above: both record a human's judgement about the roadmap as a whole,
+    /// above: both record a human's judgement about the plan as a whole,
     /// which the projector does not have.
-    fn initiative_status(state: crate::tracker::domain::GroupState) -> &'static str {
-        use crate::tracker::domain::GroupState;
+    fn initiative_status(state: crate::tracker::domain::FeatureState) -> &'static str {
+        use crate::tracker::domain::FeatureState;
         match state {
-            GroupState::NotStarted => "Planned",
-            GroupState::Active => "Active",
-            GroupState::Complete => "Completed",
+            FeatureState::NotStarted => "Planned",
+            FeatureState::Active => "Active",
+            FeatureState::Complete => "Completed",
         }
     }
 
@@ -470,7 +470,7 @@ impl LinearTracker {
         // This once took the first of each type, on the stated assumption that
         // Linear returns states in workflow order. The live smoke falsified that
         // outright: a real team came back at positions 0, 5, 4, 1002, 3, 2, 1,
-        // so "first wins" filed every in-progress chunk under In Review. Sort by
+        // so "first wins" filed every in-progress task under In Review. Sort by
         // POSITION, which is the field that actually means workflow order, and
         // take the earliest state of each category.
         let mut ordered: Vec<(f64, &str, &str)> = Vec::new();
@@ -501,7 +501,7 @@ impl LinearTracker {
 
         // Labels are keyed by name because a label has no stable type the way a
         // workflow state does. Discovered once per run alongside the states, so
-        // projecting fifty chunks costs one label query rather than fifty.
+        // projecting fifty tasks costs one label query rather than fifty.
         let mut labels_by_name = HashMap::new();
         if let Some(labels) = node.pointer("/labels/nodes").and_then(Value::as_array) {
             for l in labels {
@@ -526,7 +526,7 @@ impl LinearTracker {
     /// Label ids for `names`, creating any the team does not have yet.
     ///
     /// The cache is read-through AND write-back: a label minted here lands in
-    /// the in-memory schema immediately, so projecting fifty chunks that share
+    /// the in-memory schema immediately, so projecting fifty tasks that share
     /// a band creates the label ONCE rather than fifty times. Without the
     /// write-back this function would be a duplicate-label factory.
     ///
@@ -582,7 +582,7 @@ impl LinearTracker {
         Ok(ids)
     }
 
-    /// Every `roadmap:*` label the team knows about except `keep`.
+    /// Every `plan:*` label the team knows about except `keep`.
     ///
     /// These are the labels WE author, so they are the only ones we may remove.
     /// A team's own labels — Bug, Infra, whatever they invented — are theirs,
@@ -627,7 +627,7 @@ impl LinearTracker {
     ///
     /// `WorkItem` has no priority field — by design, since it is a narrow
     /// canonical model — so priority reaches an adapter only through the
-    /// `roadmap:<band>` label the projector emits. Translating it here, at the
+    /// `plan:<band>` label the projector emits. Translating it here, at the
     /// adapter's own boundary, is exactly where provider vocabulary belongs.
     ///
     /// Note the reversal AND the discontinuity: our most important band maps to
@@ -636,7 +636,7 @@ impl LinearTracker {
     fn urgency_from_labels(labels: &[String]) -> Option<u8> {
         labels.iter().find_map(|l| {
             match l
-                .strip_prefix("roadmap:")?
+                .strip_prefix("plan:")?
                 .trim()
                 .to_ascii_lowercase()
                 .as_str()
@@ -740,7 +740,7 @@ const ISSUE_FIELDS: &str = "id identifier updatedAt";
 
 /// The namespace for labels this system authors. Everything under it is ours to
 /// create and to remove; everything outside it belongs to the team.
-const BAND_PREFIX: &str = "roadmap:";
+const BAND_PREFIX: &str = "plan:";
 
 #[async_trait]
 impl TrackerPort for LinearTracker {
@@ -794,13 +794,13 @@ impl TrackerPort for LinearTracker {
         // echo fence saw drift on every projection.
         let label_ids = self.label_ids_for(&item.labels).await?;
 
-        // The container. Set on BOTH create and patch — an issue whose chunk
+        // The container. Set on BOTH create and patch — an issue whose task
         // was regrouped must move, and `projectId` is the same field either way.
-        // Resolved by name, never invented: a group with no project upstream is
-        // left unfiled rather than silently created here, because `upsert_group`
+        // Resolved by name, never invented: a feature with no project upstream is
+        // left unfiled rather than silently created here, because `upsert_feature`
         // is the one place allowed to create one and the projector calls it first.
-        if let Some(group) = &item.group
-            && let Some(pid) = self.project_id_for(group).await?
+        if let Some(feature) = &item.feature
+            && let Some(pid) = self.project_id_for(feature).await?
         {
             input["projectId"] = json!(pid);
         }
@@ -888,7 +888,7 @@ impl TrackerPort for LinearTracker {
                 Some(WorkItem {
                     // Reading an item back does not resolve its container: the
                     // projector authors grouping, it never learns it from upstream.
-                    group: None,
+                    feature: None,
                     external_id: Some(identifier.to_string()),
                     title: row
                         .get("title")
@@ -936,11 +936,11 @@ impl TrackerPort for LinearTracker {
             .collect())
     }
 
-    /// Declare that `from` is blocked by each of `blocked_by`.
+    /// Declare that `from` is blocked by each of `waiting_on`.
     ///
     /// # The direction trap
     ///
-    /// Linear has NO `blocked_by` relation type. It stores ONE relation and
+    /// Linear has NO `waiting_on` relation type. It stores ONE relation and
     /// renders it from both ends: marking A as *blocking* B makes B display
     /// "Blocked by A". So to say "`from` is blocked by X" we must create the
     /// relation with `issueId` = **X, the blocker** and `relatedIssueId` =
@@ -953,10 +953,10 @@ impl TrackerPort for LinearTracker {
     async fn relate_items(
         &self,
         from: &ExternalId,
-        blocked_by: &[ExternalId],
+        waiting_on: &[ExternalId],
     ) -> Result<(), TrackerError> {
         let blocked = self.uuid_of(from).await?;
-        for blocker_identifier in blocked_by {
+        for blocker_identifier in waiting_on {
             let blocker = self.uuid_of(blocker_identifier).await?;
             self.graphql(
                 "mutation Relate($input: IssueRelationCreateInput!) { \
@@ -975,13 +975,13 @@ impl TrackerPort for LinearTracker {
         Ok(())
     }
 
-    /// Ensure a Linear PROJECT exists for this group and carries the derived
+    /// Ensure a Linear PROJECT exists for this feature and carries the derived
     /// state.
     ///
     /// Idempotent as the port requires: resolve by REMEMBERED UUID first, the
     /// name only when no uuid was ever recorded, create only when absent, and
     /// patch the state only when it actually differs. The projector calls this
-    /// for every group on every push, so an unconditional write would churn
+    /// for every feature on every push, so an unconditional write would churn
     /// the workspace and burn the complexity budget for nothing.
     ///
     /// OWNERSHIP: the name is ours at creation only
@@ -989,17 +989,17 @@ impl TrackerPort for LinearTracker {
     /// remembered uuid is why that costs nothing. The state is patched only
     /// when the current value is one WE author (`planned`/`started`/
     /// `completed`); `paused` and `canceled` record a human's intent to stop,
-    /// which the roadmap does not know, and are never patched over.
+    /// which the plan does not know, and are never patched over.
     ///
     /// WHAT IS DELIBERATELY NOT SENT: targetDate, lead, description and health.
-    /// The roadmap has priorities, not deadlines, and no notion of who is
+    /// The plan has priorities, not deadlines, and no notion of who is
     /// running a workstream — writing those would be the projector inventing
     /// opinions, and every one of them is a field a human will want to own.
-    async fn upsert_group(
+    async fn upsert_feature(
         &self,
-        group: &crate::tracker::domain::WorkGroup,
+        feature: &crate::tracker::domain::WorkFeature,
     ) -> Result<UpsertOutcome, TrackerError> {
-        let wanted = Self::project_state(group.state);
+        let wanted = Self::project_state(feature.state);
         let roof = self
             .initiative
             .lock()
@@ -1011,9 +1011,9 @@ impl TrackerPort for LinearTracker {
         // remembered uuid that fails to resolve is an ERROR, not a fall
         // through to create: "deleted" and "transport hiccup" are not
         // reliably distinguishable here, and guessing wrong mints a duplicate.
-        let resolved = match &group.external_id {
+        let resolved = match &feature.external_id {
             Some(uuid) => Some(uuid.clone()),
-            None => self.project_id_for(&group.name).await?,
+            None => self.project_id_for(&feature.name).await?,
         };
 
         if let Some(id) = resolved {
@@ -1037,19 +1037,19 @@ impl TrackerPort for LinearTracker {
                 .and_then(Value::as_str)
                 .map(str::to_string);
             if let Ok(mut cache) = self.projects.lock() {
-                cache.insert(group.name.clone(), id.clone());
+                cache.insert(feature.name.clone(), id.clone());
                 if let Some(actual) = &actual {
                     cache.insert(actual.clone(), id.clone());
                 }
             }
             if let Some(actual) = &actual
-                && actual != &group.name
+                && actual != &feature.name
             {
                 tracing::info!(
                     target: "magistr_workflow::tracker",
-                    "project for group '{}' is named '{actual}' upstream — the rename is a \
+                    "project for feature '{}' is named '{actual}' upstream — the rename is a \
                      human's and is left standing",
-                    group.name
+                    feature.name
                 );
             }
             // THE LINK COMES BEFORE THE STATE EARLY-RETURN, deliberately: on
@@ -1089,13 +1089,13 @@ impl TrackerPort for LinearTracker {
             // THE VOCABULARY GUARD. Only a state we author may be re-derived;
             // anything else is a human's judgement about the work, and
             // patching it back on every push is the silent overwrite this
-            // chunk exists to kill.
+            // task exists to kill.
             if !matches!(current, "planned" | "started" | "completed") {
                 tracing::info!(
                     target: "magistr_workflow::tracker",
-                    "project for group '{}' sits in state '{current}', outside the projector's \
+                    "project for feature '{}' sits in state '{current}', outside the projector's \
                      vocabulary — a human's decision, left standing",
-                    group.name
+                    feature.name
                 );
                 return Ok(outcome);
             }
@@ -1117,7 +1117,7 @@ impl TrackerPort for LinearTracker {
                    projectCreate(input: $input) { success project { id name } } }",
                 json!({
                     "input": {
-                        "name": group.name,
+                        "name": feature.name,
                         "teamIds": [team_id],
                         "state": wanted,
                     }
@@ -1129,7 +1129,7 @@ impl TrackerPort for LinearTracker {
                 status: 400,
                 body: format!(
                     "Linear declined to create project '{}' without saying why: {data}",
-                    group.name
+                    feature.name
                 ),
             });
         }
@@ -1152,7 +1152,7 @@ impl TrackerPort for LinearTracker {
             .and_then(Value::as_str)
             && let Ok(mut cache) = self.projects.lock()
         {
-            cache.insert(group.name.clone(), created_id.clone());
+            cache.insert(feature.name.clone(), created_id.clone());
             cache.insert(actual.to_string(), created_id.clone());
         }
         // A project born after the roof joins it at birth — no membership read
@@ -1174,10 +1174,10 @@ impl TrackerPort for LinearTracker {
     }
 
     /// Ensure the workspace INITIATIVE exists and carries the derived status,
-    /// remembering its uuid so this run's `upsert_group` calls can file their
+    /// remembering its uuid so this run's `upsert_feature` calls can file their
     /// projects under it.
     ///
-    /// Same idiom as `upsert_group` one level up: resolve by remembered uuid
+    /// Same idiom as `upsert_feature` one level up: resolve by remembered uuid
     /// first, name only when no uuid was ever recorded, create only when
     /// absent, patch the status only when it differs AND the current value is
     /// one we author. Initiatives are WORKSPACE-scoped, not team-scoped —
@@ -1193,7 +1193,7 @@ impl TrackerPort for LinearTracker {
     /// over either.
     async fn upsert_initiative(
         &self,
-        initiative: &crate::tracker::domain::WorkGroup,
+        initiative: &crate::tracker::domain::WorkFeature,
     ) -> Result<UpsertOutcome, TrackerError> {
         let wanted = Self::initiative_status(initiative.state);
 
@@ -1444,8 +1444,8 @@ mod tests {
             team_id: "team-uuid".into(),
             states_by_type: HashMap::new(),
             labels_by_name: [
-                ("roadmap:critical", "lbl-critical"),
-                ("roadmap:later", "lbl-later"),
+                ("plan:critical", "lbl-critical"),
+                ("plan:later", "lbl-later"),
                 ("Bug", "lbl-bug"),
                 ("Infra", "lbl-infra"),
             ]
@@ -1461,7 +1461,7 @@ mod tests {
         assert_eq!(
             stale,
             vec!["lbl-later".to_string()],
-            "only the OTHER roadmap:* label may be removed — never the team's own"
+            "only the OTHER plan:* label may be removed — never the team's own"
         );
     }
 
@@ -1472,7 +1472,7 @@ mod tests {
         let schema = TeamSchema {
             team_id: "team-uuid".into(),
             states_by_type: HashMap::new(),
-            labels_by_name: [("roadmap:high", "lbl-high"), ("Bug", "lbl-bug")]
+            labels_by_name: [("plan:high", "lbl-high"), ("Bug", "lbl-bug")]
                 .into_iter()
                 .map(|(n, i)| (n.to_string(), i.to_string()))
                 .collect(),
@@ -1572,7 +1572,7 @@ mod tests {
     /// important is Linear's 0.
     #[test]
     fn priority_reverses_and_is_not_monotone() {
-        let band = |b: &str| LinearTracker::urgency_from_labels(&[format!("roadmap:{b}")]);
+        let band = |b: &str| LinearTracker::urgency_from_labels(&[format!("plan:{b}")]);
         assert_eq!(band("critical"), Some(1));
         assert_eq!(band("high"), Some(2));
         assert_eq!(band("medium"), Some(3));
@@ -1593,7 +1593,7 @@ mod tests {
     fn a_label_that_is_not_a_band_yields_no_priority() {
         assert_eq!(LinearTracker::urgency_from_labels(&[]), None);
         assert_eq!(
-            LinearTracker::urgency_from_labels(&["bug".into(), "roadmap:nonsense".into()]),
+            LinearTracker::urgency_from_labels(&["bug".into(), "plan:nonsense".into()]),
             None
         );
     }

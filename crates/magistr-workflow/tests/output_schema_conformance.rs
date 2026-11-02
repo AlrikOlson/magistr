@@ -5,7 +5,7 @@
 //! reads as a call that failed. The working path is held to the schema here,
 //! over the real wire.
 use magistr_workflow::mcp::UnifiedService;
-use magistr_workflow::roadmap::{RoadmapService, engine::RoadmapEngine};
+use magistr_workflow::plan::{PlanService, engine::PlanEngine};
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::run::mcp::RunService;
 use magistr_workflow::signal::{SignalService, engine::SignalEngine};
@@ -25,12 +25,12 @@ async fn session() -> Session {
     config.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(config));
     let run = RunService::new(RunEngine::new("schema-conformance".into()));
-    let roadmap = RoadmapService::new(
-        RoadmapEngine::new("schema-conformance".into()),
+    let plan = PlanService::new(
+        PlanEngine::new("schema-conformance".into()),
         run.use_cases(),
     );
     let signal = SignalService::new(SignalEngine::new("schema-conformance".into()));
-    let server = UnifiedService::new(think, run, roadmap, signal);
+    let server = UnifiedService::new(think, run, plan, signal);
     let (server_io, client_io) = tokio::io::duplex(1 << 16);
     tokio::spawn(async move {
         let running = server.serve(server_io).await.expect("server.serve");

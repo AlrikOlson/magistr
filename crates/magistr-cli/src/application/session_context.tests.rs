@@ -80,15 +80,15 @@ async fn real_supervisors_bind_opening_input_and_keep_parked_drafts_through_reco
     owner
         .edit_draft_for(&a.conversation, 0, "A draft".into(), false)
         .unwrap();
-    commands.send(Cmd::RoadmapPrompt("plan B".into())).unwrap();
+    commands.send(Cmd::PlanPrompt("plan B".into())).unwrap();
     turn(&mut events).await;
     let b = owner.snapshot().target().unwrap();
     let (history_b, agent_b) = connections.recv().await.unwrap();
     assert_ne!(a.conversation, b.conversation);
-    assert_eq!(history_b.history.purpose(), SessionPurpose::Roadmap);
+    assert_eq!(history_b.history.purpose(), SessionPurpose::Plan);
     assert_eq!(
         owner.snapshot().conversation.unwrap().purpose,
-        SessionPurpose::Roadmap
+        SessionPurpose::Plan
     );
     owner
         .edit_draft_for(&b.conversation, 0, "B draft".into(), false)
@@ -115,9 +115,7 @@ async fn real_supervisors_bind_opening_input_and_keep_parked_drafts_through_reco
     assert!(restored_a.replay().iter().any(
         |message| matches!(message, Msg::Agent(AgentEvent::Notice(text)) if text == "late A")
     ));
-    commands
-        .send(Cmd::RoadmapPrompt("return B".into()))
-        .unwrap();
+    commands.send(Cmd::PlanPrompt("return B".into())).unwrap();
     turn(&mut events).await;
     assert_eq!(owner.snapshot().target().as_ref(), Some(&b));
     assert_eq!(owner.snapshot().seed.draft.as_deref(), Some("B draft"));
@@ -137,7 +135,7 @@ async fn real_supervisors_bind_opening_input_and_keep_parked_drafts_through_reco
     turn(&mut events).await;
     let (reconnected, agent_b) = connections.recv().await.unwrap();
     assert_eq!(reconnected.history.id(), b.conversation);
-    assert_eq!(reconnected.history.purpose(), SessionPurpose::Roadmap);
+    assert_eq!(reconnected.history.purpose(), SessionPurpose::Plan);
     assert_eq!(reconnected.resume.as_deref(), Some("provider"));
     assert_eq!(owner.snapshot().target().as_ref(), Some(&b));
     assert!(!owner.snapshot().replay().iter().any(
@@ -160,7 +158,7 @@ async fn real_supervisors_bind_opening_input_and_keep_parked_drafts_through_reco
     assert_eq!(saved_a.turns, Some(2));
     assert_eq!(saved_b.turns, Some(3));
     assert_eq!(saved_a.purpose, SessionPurpose::Conversation);
-    assert_eq!(saved_b.purpose, SessionPurpose::Roadmap);
+    assert_eq!(saved_b.purpose, SessionPurpose::Plan);
     assert_eq!(
         crate::application::saved_draft(&inputs, &a.conversation)
             .unwrap()

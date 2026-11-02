@@ -279,31 +279,31 @@ async fn routes_commands_to_the_owner_and_reports_admission_errors() {
 }
 
 #[tokio::test]
-async fn unrouted_roadmap_requests_fail_visibly_without_implementation_submission() {
+async fn unrouted_plan_requests_fail_visibly_without_implementation_submission() {
     let (handle, _events, mut calls) = fake();
     let (inbox, mut messages) = Inbox::channel();
     let (commands_tx, commands) = Commands::channel();
     let task = spawn_session(Box::new(handle), inbox, commands, None, None, None);
     commands_tx
-        .send(Cmd::RoadmapPrompt("Add checks".into()))
+        .send(Cmd::PlanPrompt("Add checks".into()))
         .expect("command sent");
     assert!(matches!(next(&mut messages).await,
         Msg::Agent(AgentEvent::PromptRejected { input, error })
-        if input.text == "Add checks" && error.contains("cannot update the roadmap")));
+        if input.text == "Add checks" && error.contains("cannot update the plan")));
     assert!(calls.try_recv().is_err());
     commands_tx
-        .send(Cmd::CancelRoadmapPrompt)
+        .send(Cmd::CancelPlanPrompt)
         .expect("cancel sent");
     assert!(matches!(
         next(&mut messages).await,
         Msg::CommandFailed {
-            cmd: Cmd::CancelRoadmapPrompt,
+            cmd: Cmd::CancelPlanPrompt,
             ..
         }
     ));
     assert!(
         calls.try_recv().is_err(),
-        "a roadmap cancellation never stops implementation"
+        "a plan cancellation never stops implementation"
     );
     drop(commands_tx);
     task.await.expect("relay joins").expect("cleanup");

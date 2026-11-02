@@ -206,13 +206,13 @@ fn starting_from_complete_cannot_step_past_the_iteration_ceiling() {
 }
 
 #[test]
-fn conversation_and_one_chunk_apply_the_shared_mode_policy() {
-    for mode in [RunMode::Conversation, RunMode::OneChunk] {
+fn conversation_and_one_task_apply_the_shared_mode_policy() {
+    for mode in [RunMode::Conversation, RunMode::OneTask] {
         let mut engine = WorkflowEngine::with_run_mode(WorkflowConfig::default(), mode);
         engine.record_no_commit();
         assert_eq!(
             engine.stop_reason(),
-            (mode == RunMode::OneChunk).then_some(StopReason::OneChunkComplete)
+            (mode == RunMode::OneTask).then_some(StopReason::OneTaskComplete)
         );
         if mode == RunMode::Conversation {
             engine.advance_iteration();

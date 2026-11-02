@@ -22,6 +22,7 @@ impl SignalEngine {
         let result = transact(
             target,
             || Signals {
+                schema_version: magistr_workflow_contracts::SIGNALS_SCHEMA_VERSION,
                 project_id: self.project_id.clone(),
                 signals: Vec::new(),
             },

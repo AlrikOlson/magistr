@@ -9,7 +9,7 @@ pub(crate) struct WorkflowView {
     address: SessionAddress,
     revision: u64,
     snapshot: std::sync::Arc<NativeSnapshot>,
-    roadmap: magistr_workflow_contracts::ReadState<crate::roadmap::RoadmapOverview>,
+    plan: magistr_workflow_contracts::ReadState<crate::plan::PlanOverview>,
 }
 
 #[tauri::command]
@@ -18,9 +18,9 @@ pub(crate) async fn read_workflow(
     state: tauri::State<'_, DesktopState>,
 ) -> Result<WorkflowView, String> {
     let snapshot = state.client.subscribe(&address).await?.snapshot();
-    let roadmap = crate::roadmap::overview(&snapshot.seed.snapshot.roadmap);
+    let plan = crate::plan::overview(&snapshot.seed.snapshot.plan);
     Ok(WorkflowView {
-        roadmap,
+        plan,
         address: snapshot.address,
         revision: snapshot.workflow_revision,
         snapshot: snapshot.seed.snapshot,

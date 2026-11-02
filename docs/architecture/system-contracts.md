@@ -61,8 +61,8 @@ tests for the first group are in the [client inventory](clients.md#client-invent
 | --- | --- | --- | --- |
 | `magistr --help` | none | none | none |
 | `magistr-desktop --dir /path/to/project` | admitted host or owner attachment | admitted/attached per working copy | resident SessionRegistry |
-| `magistr roadmap` show, next, status, export | reader | none | none |
-| `magistr roadmap generate` | none here; the agent's `mcp` writes | admitted for the run | `AgentSession` |
+| `magistr plan` show, next, status, export | reader | none | none |
+| `magistr plan generate` | none here; the agent's `mcp` writes | admitted for the run | `AgentSession` |
 | `magistr start` plain and `--headless` | none here; the agent's `mcp` writes | admitted for the run | `AgentSession` |
 | `magistr next` | reader; the agent's MCP tools use the project owner | admitted for the run | supervisor per attempt |
 | `magistr next-loop` | NativeReader for progress; loop-owner lock for the checkpoint; agent MCP tools use the project owner | admitted per loop | supervisor per attempt |

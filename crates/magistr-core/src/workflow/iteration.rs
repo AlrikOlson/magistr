@@ -48,9 +48,9 @@ pub struct IterationState {
     /// Attempt whose Git baseline was captured, retained across recovery.
     #[serde(deserialize_with = "required_option")]
     pub attempt_started: Option<u32>,
-    /// The unfinished roadmap item selected for this run.
+    /// The unfinished plan item selected for this run.
     #[serde(deserialize_with = "required_option")]
-    pub native_chunk_id: Option<String>,
+    pub native_task_id: Option<String>,
     /// Track selected for this run, retained across iteration sessions and recovery.
     #[serde(deserialize_with = "required_option")]
     pub native_track: Option<String>,
@@ -116,9 +116,9 @@ pub enum PreCheckResult {
     SpecComplete,
     /// Stop the loop — max iterations reached.
     MaxIterations,
-    /// Stop the loop — the magistr roadmap has no ready chunk
-    /// (`roadmap_next` is `None`: everything left is done, blocked or backlog).
-    NoReadyChunk,
+    /// Stop the loop — the magistr plan has no ready task
+    /// (`plan_next` is `None`: everything left is done, waiting or an idea).
+    NoReadyTask,
     /// Stop for another canonical run reason, including recovery guards.
     Stopped(StopReason),
     /// Stop: recovery could not establish what happened to these attempts
@@ -215,11 +215,11 @@ impl IterationLoop {
         };
 
         let state = IterationState {
-            run: RunState::new(RunMode::ChunkLoop, max_iterations, None),
+            run: RunState::new(RunMode::TaskLoop, max_iterations, None),
             run_id: mint_run_id(&project_dir, native.as_ref())?,
             operations: OperationLedger::new(),
             attempt_started: None,
-            native_chunk_id: None,
+            native_task_id: None,
             native_track: None,
             session_selection: None,
             last_commit_sha: git_head_sha(&project_dir),
@@ -291,18 +291,18 @@ impl IterationLoop {
         )?;
         // Retain an unfinished item only while it can actually be continued.
         // A blocked or deferred target belongs to the ended request, not this one.
-        fresh.state.native_chunk_id = match (
-            recovered.state.native_chunk_id.as_ref(),
+        fresh.state.native_task_id = match (
+            recovered.state.native_task_id.as_ref(),
             recovered.native.as_ref(),
         ) {
             (Some(id), Some(engines)) => engines
-                .roadmap_chunk(id)
+                .plan_task(id)
                 .map_err(MagistrError::Workflow)?
-                .filter(|chunk| {
-                    chunk.status == magistr_engine::native::ChunkStatus::InProgress
-                        && chunk.blocked_by.is_none()
+                .filter(|task| {
+                    task.status == magistr_engine::native::TaskStatus::InProgress
+                        && task.waiting_on.is_none()
                 })
-                .map(|chunk| chunk.id),
+                .map(|task| task.id),
             _ => None,
         };
         // Encode the opaque identity rather than treating it as a path.
@@ -388,8 +388,8 @@ impl IterationLoop {
         {
             self.native
                 .as_ref()
-                .ok_or_else(|| MagistrError::Workflow("Tracks require a native roadmap.".into()))?
-                .roadmap_frontier(Some(saved))
+                .ok_or_else(|| MagistrError::Workflow("Tracks require a native plan.".into()))?
+                .plan_frontier(Some(saved))
                 .map_err(MagistrError::Workflow)?;
         }
         let Some(track) = track else {
@@ -398,9 +398,9 @@ impl IterationLoop {
         let engines = self
             .native
             .as_ref()
-            .ok_or_else(|| MagistrError::Workflow("Tracks require a native roadmap.".into()))?;
+            .ok_or_else(|| MagistrError::Workflow("Tracks require a native plan.".into()))?;
         let track = engines
-            .roadmap_resolve_track(track)
+            .plan_resolve_track(track)
             .map_err(MagistrError::Workflow)?;
         if self.state.native_track.as_ref() == Some(&track) {
             return Ok(());
@@ -410,7 +410,7 @@ impl IterationLoop {
                 "This run already has its work selected. Resume it before choosing a different track.".into(),
             ));
         }
-        self.state.native_chunk_id = None;
+        self.state.native_task_id = None;
         self.state.native_track = Some(track);
         Ok(())
     }
@@ -421,7 +421,7 @@ impl IterationLoop {
         self.recovered
     }
 
-    /// The track this run is confined to; None selects across the roadmap.
+    /// The track this run is confined to; None selects across the plan.
     #[must_use]
     pub fn track(&self) -> Option<&str> {
         self.state.native_track.as_deref()
@@ -484,7 +484,7 @@ impl IterationLoop {
         self
     }
 
-    /// Whether the loop reads the magistr roadmap.
+    /// Whether the loop reads the magistr plan.
     #[must_use]
     pub fn is_native(&self) -> bool {
         self.native.is_some()
@@ -496,14 +496,14 @@ impl IterationLoop {
         self.native.as_ref()
     }
 
-    /// The roadmap item to continue, selected from the saved attempt, matching
+    /// The plan item to continue, selected from the saved attempt, matching
     /// unfinished plan, or one unambiguous in-progress item before ready work.
     /// The caller's loop lease and operation reconciliation guard dispatch.
-    pub fn next_native_chunk(&self) -> Result<Option<magistr_engine::native::Chunk>> {
+    pub fn next_native_task(&self) -> Result<Option<magistr_engine::native::Task>> {
         self.native.as_ref().map_or(Ok(None), |engines| {
-            super::native_summary::native_work_chunk(
+            super::native_summary::native_work_task(
                 engines,
-                self.state.native_chunk_id.as_deref(),
+                self.state.native_task_id.as_deref(),
                 self.track(),
             )
         })
@@ -517,7 +517,7 @@ impl IterationLoop {
             || self.native.is_none() && summary.all_done()
         {
             return Err(MagistrError::Detection(
-                "Nothing to do: no ready roadmap chunk / spec items complete.".into(),
+                "Nothing to do: no ready plan task / spec items complete.".into(),
             ));
         }
         Ok(crate::workflow::prompt::build_next_prompt(config, &summary))
@@ -536,7 +536,7 @@ impl IterationLoop {
 
         // Bind the exact native item before building the prompt or launching
         // an agent. Persisted with the attempt, it survives an interrupted run.
-        self.state.native_chunk_id = self.next_native_chunk()?.map(|chunk| chunk.id);
+        self.state.native_task_id = self.next_native_task()?.map(|task| task.id);
         let summary = self.spec_summary()?;
         self.state.spec_checked = summary.checked;
         self.state.spec_total = summary.total;
@@ -545,7 +545,7 @@ impl IterationLoop {
             || self.native.is_none() && summary.all_done()
         {
             let reason = if self.native.is_some() {
-                StopReason::NoReadyChunk
+                StopReason::NoReadyTask
             } else {
                 StopReason::SpecComplete
             };
@@ -607,7 +607,7 @@ impl IterationLoop {
         self.state.run.advance_attempt();
         self.state.attempt_started = None;
         // Keep unfinished work selected across retries. Selection moves on
-        // once the roadmap records that this item has finished.
+        // once the plan records that this item has finished.
     }
 
     /// Whether the loop should stop due to repeated no-commit failures.
@@ -693,14 +693,14 @@ impl IterationLoop {
 
     /// Get the current spec summary.
     ///
-    /// Native projects re-read the roadmap and continue the selected or
+    /// Native projects re-read the plan and continue the selected or
     /// unambiguous unfinished item before choosing a new ready item.
     /// Otherwise prefers YAML store data, falls back to markdown parsing.
     pub fn spec_summary(&self) -> Result<SpecSummary> {
         if let Some(engines) = &self.native {
             return super::native_summary::native_work_summary(
                 engines,
-                self.state.native_chunk_id.as_deref(),
+                self.state.native_task_id.as_deref(),
                 self.track(),
             );
         }
@@ -738,7 +738,7 @@ fn pre_check_stop(reason: StopReason) -> PreCheckResult {
     match reason {
         StopReason::IterationLimit => PreCheckResult::MaxIterations,
         StopReason::SpecComplete => PreCheckResult::SpecComplete,
-        StopReason::NoReadyChunk => PreCheckResult::NoReadyChunk,
+        StopReason::NoReadyTask => PreCheckResult::NoReadyTask,
         reason => PreCheckResult::Stopped(reason),
     }
 }
@@ -841,9 +841,9 @@ fn git_head_sha(project_dir: &Path) -> Option<String> {
     }
 }
 
-/// Read the selected roadmap without acquiring workflow ownership.
+/// Read the selected plan without acquiring workflow ownership.
 fn auto_native(project_dir: &Path) -> Result<Option<NativeReader>> {
-    if !crate::roadmap::backend_for(project_dir)?.is_native() {
+    if !crate::plan::backend_for(project_dir)?.is_native() {
         return Ok(None);
     }
     let config = magistr_engine::NativeConfig::from_env(project_dir);

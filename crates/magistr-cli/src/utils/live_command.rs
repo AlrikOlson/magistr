@@ -2,11 +2,11 @@
 //!
 //! [`run_command_live`] is the runner behind every quality gate. The
 //! command sees a tty — colours, progress bars, its own width — every
-//! chunk it writes reaches the caller's sink raw and in order while it
+//! task it writes reaches the caller's sink raw and in order while it
 //! runs, and the result carries the escape-stripped transcript the trace
 //! keeps. Where no pty can be had (a platform without one, a master that
 //! will not open) the same owned process runs on pipes and the sink gets
-//! each chunk as it lands: a text-only pane rather than a blank one. The
+//! each task as it lands: a text-only pane rather than a blank one. The
 //! process mechanics — the group, the cap, the cancel, the graceful end —
 //! are [`magistr_process`]'s; what this module decides is that a gate is
 //! a configured shell line on a terminal.
@@ -24,7 +24,7 @@ use super::subprocess::{
 /// width outside a terminal, keeping recorded diagnostics consistently wrapped.
 const PTY_SIZE: (u16, u16) = (140, 40);
 
-/// Run `sh -c command` in `dir` on a pty, streaming every chunk it writes
+/// Run `sh -c command` in `dir` on a pty, streaming every task it writes
 /// to `sink` as it lands and answering with the stripped transcript in
 /// `stdout` (`stderr` names only how the run ended: a tty is one stream).
 /// The timeout, the cancel and the process-group cleanup are the shared
@@ -56,9 +56,9 @@ pub async fn run_command_live(
     }
     let mut stripper = EscapeStripper::default();
     let mut text = String::new();
-    let outcome = run_guarded(process, cancel, |chunk| {
-        sink(chunk);
-        text.push_str(&stripper.feed(chunk));
+    let outcome = run_guarded(process, cancel, |task| {
+        sink(task);
+        text.push_str(&stripper.feed(task));
     })
     .await;
     let mut result = command_result(

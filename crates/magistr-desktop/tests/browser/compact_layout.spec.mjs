@@ -11,7 +11,7 @@ export async function capture(app,name){
   await app.screenshot({path:resolve(dir,name+".png"),animations:"disabled"});
 }
 test("work header leaves room for records in both appearances",async({app})=>{
-  await openWork(app,"Roadmap");
+  await openWork(app,"Plan");
   for(const theme of ["dark","light"]){
     await app.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
     for(const width of [1280,760]){
@@ -35,24 +35,24 @@ test("work navigation fits and follows arrow-key focus",async({app})=>{
   await expect(app.getByRole("tab",{name:"Record status",exact:true})).toBeFocused();
   await expect(app.getByRole("tab",{name:"Record status",exact:true})).toHaveAttribute("aria-selected","true");
   await app.keyboard.press("Home");await app.keyboard.press("ArrowRight");await app.keyboard.press("ArrowRight");
-  await expect(app.getByRole("tab",{name:"Roadmap",exact:true})).toBeFocused();
+  await expect(app.getByRole("tab",{name:"Plan",exact:true})).toBeFocused();
   await capture(app,"02-navigation");
 });
 
 test("work filters group related fields and retain content space",async({app})=>{
-  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+  await openWork(app,"Plan");await app.setViewportSize({width:760,height:550});
   expect((await app.locator(".work-browser-filters").boundingBox()).height).toBeLessThan(85);
-  await app.getByLabel("Search all roadmap",{exact:true}).fill("installer");
+  await app.getByLabel("Search all plan",{exact:true}).fill("installer");
   await expect(app.getByRole("button",{name:"Build the desktop installer",exact:true})).toBeVisible();
-  await app.getByLabel("Search all roadmap",{exact:true}).fill("");
+  await app.getByLabel("Search all plan",{exact:true}).fill("");
   await capture(app,"03-filters");
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   expect(await app.locator("#work-browser").evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
   expect((await app.locator("#work-browser-content").boundingBox()).height).toBeGreaterThan(220);
 });
 
-test("roadmap totals leave the first items visible",async({app})=>{
-  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+test("plan totals leave the first items visible",async({app})=>{
+  await openWork(app,"Plan");await app.setViewportSize({width:760,height:550});
   for(const theme of ["dark","light"]){
     await app.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
     expect((await app.locator("#work-browser .surface-heading").boundingBox()).height).toBeLessThan(55);
@@ -62,37 +62,37 @@ test("roadmap totals leave the first items visible",async({app})=>{
   }
 });
 
-test("roadmap aligns prerequisites and shows each work state",async({app})=>{
-  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});await app.getByRole("button",{name:"Fit all",exact:true}).click();
+test("plan aligns prerequisites and shows each work state",async({app})=>{
+  await openWork(app,"Plan");await app.setViewportSize({width:760,height:550});await app.getByRole("button",{name:"Fit all",exact:true}).click();
   await expect(app.locator(".work-piece")).toHaveCount(5);await expect(app.locator("#work-browser .surface-connection")).toHaveCount(2);
   const required=await app.locator('[data-node="foundation"]').boundingBox(),next=await app.locator('[data-node="reopen"]').boundingBox();expect(Math.abs(required.y-next.y)).toBeLessThan(2);
-  await expect(app.locator('.work-piece[data-state="blocked"]')).toContainText("The release date needs approval.");await capture(app,"05-roadmap-paths");
+  await expect(app.locator('.work-piece[data-state="waiting"]')).toContainText("The release date needs approval.");await capture(app,"05-plan-paths");
 });
 
-test("roadmap detail keeps metadata beside the title",async({app})=>{
-  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+test("plan detail keeps metadata beside the title",async({app})=>{
+  await openWork(app,"Plan");await app.setViewportSize({width:760,height:550});
   await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
-  expect((await app.locator(".roadmap-item-heading").boundingBox()).height).toBeLessThan(65);
-  await expect(app.locator(".roadmap-item-heading")).toContainText("Desktop · Planned");
-  await capture(app,"06-roadmap-detail");
+  expect((await app.locator(".plan-item-heading").boundingBox()).height).toBeLessThan(65);
+  await expect(app.locator(".plan-item-heading")).toContainText("Desktop · Planned");
+  await capture(app,"06-plan-detail");
 });
 
 test("requirements remain complete in compact numbered rows",async({app})=>{
-  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+  await openWork(app,"Plan");await app.setViewportSize({width:760,height:550});
   await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
-  const requirements=app.locator(".roadmap-requirements");await requirements.scrollIntoViewIfNeeded();
+  const requirements=app.locator(".plan-requirements");await requirements.scrollIntoViewIfNeeded();
   await expect(requirements).toContainText("The same conversation and unsent message return after reopening.");
   expect((await requirements.locator("li").first().boundingBox()).height).toBeLessThan(80);
   await capture(app,"07-requirements");
 });
 
 test("dependency groups remain readable within the inspector",async({app})=>{
-  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+  await openWork(app,"Plan");await app.setViewportSize({width:760,height:550});
   await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
   const required=await app.getByRole("region",{name:"Required work",exact:true}).boundingBox();
   const dependent=await app.getByRole("region",{name:"Work that depends on this",exact:true}).boundingBox();
   expect(dependent.y).toBeGreaterThan(required.y);
-  expect((await app.locator(".roadmap-relations").boundingBox()).height).toBeLessThan(240);
+  expect((await app.locator(".plan-relations").boundingBox()).height).toBeLessThan(240);
   await capture(app,"08-dependencies");
 });
 
@@ -164,7 +164,7 @@ test("small result sets show counts and larger sets retain paging",async({app})=
   await app.evaluate(()=>{const f=window.__fixture,history=f.workflow.run.data.value,run=history.retained[0];history.retained=Array.from({length:70},(_,n)=>({...run,run_id:"saved-"+n}));f.publish("release",{workflow_revision:1});});
   await expect(app.getByRole("button",{name:"Next page",exact:true})).toBeEnabled();
   await app.getByRole("button",{name:"Next page",exact:true}).click();
-  await expect(app.locator(".roadmap-items>li")).toHaveCount(21);
+  await expect(app.locator(".plan-items>li")).toHaveCount(21);
 });
 
 test("reasoning pieces retain step identity and readable titles",async({app})=>{

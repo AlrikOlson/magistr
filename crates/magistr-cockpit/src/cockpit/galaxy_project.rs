@@ -19,7 +19,7 @@ pub struct GalaxyProject {
     /// Whether this is the window's own project — the one whose
     /// engines this window is rooted on, and the one a dive can open.
     pub here: bool,
-    /// Chunks shipped, when the project's store could be read — the
+    /// Tasks shipped, when the project's store could be read — the
     /// cluster's density.
     pub done: Option<u32>,
     /// Live sessions on the project — each one breathes.

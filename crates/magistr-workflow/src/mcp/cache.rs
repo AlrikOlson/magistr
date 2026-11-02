@@ -20,7 +20,7 @@
 //!   lifetime of the process: the tool surface is compiled in, and the family
 //!   selection that narrows it is fixed at startup. Shareable, because nothing
 //!   in it varies by user.
-//! * [`live_state`] — `resources/read`. The roadmap, the pinned steps and the
+//! * [`live_state`] — `resources/read`. The plan, the pinned steps and the
 //!   digest are project state that any tool call can move, and the digest is
 //!   additionally a function of wall-clock now. Never reusable, never shared.
 
@@ -41,11 +41,11 @@ pub const CATALOG_TTL_MS: u64 = 60_000;
 pub const CATALOG_SCOPE: CacheScope = CacheScope::Public;
 
 /// Live state is stale the moment it is read: the next tool call can move the
-/// roadmap or the trace, and a digest window is measured from *now*. Zero is
+/// plan or the trace, and a digest window is measured from *now*. Zero is
 /// the honest answer, and per SEP-2549 it means "already stale".
 pub const LIVE_STATE_TTL_MS: u64 = 0;
 
-/// Roadmap chunks, reasoning steps and digests are the user's own project
+/// Plan tasks, reasoning steps and digests are the user's own project
 /// state. Private keeps them out of any shared cache regardless of TTL.
 pub const LIVE_STATE_SCOPE: CacheScope = CacheScope::Private;
 

@@ -1,4 +1,4 @@
-//! The user's choice of roadmap work for a loop.
+//! The user's choice of plan work for a loop.
 
 /// A choice made before the loop starts.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

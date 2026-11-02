@@ -1,11 +1,11 @@
 //! End-to-end smoke test for the UnifiedService: all four families register
-//! together and expose the full 56-tool surface (think 13, run 14, roadmap 17,
+//! together and expose the full 56-tool surface (think 13, run 14, plan 17,
 //! tracker 2, signal 10 — all canonical).
 
 use std::collections::BTreeSet;
 
 use magistr_workflow::mcp::UnifiedService;
-use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
+use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
@@ -18,9 +18,9 @@ fn build_unified() -> UnifiedService {
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new("test-abc123".into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), run.use_cases());
+    let plan = PlanService::new(PlanEngine::new("test-abc123".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
-    UnifiedService::new(think, run, roadmap, signal)
+    UnifiedService::new(think, run, plan, signal)
 }
 
 #[test]
@@ -30,7 +30,7 @@ fn lists_56_canonical_tools_across_four_families() {
     assert_eq!(
         tools.len(),
         56,
-        "expected 13 think_* + 14 run (run_*, approval_*, step verbs) + 17 roadmap_* + 2 tracker_* + 10 signal_*, got {}",
+        "expected 13 think_* + 14 run (run_*, approval_*, step verbs) + 17 plan_* + 2 tracker_* + 10 signal_*, got {}",
         tools.len()
     );
 
@@ -46,7 +46,7 @@ fn lists_56_canonical_tools_across_four_families() {
     for verb in magistr_workflow::run::mcp::STEP_VERBS {
         assert!(names.contains(verb), "the step verb {verb} is served");
     }
-    assert_eq!(count("roadmap_"), 17, "17 roadmap_* tools");
+    assert_eq!(count("plan_"), 17, "17 plan_* tools");
     assert_eq!(count("signal_"), 10, "10 signal_* tools");
 }
 
@@ -181,25 +181,25 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 ///
 /// 150,000 -> 152,500, human-approved for `roadmap-get-bounded-fetch`.
 ///
-/// The chunk that asked for `roadmap_get` wrote its own refusal into its
+/// The task that asked for `plan_get` wrote its own refusal into its
 /// acceptance: *if a tool cannot fit under the human-set ceiling, the fallback
-/// is `ids`/`fields` arguments on `roadmap_export` — the agent brings that
+/// is `ids`/`fields` arguments on `plan_export` — the agent brings that
 /// number to the human and does NOT move the line.* Both figures were
 /// re-measured before a line of it was designed (148,407 wire / 52,915
 /// model-facing, 1,593 and 585 B free, 50 tools) and put to the human as the
 /// opening act of the session. They chose the 51st tool over the fallback and
 /// named both new lines. That is the only reason this number changed; an
-/// implementing agent may not edit it to make its own chunk fit.
+/// implementing agent may not edit it to make its own task fit.
 ///
-/// WHAT IT BOUGHT — the verb between `roadmap_status` (every chunk, one
-/// truncated line each, no body) and `roadmap_export` (1,504,641 B on this
+/// WHAT IT BOUGHT — the verb between `plan_status` (every task, one
+/// truncated line each, no body) and `plan_export` (1,504,641 B on this
 /// board, too large to return at all). Reading three records previously meant
 /// spilling the export to a file and running `jq` over it. Measured at
 /// **+2,321 B wire**, landing at 150,728 — headroom 1,772 B.
 ///
 /// WHY IT IS CHEAP FOR A NEW TOOL — the `outputSchema` was designed against
-/// the priced refusal in `roadmap::output_schemas`, not in ignorance of it. A
-/// `Vec<ChunkOutput>` would have added an eleventh inlined copy of the chunk
+/// the priced refusal in `plan::output_schemas`, not in ignorance of it. A
+/// `Vec<TaskOutput>` would have added an eleventh inlined copy of the task
 /// schema; `records` is a bare `Value` instead, which schemars emits as `true`.
 /// That is not thrift dressed as design — `fields` projects each record, so the
 /// shape genuinely varies per call and an enumerated schema would describe a
@@ -217,7 +217,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 ///
 /// | State                                   | Wire bytes | vs 152,500 |
 /// |-----------------------------------------|-----------:|-----------:|
-/// | before this chunk                       |    150,728 |  −1,772 ok |
+/// | before this task                       |    150,728 |  −1,772 ok |
 /// | both focus verbs, first draft           |    154,173 |  +1,673 ✗  |
 /// | after trimming duplicated field prose   |    153,630 |  +1,130 ✗  |
 /// | after ALSO cutting every Pitfalls line  |    153,047 |    +547 ✗  |
@@ -228,7 +228,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 /// any prose level, and "write less" was not an available answer. Landing
 /// figure with the prose kept: **153,630 B, headroom 370 B**.
 ///
-/// WHY TWO VERBS AND NOT ONE. A single `roadmap_focus` with a mode
+/// WHY TWO VERBS AND NOT ONE. A single `plan_focus` with a mode
 /// discriminator fits with ~1,100 B to spare, and was offered and rejected.
 /// `read_only_hint` cannot be both true and false, so multiplexing would leave
 /// a client unable to tell a safe call from a mutating one — on the one pair of
@@ -238,7 +238,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 /// `outputSchema` is 86,349 B, **56% of the payload**, and much of it is
 /// duplicated — five `signal_*` tools each carry a byte-identical 3,457 B
 /// schema. MCP has no cross-tool `$ref`, so reclaiming it means reshaping the
-/// schemas, which is its own chunk
+/// schemas, which is its own task
 /// (`chunk-output-schema-is-a-partial-projection`). Doing that work would buy
 /// back far more than this move spent.
 ///
@@ -247,7 +247,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 /// 154,000 -> 157,000, for `check_step`'s `report` argument
 /// (structured-test-results, issue #21).
 ///
-/// WHAT WAS MEASURED. Before the chunk: 153,587 B, headroom 413 B — nothing
+/// WHAT WAS MEASURED. Before the task: 153,587 B, headroom 413 B — nothing
 /// fits under that. First draft landed at 157,279; trimming the description
 /// prose and moving every rationale line in the new report types from `///`
 /// to `//` (the GetArgs discipline) brought it to **156,363 B, +2,776 over
@@ -273,7 +273,7 @@ fn tools_list_payload_stays_within_budget() {
         actual <= BUDGET,
         "tools/list is {actual} bytes, over the {BUDGET}-byte budget (was 87,897 when \
          the surface-size decision chose option D, 135,524 B after the outputSchema work, \
-         143,967 B after the approval-gate verbs, 150,728 B after roadmap_get, 153,630 B \
+         143,967 B after the approval-gate verbs, 150,728 B after plan_get, 153,630 B \
          after the focus verbs, 156,363 B after check_step's structured report). Re-decide \
          the surface rather than raising this — the line has moved exactly five times, with \
          every argument written above. Before proposing a sixth, read the outputSchema \
@@ -332,8 +332,8 @@ fn descriptions_stay_substantial() {
         "check_step lost the guidance that makes a check verified rather than self-reported"
     );
     assert!(
-        describe("roadmap_reprioritize").contains("does NOT reorder"),
-        "roadmap_reprioritize lost the warning that it only proposes"
+        describe("plan_reprioritize").contains("does NOT reorder"),
+        "plan_reprioritize lost the warning that it only proposes"
     );
 }
 
@@ -446,7 +446,7 @@ fn records_the_measured_tool_surface() {
 
 /// The `instructions` block is pasted into the model's system prompt by several
 /// MCP clients, so a wrong tool count there misinforms every fresh agent. Nothing
-/// tied that prose to the registry, and it drifted (roadmap advertised 8 against a
+/// tied that prose to the registry, and it drifted (plan advertised 8 against a
 /// real 12). Bind the two: the advertised count per family must equal the number of
 /// canonical tools that family actually serves, so neither side can move alone.
 #[test]
@@ -577,7 +577,7 @@ fn default_selection_is_byte_identical_to_no_selection() {
 /// A narrowed deployment serves exactly its families — nothing leaks through.
 #[test]
 fn a_narrowed_deployment_lists_only_its_families() {
-    let sel = FamilySelection::parse("think,roadmap").expect("valid selection");
+    let sel = FamilySelection::parse("think,plan").expect("valid selection");
     let svc = build_with(sel);
     let names: BTreeSet<String> = svc
         .list_tools_view()
@@ -585,12 +585,14 @@ fn a_narrowed_deployment_lists_only_its_families() {
         .map(|t| t.name.to_string())
         .collect();
 
-    assert!(names.iter().all(|n| n.starts_with("think_")
-        || n.starts_with("roadmap_")
-        || n.starts_with("tracker_")));
+    assert!(
+        names.iter().all(|n| n.starts_with("think_")
+            || n.starts_with("plan_")
+            || n.starts_with("tracker_"))
+    );
     assert_eq!(names.iter().filter(|n| n.starts_with("run_")).count(), 0);
     assert_eq!(names.iter().filter(|n| n.starts_with("signal_")).count(), 0);
-    // 13 reasoning tools plus 17 roadmap and 2 tracker tools.
+    // 13 reasoning tools plus 17 plan and 2 tracker tools.
     assert_eq!(names.len(), 32);
 }
 
@@ -618,14 +620,14 @@ fn narrowing_measurably_shrinks_the_payload() {
 
 /// TRACKER IS STRUCTURAL, NOT A FIFTH FAMILY.
 ///
-/// The `tracker_*` tools hang off `RoadmapService` and `route_of` sends them to
-/// `Family::Roadmap`. So "tracker_* needs roadmap_*" cannot be violated by a
+/// The `tracker_*` tools hang off `PlanService` and `route_of` sends them to
+/// `Family::Plan`. So "tracker_* needs plan_*" cannot be violated by a
 /// selection — there is no way to express it — and an operator who writes
 /// `tracker` gets the family that actually carries those tools. This test is
 /// what keeps that from silently becoming untrue if tracker ever moves.
 #[test]
-fn tracker_rides_the_roadmap_family_and_cannot_be_orphaned() {
-    assert_eq!(Family::parse("tracker"), Some(Family::Roadmap));
+fn tracker_rides_the_plan_family_and_cannot_be_orphaned() {
+    assert_eq!(Family::parse("tracker"), Some(Family::Plan));
 
     let svc = build_with(FamilySelection::parse("tracker").expect("valid"));
     let names: BTreeSet<String> = svc
@@ -638,14 +640,14 @@ fn tracker_rides_the_roadmap_family_and_cannot_be_orphaned() {
         "selecting tracker must actually expose the tracker_* tools"
     );
     assert!(
-        names.iter().any(|n| n.starts_with("roadmap_")),
-        "tracker_* is meaningless without the roadmap it mirrors, so it arrives with it"
+        names.iter().any(|n| n.starts_with("plan_")),
+        "tracker_* is meaningless without the plan it mirrors, so it arrives with it"
     );
-    let roadmap_only = build_with(FamilySelection::parse("roadmap").expect("valid"));
+    let plan_only = build_with(FamilySelection::parse("plan").expect("valid"));
     assert_eq!(
         svc.list_tools_view().len(),
-        roadmap_only.list_tools_view().len(),
-        "'tracker' and 'roadmap' name the same family"
+        plan_only.list_tools_view().len(),
+        "'tracker' and 'plan' name the same family"
     );
 }
 
@@ -686,7 +688,7 @@ fn an_empty_selection_is_refused() {
 fn selection_parsing_is_forgiving_about_shape_but_not_about_names() {
     let sel = FamilySelection::parse(" Think , RUN, ").expect("shape noise is tolerated");
     assert!(sel.contains(Family::Think) && sel.contains(Family::Run));
-    assert!(!sel.contains(Family::Roadmap) && !sel.contains(Family::Signal));
+    assert!(!sel.contains(Family::Plan) && !sel.contains(Family::Signal));
     assert_eq!(sel.summary(), "think_*, run_*");
 }
 
@@ -706,9 +708,9 @@ fn every_listed_tool_routes_to_an_exposed_family() {
         "think",
         "run",
         "signal",
-        "roadmap",
+        "plan",
         "think,signal",
-        "think,run,roadmap,signal",
+        "think,run,plan,signal",
     ] {
         let sel = FamilySelection::parse(spec).expect("valid selection");
         let svc = build_with(sel);
@@ -877,32 +879,32 @@ fn the_known_schema_gap_stays_closed() {
 ///
 /// This ceiling says "argue for it before raising it", so here is the argument
 /// and the arithmetic behind it. A human made the call; an implementing agent
-/// may not edit this number to make its own chunk fit.
+/// may not edit this number to make its own task fit.
 ///
-/// WHAT WAS ADDED — `roadmap_update_chunk` gained the write path for a chunk's
-/// blocker: a `blocked_by` object (kind, reason, optional evidence) and a
-/// `clear_blocked_by` flag. Measured at **+1,070 B**: 745 B of input schema,
+/// WHAT WAS ADDED — `plan_update_task` gained the write path for a task's
+/// blocker: a `waiting_on` object (kind, reason, optional evidence) and a
+/// `clear_waiting_on` flag. Measured at **+1,070 B**: 745 B of input schema,
 /// 325 B of tool prose. Roughly 268 tokens per session.
 ///
-/// WHY IT IS WORTH THAT — `blocked_by` is the readiness vocabulary three
-/// queued chunks all consume (the scheduler skip, the status counts, the
+/// WHY IT IS WORTH THAT — `waiting_on` is the readiness vocabulary three
+/// queued tasks all consume (the scheduler skip, the status counts, the
 /// tracker projection). Until a blocker can be RETRACTED as easily as it is
-/// recorded, the field goes unused and the reason a chunk is stuck goes on
+/// recorded, the field goes unused and the reason a task is stuck goes on
 /// living in its title, which is the failure the whole line of work undoes.
 ///
 /// WHAT WAS RECLAIMED FIRST, so the raise is the residue and not the opening
 /// move. Both were measured, not estimated:
 ///
-///   * **−625 B model-facing.** A `///` on the new `BlockedByArgs` explaining
+///   * **−625 B model-facing.** A `///` on the new `WaitingOnArgs` explaining
 ///     an internal serde decision was being serialized by schemars into the
 ///     input schema — maintainer rationale charged to every agent on every
-///     session. Rewritten as a `//`. The general lesson outlived the chunk:
+///     session. Rewritten as a `//`. The general lesson outlived the task:
 ///     on an argument struct, only what steers a CALLER earns a `///`.
-///   * **−9,070 B wire.** Describing `blocked_by` in `ChunkOutput` cost that
-///     much, because `ChunkOutput` is inlined into ~10 roadmap tool schemas
+///   * **−9,070 B wire.** Describing `waiting_on` in `TaskOutput` cost that
+///     much, because `TaskOutput` is inlined into ~10 plan tool schemas
 ///     and MCP cannot `$ref` across tools. Dropped rather than paid, keeping
 ///     `tools_list_payload_stays_within_budget` under its own ceiling; the
-///     omission is documented where it is felt, in `roadmap::output_schemas`.
+///     omission is documented where it is felt, in `plan::output_schemas`.
 ///
 /// WHAT WAS CONSIDERED AND NOT DONE — the same `///`-leaks-into-schema defect
 /// exists elsewhere in production (`ThinkStep::tools_used` ships a
@@ -910,7 +912,7 @@ fn the_known_schema_gap_stays_closed() {
 /// schema; trimming it was measured at −352 B). Reclaiming ~4 of those would
 /// have fit this feature under the old line. It was rejected as the WRONG
 /// reason to do it: trimming other families' documentation to pay for this
-/// chunk is how a budget quietly becomes an argument for worse docs. The
+/// task is how a budget quietly becomes an argument for worse docs. The
 /// sweep is filed on its own merits as `doc-rationale-leaks-into-tool-schemas`.
 ///
 /// Headroom after the raise: 618 B. Still thin, still on purpose.
@@ -920,11 +922,11 @@ fn the_known_schema_gap_stays_closed() {
 /// Same rule, same procedure: a human made the call after being shown the
 /// measurement, and this ceiling was the BINDING one — 585 B free against a
 /// tool that needed roughly twice that, which is what made "a 51st tool does
-/// not fit" a fact rather than an opinion. The chunk's own acceptance said to
-/// bring the number and take the `ids`/`fields`-on-`roadmap_export` fallback
+/// not fit" a fact rather than an opinion. The task's own acceptance said to
+/// bring the number and take the `ids`/`fields`-on-`plan_export` fallback
 /// unless a human said otherwise; they said otherwise and named this line.
 ///
-/// WHAT WAS ADDED — `roadmap_get(ids, fields)`, measured at **+1,370 B**:
+/// WHAT WAS ADDED — `plan_get(ids, fields)`, measured at **+1,370 B**:
 /// 1,023 B of tool prose and 347 B of name plus input schema. Roughly 343
 /// tokens per session, and it is prose rather than schema because three of this
 /// tool's four contracts are refusals a caller has to know about BEFORE forming
@@ -954,12 +956,12 @@ fn the_known_schema_gap_stays_closed() {
 ///
 /// The human was shown the WIRE measurement and chose to keep both verbs with
 /// their prose (see `tools_list_payload_stays_within_budget`). This is the same
-/// decision measured on the other axis — the precedent set by `roadmap_get` is
+/// decision measured on the other axis — the precedent set by `plan_get` is
 /// that a tool decision names BOTH lines, so it is recorded here rather than
 /// left to fail silently on the next run.
 ///
-/// WHAT WAS ADDED — **+2,500 B**: `roadmap_focus_get` at 849 B of prose plus
-/// 325 B of name and input schema, `roadmap_focus_set` at 827 B plus 499 B.
+/// WHAT WAS ADDED — **+2,500 B**: `plan_focus_get` at 849 B of prose plus
+/// 325 B of name and input schema, `plan_focus_set` at 827 B plus 499 B.
 /// ~625 tokens per session, landing at 56,819 with 181 B of headroom.
 ///
 /// WHY THE PROSE IS THE EXPENSIVE HALF, AND STAYS — both descriptions are
@@ -971,7 +973,7 @@ fn the_known_schema_gap_stays_closed() {
 ///
 /// WHY IT IS NOT WORSE — this pair is the only place the focus contract is
 /// stated, because both tools were deliberately shipped WITHOUT an
-/// `outputSchema` (measured refusal in `roadmap::output_schemas`). Had they
+/// `outputSchema` (measured refusal in `plan::output_schemas`). Had they
 /// carried one, the wire figure would have grown another 1,096 B while this
 /// figure stayed put — outputSchema never reaches the model. The two budgets
 /// disagreeing here is the split doing exactly what it was built for.
@@ -980,7 +982,7 @@ fn the_known_schema_gap_stays_closed() {
 ///
 /// 57,000 -> 58,500, for `check_step`'s `report` argument
 /// (structured-test-results, issue #21). Same decision as the wire raise
-/// above, measured on this axis: headroom before the chunk was 179 B, the
+/// above, measured on this axis: headroom before the task was 179 B, the
 /// trimmed landing figure is **57,915 B, +1,094**. What the model pays for is
 /// the `report {format, path}` input schema plus the description clauses it
 /// must know before forming the call — that the exit code stays the source of

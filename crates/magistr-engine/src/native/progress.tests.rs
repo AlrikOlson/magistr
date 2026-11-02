@@ -1,13 +1,13 @@
 use super::*;
-use magistr_workflow::roadmap::RoadmapEngine;
+use magistr_workflow::plan::PlanEngine;
 
-fn engine_with(chunks: &[(&str, ChunkStatus, Option<&str>)]) -> RoadmapEngine {
-    let mut e = RoadmapEngine::new("p".into());
-    for (id, status, group) in chunks {
-        e.add_chunk(
+fn engine_with(tasks: &[(&str, TaskStatus, Option<&str>)]) -> PlanEngine {
+    let mut e = PlanEngine::new("p".into());
+    for (id, status, feature) in tasks {
+        e.add_task(
             (*id).into(),
-            format!("Chunk {id}"),
-            ChunkStatus::Pending,
+            format!("Task {id}"),
+            TaskStatus::ToDo,
             100,
             String::new(),
             vec![],
@@ -15,13 +15,13 @@ fn engine_with(chunks: &[(&str, ChunkStatus, Option<&str>)]) -> RoadmapEngine {
             false,
         )
         .expect("add");
-        if let Some(g) = group {
-            e.set_group(id, Some((*g).into())).expect("group");
+        if let Some(g) = feature {
+            e.set_feature(id, Some((*g).into())).expect("feature");
         }
-        if *status != ChunkStatus::Pending {
+        if *status != TaskStatus::ToDo {
             // Done requires InProgress first; go through the legal path.
-            if *status == ChunkStatus::Done {
-                e.set_status(id, ChunkStatus::InProgress).expect("ip");
+            if *status == TaskStatus::Done {
+                e.set_status(id, TaskStatus::InProgress).expect("ip");
             }
             e.set_status(id, *status).expect("status");
         }
@@ -30,23 +30,23 @@ fn engine_with(chunks: &[(&str, ChunkStatus, Option<&str>)]) -> RoadmapEngine {
 }
 
 #[test]
-fn empty_roadmap_has_no_progress() {
-    let e = RoadmapEngine::new("p".into());
+fn empty_plan_has_no_progress() {
+    let e = PlanEngine::new("p".into());
     assert_eq!(
-        progress_from_chunks(&e.roadmap().chunks),
-        RoadmapProgress::default()
+        progress_from_tasks(&e.plan().tasks),
+        PlanProgress::default()
     );
 }
 
 #[test]
-fn counts_chunks_as_tasks_and_groups_as_phases() {
+fn counts_tasks_as_tasks_and_features_as_phases() {
     let e = engine_with(&[
-        ("a", ChunkStatus::Done, Some("Engine")),
-        ("b", ChunkStatus::Done, Some("Engine")),
-        ("c", ChunkStatus::Pending, Some("GUI")),
-        ("d", ChunkStatus::InProgress, None),
+        ("a", TaskStatus::Done, Some("Engine")),
+        ("b", TaskStatus::Done, Some("Engine")),
+        ("c", TaskStatus::ToDo, Some("GUI")),
+        ("d", TaskStatus::InProgress, None),
     ]);
-    let p = progress_from_chunks(&e.roadmap().chunks);
+    let p = progress_from_tasks(&e.plan().tasks);
     assert_eq!(p.total_tasks, 4);
     assert_eq!(p.checked_tasks, 2);
     assert_eq!(p.total_phases, 2);
@@ -55,18 +55,18 @@ fn counts_chunks_as_tasks_and_groups_as_phases() {
 }
 
 #[test]
-fn obsoleted_chunks_count_toward_nothing() {
+fn retired_tasks_count_toward_nothing() {
     let e = engine_with(&[
-        ("a", ChunkStatus::Done, Some("Engine")),
-        ("z", ChunkStatus::Obsoleted, Some("Engine")),
-        ("y", ChunkStatus::Obsoleted, Some("Dead")),
+        ("a", TaskStatus::Done, Some("Engine")),
+        ("z", TaskStatus::Retired, Some("Engine")),
+        ("y", TaskStatus::Retired, Some("Dead")),
     ]);
-    let p = progress_from_chunks(&e.roadmap().chunks);
+    let p = progress_from_tasks(&e.plan().tasks);
     assert_eq!(p.total_tasks, 1);
     assert_eq!(p.checked_tasks, 1);
     assert_eq!(
         p.total_phases, 1,
-        "a group of only obsoleted chunks is not a phase"
+        "a feature of only retired tasks is not a phase"
     );
     assert_eq!(p.completed_phases, 1);
     assert!(p.is_complete());

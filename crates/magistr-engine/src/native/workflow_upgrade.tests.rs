@@ -1,6 +1,6 @@
 use super::*;
 use crate::native::{NativeReader, ProjectAuthority, WriterRole};
-use magistr_workflow::{roadmap::domain::ChunkStatus, run::domain::step::StepType};
+use magistr_workflow::{plan::domain::TaskStatus, run::domain::step::StepType};
 use std::fs::File;
 
 fn fixture() -> (tempfile::TempDir, NativeConfig, NativeConfig) {
@@ -39,11 +39,11 @@ fn fixture_and_snapshot() -> (
         .add_step("one".into(), "Saved step".into(), StepType::Implement, None)
         .unwrap();
     writer
-        .roadmap_add_chunk(
+        .plan_add_task(
             "saved".into(),
             "Saved plan".into(),
             String::new(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             1,
             String::new(),
             vec![],
@@ -60,8 +60,8 @@ fn fixture_and_snapshot() -> (
 
 /// Give a store written by the current writer the layout and spelling the
 /// standalone writer used: the run family under `ship/` with its check results
-/// under `receipts/`, and version 2 documents keyed `objective`, `tasks`,
-/// `actions`.
+/// under `receipts/`, version 2 documents keyed `objective`, `tasks`,
+/// `actions`, and the plan family under `roadmap/`.
 fn as_older_store(data: &Path) {
     fn rename_dirs(dir: &Path) {
         for entry in fs::read_dir(dir).unwrap() {
@@ -94,6 +94,18 @@ fn as_older_store(data: &Path) {
         rename_dirs(&run);
         fs::rename(&run, data.join("ship")).unwrap();
     }
+    let plan = data.join("plan");
+    if plan.exists() {
+        fs::rename(&plan, data.join("roadmap")).unwrap();
+    }
+}
+
+/// Where an older store's plan record lands in the current store.
+fn current_path(relative: &Path) -> PathBuf {
+    relative.strip_prefix("roadmap").map_or_else(
+        |_| relative.to_path_buf(),
+        |rest| Path::new("plan").join(rest),
+    )
 }
 
 fn request(config: &NativeConfig) {
@@ -120,14 +132,14 @@ fn admission_restores_saved_execution_and_plan_and_retains_originals_once() {
         NativeReader::open(&current).run_snapshot().unwrap(),
         snapshot
     );
-    assert_eq!(
-        NativeReader::open(&current).roadmap_chunks().unwrap().len(),
-        1
-    );
+    assert_eq!(NativeReader::open(&current).plan_tasks().unwrap().len(), 1);
     for (path, original) in paths.iter().zip(originals.iter()) {
         assert_eq!(fs::read(old.data_dir().join(path)).unwrap(), *original);
         if !path.starts_with("ship") {
-            assert_eq!(fs::read(current.data_dir().join(path)).unwrap(), *original);
+            assert_eq!(
+                fs::read(current.data_dir().join(current_path(path))).unwrap(),
+                *original
+            );
         }
     }
     drop(owner);
@@ -150,10 +162,10 @@ fn a_partial_copy_retries_but_a_different_destination_is_never_overwritten() {
     let (_dir, current, old) = fixture();
     request(&current);
     let paths = records(old.data_dir(), "saved-project", OLDER_FAMILIES).unwrap();
-    let first = &paths[0];
+    let first = &current_path(&paths[0]);
     publish(
         &current.data_dir().join(first),
-        &fs::read(old.data_dir().join(first)).unwrap(),
+        &fs::read(old.data_dir().join(&paths[0])).unwrap(),
         false,
     )
     .unwrap();
@@ -223,6 +235,7 @@ fn no_record_lock_outlives_the_upgrade_that_took_it() {
         let renamed = relative
             .to_string_lossy()
             .replacen("ship/", "run/", 1)
+            .replacen("roadmap/", "plan/", 1)
             .replace("/receipts/", "/check_results/");
         for (store, relative) in [
             (old.data_dir(), relative.clone()),
@@ -359,7 +372,7 @@ fn old_work_and_reasoning_are_converted_into_the_records_current_readers_use() {
         Some("retained-step")
     );
     assert_eq!(
-        reader.roadmap_chunks().unwrap()[0].project_id.as_deref(),
+        reader.plan_tasks().unwrap()[0].project_id.as_deref(),
         Some("saved-project")
     );
     assert_eq!(

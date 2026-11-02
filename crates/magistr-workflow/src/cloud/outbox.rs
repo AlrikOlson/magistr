@@ -283,10 +283,10 @@ mod tests {
         let path = dir.path().join("outbox.json");
         {
             let outbox = Outbox::new(Some(path.clone()));
-            outbox.enqueue("roadmap/chunk/c1".into(), json!({"id": "c1"}));
+            outbox.enqueue("plan/task/c1".into(), json!({"id": "c1"}));
         }
         let reloaded = Outbox::new(Some(path));
-        assert_eq!(entry_keys(&reloaded), vec!["roadmap/chunk/c1"]);
+        assert_eq!(entry_keys(&reloaded), vec!["plan/task/c1"]);
     }
 
     #[test]

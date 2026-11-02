@@ -13,7 +13,7 @@
 //! # Revoke must revoke
 //!
 //! This codebase has already shipped rotate-without-revoke once — the
-//! `alias-revoke` chunk exists because old secrets stayed live. So revocation
+//! `alias-revoke` task exists because old secrets stayed live. So revocation
 //! here does two things and is tested on the observable consequence rather than
 //! on its return value: it calls the provider's revocation endpoint, AND it
 //! forgets the credential locally. The test asserts that the NEXT call fails.

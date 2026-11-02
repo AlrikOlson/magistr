@@ -17,7 +17,7 @@ fn current_settings_refuse_invalid_backend_values_and_incomplete_documents() {
         "null",
         "[]",
         "{}",
-        r#"{"roadmap_backend":"invalid"}"#,
+        r#"{"plan_backend":"invalid"}"#,
     ] {
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("project.json");
@@ -37,15 +37,12 @@ fn current_settings_parse_defaults_and_refuse_invalid_declared_values() {
         "quality_gate": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "", "extensions": []},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
-        "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+        "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false
     });
     std::fs::write(&path, config.to_string()).unwrap();
     let loaded = read_project_settings(&path).unwrap().unwrap();
-    assert_eq!(
-        loaded.roadmap_backend,
-        magistr_engine::RoadmapBackend::Native
-    );
-    assert!(!loaded.roadmap_exports);
+    assert_eq!(loaded.plan_backend, magistr_engine::PlanBackend::Native);
+    assert!(!loaded.plan_exports);
 
     for value in [
         serde_json::json!("invalid"),
@@ -53,7 +50,7 @@ fn current_settings_parse_defaults_and_refuse_invalid_declared_values() {
         serde_json::json!(4),
         serde_json::json!({}),
     ] {
-        config["roadmap_backend"] = value;
+        config["plan_backend"] = value;
         let original = config.to_string();
         std::fs::write(&path, &original).unwrap();
         assert!(read_project_settings(&path).is_err());

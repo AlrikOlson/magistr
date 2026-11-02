@@ -142,7 +142,7 @@ where
 
 /// Map a named priority level to its numeric weight (lower sorts earlier),
 /// or parse a numeric string. Returns `None` for anything unrecognized so the
-/// caller decides the fallback. Shared by the roadmap priority deserializers.
+/// caller decides the fallback. Shared by the plan priority deserializers.
 pub fn parse_priority_level(s: &str) -> Option<u32> {
     match s.trim().to_ascii_lowercase().as_str() {
         "critical" | "crit" => Some(100),
@@ -156,7 +156,7 @@ pub fn parse_priority_level(s: &str) -> Option<u32> {
 /// `#[serde(deserialize_with = "infra::coerce::optional_priority")]` — the
 /// [`priority`] coercion for a field that may be absent. An explicit `null` and
 /// an unrecognized value both mean "leave it alone" rather than 0, because on a
-/// patch tool a bogus priority must not silently rewrite the chunk's place.
+/// patch tool a bogus priority must not silently rewrite the task's place.
 pub fn optional_priority<'de, D>(deserializer: D) -> Result<Option<u32>, D::Error>
 where
     D: Deserializer<'de>,
@@ -175,7 +175,7 @@ where
 /// [`parse_priority_level`], and its neighbour on purpose: two directions of
 /// one vocabulary that must not drift apart.
 ///
-/// Names went IN (`roadmap_add_chunk` has always taken `critical`/`high`/…) and
+/// Names went IN (`plan_add_task` has always taken `critical`/`high`/…) and
 /// only integers came OUT, so every human-facing surface printed magic numbers.
 /// Bands are inclusive upper bounds, and `later` covers everything past `low`
 /// rather than pretending a 552 is "low".
@@ -281,7 +281,7 @@ mod tests {
     }
 
     /// Every name the parser accepts must round-trip back to itself, or the two
-    /// directions of the vocabulary have drifted and a chunk added as "high"
+    /// directions of the vocabulary have drifted and a task added as "high"
     /// would display as something else.
     #[test]
     fn priority_bands_round_trip_their_own_names() {

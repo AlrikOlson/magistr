@@ -283,7 +283,7 @@ fn the_host_port_builder_names_no_provider() {
 ///
 /// The second half is the one worth holding. A board and a repo are both
 /// "GitHub", and collapsing them onto one key would look tidy right up until
-/// two link records for the same chunk fought over one `external_id`. The proof
+/// two link records for the same task fought over one `external_id`. The proof
 /// that they have not been collapsed is that each refuses the other's target.
 #[test]
 fn the_board_is_reachable_through_the_one_lookup_and_is_not_the_issues_provider() {

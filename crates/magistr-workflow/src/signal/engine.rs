@@ -1,5 +1,5 @@
 //! The signal engine: owns the in-memory [`Signals`] store and mediates every
-//! mutation, mirroring `roadmap::engine::RoadmapEngine` (a plain struct whose
+//! mutation, mirroring `plan::engine::PlanEngine` (a plain struct whose
 //! concurrency guard lives at the service layer; builder-style
 //! `with_persistence`; persist-on-mutation).
 //!
@@ -43,6 +43,7 @@ impl SignalEngine {
     pub fn new(project_id: String) -> Self {
         Self {
             signals: Signals {
+                schema_version: magistr_workflow_contracts::SIGNALS_SCHEMA_VERSION,
                 project_id: project_id.clone(),
                 signals: Vec::new(),
             },
@@ -134,6 +135,7 @@ impl SignalEngine {
         };
         let read = persistence.load_stamped::<Signals>(&self.project_id)?;
         let value = read.value.unwrap_or_else(|| Signals {
+            schema_version: magistr_workflow_contracts::SIGNALS_SCHEMA_VERSION,
             project_id: self.project_id.clone(),
             signals: Vec::new(),
         });
@@ -218,11 +220,11 @@ impl SignalEngine {
         kind: SignalKind,
         from: String,
         body: String,
-        cross_refs: Vec<String>,
+        refs: Vec<String>,
     ) -> Result<Observed<Signal>, SignalMutationError> {
         self.mutate(|edit| {
             let id = edit.capture(kind, from, body)?.id.clone();
-            for reference in cross_refs {
+            for reference in refs {
                 edit.link(&id, &reference)?;
             }
             edit.get(&id).cloned()
@@ -293,10 +295,10 @@ impl SignalEngine {
     }
 
     /// Attach a validated cross-ref to a signal (deduped). Powers `signal_link`
-    /// and the reciprocal `chunk:<id>` written by promotion. The ref is
+    /// and the reciprocal `task:<id>` written by promotion. The ref is
     /// validated + normalized via [`crate::infra::CrossRef`], so only the forms
     /// that type accepts get through: `think:`, `step:`, `progress:`, `check:`,
-    /// `chunk:`, `signal:` and `ext:<provider>/<external_id>`.
+    /// `task:`, `signal:` and `ext:<provider>/<external_id>`.
     ///
     /// The `ext:` form arrived with the tracker seam and this list did not
     /// follow it for several phases — the behaviour was always right, because
@@ -312,10 +314,10 @@ impl SignalEngine {
 
     /// Mark a signal `Promoted`. Only a `Researched` or `Surfaced` signal can be
     /// promoted — a stakeholder opportunity that's been validated becomes a
-    /// roadmap solution. This is a higher-level op than [`Self::set_status`]
+    /// plan solution. This is a higher-level op than [`Self::set_status`]
     /// (it may skip `Surfaced`); the bidirectional cross-ref wiring lives at the
     /// service layer. Idempotency (don't re-promote) is enforced there via the
-    /// existing `chunk:` cross-ref.
+    /// existing `task:` cross-ref.
     pub fn promote(&mut self, id: &str) -> Result<Observed<Signal>, SignalMutationError> {
         self.mutate(|edit| edit.promote(id).cloned())
     }
@@ -368,8 +370,7 @@ impl SignalEngine {
                     && (lc_hints.is_empty() || {
                         let body = s.body.to_lowercase();
                         lc_hints.iter().any(|h| {
-                            body.contains(h)
-                                || s.cross_refs.iter().any(|r| r.to_lowercase().contains(h))
+                            body.contains(h) || s.refs.iter().any(|r| r.to_lowercase().contains(h))
                         })
                     })
             })
@@ -384,7 +385,7 @@ impl SignalEngine {
     }
 
     /// How many signals are currently ready to raise — the count source for the
-    /// `roadmap_status` pending-signal badge. Same gate as
+    /// `plan_status` pending-signal badge. Same gate as
     /// [`Self::pending`] with no relevance hints.
     pub fn pending_count(&self, min_confidence: f64) -> usize {
         self.pending(min_confidence, &[], usize::MAX).len()
@@ -412,7 +413,7 @@ impl SignalEngine {
     }
 
     /// A bounded JSON snapshot: counts by status + a capped, newest-first list
-    /// of signal summaries. Mirrors `RoadmapEngine::status`'s "never blow the
+    /// of signal summaries. Mirrors `PlanEngine::status`'s "never blow the
     /// MCP output limit" discipline.
     pub fn status(&self) -> serde_json::Value {
         serde_json::to_value(crate::signal::application::SignalInbox::from(
@@ -423,6 +424,12 @@ impl SignalEngine {
 }
 
 fn validate(value: &Signals, project_id: &str) -> Result<(), ReadError> {
+    if value.schema_version != magistr_workflow_contracts::SIGNALS_SCHEMA_VERSION {
+        return Err(ReadError::new(
+            ReadErrorKind::Interrupted,
+            "Saved work is waiting for a one-time upgrade. Start Magistr to finish it.",
+        ));
+    }
     if value.project_id != project_id
         || value
             .signals
@@ -535,7 +542,7 @@ mod tests {
                 &id,
                 "profiled it; the export is O(n^2)".into(),
                 0.8,
-                vec!["sym-roadmap::export".into()],
+                vec!["sym-plan::export".into()],
                 Some(69),
             )
             .unwrap();
@@ -551,7 +558,7 @@ mod tests {
         assert_eq!(s.value.enrichment[0].think_step, Some(69));
         assert!(!s.value.enrichment[0].at.is_empty());
         // The motivating think step is cross-ref'd onto the signal.
-        assert!(s.value.cross_refs.contains(&"think:69".to_string()));
+        assert!(s.value.refs.contains(&"think:69".to_string()));
     }
 
     #[test]
@@ -623,7 +630,7 @@ mod tests {
         assert_eq!(s.status, SignalStatus::Researched);
         assert_eq!(s.enrichment.len(), 1);
         assert_eq!(s.enrichment[0].think_step, Some(42));
-        assert!(s.cross_refs.contains(&"think:42".to_string()));
+        assert!(s.refs.contains(&"think:42".to_string()));
     }
 
     /// Capture a signal and research it to `confidence` so it's `Researched`

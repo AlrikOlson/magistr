@@ -2481,7 +2481,7 @@ fn xml_injection_bare_tag_form_recovers_from_thought() {
     // Verbatim shape of what arrived in rikttp session 667b4108 step 2.
     step.thought = "Real reasoning content about the migration design.</thought>\n\
         <outcome>Phase XXXIX closes the migration limitation. AsyncUdpListener routes by addr with cid fallback.</outcome>\n\
-        <next_action>Update ROADMAP.md and commit.</next_action>\n\
+        <next_action>Update PLAN.md and commit.</next_action>\n\
         <rationale>To document and run the phase.</rationale>\n\
         <confidence>0.95</confidence>\n\
         <pinned>true</pinned>\n\
@@ -2531,7 +2531,7 @@ fn xml_injection_bare_tag_form_recovers_from_thought() {
     );
     match &stored.next_action {
         NextAction::Text(t) => assert!(
-            t.contains("Update ROADMAP.md"),
+            t.contains("Update PLAN.md"),
             "next_action should be recovered; got: {t:?}"
         ),
         _ => panic!("next_action should remain text form"),

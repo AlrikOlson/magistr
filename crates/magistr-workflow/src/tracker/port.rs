@@ -14,7 +14,7 @@
 //! other thing an issue-tracker API offers, because the projector never needs
 //! them — and because this system is not trying to be an issue-CRUD surface. The
 //! vendors run their own MCP servers for that and do it better; what this seam
-//! carries is the roadmap's plan and its provenance.
+//! carries is the plan's plan and its provenance.
 //!
 //! [`TrackerPort::relate_items`] was added only after the seam met a real
 //! projector. The original shape had no way to express "this is blocked by
@@ -37,7 +37,7 @@
 use async_trait::async_trait;
 
 use crate::infra::ExternalId;
-use crate::tracker::domain::{TrackerCapabilities, WorkGroup, WorkItem};
+use crate::tracker::domain::{TrackerCapabilities, WorkFeature, WorkItem};
 
 /// What a write to a provider produced.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -125,7 +125,7 @@ pub trait TrackerPort: Send + Sync {
     /// backstop for missed webhooks; webhook delivery is best-effort everywhere.
     async fn fetch_since(&self, since: &str) -> Result<Vec<WorkItem>, TrackerError>;
 
-    /// Declare that `from` is blocked by exactly `blocked_by` — the full set,
+    /// Declare that `from` is blocked by exactly `waiting_on` — the full set,
     /// not a delta, so the adapter can converge by adding and removing.
     ///
     /// This is a verb rather than a field on [`WorkItem`] for two reasons that
@@ -133,7 +133,7 @@ pub trait TrackerPort: Send + Sync {
     /// relation cannot be written before its target exists — GitHub's dependency
     /// endpoint takes the *database id* of an already-created issue — so the
     /// projector must upsert every item and only then wire the relations;
-    /// folding relations into `upsert_item` would make projecting a chunk ahead
+    /// folding relations into `upsert_item` would make projecting a task ahead
     /// of its blocker unrepresentable. Second, `WorkItem::content_hash` covers
     /// the content we author, and identity we merely resolved does not belong in
     /// it; keeping relations out preserves the no-op short-circuit's meaning.
@@ -165,9 +165,9 @@ pub trait TrackerPort: Send + Sync {
     async fn relate_items(
         &self,
         from: &ExternalId,
-        blocked_by: &[ExternalId],
+        waiting_on: &[ExternalId],
     ) -> Result<(), TrackerError> {
-        let _ = (from, blocked_by);
+        let _ = (from, waiting_on);
         Err(TrackerError::Unsupported(
             "blocking links are not supported by this provider".into(),
         ))
@@ -217,13 +217,13 @@ pub trait TrackerPort: Send + Sync {
         ))
     }
 
-    /// Ensure a CONTAINER exists for `group`, creating it if absent, and
+    /// Ensure a CONTAINER exists for `feature`, creating it if absent, and
     /// return its identity so the caller can REMEMBER it.
     ///
     /// Idempotent by contract, like [`Self::upsert_item`]: called on every push
-    /// for every group, so a second call for an existing container must be a
+    /// for every feature, so a second call for an existing container must be a
     /// no-op rather than a duplicate. Resolution prefers
-    /// [`WorkGroup::external_id`] when the caller remembered one — a container
+    /// [`WorkFeature::external_id`] when the caller remembered one — a container
     /// whose name a human edited upstream is still OUR container, and
     /// resolving by name after a rename mints a duplicate. A remembered id
     /// that no longer resolves is an ERROR, not a fall-back-to-create:
@@ -232,7 +232,7 @@ pub trait TrackerPort: Send + Sync {
     ///
     /// OWNERSHIP. The NAME is ours at creation only
     /// — after that it is the human's, and an upstream rename is left
-    /// standing. `state` is derived from the member chunks and is the only
+    /// standing. `state` is derived from the member tasks and is the only
     /// field a caller may set, and even it only within the values the
     /// projector authors: a current state outside our vocabulary (Linear's
     /// `paused`/`canceled`) records a human's judgement about the work, which
@@ -248,36 +248,36 @@ pub trait TrackerPort: Send + Sync {
     /// `probe_target` all follow, so a provider with no container concept needs
     /// no code and the projector treats `Unsupported` as "file the items flat"
     /// rather than as a failure.
-    async fn upsert_group(&self, group: &WorkGroup) -> Result<UpsertOutcome, TrackerError> {
-        let _ = group;
+    async fn upsert_feature(&self, feature: &WorkFeature) -> Result<UpsertOutcome, TrackerError> {
+        let _ = feature;
         Err(TrackerError::Unsupported(
             "this provider has no container to file items in".into(),
         ))
     }
 
-    /// Ensure the ROOF exists — the one container above every group that
-    /// represents the roadmap itself (a Linear *initiative*), creating it if
+    /// Ensure the ROOF exists — the one container above every feature that
+    /// represents the plan itself (a Linear *initiative*), creating it if
     /// absent, and return its identity so the caller can remember it. The
     /// adapter keeps whatever id it needs and is expected to file subsequent
-    /// [`Self::upsert_group`] containers under it.
+    /// [`Self::upsert_feature`] containers under it.
     ///
-    /// Reuses [`WorkGroup`] deliberately: the roof is a name, a derived state
-    /// and a remembered id, exactly what a group is, and a second struct with
+    /// Reuses [`WorkFeature`] deliberately: the roof is a name, a derived state
+    /// and a remembered id, exactly what a feature is, and a second struct with
     /// the same fields would only invite drift. `state` here is derived from
-    /// EVERY chunk in the push, not one group's members — how the closed
+    /// EVERY task in the push, not one feature's members — how the closed
     /// vocabulary a provider uses for its roof differs from its containers' is
     /// the adapter's translation to make. The ownership rules on
-    /// [`Self::upsert_group`] apply unchanged, including the vocabulary guard:
+    /// [`Self::upsert_feature`] apply unchanged, including the vocabulary guard:
     /// a roof status outside the values we author is a human's judgement and
     /// is left standing.
     ///
-    /// The projector calls this BEFORE any `upsert_group`, and a failure must
+    /// The projector calls this BEFORE any `upsert_feature`, and a failure must
     /// degrade to groups-without-a-roof rather than aborting the push — the
-    /// issues still land. The default REFUSES like `upsert_group`, so a
+    /// issues still land. The default REFUSES like `upsert_feature`, so a
     /// provider with no such concept needs no code.
     async fn upsert_initiative(
         &self,
-        initiative: &WorkGroup,
+        initiative: &WorkFeature,
     ) -> Result<UpsertOutcome, TrackerError> {
         let _ = initiative;
         Err(TrackerError::Unsupported(

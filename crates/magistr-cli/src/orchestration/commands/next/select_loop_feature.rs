@@ -19,7 +19,7 @@ pub(super) fn select_loop_feature(
         return Ok(());
     };
     let features = engines
-        .roadmap_workstreams()
+        .plan_workstreams()
         .map_err(|error| color_eyre::eyre::eyre!(error))?
         .current_names();
     if features.is_empty() {

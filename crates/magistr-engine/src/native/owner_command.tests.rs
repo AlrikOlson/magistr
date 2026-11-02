@@ -11,9 +11,9 @@ fn round_trip(command: &OwnerCommand) -> OwnerCommand {
 #[test]
 fn every_family_survives_the_wire() {
     let commands = [
-        OwnerCommand::Roadmap(RoadmapCommand::SetGroup {
+        OwnerCommand::Plan(PlanCommand::SetFeature {
             id: "c".into(),
-            group: None,
+            feature: None,
         }),
         OwnerCommand::Think(ThinkCommand::Checkpoint),
         OwnerCommand::Think(ThinkCommand::PinStep {

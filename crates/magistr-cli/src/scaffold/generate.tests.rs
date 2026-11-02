@@ -29,7 +29,7 @@ pub(super) fn test_vars() -> HashMap<String, String> {
 }
 
 #[test]
-fn roadmap_exports_policy_survives_reinitialization_without_recreating_a_view() {
+fn plan_exports_policy_survives_reinitialization_without_recreating_a_view() {
     let root = tempfile::tempdir().expect("project");
     std::fs::create_dir(root.path().join(".magistr")).expect("config directory");
     let config = serde_json::json!({
@@ -38,10 +38,10 @@ fn roadmap_exports_policy_survives_reinitialization_without_recreating_a_view() 
     "quality_gate": {"check": "true", "test": "true", "lint": "true"},
     "format": {"command": "", "extensions": []},
     "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
-    "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+    "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false
 }).to_string();
     std::fs::write(root.path().join(".magistr/project.json"), &config).expect("policy");
-    let overrides = HashMap::from([("ROADMAP.md".to_owned(), "unrequested view".to_owned())]);
+    let overrides = HashMap::from([("PLAN.md".to_owned(), "unrequested view".to_owned())]);
     generate_with_result(
         root.path(),
         &test_vars(),
@@ -49,8 +49,8 @@ fn roadmap_exports_policy_survives_reinitialization_without_recreating_a_view() 
         &crate::scaffold::SetupSeeds::default(),
     )
     .expect("reinitialize");
-    assert!(!root.path().join("ROADMAP.md").exists());
-    assert!(!root.path().join("ROADMAP.json").exists());
+    assert!(!root.path().join("PLAN.md").exists());
+    assert!(!root.path().join("PLAN.json").exists());
     assert_eq!(
         std::fs::read_to_string(root.path().join(".magistr/project.json")).expect("config"),
         config
@@ -777,9 +777,9 @@ fn current_settings_setup_refuses_invalid_declarations_before_any_write() {
             "quality_gate": {"check": "true", "test": "true", "lint": "true"},
             "format": {"command": "", "extensions": []},
             "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
-            "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+            "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false
         });
-        config["roadmap_backend"] = invalid;
+        config["plan_backend"] = invalid;
         std::fs::create_dir(root.path().join(".magistr")).unwrap();
         let path = root.path().join(".magistr/project.json");
         let original = config.to_string();
@@ -799,7 +799,7 @@ fn current_settings_setup_refuses_invalid_declarations_before_any_write() {
 }
 
 #[test]
-fn current_yaml_setup_preserves_settings_without_reconstructing_a_roadmap() {
+fn current_yaml_setup_preserves_settings_without_reconstructing_a_plan() {
     let root = tempfile::tempdir().unwrap();
     let mut config = serde_json::json!({
         "project": {"name": "settings-test", "type": "cli"},
@@ -807,9 +807,9 @@ fn current_yaml_setup_preserves_settings_without_reconstructing_a_roadmap() {
         "quality_gate": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "", "extensions": []},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
-        "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+        "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false
     });
-    config["roadmap_backend"] = "yaml".into();
+    config["plan_backend"] = "yaml".into();
     std::fs::create_dir(root.path().join(".magistr")).unwrap();
     std::fs::write(
         root.path().join(".magistr/project.json"),
@@ -817,7 +817,7 @@ fn current_yaml_setup_preserves_settings_without_reconstructing_a_roadmap() {
     )
     .unwrap();
     let overrides = HashMap::from([(
-        ".magistr-roadmap.yml".to_owned(),
+        ".magistr-plan.yml".to_owned(),
         "title: Current Project\n".to_owned(),
     )]);
     let result = generate_with_result(
@@ -827,8 +827,8 @@ fn current_yaml_setup_preserves_settings_without_reconstructing_a_roadmap() {
         &crate::scaffold::SetupSeeds::default(),
     )
     .unwrap();
-    assert!(!root.path().join(".magistr-roadmap.yml").exists());
-    assert!(!result.created.contains(&".magistr-roadmap.yml".to_owned()));
-    assert!(!root.path().join("ROADMAP.md").exists());
-    assert!(!root.path().join(".magistr/roadmap.yaml").exists());
+    assert!(!root.path().join(".magistr-plan.yml").exists());
+    assert!(!result.created.contains(&".magistr-plan.yml".to_owned()));
+    assert!(!root.path().join("PLAN.md").exists());
+    assert!(!root.path().join(".magistr/plan.yaml").exists());
 }

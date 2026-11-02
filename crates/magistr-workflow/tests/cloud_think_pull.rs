@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use magistr_workflow::cloud::build::from_step;
 use magistr_workflow::cloud::client::CloudClient;
 use magistr_workflow::cloud::pull::{apply_think_records, reconcile_all, reconcile_think};
-use magistr_workflow::roadmap::RoadmapEngine;
+use magistr_workflow::plan::PlanEngine;
 use magistr_workflow::signal::SignalEngine;
 use magistr_workflow::think::config::ThinkConfig;
 use magistr_workflow::think::domain::{NextAction, ThinkStep};
@@ -186,18 +186,18 @@ async fn reconcile_all_hydrates_every_family_and_tolerates_one_failing() {
         )
         .mount(&server)
         .await;
-    let chunk = json!({
+    let task = json!({
         "record": {
-            "id": "c1", "title": "T", "status": "backlog", "priority": 1,
+            "id": "c1", "title": "T", "status": "idea", "priority": 1,
             "description": "", "notes": "", "acceptance": [], "deps": [],
-            "cross_refs": [], "shared": false, "project_id": "t",
+            "refs": [], "shared": false, "project_id": "t",
             "created_at": "2026-06-08T00:00:00Z", "updated_at": "2026-06-08T00:00:00Z"
         }
     });
     Mock::given(method("GET"))
         .and(path("/v1/records"))
-        .and(query_param("family", "roadmap"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "records": [chunk] })))
+        .and(query_param("family", "plan"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "records": [task] })))
         .mount(&server)
         .await;
     Mock::given(method("GET"))
@@ -209,14 +209,14 @@ async fn reconcile_all_hydrates_every_family_and_tolerates_one_failing() {
 
     let client = CloudClient::new(server.uri(), "tok");
     let think = Arc::new(Mutex::new(quiet_server()));
-    let roadmap = Arc::new(Mutex::new(RoadmapEngine::new("t".into())));
+    let plan = Arc::new(Mutex::new(PlanEngine::new("t".into())));
     let signal = Arc::new(Mutex::new(SignalEngine::new("t".into())));
 
-    let (t, r, s) = reconcile_all(&client, &think, &roadmap, &signal).await;
+    let (t, r, s) = reconcile_all(&client, &think, &plan, &signal).await;
     assert_eq!((t.unwrap(), r.unwrap()), (1, 1));
     assert!(s.is_err());
     assert_eq!(think.lock().unwrap().history().steps.len(), 1);
-    assert_eq!(roadmap.lock().unwrap().roadmap().chunks.len(), 1);
+    assert_eq!(plan.lock().unwrap().plan().tasks.len(), 1);
 }
 
 #[test]

@@ -147,7 +147,7 @@ fn controlled(purpose: SessionPurpose) -> (Box<dyn SessionHandle>, Opened) {
             conversation: Conversation {
                 id: match purpose {
                     SessionPurpose::Conversation => "logical-conversation",
-                    SessionPurpose::Roadmap => "logical-roadmap",
+                    SessionPurpose::Plan => "logical-plan",
                 }
                 .into(),
                 name: None,
@@ -237,16 +237,14 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         Msg::Agent(AgentEvent::Initialized { .. })
     ));
     // Park the conversation while planning acquires its own identity.
-    commands
-        .send(Cmd::RoadmapPrompt("First plan".into()))
-        .unwrap();
+    commands.send(Cmd::PlanPrompt("First plan".into())).unwrap();
     let (resume, mut planning) = next(&mut connections).await;
     assert_eq!(resume, None);
-    assert_eq!(planning.purpose, SessionPurpose::Roadmap);
+    assert_eq!(planning.purpose, SessionPurpose::Plan);
     assert_eq!(next(&mut planning.prompts).await, "First plan");
     assert!(matches!(
         next_observation(&mut events).await,
-        Msg::RoadmapRequestStarted
+        Msg::PlanRequestStarted
     ));
     planning
         .events
@@ -281,9 +279,9 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         ),
         (
             planning,
-            Cmd::RoadmapPrompt("Retry planning".into()),
+            Cmd::PlanPrompt("Retry planning".into()),
             "planning",
-            SessionPurpose::Roadmap,
+            SessionPurpose::Plan,
         ),
     ] {
         // The parked provider may fail before it is selected again.
@@ -300,10 +298,10 @@ async fn reconnect_restores_each_purpose_and_omits_replayed_history() {
         assert_eq!(resume.as_deref(), Some(identity));
         assert_eq!(restored.purpose, purpose);
         assert!(next(&mut restored.prompts).await.starts_with("Retry"));
-        if purpose == SessionPurpose::Roadmap {
+        if purpose == SessionPurpose::Plan {
             assert!(matches!(
                 next_observation(&mut events).await,
-                Msg::RoadmapRequestStarted
+                Msg::PlanRequestStarted
             ));
         }
         restored
@@ -433,14 +431,12 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
             .unwrap(),
         ],
     };
-    commands
-        .send(Cmd::RoadmapPrompt(discarded.clone()))
-        .unwrap();
+    commands.send(Cmd::PlanPrompt(discarded.clone())).unwrap();
     assert!(matches!(
         next_observation(&mut events).await,
-        Msg::RoadmapRequestQueued
+        Msg::PlanRequestQueued
     ));
-    commands.send(Cmd::CancelRoadmapPrompt).unwrap();
+    commands.send(Cmd::CancelPlanPrompt).unwrap();
     assert!(matches!(
         next(&mut events).await,
         Msg::Agent(AgentEvent::PromptRejected { input, error })
@@ -448,13 +444,13 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
     ));
     assert!(matches!(
         next_observation(&mut events).await,
-        Msg::RoadmapRequestCancelled
+        Msg::PlanRequestCancelled
     ));
     assert!(connections.try_recv().is_err());
-    commands.send(Cmd::RoadmapPrompt("Plan".into())).unwrap();
+    commands.send(Cmd::PlanPrompt("Plan".into())).unwrap();
     assert!(matches!(
         next_observation(&mut events).await,
-        Msg::RoadmapRequestQueued
+        Msg::PlanRequestQueued
     ));
     assert!(
         connections.try_recv().is_err(),
@@ -470,10 +466,10 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
     ));
     assert!(matches!(
         next_observation(&mut events).await,
-        Msg::RoadmapRequestStarted
+        Msg::PlanRequestStarted
     ));
     let mut planning = next(&mut connections).await;
-    assert_eq!(planning.purpose, SessionPurpose::Roadmap);
+    assert_eq!(planning.purpose, SessionPurpose::Plan);
     assert_eq!(next(&mut planning.prompts).await, "Plan");
 
     planning
@@ -505,10 +501,10 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
         next_observation(&mut events).await,
         Msg::Agent(AgentEvent::TurnEnded(_))
     ));
-    commands.send(Cmd::RoadmapPrompt("Refine".into())).unwrap();
+    commands.send(Cmd::PlanPrompt("Refine".into())).unwrap();
     assert!(matches!(
         next_observation(&mut events).await,
-        Msg::RoadmapRequestStarted
+        Msg::PlanRequestStarted
     ));
     assert_eq!(next(&mut planning.prompts).await, "Refine");
     assert!(
@@ -523,7 +519,7 @@ async fn planning_waits_for_the_turn_and_keeps_a_separate_reusable_context() {
 #[tokio::test]
 async fn cancelling_a_pending_connection_rejects_exact_input_and_allows_retry() {
     use magistr_application::sessions::{PromptAttachment, PromptInput};
-    for roadmap in [false, true] {
+    for plan in [false, true] {
         let (inbox, mut events) = Inbox::channel();
         let (commands, receiver) = Commands::channel();
         let (opened, mut connections) = mpsc::unbounded_channel();
@@ -555,15 +551,15 @@ async fn cancelling_a_pending_connection_rejects_exact_input_and_allows_retry() 
                 .unwrap(),
             ],
         };
-        let prompt = if roadmap {
-            Cmd::RoadmapPrompt(input.clone())
+        let prompt = if plan {
+            Cmd::PlanPrompt(input.clone())
         } else {
             Cmd::Prompt(input.clone())
         };
         commands.send(prompt.clone()).unwrap();
         let (mut cancelled, release) = next(&mut connections).await;
-        let cancellation = if roadmap {
-            Cmd::CancelRoadmapPrompt
+        let cancellation = if plan {
+            Cmd::CancelPlanPrompt
         } else {
             Cmd::Cancel
         };
@@ -574,8 +570,8 @@ async fn cancelling_a_pending_connection_rejects_exact_input_and_allows_retry() 
                 if rejected == input && error == "This send was stopped. Your draft is still available."
         ));
         let terminal = next(&mut events).await;
-        if roadmap {
-            assert!(matches!(terminal, Msg::RoadmapRequestCancelled));
+        if plan {
+            assert!(matches!(terminal, Msg::PlanRequestCancelled));
         } else {
             assert!(matches!(
                 terminal,
@@ -599,11 +595,8 @@ async fn cancelling_a_pending_connection_rejects_exact_input_and_allows_retry() 
         let (mut retry, release) = next(&mut connections).await;
         release.send(()).unwrap();
         assert_eq!(next(&mut retry.prompts).await, input.text);
-        if roadmap {
-            assert!(matches!(
-                next(&mut events).await,
-                Msg::RoadmapRequestStarted
-            ));
+        if plan {
+            assert!(matches!(next(&mut events).await, Msg::PlanRequestStarted));
         }
         assert!(
             matches!(next(&mut events).await, Msg::InputAccepted(receipt) if receipt == input.receipt())
@@ -727,14 +720,12 @@ async fn aborting_owner_releases_both_contexts_and_fences_a_running_local_job() 
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
     next_observation(&mut events).await;
-    commands
-        .send(Cmd::RoadmapPrompt("Planning".into()))
-        .unwrap();
+    commands.send(Cmd::PlanPrompt("Planning".into())).unwrap();
     let mut planning = next(&mut connections).await;
     next(&mut planning.prompts).await;
     assert!(matches!(
         next_observation(&mut events).await,
-        Msg::RoadmapRequestStarted
+        Msg::PlanRequestStarted
     ));
     assert!(
         matches!(next(&mut events).await, Msg::InputAccepted(input) if input.text == "Planning")
@@ -847,7 +838,7 @@ async fn closed_local_and_provider_receivers_preserve_the_refused_action() {
             purpose: SessionPurpose::Conversation,
         },
         inbox: session.inbox.for_conversation("logical-conversation"),
-        roadmap: false,
+        plan: false,
         replaying: false,
     });
     for cmd in [
@@ -894,7 +885,7 @@ async fn delivery_to_an_open_receiver_does_not_emit_a_refusal() {
             purpose: SessionPurpose::Conversation,
         },
         inbox: session.inbox.for_conversation("logical-conversation"),
-        roadmap: false,
+        plan: false,
         replaying: false,
     });
     assert!(session.forward(Cmd::Cancel));

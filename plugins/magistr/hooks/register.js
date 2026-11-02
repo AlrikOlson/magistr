@@ -30,10 +30,10 @@ const reads = new Map()
 const PANE = 'magistr-work'
 const READS = [
   ['run', 'magistr', 'run_status', {}],
-  ['roadmap', 'magistr', 'roadmap_status', {}],
+  ['plan', 'magistr', 'plan_status', {}],
   ['context', 'magistr', 'context', {}],
   ['findings', 'magistr', 'think_engine_status', { verbose: true }],
-  ['focus', 'magistr', 'roadmap_focus_get', {}],
+  ['focus', 'magistr', 'plan_focus_get', {}],
   ['workspace', 'magistr', 'workspace_status', {}],
   ['changes', 'magistr', 'undo', { action: 'list', limit: 40, diff: true }],
 ]
@@ -172,7 +172,7 @@ async function refresh($, force = false) {
     if (
       epoch === generation &&
       !actionInFlight &&
-      ['run', 'context', 'roadmap'].every(
+      ['run', 'context', 'plan'].every(
         (k) =>
           model.slots[k]?.value &&
           !model.slots[k].error &&
@@ -231,7 +231,7 @@ async function drainDetails($) {
           : kind === 'check_result'
             ? ['magistr', 'context', { check_result_id: item }, 'context']
             : kind === 'work'
-              ? ['magistr', 'roadmap_get', { ids: [item.id] }, 'work']
+              ? ['magistr', 'plan_get', { ids: [item.id] }, 'work']
               : kind === 'finding'
                 ? [
                     'magistr',
@@ -258,7 +258,7 @@ async function drainDetails($) {
       model.detail = value
       model.detailStatus =
         kind === 'check_result' && !value.check_result
-          ? 'This check check_result is no longer available.'
+          ? 'This check result is no longer available.'
           : ''
     } catch (error) {
       if (serial !== model.detailGeneration || epoch !== generation || stopped)
@@ -322,7 +322,7 @@ async function action($, kind, target) {
     const title =
       kind === 'gate'
         ? target.commands.map((c) => c.command).join('; ')
-        : target.title || target.group
+        : target.title || target.feature
     if (kind === 'gate' && title.length > 400)
       throw new Error(
         'This command is too long to review here. Inspect and run it with your usual workflow.',
@@ -358,10 +358,10 @@ async function action($, kind, target) {
       )
     if (
       ['work', 'focus'].includes(kind) &&
-      (model.slots.roadmap?.error || !model.slots.roadmap?.value)
+      (model.slots.plan?.error || !model.slots.plan?.value)
     )
       throw new Error(
-        'The roadmap could not be checked. Refresh before acting.',
+        'The plan could not be checked. Refresh before acting.',
       )
     if (model.slots.run?.error || !model.slots.run?.value)
       throw new Error(
@@ -387,9 +387,9 @@ async function action($, kind, target) {
       )
         throw new Error('This step cannot be started now. Review current work.')
     }
-    if (kind === 'work' && model.slots.roadmap?.value?.next !== target.id)
+    if (kind === 'work' && model.slots.plan?.value?.next !== target.id)
       throw new Error(
-        'This work is no longer the next ready item. Review the roadmap.',
+        'This work is no longer the next ready item. Review the plan.',
       )
     if (kind === 'gate') {
       if (!model.slots.run.value.active_step)
@@ -419,8 +419,8 @@ async function action($, kind, target) {
         : kind === 'step'
           ? 'start_step'
           : kind === 'focus'
-            ? 'roadmap_focus_set'
-            : 'roadmap_start_chunk'
+            ? 'plan_focus_set'
+            : 'plan_start_task'
     const args =
       kind === 'gate'
         ? { gate: target.key, timeout_secs: timeLimit }
@@ -429,7 +429,7 @@ async function action($, kind, target) {
           : kind === 'focus'
             ? {
                 lane: 'claude-mod:' + (await $.session.id()),
-                group: target.group,
+                feature: target.feature,
                 mode: 'build',
               }
             : { id: target.id }
@@ -545,7 +545,7 @@ async function command($, e) {
   if (!args) return open($)
   if (args === 'help')
     return {
-      text: 'Magistr: current, roadmap, checks, findings, changes, refresh, diagnose, band on, band off, step <title>, work <title>, finding <number>. The pane lets you inspect work and confirm actions. Existing /next and /craft skills continue coding work.',
+      text: 'Magistr: current, plan, checks, findings, changes, refresh, diagnose, band on, band off, step <title>, work <title>, finding <number>. The pane lets you inspect work and confirm actions. Existing /next and /craft skills continue coding work.',
     }
   if (args === 'refresh') {
     await refresh($)
@@ -566,7 +566,7 @@ async function command($, e) {
           ([name]) =>
             ({
               run: 'Work',
-              roadmap: 'Roadmap',
+              plan: 'Plan',
               context: 'Progress',
               findings: 'Findings',
               focus: 'Chosen workstream',
@@ -580,7 +580,7 @@ async function command($, e) {
         '\nUse /mcp to inspect and reconnect the existing servers. Keep the existing services running. Progress details and check choices need a current Magistr build.',
     }
   }
-  if (['current', 'roadmap', 'checks', 'findings', 'changes'].includes(args)) {
+  if (['current', 'plan', 'checks', 'findings', 'changes'].includes(args)) {
     switchTab($, args)
     await refresh($)
     return { text: summary(model, args) }
@@ -594,7 +594,7 @@ async function command($, e) {
       kind === 'step'
         ? model.slots.run?.value?.step_list
         : kind === 'work'
-          ? model.slots.roadmap?.value?.chunks
+          ? model.slots.plan?.value?.tasks
           : []
     const item =
       kind === 'finding' &&

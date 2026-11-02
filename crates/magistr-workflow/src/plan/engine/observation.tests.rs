@@ -1,0 +1,90 @@
+use super::*;
+use crate::infra::{Domain, Persistence, PersistenceConfig};
+use crate::plan::domain::TaskStatus;
+
+fn setup() -> (tempfile::TempDir, PlanEngine, std::path::PathBuf) {
+    let dir = tempfile::tempdir().unwrap();
+    let persistence = Persistence::new(
+        &PersistenceConfig {
+            enabled: true,
+            data_dir: dir.path().to_owned(),
+        },
+        Domain::Plan,
+    );
+    let path = persistence.path_for("project");
+    let engine = PlanEngine::new("project".into()).with_persistence(persistence);
+    (dir, engine, path)
+}
+
+fn add(engine: &mut PlanEngine, id: &str) {
+    engine
+        .add_task(
+            id.into(),
+            "Saved work".into(),
+            TaskStatus::ToDo,
+            1,
+            String::new(),
+            vec![],
+            vec![],
+            false,
+        )
+        .unwrap();
+}
+
+#[test]
+fn failed_mutation_keeps_memory_and_durable_data_at_the_last_commit() {
+    let (_dir, mut engine, path) = setup();
+    add(&mut engine, "saved");
+    let lock = path.with_extension("json.lock");
+    std::fs::remove_file(&lock).unwrap();
+    std::fs::create_dir(&lock).unwrap();
+    let refused = engine
+        .add_task(
+            "unsaved".into(),
+            "Refused change".into(),
+            TaskStatus::ToDo,
+            2,
+            String::new(),
+            vec![],
+            vec![],
+            false,
+        )
+        .unwrap_err();
+    assert!(matches!(refused, super::super::PlanMutationError::Store(_)));
+    assert_eq!(engine.plan().tasks.len(), 1);
+    let observed = engine.observe().unwrap();
+    assert_eq!(observed.value.tasks.len(), 1);
+    assert_eq!(observed.value.tasks[0].id, "saved");
+    assert_eq!(
+        engine.plan().tasks.len(),
+        1,
+        "a refused change was never installed"
+    );
+}
+
+#[test]
+fn invalid_origins_are_refused_without_repairing_the_file() {
+    let (_dir, mut engine, path) = setup();
+    add(&mut engine, "saved");
+    let original: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    for value in [serde_json::Value::Null, serde_json::json!("elsewhere")] {
+        let mut record = original.clone();
+        record["tasks"][0]["project_id"] = value;
+        let bytes = serde_json::to_vec(&record).unwrap();
+        std::fs::write(&path, &bytes).unwrap();
+        assert_eq!(engine.observe().unwrap_err().kind, ReadErrorKind::Identity);
+        assert!(engine.refresh_if_stale().is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+    }
+}
+
+#[test]
+fn missing_and_successfully_empty_stores_have_different_sources() {
+    let (_dir, engine, path) = setup();
+    assert_eq!(engine.observe().unwrap().source, ReadSource::Missing);
+    std::fs::write(&path, serde_json::to_vec(engine.plan()).unwrap()).unwrap();
+    let read = engine.observe().unwrap();
+    assert!(read.value.tasks.is_empty());
+    assert!(matches!(read.source, ReadSource::File(_)));
+}

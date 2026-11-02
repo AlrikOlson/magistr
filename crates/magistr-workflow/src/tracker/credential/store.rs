@@ -15,8 +15,8 @@
 //!
 //! Two structural guarantees matter more than the cipher, and they hold
 //! regardless of backend: credentials live in their own file, never in the
-//! roadmap store, and therefore never in a git-mirrored partition and never in
-//! `roadmap_export` output. That is enforced by construction — the roadmap types
+//! plan store, and therefore never in a git-mirrored partition and never in
+//! `plan_export` output. That is enforced by construction — the plan types
 //! have nowhere to put a secret — and asserted by test.
 //!
 //! # The OS keychain, and why it took a different mechanism
@@ -226,7 +226,7 @@ pub struct FileCredentialStore {
 
 impl FileCredentialStore {
     /// `<data_dir>/tracker/credentials/` — beside the tracker's other state and
-    /// deliberately nowhere near the roadmap store.
+    /// deliberately nowhere near the plan store.
     #[must_use]
     pub fn new(data_dir: &Path) -> Self {
         Self {

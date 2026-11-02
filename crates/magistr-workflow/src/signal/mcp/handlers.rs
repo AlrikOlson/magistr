@@ -1,5 +1,5 @@
 //! The `signal_*` tool handlers — rmcp `#[tool]` methods over [`SignalService`],
-//! mirroring `roadmap::mcp::handlers`. Args deserialize forgivingly (absent
+//! mirroring `plan::mcp::handlers`. Args deserialize forgivingly (absent
 //! fields become defaults, never a -32602 that would cancel sibling calls);
 //! logical failures return a soft `{ok:false, …}` envelope.
 
@@ -65,7 +65,7 @@ pub struct GetArgs {
 pub struct LinkArgs {
     pub id: String,
     /// A cross-ref string: `think:N`, `step:X`, `progress:N`, `check:X`,
-    /// `chunk:X`, `signal:X`. `ref`/`crossref` accepted as forgiving aliases.
+    /// `task:X`, `signal:X`. `ref`/`crossref` accepted as forgiving aliases.
     #[serde(default, alias = "ref", alias = "crossref")]
     #[schemars(required, !default)]
     pub cross_ref: String,
@@ -200,7 +200,7 @@ impl SignalService {
 
     #[tool(
         name = "signal_link",
-        description = "Attach a typed cross-reference to a signal, fusing it into the think/run/roadmap graph.\n\nInputs: id (required), cross_ref (required — think:N | step:X | progress:N | check:X | chunk:X | signal:X).\n\nReturns: the updated signal. Duplicates are ignored.",
+        description = "Attach a typed cross-reference to a signal, fusing it into the think/run/plan graph.\n\nInputs: id (required), cross_ref (required — think:N | step:X | progress:N | check:X | task:X | signal:X).\n\nReturns: the updated signal. Duplicates are ignored.",
         annotations(
             title = "Link signal",
             read_only_hint = false,
@@ -218,9 +218,9 @@ impl SignalService {
 
     #[tool(
         name = "signal_promote",
-        description = "Promote a validated (researched or surfaced) signal into a backlog roadmap chunk — the opportunity→solution move. Writes bidirectional cross-refs: chunk:<id> onto the signal, signal:<id> onto the new chunk, so provenance runs both ways.\n\nInputs: id (required).\n\nReturns: { signal_id, chunk_id, created, signal/chunk }. Idempotent: a signal already promoted returns its existing chunk with created=false (no duplicate).",
+        description = "Promote a validated (researched or surfaced) signal into a plan idea — the opportunity→solution move. Writes bidirectional cross-refs: task:<id> onto the signal, signal:<id> onto the new task, so provenance runs both ways.\n\nInputs: id (required).\n\nReturns: { signal_id, task_id, created, signal/task }. Idempotent: a signal already promoted returns its existing task with created=false (no duplicate).",
         annotations(
-            title = "Promote signal to chunk",
+            title = "Promote signal to task",
             read_only_hint = false,
             destructive_hint = false,
             idempotent_hint = true,

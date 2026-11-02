@@ -22,7 +22,7 @@ fn owner_generation_advances_when_the_same_project_changes_store() {
     );
 }
 
-use magistr_workflow::roadmap::domain::ChunkStatus;
+use magistr_workflow::plan::domain::TaskStatus;
 
 fn config(tmp: &tempfile::TempDir) -> NativeConfig {
     let root = tmp.path().join("proj");
@@ -62,13 +62,13 @@ fn refused(config: &NativeConfig, role: WriterRole) -> io::Error {
     }
 }
 
-fn add_chunk(engines: &NativeEngines, id: &str) {
+fn add_task(engines: &NativeEngines, id: &str) {
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             id.into(),
-            format!("Chunk {id}"),
+            format!("Task {id}"),
             String::new(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             100,
             String::new(),
             vec![],
@@ -76,7 +76,7 @@ fn add_chunk(engines: &NativeEngines, id: &str) {
             None,
             None,
         )
-        .expect("add chunk");
+        .expect("add task");
 }
 
 #[test]
@@ -99,9 +99,9 @@ fn one_project_writer_is_admitted_across_host_and_service_roles() {
         io::ErrorKind::WouldBlock
     );
     let host = host.open();
-    add_chunk(&host, "from-host");
+    add_task(&host, "from-host");
     let observer = NativeReader::open_for_project(&cfg, "lease".into());
-    assert_eq!(observer.roadmap_chunks().unwrap().len(), 1);
+    assert_eq!(observer.plan_tasks().unwrap().len(), 1);
     drop(host);
     ProjectAuthority::admit_for_project(&cfg, "lease".into(), WriterRole::Service)
         .expect("service succeeds after host exits");
@@ -118,14 +118,14 @@ fn the_lease_lives_with_the_last_writer_clone_and_readers_never_hold_it() {
     let reader = writer.reader();
     drop(writer);
     // A clone still writes under the admission.
-    add_chunk(&clone, "late");
+    add_task(&clone, "late");
     assert_eq!(
         refused(&cfg, WriterRole::Host).kind(),
         io::ErrorKind::WouldBlock
     );
     drop(clone);
     // Only the reader remains, and it holds no lock: the role is free again.
-    assert_eq!(reader.roadmap_chunks().unwrap().len(), 1);
+    assert_eq!(reader.plan_tasks().unwrap().len(), 1);
     let reopened = ProjectAuthority::admit_for_project(&cfg, "lease".into(), WriterRole::Host)
         .expect("released with the last writer");
     drop(reopened);
@@ -138,7 +138,7 @@ fn a_stateless_store_leases_under_the_project_root_and_writes_nothing() {
     let host = ProjectAuthority::admit_for_project(&cfg, "lease".into(), WriterRole::Host)
         .expect("host")
         .open();
-    add_chunk(&host, "ephemeral");
+    add_task(&host, "ephemeral");
     assert!(
         cfg.project_root
             .join(".magistr/project-owner.lock")

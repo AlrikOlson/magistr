@@ -20,7 +20,7 @@ pub struct SessionState {
     pub thinking_active: bool,
     /// Preview snippet of the current thinking content (truncated for display).
     pub thinking_preview: Option<String>,
-    /// Buffer for accumulating streaming thinking chunks.
+    /// Buffer for accumulating streaming thinking tasks.
     pub thinking_buffer: String,
     /// Short session identifier for display and resume.
     pub session_id: Option<String>,

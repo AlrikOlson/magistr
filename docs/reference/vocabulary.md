@@ -420,7 +420,17 @@ run in this order:
    any engine opens, and keeps the originals under the store's `backups/`;
    readers refuse until it is done.
 3. `vocab-plan-family`: roadmap, chunk, group and the task states. The plan
-   store rewrites `chunk:` to `task:` after the run store has finished.
+   store moves from `roadmap/` to `plan/` after the run store has moved, and
+   every store rewrites `chunk:` to `task:`. One admission-time owner,
+   `StoreWordsUpgrade`, keeps the order of the moves; each family's codec
+   converts its own documents and decides what is old from the document's
+   saved version, never from its references, because `task:` meant a run step
+   before the run words and means a plan task after the plan words. Plan and
+   signal documents gain a leading `schema_version`. `project.json`
+   `roadmap_backend` and `roadmap_exports` and the YAML plan
+   `.magistr-roadmap.yml` are converted by their configuration owner. A
+   readiness that waits on dependencies is `dependent`; `waiting` is reserved
+   for a named reason.
 4. `vocab-decision-family` and `vocab-request-family`: think and signal.
 5. `vocab-teams-checks`: lane, workstream and gate.
 6. `vocab-copy-gate`: desktop, website and docs copy, plus a check that fails
@@ -452,8 +462,18 @@ These keep their spelling on purpose:
   keeps its spelling here; `vocab-copy-gate` decides its public copy.
 - Words other families own stay until their task lands: `think_step`,
   `think_branch` and the `execution_ref` field name (decision family), the
-  quality-gate words `gate`, `magistr_gate` and `custom_gates` (teams and
-  checks), and `chunk` (plan family).
+  quality-gate words `gate`, `magistr_gate` and `custom_gates`, and
+  `workstream`, `track` and `lane` (teams and checks).
+- The skill names `roadmap` and `roadmap-refresh` and their template files stay
+  until `vocabulary-cutover` ships the staged `plan` skill; their text already
+  uses the plan tools.
+- The plan importer reads people's own documents, so it still recognizes their
+  words (`pending`, `backlog`, `blocked`, `obsoleted`) as input. External
+  tracker vocabularies (Linear's `backlog` state type, GitHub Projects column
+  names) belong to those services.
+- Shown state labels in the desktop ("Backlog", "Planned", "Blocked",
+  "Completed") are copy; `vocab-copy-gate` brings them to the "Shown as" words.
+  The keys they label already use the stored words.
 - The imported upstream documentation under `subsystems/workflow/docs` and the
   recorded demo session under `apps/website/public/demo` are history and are
   not rewritten.

@@ -5,10 +5,10 @@ use super::verdict::Verdict;
 
 /// The loop's next move, reconciled from the judge's [`Verdict`] and the
 /// real gates. This is the one place the authority rule lives:
-/// `check_step`'s exit codes complete a chunk, a verdict never does.
+/// `check_step`'s exit codes complete a task, a verdict never does.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Decision {
-    /// The judge says met and every gate passed: complete the chunk.
+    /// The judge says met and every gate passed: complete the task.
     Complete {
         /// The judge's reason.
         reason: String,
@@ -18,7 +18,7 @@ pub enum Decision {
         /// The judge's reason.
         reason: String,
     },
-    /// The judge says met but a gate is red: the chunk stays in
+    /// The judge says met but a gate is red: the task stays in
     /// progress and the disagreement is reported — a bug in the
     /// condition or the evidence, never a completion.
     Disagreement {

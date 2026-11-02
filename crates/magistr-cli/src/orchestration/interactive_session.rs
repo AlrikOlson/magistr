@@ -41,13 +41,13 @@ pub(crate) fn session_with_checkpoints(
             crate::agent::persistence::SessionHistory::for_purpose(purpose)
         }
     };
-    let roadmap_history = history_for(SessionPurpose::Roadmap);
+    let plan_history = history_for(SessionPurpose::Plan);
     let conversation_history = history_for(SessionPurpose::Conversation);
     let workspace = super::commands::workspace_port::workspace_port(&config.cwd);
     InteractiveSession::new(
         move |purpose, resume| {
             let mut config = match purpose {
-                SessionPurpose::Roadmap => super::roadmap_request::config(&config),
+                SessionPurpose::Plan => super::plan_request::config(&config),
                 SessionPurpose::Conversation => {
                     let mut config = config.clone();
                     config.history = conversation_history.clone();
@@ -56,8 +56,8 @@ pub(crate) fn session_with_checkpoints(
                     config
                 }
             };
-            if purpose == SessionPurpose::Roadmap {
-                config.history = roadmap_history.clone();
+            if purpose == SessionPurpose::Plan {
+                config.history = plan_history.clone();
             }
             // The live history keeps logical identity and current configuration;
             // the connector's resume identity belongs to this same provider.

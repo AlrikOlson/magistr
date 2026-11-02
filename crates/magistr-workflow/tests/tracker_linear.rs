@@ -11,8 +11,8 @@
 //! the query body, which is also a stronger assertion: it pins WHICH operation
 //! was sent, not merely that something was posted.
 
-use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::roadmap::engine::RoadmapEngine;
+use magistr_workflow::plan::domain::TaskStatus;
+use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::tracker::budget::{RateBudget, Spend, Transport};
 use magistr_workflow::tracker::linear::{AuthScheme, LinearTracker};
 use magistr_workflow::tracker::ownership::Ownership;
@@ -38,7 +38,7 @@ struct ByOperation {
     issue_labels: Value,
     relate: Value,
     /// The container fixtures. Defaults describe a workspace with no
-    /// projects and no initiatives, so tests that never group anything are
+    /// projects and no initiatives, so tests that never feature anything are
     /// untouched.
     team_projects: Value,
     /// One response serves name, state AND initiative membership — the adapter
@@ -102,7 +102,7 @@ impl Respond for ByOperation {
         } else if query.contains("mutation LinkProjectToInitiative") {
             self.link.clone()
         } else if query.contains("mutation Create") {
-            // Serve creates in order so two chunks get distinct identifiers.
+            // Serve creates in order so two tasks get distinct identifiers.
             let n = self
                 .created
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -153,8 +153,8 @@ fn team_states() -> Value {
         // One label WE author and one the team owns, so a test can prove we
         // reuse ours without minting a duplicate and never touch theirs.
         "labels": { "nodes": [
-            { "id": "lbl-critical", "name": "roadmap:critical" },
-            { "id": "lbl-stale",    "name": "roadmap:later" },
+            { "id": "lbl-critical", "name": "plan:critical" },
+            { "id": "lbl-stale",    "name": "plan:later" },
             { "id": "lbl-theirs",   "name": "Bug" }
         ]}
     }]}}})
@@ -213,25 +213,25 @@ fn linear(server: &MockServer) -> LinearTracker {
         .with_token("lin_api_fake", AuthScheme::Raw)
 }
 
-fn engine() -> RoadmapEngine {
-    RoadmapEngine::new("proj".into())
+fn engine() -> PlanEngine {
+    PlanEngine::new("proj".into())
 }
 
-fn add(e: &mut RoadmapEngine, id: &str, deps: Vec<String>) {
-    e.add_chunk(
+fn add(e: &mut PlanEngine, id: &str, deps: Vec<String>) {
+    e.add_task(
         id.into(),
-        format!("Chunk {id}"),
-        ChunkStatus::Pending,
+        format!("Task {id}"),
+        TaskStatus::ToDo,
         10,
         format!("why {id} exists"),
         vec![format!("{id} works")],
         deps,
         false,
     )
-    .expect("add chunk");
+    .expect("add task");
 }
 
-fn opt_in(e: &mut RoadmapEngine, id: &str) {
+fn opt_in(e: &mut PlanEngine, id: &str) {
     e.set_tracker_opt_in(id, "linear", true).expect("opt in");
 }
 
@@ -286,15 +286,15 @@ async fn a_default_configuration_emits_nothing_to_linear() {
     );
 }
 
-/// A chunk becomes a Linear issue through the UNMODIFIED projector, carrying
+/// A task becomes a Linear issue through the UNMODIFIED projector, carrying
 /// the same provenance footer GitHub gets — the payload is the product, and it
 /// is provider-independent.
 #[tokio::test]
-async fn a_chunk_projects_to_a_linear_issue_with_its_provenance() {
+async fn a_task_projects_to_a_linear_issue_with_its_provenance() {
     let server = linear_server().await;
     let mut e = engine();
     add(&mut e, "c1", vec![]);
-    e.link_chunk("c1", "think:9").expect("think ref");
+    e.link_task("c1", "think:9").expect("think ref");
     opt_in(&mut e, "c1");
 
     let report = project_all(&mut e, &linear(&server), None)
@@ -310,7 +310,7 @@ async fn a_chunk_projects_to_a_linear_issue_with_its_provenance() {
     let sent = sent(&server).await;
     let create = operation(&sent, "mutation Create").expect("a create was sent");
     let input = &create["variables"]["input"];
-    assert_eq!(input["title"], "Chunk c1");
+    assert_eq!(input["title"], "Task c1");
     // The team id came from DISCOVERY, not from configuration.
     assert_eq!(input["teamId"], "team-uuid-1");
     let body = input["description"].as_str().expect("description");
@@ -341,14 +341,14 @@ async fn the_state_is_resolved_from_a_team_whose_columns_have_custom_names() {
     let create = operation(&sent, "mutation Create").expect("create");
     assert_eq!(
         create["variables"]["input"]["stateId"], "st-up-next",
-        "a pending chunk maps to the team's unstarted state whatever it is called"
+        "a pending task maps to the team's unstarted state whatever it is called"
     );
     // And the discovery query asked by key, not by a hardcoded id.
     let discovery = operation(&sent, "query TeamSchema").expect("discovery");
     assert_eq!(discovery["variables"]["key"], "ENG");
 }
 
-/// Priority reaches Linear through the band label, reversed. Our band-10 chunk
+/// Priority reaches Linear through the band label, reversed. Our band-10 task
 /// is `critical`, which is Linear's `1` (urgent) — NOT its `0`.
 #[tokio::test]
 async fn priority_arrives_reversed_onto_linears_urgency_scale() {
@@ -371,7 +371,7 @@ async fn priority_arrives_reversed_onto_linears_urgency_scale() {
 
 /// THE direction trap. `c1` depends on `base`, so `c1` is BLOCKED and `base` is
 /// the BLOCKER. Linear stores one relation from the blocker's side, so the
-/// blocker must be `issueId` and the blocked chunk `relatedIssueId` — the
+/// blocker must be `issueId` and the blocked task `relatedIssueId` — the
 /// opposite of GitHub. Getting this backwards inverts the dependency graph
 /// silently, so the test pins which id lands in which field.
 #[tokio::test]
@@ -399,14 +399,14 @@ async fn a_dependency_is_written_from_the_blockers_side() {
     );
     assert_eq!(
         input["relatedIssueId"], "uuid-2",
-        "the BLOCKED chunk (c1) is the object — reversing these inverts the graph"
+        "the BLOCKED task (c1) is the object — reversing these inverts the graph"
     );
 }
 
 /// The no-op short-circuit is projector-level, so it must hold for a second
 /// provider with no extra work. Zero requests on the second run.
 #[tokio::test]
-async fn re_running_an_unchanged_chunk_sends_no_graphql() {
+async fn re_running_an_unchanged_task_sends_no_graphql() {
     let server = linear_server().await;
     let mut e = engine();
     add(&mut e, "c1", vec![]);
@@ -424,13 +424,13 @@ async fn re_running_an_unchanged_chunk_sends_no_graphql() {
     assert_eq!(
         server.received_requests().await.expect("recorded").len(),
         after_first,
-        "an unchanged chunk must not reach Linear at all"
+        "an unchanged task must not reach Linear at all"
     );
 }
 
 /// Identity decides create-vs-patch here exactly as it does for GitHub.
 #[tokio::test]
-async fn a_changed_chunk_patches_rather_than_creating_a_second_issue() {
+async fn a_changed_task_patches_rather_than_creating_a_second_issue() {
     let server = linear_server().await;
     let mut e = engine();
     add(&mut e, "c1", vec![]);
@@ -438,7 +438,7 @@ async fn a_changed_chunk_patches_rather_than_creating_a_second_issue() {
     let tracker = linear(&server);
     project_all(&mut e, &tracker, None).await.expect("first");
 
-    e.update_chunk("c1", Some("Renamed".into()), None, None, None, None, None)
+    e.update_task("c1", Some("Renamed".into()), None, None, None, None, None)
         .expect("rename");
     let report = project_all(&mut e, &tracker, None).await.expect("second");
 
@@ -525,7 +525,7 @@ async fn a_throttling_error_queues_for_replay() {
         report.outcomes[0].1,
         ProjectionOutcome::Queued { .. }
     ));
-    assert_eq!(outbox.queued_chunks("linear"), vec!["c1".to_string()]);
+    assert_eq!(outbox.queued_tasks("linear"), vec!["c1".to_string()]);
 }
 
 /// The per-provider budget separation now has its first REAL consumer. Linear bills
@@ -596,7 +596,7 @@ async fn the_two_auth_schemes_produce_different_headers() {
 /// A default Linear team has TWO `started` states — "In Progress" and
 /// "In Review" — and the API does NOT return states in workflow order. A real
 /// team came back at positions 0, 5, 4, 1002, 3, 2, 1, so the old
-/// "first of each type wins" rule filed every in-progress chunk under In Review.
+/// "first of each type wins" rule filed every in-progress task under In Review.
 ///
 /// This fixture reproduces that exact shape: the LATER state arrives FIRST.
 #[tokio::test]
@@ -608,7 +608,7 @@ async fn the_earliest_started_state_wins_even_when_it_arrives_last() {
         "id": "team-uuid-1",
         "key": "ENG",
         "states": { "nodes": [
-            { "id": "st-backlog",     "type": "backlog",   "position": 0.0 },
+            { "id": "st-backlog",     "type": "idea",   "position": 0.0 },
             { "id": "st-in-review",   "type": "started",   "position": 1002.0 },
             { "id": "st-shipped",     "type": "completed", "position": 3.0 },
             { "id": "st-in-progress", "type": "started",   "position": 2.0 },
@@ -624,7 +624,7 @@ async fn the_earliest_started_state_wins_even_when_it_arrives_last() {
     let mut e = engine();
     add(&mut e, "c1", vec![]);
     opt_in(&mut e, "c1");
-    e.set_status("c1", ChunkStatus::InProgress).expect("start");
+    e.set_status("c1", TaskStatus::InProgress).expect("start");
 
     project_all(&mut e, &linear(&server), None)
         .await
@@ -634,7 +634,7 @@ async fn the_earliest_started_state_wins_even_when_it_arrives_last() {
     let create = operation(&sent, "mutation Create").expect("create");
     assert_eq!(
         create["variables"]["input"]["stateId"], "st-in-progress",
-        "an in-progress chunk must land in the EARLIEST started state by position; \
+        "an in-progress task must land in the EARLIEST started state by position; \
          picking whichever the API happened to return first put real work in In Review"
     );
 }
@@ -664,7 +664,7 @@ async fn a_state_with_no_position_does_not_outrank_one_that_has_it() {
     let mut e = engine();
     add(&mut e, "c1", vec![]);
     opt_in(&mut e, "c1");
-    e.set_status("c1", ChunkStatus::InProgress).expect("start");
+    e.set_status("c1", TaskStatus::InProgress).expect("start");
 
     project_all(&mut e, &linear(&server), None)
         .await
@@ -679,9 +679,9 @@ async fn a_state_with_no_position_does_not_outrank_one_that_has_it() {
 }
 
 /// THE defect this test exists for. The adapter declared `labels: true`,
-/// consumed the `roadmap:<band>` label to derive a priority, and then never
+/// consumed the `plan:<band>` label to derive a priority, and then never
 /// sent it — so Linear held no label, `fetch_since` read none back, and the
-/// content hash of every projected chunk disagreed with its own readback. The
+/// content hash of every projected task disagreed with its own readback. The
 /// echo fence then saw drift on every projection, and a loop once a version
 /// advanced. Measured against the real API before it was fixed.
 #[tokio::test]
@@ -723,18 +723,18 @@ async fn an_existing_band_label_is_reused_rather_than_recreated() {
     let sent = sent(&server).await;
     assert!(
         operation(&sent, "mutation MakeLabel").is_none(),
-        "roadmap:critical already exists on the team; creating it again is a bug"
+        "plan:critical already exists on the team; creating it again is a bug"
     );
 }
 
-/// The write-back half of the cache. Two chunks sharing a band must mint the
+/// The write-back half of the cache. Two tasks sharing a band must mint the
 /// label ONCE — a read-through cache that never writes back is a
 /// duplicate-label factory, and the duplicates only appear under load.
 #[tokio::test]
-async fn a_label_minted_for_one_chunk_is_reused_by_the_next() {
+async fn a_label_minted_for_one_task_is_reused_by_the_next() {
     let server = MockServer::start().await;
     let mut r = responder();
-    // A team with NO roadmap labels at all, so the first chunk must create one.
+    // A team with NO plan labels at all, so the first task must create one.
     r.team_states = json!({ "data": { "teams": { "nodes": [{
         "id": "team-uuid-1",
         "key": "ENG",
@@ -770,7 +770,7 @@ async fn a_label_minted_for_one_chunk_is_reused_by_the_next() {
         .count();
     assert_eq!(
         mints, 1,
-        "three chunks share one band, so the label is created once; \
+        "three tasks share one band, so the label is created once; \
          {mints} creations means the cache never wrote back"
     );
 }
@@ -791,7 +791,7 @@ async fn a_patch_adds_our_label_and_removes_only_our_stale_ones() {
     project_all(&mut e, &linear(&server), None)
         .await
         .expect("create");
-    e.update_chunk(
+    e.update_task(
         "c1",
         None,
         None,
@@ -800,7 +800,7 @@ async fn a_patch_adds_our_label_and_removes_only_our_stale_ones() {
         None,
         None,
     )
-    .expect("dirty the chunk so it patches");
+    .expect("dirty the task so it patches");
     project_all(&mut e, &linear(&server), None)
         .await
         .expect("patch");
@@ -821,7 +821,7 @@ async fn a_patch_adds_our_label_and_removes_only_our_stale_ones() {
         .collect::<Vec<_>>();
     assert!(
         removed.contains(&"lbl-stale"),
-        "the team's OTHER roadmap:* label is ours to clear, got {removed:?}"
+        "the team's OTHER plan:* label is ours to clear, got {removed:?}"
     );
     assert!(
         !removed.contains(&"lbl-theirs"),
@@ -858,7 +858,7 @@ async fn a_stale_band_the_issue_does_not_carry_is_not_removed() {
     project_all(&mut e, &linear(&server), None)
         .await
         .expect("create");
-    e.update_chunk(
+    e.update_task(
         "c1",
         None,
         None,
@@ -867,7 +867,7 @@ async fn a_stale_band_the_issue_does_not_carry_is_not_removed() {
         None,
         None,
     )
-    .expect("dirty the chunk so it patches");
+    .expect("dirty the task so it patches");
     project_all(&mut e, &linear(&server), None)
         .await
         .expect("patch");
@@ -974,9 +974,9 @@ async fn an_assignee_the_server_volunteers_is_not_read_back() {
 
 // ───────────────────────────── the initiative ─────────────────────────────
 
-/// Shared setup for the roof tests: one grouped chunk, pushed under a named
+/// Shared setup for the roof tests: one grouped task, pushed under a named
 /// initiative. `mutate` adjusts the responder's workspace before the push.
-async fn push_under_roof(mutate: impl FnOnce(&mut ByOperation), status: ChunkStatus) -> Vec<Value> {
+async fn push_under_roof(mutate: impl FnOnce(&mut ByOperation), status: TaskStatus) -> Vec<Value> {
     let server = MockServer::start().await;
     let mut r = responder();
     mutate(&mut r);
@@ -989,8 +989,9 @@ async fn push_under_roof(mutate: impl FnOnce(&mut ByOperation), status: ChunkSta
     let mut e = engine();
     add(&mut e, "c1", vec![]);
     opt_in(&mut e, "c1");
-    e.set_group("c1", Some("tracker".into())).expect("group");
-    if status != ChunkStatus::Pending {
+    e.set_feature("c1", Some("tracker".into()))
+        .expect("feature");
+    if status != TaskStatus::ToDo {
         e.set_status("c1", status).expect("status");
     }
 
@@ -1026,7 +1027,7 @@ async fn an_existing_unlinked_project_is_joined_even_when_its_state_is_unchanged
                 "state": "planned", "initiatives": { "nodes": [] }
             }}});
         },
-        ChunkStatus::Pending,
+        TaskStatus::ToDo,
     )
     .await;
 
@@ -1069,7 +1070,7 @@ async fn an_already_linked_project_costs_no_join_mutation() {
                 "state": "planned", "initiatives": { "nodes": [ { "id": "init-1" } ]}
             }}});
         },
-        ChunkStatus::Pending,
+        TaskStatus::ToDo,
     )
     .await;
 
@@ -1090,13 +1091,13 @@ async fn an_existing_initiative_is_repatched_only_in_its_own_vocabulary() {
                 { "id": "init-1", "name": "roof", "status": "Planned" }
             ]}}});
         },
-        ChunkStatus::InProgress,
+        TaskStatus::InProgress,
     )
     .await;
 
     assert_eq!(count(&sent, "mutation CreateInitiative"), 0);
     let patch = operation(&sent, "mutation SetInitiativeStatus")
-        .expect("a moving roadmap must move a Planned initiative to Active");
+        .expect("a moving plan must move a Planned initiative to Active");
     assert_eq!(
         patch["variables"]["input"]["status"], "Active",
         "InitiativeStatus is a closed CAPITALIZED enum — sending the project's \
@@ -1108,7 +1109,7 @@ async fn an_existing_initiative_is_repatched_only_in_its_own_vocabulary() {
 /// a project created in the same push joins it at birth.
 #[tokio::test]
 async fn a_missing_initiative_is_created_and_a_fresh_project_joins_at_birth() {
-    let sent = push_under_roof(|_| {}, ChunkStatus::InProgress).await;
+    let sent = push_under_roof(|_| {}, TaskStatus::InProgress).await;
 
     let create = operation(&sent, "mutation CreateInitiative").expect("created");
     assert_eq!(create["variables"]["input"]["name"], "roof");
@@ -1129,7 +1130,7 @@ async fn a_missing_initiative_is_created_and_a_fresh_project_joins_at_birth() {
 
 // ───────────────────── container ownership ─────────────────────
 
-use magistr_workflow::roadmap::domain::ContainerKind;
+use magistr_workflow::plan::domain::ContainerKind;
 
 /// THE RENAME CASE. The human renamed our project; resolve-by-name would miss
 /// and mint a duplicate under the old name. With the uuid remembered in the
@@ -1154,8 +1155,9 @@ async fn a_renamed_project_still_resolves_and_mints_no_duplicate() {
     let mut e = engine();
     add(&mut e, "c1", vec![]);
     opt_in(&mut e, "c1");
-    e.set_group("c1", Some("tracker".into())).expect("group");
-    e.record_container_link(ContainerKind::Group, "tracker", "linear", "proj-1", true)
+    e.set_feature("c1", Some("tracker".into()))
+        .expect("feature");
+    e.record_container_link(ContainerKind::Feature, "tracker", "linear", "proj-1", true)
         .expect("remember");
 
     project_all(&mut e, &linear(&server), None)
@@ -1204,9 +1206,10 @@ async fn a_paused_project_is_not_patched_back_to_started() {
     let mut e = engine();
     add(&mut e, "c1", vec![]);
     opt_in(&mut e, "c1");
-    e.set_group("c1", Some("tracker".into())).expect("group");
-    e.set_status("c1", ChunkStatus::InProgress).expect("start");
-    e.record_container_link(ContainerKind::Group, "tracker", "linear", "proj-1", true)
+    e.set_feature("c1", Some("tracker".into()))
+        .expect("feature");
+    e.set_status("c1", TaskStatus::InProgress).expect("start");
+    e.record_container_link(ContainerKind::Feature, "tracker", "linear", "proj-1", true)
         .expect("remember");
 
     project_all(&mut e, &linear(&server), None)
@@ -1217,7 +1220,7 @@ async fn a_paused_project_is_not_patched_back_to_started() {
     assert_eq!(
         count(&sent, "mutation SetProjectState"),
         0,
-        "an in-progress group derives 'started', but 'paused' is a human's \
+        "an in-progress feature derives 'started', but 'paused' is a human's \
          judgement and must be left standing"
     );
     assert!(
@@ -1244,7 +1247,7 @@ async fn a_canceled_initiative_is_left_standing() {
     let mut e = engine();
     add(&mut e, "c1", vec![]);
     opt_in(&mut e, "c1");
-    e.set_status("c1", ChunkStatus::InProgress).expect("start");
+    e.set_status("c1", TaskStatus::InProgress).expect("start");
 
     project_all_with_policy(
         &mut e,
@@ -1260,7 +1263,7 @@ async fn a_canceled_initiative_is_left_standing() {
     assert_eq!(
         count(&sent, "mutation SetInitiativeStatus"),
         0,
-        "a moving roadmap derives Active, but a human's Canceled stays"
+        "a moving plan derives Active, but a human's Canceled stays"
     );
     assert_eq!(count(&sent, "mutation CreateInitiative"), 0);
 }
@@ -1273,7 +1276,7 @@ async fn a_remembered_initiative_resolves_by_id_not_name() {
     let server = MockServer::start().await;
     let mut r = responder();
     r.initiative_by_id = json!({ "data": { "initiative": {
-        "id": "init-9", "name": "Roadmap 2026", "status": "Active"
+        "id": "init-9", "name": "Plan 2026", "status": "Active"
     }}});
     Mock::given(method("POST"))
         .and(path("/graphql"))
@@ -1284,8 +1287,9 @@ async fn a_remembered_initiative_resolves_by_id_not_name() {
     let mut e = engine();
     add(&mut e, "c1", vec![]);
     opt_in(&mut e, "c1");
-    e.set_group("c1", Some("tracker".into())).expect("group");
-    e.set_status("c1", ChunkStatus::InProgress).expect("start");
+    e.set_feature("c1", Some("tracker".into()))
+        .expect("feature");
+    e.set_status("c1", TaskStatus::InProgress).expect("start");
     e.record_container_link(ContainerKind::Initiative, "roof", "linear", "init-9", true)
         .expect("remember");
 
@@ -1315,14 +1319,14 @@ async fn a_remembered_initiative_resolves_by_id_not_name() {
     assert_eq!(link["variables"]["input"]["initiativeId"], "init-9");
 }
 
-/// The group-move criterion at the wire: regrouping a chunk patches its issue
+/// The group-move criterion at the wire: regrouping a task patches its issue
 /// with the NEW project's id, and the old project is left standing untouched.
 #[tokio::test]
 async fn a_regrouped_issue_is_patched_into_the_new_project() {
     let mut e = engine();
     add(&mut e, "c1", vec![]);
     opt_in(&mut e, "c1");
-    e.set_group("c1", Some("a".into())).expect("group a");
+    e.set_feature("c1", Some("a".into())).expect("feature a");
 
     // First push on its own server: project 'a' is minted and the issue lands.
     let first = MockServer::start().await;
@@ -1340,7 +1344,7 @@ async fn a_regrouped_issue_is_patched_into_the_new_project() {
 
     // The move, observed on a second server so the assertions see only the
     // second push's wire traffic.
-    e.set_group("c1", Some("b".into())).expect("group b");
+    e.set_feature("c1", Some("b".into())).expect("feature b");
     let second = MockServer::start().await;
     Mock::given(method("POST"))
         .and(path("/graphql"))
@@ -1355,7 +1359,7 @@ async fn a_regrouped_issue_is_patched_into_the_new_project() {
     let patch = operation(&moved, "IssueUpdateInput").expect("patched, not re-created");
     assert_eq!(
         patch["variables"]["input"]["projectId"], "proj-b",
-        "a regrouped chunk's issue must MOVE into the new project"
+        "a regrouped task's issue must MOVE into the new project"
     );
     assert_eq!(
         count(&moved, "mutation CreateProject"),

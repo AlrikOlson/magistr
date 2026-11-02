@@ -159,9 +159,9 @@ impl Provider for ControlledProvider {
             if text == "flood text" {
                 // Two megabytes in kilobyte deltas, far past the observer's
                 // text bound, then the terminal the observer must still get.
-                let chunk = "x".repeat(1024);
+                let task = "x".repeat(1024);
                 for _ in 0..2048 {
-                    turn.message(chunk.clone())?;
+                    turn.message(task.clone())?;
                 }
             }
             if text == "flood tools" {

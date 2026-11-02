@@ -51,7 +51,7 @@ floor that keeps each topology safe.
 ## Workflow and tools
 
 The CLI's MCP service embeds the repository-local
-[workflow source](../../subsystems/workflow/PROVENANCE.md). Its roadmap,
+[workflow source](../../subsystems/workflow/PROVENANCE.md). Its plan,
 reasoning, execution, and signal tools share native project state. The
 workspace tools are served by the same binary's native workspace bridge
 (`magistr mcp --dir`), every client of a workspace reaching its
@@ -68,7 +68,7 @@ workflow and workspace services Magistr-owned code. It defines
 workflow and workspace ownership, source certification and operation contracts. The accepted target is one Rust-native Magistr product. Workflow
 source and the adopted `magistr-workspace` engine belong to the root Cargo
 workspace. Typed
-reasoning, run, roadmap, and signal use cases now own native behavior beneath
+reasoning, run, plan, and signal use cases now own native behavior beneath
 MCP and local owner adapters; command execution and tracker probes are explicit
 async effects. The complete Workspace reference source, contracts and tests are
 retained with pinned provenance under `subsystems/workspace/reference`; Bun and
@@ -92,7 +92,7 @@ Project setup enters through the CLI's detection module, which calls the core
 stack detector with the CLI's plugin results. Setup writes
 `.magistr/project.json` and agent-specific files from the CLI crate's templates
 and the core crate's presets. The project file supplies commands, custom gates,
-testing conventions, and native-roadmap settings. Generated files carry
+testing conventions, and native plan settings. Generated files carry
 ownership rules so refresh and removal can preserve user changes; setup,
 repair and owned removal each compute one
 [administrative change plan](configuration.md#administrative-change-plan)

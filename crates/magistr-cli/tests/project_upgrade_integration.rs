@@ -23,6 +23,7 @@ fn fixture() -> tempfile::TempDir {
     let path = root.join(".magistr/project.json");
     let mut config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config.as_object_mut().unwrap().remove("plan_backend");
     config["roadmap_backend"] = "think-and-ship".into();
     config["quality_gate"]["test"] = "my-project-test".into();
     std::fs::write(path, serde_json::to_string_pretty(&config).unwrap()).unwrap();
@@ -108,7 +109,8 @@ fn saved_launch_command_upgrades_configuration_and_history_before_serving() {
     let config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(root.join(".magistr/project.json")).unwrap())
             .unwrap();
-    assert_eq!(config["roadmap_backend"], "native");
+    assert_eq!(config["plan_backend"], "native");
+    assert!(config.get("roadmap_backend").is_none());
     assert_eq!(config["quality_gate"]["test"], "my-project-test");
     let mcp: serde_json::Value =
         serde_json::from_slice(&std::fs::read(root.join(".mcp.json")).unwrap()).unwrap();
@@ -182,7 +184,7 @@ fn repair_converts_version_one_work_and_reasoning_before_checking_the_connection
         ),
         (
             "roadmap/sessions/saved-project.json",
-            include_bytes!("../../magistr-workflow/src/roadmap/fixtures/older.json").as_slice(),
+            include_bytes!("../../magistr-workflow/src/plan/fixtures/older.json").as_slice(),
         ),
         (
             "signal/sessions/saved-project.json",
@@ -216,7 +218,7 @@ fn repair_converts_version_one_work_and_reasoning_before_checking_the_connection
             .with_data_dir(&current);
         let reader = magistr_engine::native::NativeReader::open(&config);
         assert_eq!(reader.run_steps().unwrap()[0].id, "one");
-        assert_eq!(reader.roadmap_chunks().unwrap()[0].id, "saved");
+        assert_eq!(reader.plan_tasks().unwrap()[0].id, "saved");
         assert_eq!(reader.signal_list().unwrap()[0].id, "saved-signal");
         assert_eq!(
             reader.think_step(7).unwrap().unwrap().record_id.as_deref(),

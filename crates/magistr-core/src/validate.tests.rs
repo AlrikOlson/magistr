@@ -108,7 +108,7 @@ fn current_settings(dir: &Path) -> String {
         "quality_gate": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "", "extensions": []},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
-        "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+        "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false
     });
     let content = serde_json::to_string_pretty(&config).unwrap();
     std::fs::create_dir_all(dir.join(".magistr")).unwrap();

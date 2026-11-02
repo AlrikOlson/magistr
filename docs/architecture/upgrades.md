@@ -36,11 +36,26 @@ writer assigned, preserving receipt references. Project-wide work and receipts
 move into the primary working copy's default execution. Version-1 reasoning
 histories consolidate into one project document, retaining session names, step
 numbers and existing identities. Missing step identities are derived deterministically;
-conflicting identities or numbers are refused. Roadmap and signal owners fill
+conflicting identities or numbers are refused. Plan and signal owners fill
 omitted item origins from the validated enclosing project, preserving all authored
 fields and rejecting explicit foreign origins. Current readers remain strict.
 Conversion is deterministic, so an interrupted copy can resume without minting
 new identities or replacing newer work. The older files remain byte-for-byte intact.
+
+The vocabulary cutover renames the family stores once, at admission and before
+any engine opens: `ship/` becomes `run/`, then `roadmap/` becomes `plan/`.
+`StoreWordsUpgrade` owns where saved work lives and the order of the moves;
+each family's codec converts its own documents and decides what is old from
+the document's saved version, never from its references, because `task:`
+named a run step before the run words and names a plan task after the plan
+words. Plan and signal documents gain a leading `schema_version` (2), decision
+documents move to version 4 and run documents to version 4. A move stages
+converted records beside the old directory, keeps exact staged records when an
+interrupted attempt resumes, publishes them next to the caller's own lock
+files, and keeps the original directory under `backups/`. It waits while an
+older owner still holds a lock in the old plan directory. Readers refuse a
+document that is positively older than its family's current version; an
+unreadable document is reported by the family's reader instead.
 
 The older JSON fixtures under each workflow family's `fixtures` directory
 use the envelope and record shapes captured from an existing installation on

@@ -12,7 +12,7 @@ fn parse_empty_spec() {
 
 #[test]
 fn parse_all_checked() {
-    let content = "# Roadmap\n- [x] Item one\n- [x] Item two\n- [x] Item three\n";
+    let content = "# Plan\n- [x] Item one\n- [x] Item two\n- [x] Item three\n";
     let summary = SpecSummary::parse(content);
     assert_eq!(summary.total, 3);
     assert_eq!(summary.checked, 3);

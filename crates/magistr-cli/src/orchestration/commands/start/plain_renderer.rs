@@ -362,7 +362,7 @@ fn tool_title(name: &str, input: &Value) -> String {
         "start_step" => "Start planned work".into(),
         "finish_step" => "Finish planned work".into(),
         "run_finish" => "Finish work".into(),
-        "roadmap_complete_chunk" => "Complete roadmap item".into(),
+        "plan_complete_task" => "Complete plan item".into(),
         _ => {
             let detail = ["file", "path", "query"]
                 .iter()

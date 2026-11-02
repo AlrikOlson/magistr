@@ -56,12 +56,12 @@
 //! `&self` method by design and returns a report that names the disposal verb.
 //! That verb is the *existing* `think_pin_step(pinned: false)` — this module
 //! adds no second way to unpin, because two paths to the same mutation is how
-//! the rule drifts on one of them. The contract is `roadmap_reprioritize`'s
+//! the rule drifts on one of them. The contract is `plan_reprioritize`'s
 //! exactly: the tool proposes, the human disposes, the state never moves alone.
 //!
 //! # Rejected alternatives
 //!
-//! **COMPACTION** — folding a roadmap chunk's open/decision/close trio into one
+//! **COMPACTION** — folding a plan task's open/decision/close trio into one
 //! summary step. Rejected twice over. *Authorship*: either the agent writes the
 //! summary,
 //! in which case it is just recording a step and needs no mechanism, or the

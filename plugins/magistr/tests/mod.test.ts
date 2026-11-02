@@ -89,7 +89,7 @@ test('entry command and supported terminal and Desktop controls inspect evidence
         text: 'No checks recorded for this step.',
       }),
     ).toBeDefined()
-    await ui.press({ key: 'tab-roadmap' })
+    await ui.press({ key: 'tab-plan' })
     await ui.press({ key: 'work-search' })
     expect(
       await ui.find({ type: 'Text', text: '• Matching pages appear' }),

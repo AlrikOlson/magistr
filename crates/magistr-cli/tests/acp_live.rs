@@ -110,11 +110,11 @@ async fn the_in_binary_claude_agent_advertises_fable_runs_a_tool_turn_and_cancel
     transport
         .prompt(&"Reply with exactly the word: pong".into())
         .expect("prompt");
-    let mut saw_chunk = false;
+    let mut saw_task = false;
     let stop = tokio::time::timeout(TURN_TIMEOUT, async {
         loop {
             match events.recv().await.expect("channel open") {
-                Ok(AcpEvent::SessionUpdate { .. }) => saw_chunk = true,
+                Ok(AcpEvent::SessionUpdate { .. }) => saw_task = true,
                 Ok(AcpEvent::PromptResponse { response, .. }) => return response.stop_reason,
                 Ok(_) => {}
                 Err(e) => panic!("transport error mid-turn: {e}"),
@@ -125,7 +125,7 @@ async fn the_in_binary_claude_agent_advertises_fable_runs_a_tool_turn_and_cancel
     .expect("turn finished in time");
     assert_eq!(stop, StopReason::EndTurn);
     assert!(
-        saw_chunk,
+        saw_task,
         "the turn should have streamed at least one update"
     );
 

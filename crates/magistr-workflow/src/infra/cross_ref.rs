@@ -8,11 +8,13 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+use super::StoredRefWords;
+
 pub type StepNumber = u32;
 pub type StepId = String;
 pub type ProgressId = u32;
 pub type CheckName = String;
-pub type ChunkId = String;
+pub type TaskId = String;
 pub type SignalId = String;
 /// A tracker provider key, e.g. `"github"`, `"linear"`, `"jira"`. Normalized to
 /// lowercase — provider keys are ours to name, so they may be case-folded.
@@ -32,14 +34,14 @@ pub enum CrossRef {
     RunStep(StepId),
     RunProgress(ProgressId),
     RunCheck(CheckName),
-    /// A roadmap chunk: the long-horizon item a run goal
-    /// realizes and a think step shapes. Wire form `chunk:<slug>`.
-    RoadmapChunk(ChunkId),
-    /// A stakeholder signal: the opportunity a roadmap chunk was
+    /// A plan task: the long-horizon item a run goal
+    /// realizes and a think step shapes. Wire form `task:<slug>`.
+    PlanTask(TaskId),
+    /// A stakeholder signal: the opportunity a plan task was
     /// promoted from. Wire form `signal:<id>`. Promotion writes this onto the
-    /// chunk and the reciprocal `chunk:<slug>` onto the signal.
+    /// task and the reciprocal `task:<slug>` onto the signal.
     SignalRef(SignalId),
-    /// A work item in an EXTERNAL tracker — the twin a roadmap chunk was
+    /// A work item in an EXTERNAL tracker — the twin a plan task was
     /// projected onto (tracker-port-seam). Wire form
     /// `ext:<provider>/<external_id>`, e.g. `ext:github/1234`,
     /// `ext:linear/ENG-42`, `ext:jira/PROJ-7`.
@@ -75,7 +77,7 @@ impl fmt::Display for ParseError {
             Self::MissingDelimiter => write!(f, "cross-ref string must contain ':'"),
             Self::UnknownPrefix(p) => write!(
                 f,
-                "unknown cross-ref prefix '{p}' (expected think|step|progress|check|chunk|signal|ext)"
+                "unknown cross-ref prefix '{p}' (expected think|step|progress|check|task|signal|ext)"
             ),
             Self::InvalidNumber(s) => write!(f, "expected integer, got '{s}'"),
             Self::EmptyValue => write!(f, "cross-ref value is empty"),
@@ -102,7 +104,7 @@ impl CrossRef {
     }
 
     /// Serialize to the wire string form: `think:42`, `step:auth-refactor`,
-    /// `progress:5`, `check:cargo-test`, `chunk:phase-26c`,
+    /// `progress:5`, `check:cargo-test`, `task:phase-26c`,
     /// `ext:github/1234`.
     pub fn to_wire(&self) -> String {
         match self {
@@ -110,7 +112,7 @@ impl CrossRef {
             Self::RunStep(id) => format!("step:{id}"),
             Self::RunProgress(n) => format!("progress:{n}"),
             Self::RunCheck(name) => format!("check:{name}"),
-            Self::RoadmapChunk(id) => format!("chunk:{id}"),
+            Self::PlanTask(id) => format!("task:{id}"),
             Self::SignalRef(id) => format!("signal:{id}"),
             Self::External {
                 provider,
@@ -138,7 +140,7 @@ impl CrossRef {
                 .map(Self::RunProgress)
                 .map_err(|_| ParseError::InvalidNumber(value.to_string())),
             "check" => Ok(Self::RunCheck(value.to_string())),
-            "chunk" => Ok(Self::RoadmapChunk(value.to_string())),
+            "task" => Ok(Self::PlanTask(value.to_string())),
             "signal" => Ok(Self::SignalRef(value.to_string())),
             // Split on the FIRST separator only: everything after it is the
             // external id, so `ext:github/owner/repo#12` keeps its slashes and a
@@ -165,15 +167,16 @@ impl CrossRef {
 }
 
 impl CrossRef {
-    /// Rewrite every stored reference in `value` to the run vocabulary, once:
-    /// `step:<n>` (the retired spelling of a reasoning step) becomes
-    /// `think:<n>` first, then `task:<id>` becomes `step:<id>` and
-    /// `action:<n>` becomes `progress:<n>`. Only whole reference strings are
-    /// rewritten; prose that merely starts with a prefix keeps its words.
+    /// Rewrite every stored reference in `value` from `words` to the current
+    /// vocabulary. Each whole reference string is mapped once, so the
+    /// glossary's order holds without chaining: a run step's `task:` becomes
+    /// `step:` and a plan task's `chunk:` becomes `task:` in the same pass.
+    /// Prose that merely starts with a prefix keeps its words. The caller
+    /// decides `words` from the document's version and converts once.
     /// Returns whether anything changed.
-    pub fn upgrade_stored_refs(value: &mut serde_json::Value) -> bool {
+    pub fn upgrade_stored_refs(value: &mut serde_json::Value, words: StoredRefWords) -> bool {
         match value {
-            serde_json::Value::String(text) => match Self::upgraded_ref(text) {
+            serde_json::Value::String(text) => match Self::upgraded_ref(text, words) {
                 Some(upgraded) => {
                     *text = upgraded;
                     true
@@ -181,26 +184,28 @@ impl CrossRef {
                 None => false,
             },
             serde_json::Value::Array(items) => items.iter_mut().fold(false, |changed, item| {
-                Self::upgrade_stored_refs(item) | changed
+                Self::upgrade_stored_refs(item, words) | changed
             }),
             serde_json::Value::Object(fields) => {
                 fields.values_mut().fold(false, |changed, item| {
-                    Self::upgrade_stored_refs(item) | changed
+                    Self::upgrade_stored_refs(item, words) | changed
                 })
             }
             _ => false,
         }
     }
 
-    fn upgraded_ref(text: &str) -> Option<String> {
+    fn upgraded_ref(text: &str, words: StoredRefWords) -> Option<String> {
         let (prefix, rest) = text.split_once(':')?;
         if rest.is_empty() || rest.chars().any(char::is_whitespace) {
             return None;
         }
-        match prefix {
-            "step" if rest.chars().all(|c| c.is_ascii_digit()) => Some(format!("think:{rest}")),
-            "task" => Some(format!("step:{rest}")),
-            "action" if rest.chars().all(|c| c.is_ascii_digit()) => {
+        let numeric = rest.chars().all(|c| c.is_ascii_digit());
+        match (words, prefix) {
+            (_, "chunk") => Some(format!("task:{rest}")),
+            (StoredRefWords::BeforeRunWords, "step") if numeric => Some(format!("think:{rest}")),
+            (StoredRefWords::BeforeRunWords, "task") => Some(format!("step:{rest}")),
+            (StoredRefWords::BeforeRunWords, "action") if numeric => {
                 Some(format!("progress:{rest}"))
             }
             _ => None,
@@ -258,8 +263,8 @@ mod tests {
     }
 
     #[test]
-    fn round_trip_roadmap_chunk() {
-        round_trip(CrossRef::RoadmapChunk("phase-26c".to_string()));
+    fn round_trip_plan_task() {
+        round_trip(CrossRef::PlanTask("phase-26c".to_string()));
     }
 
     #[test]
@@ -280,14 +285,14 @@ mod tests {
     }
 
     #[test]
-    fn chunk_wire_form() {
+    fn task_wire_form() {
         assert_eq!(
-            CrossRef::RoadmapChunk("phase-1".to_string()).to_wire(),
-            "chunk:phase-1"
+            CrossRef::PlanTask("phase-1".to_string()).to_wire(),
+            "task:phase-1"
         );
         assert_eq!(
-            CrossRef::from_wire("chunk:phase-1").unwrap(),
-            CrossRef::RoadmapChunk("phase-1".to_string())
+            CrossRef::from_wire("task:phase-1").unwrap(),
+            CrossRef::PlanTask("phase-1".to_string())
         );
     }
 
@@ -392,7 +397,7 @@ mod tests {
             ("step:auth", CrossRef::RunStep("auth".into())),
             ("progress:5", CrossRef::RunProgress(5)),
             ("check:cargo-test", CrossRef::RunCheck("cargo-test".into())),
-            ("chunk:phase-1", CrossRef::RoadmapChunk("phase-1".into())),
+            ("task:phase-1", CrossRef::PlanTask("phase-1".into())),
             ("signal:abc", CrossRef::SignalRef("abc".into())),
         ] {
             assert_eq!(CrossRef::from_wire(wire).unwrap(), expected);
@@ -404,11 +409,15 @@ mod tests {
     /// names a run step, never a reasoning step. The old spellings are
     /// refused like any unknown prefix; the store upgrade rewrote them.
     #[test]
-    fn retired_run_prefixes_are_refused() {
-        for old in ["task:auth", "action:5"] {
+    fn retired_prefixes_are_refused() {
+        for old in ["chunk:auth", "action:5"] {
             let e = CrossRef::from_wire(old).unwrap_err();
             assert!(matches!(e, ParseError::UnknownPrefix(_)), "{old}");
         }
+        assert_eq!(
+            CrossRef::from_wire("task:auth").unwrap(),
+            CrossRef::PlanTask("auth".into())
+        );
         assert_eq!(
             CrossRef::from_wire("step:9").unwrap(),
             CrossRef::RunStep("9".into())
@@ -434,27 +443,49 @@ mod tests {
     }
 
     #[test]
-    fn stored_references_take_the_run_words_in_order() {
+    fn references_saved_before_the_run_words_take_every_new_word_in_one_pass() {
         let mut stored = serde_json::json!({
             "cross_refs": ["task:auth", "action:4", "step:9", "think:2", "chunk:x", "check:lint"],
             "execution_ref": "task:verify",
             "context": "task: read the notes first",
             "nested": [{"ref": "action:12"}],
         });
-        assert!(CrossRef::upgrade_stored_refs(&mut stored));
+        assert!(CrossRef::upgrade_stored_refs(
+            &mut stored,
+            StoredRefWords::BeforeRunWords
+        ));
         assert_eq!(
             stored,
             serde_json::json!({
-                "cross_refs": ["step:auth", "progress:4", "think:9", "think:2", "chunk:x", "check:lint"],
+                "cross_refs": ["step:auth", "progress:4", "think:9", "think:2", "task:x", "check:lint"],
                 "execution_ref": "step:verify",
                 "context": "task: read the notes first",
                 "nested": [{"ref": "progress:12"}],
             })
         );
+    }
+
+    #[test]
+    fn references_saved_with_the_run_words_only_rename_plan_tasks() {
+        let mut stored = serde_json::json!({
+            "refs": ["step:auth", "progress:4", "think:9", "chunk:x", "task:y"],
+            "scope": "chunk:vocab-plan-family",
+        });
+        assert!(CrossRef::upgrade_stored_refs(
+            &mut stored,
+            StoredRefWords::BeforePlanWords
+        ));
+        assert_eq!(
+            stored,
+            serde_json::json!({
+                "refs": ["step:auth", "progress:4", "think:9", "task:x", "task:y"],
+                "scope": "task:vocab-plan-family",
+            })
+        );
         let once = stored.clone();
         assert!(
-            !CrossRef::upgrade_stored_refs(&mut stored),
-            "a second pass changes nothing"
+            !CrossRef::upgrade_stored_refs(&mut stored, StoredRefWords::BeforePlanWords),
+            "a second pass from the run words changes nothing"
         );
         assert_eq!(stored, once);
     }

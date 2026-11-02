@@ -117,12 +117,12 @@ fn workflow_use_disjoint_subdirs() {
 }
 
 #[test]
-fn roadmap_uses_its_own_subdir() {
+fn plan_uses_its_own_subdir() {
     let tmp = TempDir::new().unwrap();
-    let r = Persistence::new(&cfg(&tmp), Domain::Roadmap);
+    let r = Persistence::new(&cfg(&tmp), Domain::Plan);
     let t = Persistence::new(&cfg(&tmp), Domain::Think);
     let s = Persistence::new(&cfg(&tmp), Domain::Run);
-    assert!(r.sessions_dir().ends_with("roadmap/sessions"));
+    assert!(r.sessions_dir().ends_with("plan/sessions"));
     assert_ne!(r.sessions_dir(), t.sessions_dir());
     assert_ne!(r.sessions_dir(), s.sessions_dir());
 }

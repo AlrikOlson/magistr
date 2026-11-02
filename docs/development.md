@@ -59,7 +59,7 @@ identical `cargo check` does not need a second pass.
 
 New goals default to focused verification. Existing goals keep their
 recorded contract. Select checks for the changed behavior and its consumers;
-a roadmap chunk alone does not require release packaging or every project gate.
+a plan task alone does not require release packaging or every project gate.
 
 `check_step` accepts `inputs` (files/directories relative to the project),
 `timeout_secs`, and `reuse`. Include every dependency of the command in its
@@ -297,6 +297,6 @@ The [website README](../apps/website/README.md) describes collection metadata,
 content ownership, screenshot capture and verification. Use the focused docs suite
 for documentation changes; retain homepage coverage when shared navigation changes.
 
-The roadmap and execution plan live in native Magistr state. Never generate or
-commit a roadmap export. See [architecture](architecture/overview.md),
+The plan and execution plan live in native Magistr state. Never generate or
+commit a plan export. See [architecture](architecture/overview.md),
 [Codex setup](reference/codex.md) and [contributing](../CONTRIBUTING.md).

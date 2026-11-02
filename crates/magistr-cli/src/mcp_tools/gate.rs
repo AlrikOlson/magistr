@@ -14,7 +14,7 @@ use tracing::debug;
 /// isolation.
 ///
 /// Delegates to the shared gate runner ([`crate::utils::gate::run_gate`]),
-/// which runs the command on a pty, hands every chunk it writes to `sink`
+/// which runs the command on a pty, hands every task it writes to `sink`
 /// while it runs, and handles process-group management, SIGTERM→SIGKILL
 /// escalation and orphan prevention. Returns structured JSON with
 /// pass/fail, the stripped transcript, duration, and exit code.
@@ -55,7 +55,7 @@ pub(super) fn gate_json(run: &crate::utils::gate::GateRun) -> serde_json::Value 
 }
 
 // One resolver for every consumer — this tool, the mcp service,
-// project validation and the verification evidence a chunk must present —
+// project validation and the verification evidence a task must present —
 // lives in magistr-core, so none of them can disagree about what a gate
 // runs.
 pub(crate) use magistr_core::gates::{GateSpec, resolve_gates};

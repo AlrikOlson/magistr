@@ -7,7 +7,7 @@ use super::PlanContext;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PeerEvidence {
-    pub roadmap: String,
+    pub plan: String,
     pub code: String,
     pub routing_history: String,
 }
@@ -18,7 +18,7 @@ impl PeerEvidence {
     #[must_use]
     pub fn context(&self, constraints: Vec<String>) -> PlanContext {
         PlanContext {
-            roadmap_revision: commitment("roadmap", &self.roadmap),
+            plan_revision: commitment("plan", &self.plan),
             code_revision: commitment("code", &self.code),
             routing_history_revision: commitment("routing_history", &self.routing_history),
             constraints,

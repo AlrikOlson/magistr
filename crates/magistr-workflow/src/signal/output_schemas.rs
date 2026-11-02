@@ -2,7 +2,7 @@
 //!
 //! # Why this module exists
 //!
-//! It didn't, and that was the whole defect. `think_*` and `roadmap_*` each
+//! It didn't, and that was the whole defect. `think_*` and `plan_*` each
 //! carry an `output_schemas` module and patch `Tool.output_schema` in their
 //! `list_tools_view`; `signal_*` had neither, so all ten of its tools shipped
 //! with no schema at all while their siblings shipped with one. Nothing said
@@ -83,9 +83,9 @@ pub struct SignalPendingOutput {
 #[derive(Debug, Serialize, JsonSchema)]
 pub struct SignalPromoteOutput {
     pub signal_id: String,
-    pub chunk_id: String,
+    pub task_id: String,
     pub created: bool,
-    pub chunk: Observed<Value>,
+    pub task: Observed<Value>,
     pub signal: Observed<Signal>,
 }
 

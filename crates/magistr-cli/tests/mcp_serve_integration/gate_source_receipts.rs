@@ -4,17 +4,17 @@ use magistr_workspace::snapshot::{SelectionPolicy, SourceSnapshot};
 async fn begin_receipt_task(client: &Client) {
     call(
         client,
-        "roadmap_add_chunk",
+        "plan_add_task",
         json!({"id": "receipts", "title": "Verify current source"}),
     )
     .await;
-    call(client, "roadmap_start_chunk", json!({"id": "receipts"})).await;
+    call(client, "plan_start_task", json!({"id": "receipts"})).await;
     call(
         client,
         "run_open",
         json!({
             "description": "Verify current source",
-            "scope": "chunk:receipts",
+            "scope": "task:receipts",
             "verification": "focused"
         }),
     )
@@ -61,7 +61,7 @@ async fn gate_receipt(client: &Client, gate: &Value) -> Value {
 async fn complete_receipts(client: &Client) -> CallToolResult {
     call(
         client,
-        "roadmap_complete_chunk",
+        "plan_complete_task",
         json!({"id": "receipts", "step_ref": "step:verify-source"}),
     )
     .await

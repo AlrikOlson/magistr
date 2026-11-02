@@ -3,7 +3,7 @@ include = ["src/**", "Cargo.toml", "Cargo.lock", "LICENSE*", "PROVENANCE.md", "b
 name = "magistr-cli"
 version.workspace = true
 edition = "2024"
-description = "Roadmap and workflow management for coding agents"
+description = "Plan and workflow management for coding agents"
 license = "MIT"
 readme = "../../README.md"
 repository = "https://github.com/AlrikOlson/magistr"
@@ -62,7 +62,7 @@ flate2 = "1"
 shell-escape = "0.1"
 tempfile = "3"
 
-# The native workspace perf harness (chunk arch-14c10b): the retained
+# The native workspace perf harness (task arch-14c10b): the retained
 # tier-0 / tier-1 / references / worker round-trip gates measured over the
 # retained synthetic corpora against the shipping worker binary.
 # `cargo bench -p magistr-cli --bench workspace_bench -- --profile index`.

@@ -10,7 +10,7 @@ import {
 
 const labels = {
   current: 'Work',
-  roadmap: 'Roadmap',
+  plan: 'Plan',
   checks: 'Checks',
   findings: 'Findings',
   changes: 'Changes',
@@ -18,14 +18,14 @@ const labels = {
 const label = (value) => clean(value, 100).replace(/_/g, ' ')
 const focusSummary = (value) => {
   if (!value?.focus) return null
-  const group = clean(value.focus.group, 160)
+  const group = clean(value.focus.feature, 160)
   switch (value.focus_state.state) {
     case 'current':
       return 'Chosen workstream: ' + group
     case 'closed':
       return group + ' has no unfinished work. Choose another workstream.'
     case 'missing':
-      return group + ' is no longer on the roadmap. Choose another workstream.'
+      return group + ' is no longer on the plan. Choose another workstream.'
     default:
       return null
   }
@@ -131,7 +131,7 @@ export function pane(E, m, width, handlers) {
         text(
           'Details show up to ' +
             d.step.detail_limit +
-            ' characters per check. The files may have changed since the check. Inspect its check_result to see whether they did.',
+            ' characters per check. The files may have changed since the check. Inspect its check result to see whether they did.',
         ),
       )
       for (const a of (t.progress ?? []).slice(-20)) {
@@ -166,12 +166,12 @@ export function pane(E, m, width, handlers) {
         )
         for (const a of (c.acceptance ?? []).slice(0, LIMIT))
           body.push(text('• ' + a))
-        if (c.blocked_by)
-          body.push(text('Waiting: ' + clean(c.blocked_by.reason, 1200)))
+        if (c.waiting_on)
+          body.push(text('Waiting: ' + clean(c.waiting_on.reason, 1200)))
         for (const dep of (c.deps ?? []).slice(0, 20)) {
           const work = [
-            ...(m.slots.roadmap?.value?.chunks ?? []),
-            ...(m.slots.roadmap?.value?.recent_done ?? []),
+            ...(m.slots.plan?.value?.tasks ?? []),
+            ...(m.slots.plan?.value?.recent_done ?? []),
           ].find((x) => x.id === dep)
           body.push(
             button(
@@ -188,7 +188,7 @@ export function pane(E, m, width, handlers) {
             ),
           )
         }
-        if (c.id === m.slots.roadmap?.value?.next && !m.pending && !m.uncertain)
+        if (c.id === m.slots.plan?.value?.next && !m.pending && !m.uncertain)
           body.push(
             button(
               'start-work',
@@ -197,20 +197,20 @@ export function pane(E, m, width, handlers) {
               's',
             ),
           )
-        if (c.group && !m.pending && !m.uncertain)
+        if (c.feature && !m.pending && !m.uncertain)
           body.push(
             button(
               'focus-work',
               'Choose this workstream',
               () =>
                 handlers.action('focus', {
-                  group: c.group,
+                  feature: c.feature,
                   title: c.name || c.title,
                 }),
               'w',
             ),
           )
-        for (const ref of (c.cross_refs ?? []).slice(0, 10)) {
+        for (const ref of (c.refs ?? []).slice(0, 10)) {
           if (/^think:\d+$/.test(ref))
             body.push(
               button('ref-' + ref, 'Inspect linked finding', () =>
@@ -249,7 +249,7 @@ export function pane(E, m, width, handlers) {
     } else if (d?.check_result) {
       const check_result = d.check_result
       body.push(
-        text('Check check_result', true),
+        text('Check result', true),
         text(check_result.gate),
         text(check_result.command || 'No command recorded.'),
       )
@@ -336,7 +336,7 @@ export function pane(E, m, width, handlers) {
       body.push(text(m.filter ? 'No steps match.' : 'No steps planned.'))
     if (steps.length > LIMIT)
       body.push(text('More steps are available. Narrow your search.'))
-  } else if (m.tab === 'roadmap') {
+  } else if (m.tab === 'plan') {
     const v = slot.value
     const focus = focusSummary(m.slots.focus?.value)
     if (focus) body.push(text(focus))
@@ -349,7 +349,7 @@ export function pane(E, m, width, handlers) {
         onSubmit: (value) => handlers.filter(value),
       }),
     )
-    const items = filtered(v.chunks, m.filter)
+    const items = filtered(v.tasks, m.filter)
     for (const c of items.slice(0, LIMIT))
       body.push(
         button(
@@ -369,7 +369,7 @@ export function pane(E, m, width, handlers) {
     if (v.omitted_active || items.length > LIMIT)
       body.push(
         text(
-          'More work is available. Narrow your search or inspect the roadmap with your usual coding workflow.',
+          'More work is available. Narrow your search or inspect the plan with your usual coding workflow.',
         ),
       )
     body.push(

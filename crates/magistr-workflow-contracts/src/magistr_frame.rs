@@ -15,7 +15,7 @@ use magistr_domain::workflow::WorkflowPhase;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum MagistrFrame {
-    /// One chunk a running gate wrote to its pty, keyed by the gate.
+    /// One task a running gate wrote to its pty, keyed by the gate.
     GateOutput(GateOutput),
     /// The agent announced a workflow phase (`magistr_set_phase`). The
     /// phase travels typed; the action the service also records on the

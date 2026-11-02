@@ -12,7 +12,7 @@ use crate::utils::live_command::run_command_live;
 /// Run `command` for the gate `name` in `dir`, and answer with what it did.
 ///
 /// The command runs on a pty ([`run_command_live`]): it sees a terminal,
-/// and every chunk it writes — colours and cursor moves included — goes
+/// and every task it writes — colours and cursor moves included — goes
 /// to `sink` in order while it runs, which is how a caller streams the
 /// gate to the cockpit. What the run keeps is the escape-stripped
 /// transcript, both streams as the one stream a tty is (a command that

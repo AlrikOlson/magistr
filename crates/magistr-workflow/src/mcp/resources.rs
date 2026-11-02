@@ -3,9 +3,9 @@
 //! The unified server exposes ambient workspace state as MCP resources so
 //! clients can READ it without tool-call ceremony:
 //!
-//!   roadmap://view            the roadmap export (markdown)
+//!   plan://view            the plan export (markdown)
 //!   decisions://pinned        pinned think steps — the durable conclusions
-//!   digest://since/{window}   recent activity (steps + chunk movement)
+//!   digest://since/{window}   recent activity (steps + task movement)
 //!
 //! Everything here is a pure projection over engine state — reads never
 //! mutate or persist. The digest is a LOCAL projection (the richer
@@ -16,10 +16,10 @@
 
 use chrono::{DateTime, Duration, Utc};
 
-use crate::roadmap::domain::Chunk;
+use crate::plan::domain::Task;
 use crate::think::domain::ThinkStep;
 
-pub(crate) const ROADMAP_URI: &str = "roadmap://view";
+pub(crate) const PLAN_URI: &str = "plan://view";
 pub(crate) const PINNED_URI: &str = "decisions://pinned";
 pub(crate) const DIGEST_PREFIX: &str = "digest://since/";
 pub(crate) const DIGEST_DEFAULT_URI: &str = "digest://since/24h";
@@ -71,10 +71,10 @@ pub(crate) fn pinned_markdown(steps: &[ThinkStep]) -> String {
 }
 
 /// Markdown digest of activity since `now - window`: reasoning steps recorded
-/// and roadmap chunks that moved. A compact local "while you were away".
+/// and plan tasks that moved. A compact local "while you were away".
 pub(crate) fn digest_markdown(
     steps: &[ThinkStep],
-    chunks: &[Chunk],
+    tasks: &[Task],
     now: DateTime<Utc>,
     window: Duration,
 ) -> String {
@@ -94,15 +94,15 @@ pub(crate) fn digest_markdown(
         out.push_str(&format!("- think:{} {}\n", step.step_number, step.purpose));
     }
 
-    let moved: Vec<&Chunk> = chunks
+    let moved: Vec<&Task> = tasks
         .iter()
         .filter(|c| parse_ts(Some(c.updated_at.as_str())).is_some_and(|t| t >= since))
         .collect();
-    out.push_str(&format!("\n## Roadmap movement ({} chunks)\n", moved.len()));
-    for chunk in &moved {
+    out.push_str(&format!("\n## Plan movement ({} tasks)\n", moved.len()));
+    for task in &moved {
         out.push_str(&format!(
             "- [{:?}] {} — {}\n",
-            chunk.status, chunk.id, chunk.title
+            task.status, task.id, task.title
         ));
     }
 

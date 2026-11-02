@@ -3,7 +3,7 @@ title: Your first task
 description: Take one useful change from a clear request to a checked result.
 section: getting-started
 order: 3
-related: [roadmap, verification, sessions]
+related: [plan, verification, sessions]
 ---
 Use this guide after [installing Magistr](/docs/installation) and
 [connecting your agent](/docs/agents) in the project. You will describe a result,
@@ -41,27 +41,27 @@ That is an example of **acceptance criteria**: conditions you can check before
 calling the task complete.
 
 For a larger project, ask the agent to save deliverables and dependencies on a
-[roadmap](/docs/roadmap). Each deliverable is a **chunk**. A direct, small request
-can use a saved work plan without creating a roadmap chunk.
+[plan](/docs/plan). Each deliverable is a **task**. A direct, small request
+can use a saved work plan without creating a plan task.
 
 ## Start the change
 
-If the agreed work is a ready roadmap chunk, invoke the skill inside your chat:
+If the agreed work is a ready plan task, invoke the skill inside your chat:
 
-| Agent | Start one chunk |
+| Agent | Start one task |
 | --- | --- |
 | Codex | `$next` |
 | Claude Code | `/next` |
 
-These skills resume interrupted roadmap work first. Otherwise they select one
-ready chunk, read its requirements and current code, save an goal and task
+These skills resume interrupted plan work first. Otherwise they select one
+ready task, read its requirements and current code, save an goal and task
 plan, implement, verify, and commit the finished change.
 
 For a direct task, say to implement the agreed change and record its work and
 checks in Magistr. Do not invoke `next` merely to execute an unrelated request.
 
 Terminal users can instead run `magistr next` from the project root. This
-launches a separate agent session. [Working in chunks](/docs/chunks) explains
+launches a separate agent session. [Working in tasks](/docs/tasks) explains
 the difference and how to bound a longer run.
 
 ## Inspect the result
@@ -88,7 +88,7 @@ request, a push to a branch, or a deployment. For example:
 
 > After the relevant checks pass, make a local commit and report its hash.
 
-The roadmap skills include a commit; a push or deployment also needs your
+The plan skills include a commit; a push or deployment also needs your
 instruction. Store persistent delivery preferences in the project's agent
 instructions so future sessions can read them.
 

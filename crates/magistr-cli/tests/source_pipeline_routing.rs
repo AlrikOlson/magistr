@@ -1,5 +1,5 @@
 //! Magistr's own source writes through the admitted workspace pipeline
-//! (chunks arch-14f2 and audit-260912-04), against the real adapters: a
+//! (tasks arch-14f2 and audit-260912-04), against the real adapters: a
 //! `HostedWorkspace` the way `magistr start` admits one (the real worker
 //! binary, the owner endpoint served), its `WorkspaceSourceWriter`, the
 //! `WorkspaceAdmission` every host composes, and the ACP `LocalEffectPort`

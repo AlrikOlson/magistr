@@ -15,7 +15,7 @@ use tempfile::TempDir;
 
 const RATCHET: &str = r#"{"path": "crates/magistr-gui", "files": 1, "loc": 1,
     "unlock": ["legacy-gui", "delete"],
-    "replacement": "the native GUI (roadmap gui2-1..gui2-4)"}"#;
+    "replacement": "the native GUI (plan gui2-1..gui2-4)"}"#;
 
 struct Project {
     _tmp: TempDir,
@@ -40,7 +40,7 @@ impl Project {
                 "format": {"extensions": ["rs"], "command": "true"},
                 "testing": {"companion_pattern": "{name}.tests.rs", "test_dir": "alongside"},
                 "reference_repos": [], "state_prefix": "t",
-                "roadmap_backend": "native"}"#,
+                "plan_backend": "native"}"#,
         )
         .expect("write");
         if frozen {
@@ -133,7 +133,7 @@ fn stop_hook_allows_completed_work_with_unrelated_changes_and_exports_disabled()
     let config_path = project.root.join(".magistr/project.json");
     let mut config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
-    config["roadmap_exports"] = serde_json::json!(false);
+    config["plan_exports"] = serde_json::json!(false);
     std::fs::write(&config_path, serde_json::to_vec(&config).unwrap()).unwrap();
     for args in [
         vec!["init", "-q"],
@@ -201,8 +201,8 @@ fn stop_hook_allows_completed_work_with_unrelated_changes_and_exports_disabled()
         std::fs::read_to_string(changed).unwrap(),
         "other session's work"
     );
-    assert!(!project.root.join("ROADMAP.md").exists());
-    assert!(!project.root.join("ROADMAP.json").exists());
+    assert!(!project.root.join("PLAN.md").exists());
+    assert!(!project.root.join("PLAN.json").exists());
 }
 
 fn stderr(out: &Output) -> String {
@@ -212,7 +212,7 @@ fn stderr(out: &Output) -> String {
 #[test]
 fn a_write_under_the_frozen_tree_is_denied_under_an_unrelated_goal() {
     let project = Project::new(true);
-    project.set_goal("chunk:acp-reconnect — src/acp/*.rs");
+    project.set_goal("task:acp-reconnect — src/acp/*.rs");
     let out = project.guard("crates/magistr-gui/src/App.svelte");
     assert_eq!(out.status.code(), Some(2), "{}", stderr(&out));
     let err = stderr(&out);
@@ -232,7 +232,7 @@ fn a_write_under_the_frozen_tree_is_denied_without_an_goal() {
 #[test]
 fn a_legacy_gui_scoped_goal_unlocks_the_tree() {
     let project = Project::new(true);
-    project.set_goal("chunk:gui2-0-freeze-tauri — legacy-gui freeze");
+    project.set_goal("task:gui2-0-freeze-tauri — legacy-gui freeze");
     let out = project.guard("crates/magistr-gui/src/App.svelte");
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     assert!(stderr(&out).contains("admitted"), "{}", stderr(&out));
@@ -241,7 +241,7 @@ fn a_legacy_gui_scoped_goal_unlocks_the_tree() {
 #[test]
 fn a_delete_scoped_goal_unlocks_the_tree() {
     let project = Project::new(true);
-    project.set_goal("chunk:gui2-4-cutover: delete crates/magistr-gui");
+    project.set_goal("task:gui2-4-cutover: delete crates/magistr-gui");
     let out = project.guard("crates/magistr-gui/src-tauri/src/main.rs");
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }
@@ -249,7 +249,7 @@ fn a_delete_scoped_goal_unlocks_the_tree() {
 #[test]
 fn writes_outside_the_frozen_tree_pass() {
     let project = Project::new(true);
-    project.set_goal("chunk:unrelated");
+    project.set_goal("task:unrelated");
     for rel in [
         "crates/magistr-desktop/src/lib.rs",
         // a sibling that merely shares the prefix
@@ -264,7 +264,7 @@ fn writes_outside_the_frozen_tree_pass() {
 #[test]
 fn a_project_without_a_ratchet_declaration_is_never_gated() {
     let project = Project::new(false);
-    project.set_goal("chunk:unrelated");
+    project.set_goal("task:unrelated");
     let out = project.guard("crates/magistr-gui/src/App.svelte");
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }
@@ -273,7 +273,7 @@ fn a_project_without_a_ratchet_declaration_is_never_gated() {
 #[test]
 fn the_hook_script_forwards_the_write_event_and_the_block() {
     let project = Project::new(true);
-    project.set_goal("chunk:unrelated");
+    project.set_goal("task:unrelated");
     let out = project.hook_script("crates/magistr-gui/src/App.svelte");
     assert_eq!(out.status.code(), Some(2), "{}", stderr(&out));
     assert!(stderr(&out).contains("frozen"), "{}", stderr(&out));
@@ -294,7 +294,7 @@ fn the_freeze_is_declared_not_hardcoded() {
         r#"{"path": "vendor/thing", "files": 1, "loc": 1, "unlock": ["legacy-thing"]}"#,
     )
     .expect("write");
-    project.set_goal("chunk:unrelated");
+    project.set_goal("task:unrelated");
 
     // The GUI is no longer the frozen tree.
     let out = project.guard("crates/magistr-gui/src/App.svelte");

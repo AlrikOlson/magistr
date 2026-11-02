@@ -32,7 +32,7 @@ pub(crate) fn fits_sun_path(path: &Path) -> bool {
 /// deliberate difference: persistence is **on unless explicitly disabled**
 /// (`MAGISTR_WORKFLOW_PERSIST=false|0`). The server defaults to off because a
 /// stateless demo is a valid way to run it; a native subsystem that forgets
-/// its roadmap at exit is not a valid way to run Magistr.
+/// its plan at exit is not a valid way to run Magistr.
 #[derive(Clone)]
 pub struct NativeConfig {
     /// The project root the identity is resolved from.
@@ -53,7 +53,7 @@ pub struct NativeConfig {
     /// The host's verification evidence capability — source observation and
     /// the required gate contracts — composed into the run family of every
     /// writer opened on this configuration. A writer opened without one
-    /// records checks with no source and cannot complete a chunk; the host
+    /// records checks with no source and cannot complete a task; the host
     /// attaches it at every production admission.
     pub(super) evidence: Option<Arc<dyn EvidencePort>>,
     execution_id: String,

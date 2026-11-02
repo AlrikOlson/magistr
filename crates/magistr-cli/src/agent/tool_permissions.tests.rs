@@ -15,32 +15,32 @@ fn interview_includes_codebase_and_bash() {
 }
 
 #[test]
-fn roadmap_includes_codebase_read_only() {
-    let perms = ToolPermissions::for_roadmap();
+fn plan_includes_codebase_read_only() {
+    let perms = ToolPermissions::for_plan();
     for tool in &["Read", "Glob", "Grep", "web_search"] {
-        assert!(perms.contains(tool), "roadmap must include {tool}");
+        assert!(perms.contains(tool), "plan must include {tool}");
     }
-    assert!(!perms.contains("Bash"), "roadmap must NOT include Bash");
+    assert!(!perms.contains("Bash"), "plan must NOT include Bash");
     assert!(
         perms.contains("execute"),
-        "roadmap generation authors chunks through roadmap_add_chunk"
+        "plan generation authors tasks through plan_add_task"
     );
 }
 
 #[test]
-fn no_permission_set_names_the_retired_roadmap_tools() {
+fn no_permission_set_names_the_retired_plan_tools() {
     for perms in [
         ToolPermissions::base(),
         ToolPermissions::for_interview(),
-        ToolPermissions::for_roadmap(),
+        ToolPermissions::for_plan(),
         ToolPermissions::for_workflow(),
     ] {
         assert!(
             !perms
                 .as_slice()
                 .iter()
-                .any(|t| t.starts_with("magistr_roadmap")),
-            "the retired magistr roadmap tools gave way to roadmap_*"
+                .any(|t| t.starts_with("magistr_plan")),
+            "the retired magistr plan tools gave way to plan_*"
         );
     }
 }
@@ -80,11 +80,11 @@ fn workflow_includes_mcp_tools() {
 }
 
 #[test]
-fn reasoning_lifecycle_is_available_to_workflow_and_roadmap_agents() {
+fn reasoning_lifecycle_is_available_to_workflow_and_plan_agents() {
     for permissions in [
         ToolPermissions::for_workflow(),
-        ToolPermissions::for_roadmap(),
-        ToolPermissions::for_roadmap_request(),
+        ToolPermissions::for_plan(),
+        ToolPermissions::for_plan_request(),
     ] {
         assert!(permissions.contains("discover"));
         assert!(permissions.contains("execute"));

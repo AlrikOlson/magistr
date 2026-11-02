@@ -7,7 +7,7 @@ use std::process::Command;
 use magistr_engine::{
     NativeConfig, NativeEngines, NativeReader, ProjectAuthority, RunGuardState, WriterRole,
 };
-use magistr_workflow::roadmap::domain::ChunkStatus;
+use magistr_workflow::plan::domain::TaskStatus;
 use magistr_workflow::run::domain::step::StepType;
 
 fn config(tmp: &tempfile::TempDir) -> NativeConfig {
@@ -48,7 +48,7 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
     let config = config(&tmp);
     let owner = host(&config, "project-a");
     let shared = owner.clone();
-    goal_with_step(&owner, "chunk:first", "first-verify");
+    goal_with_step(&owner, "task:first", "first-verify");
 
     shared
         .add_step(
@@ -70,12 +70,12 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
     // Selecting another scope saves the first plan and selects its own steps.
     assert_eq!(
         shared
-            .run_open("Replacement".into(), vec![], vec![], "chunk:second".into())
+            .run_open("Replacement".into(), vec![], vec![], "task:second".into())
             .expect("goal")
             .value,
         0
     );
-    assert_eq!(owner.run_goal().unwrap().unwrap().scope, "chunk:second");
+    assert_eq!(owner.run_goal().unwrap().unwrap().scope, "task:second");
     assert!(owner.run_active_step_id().unwrap().is_none());
     assert!(owner.run_steps().unwrap().is_empty());
 
@@ -88,15 +88,15 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
         std::io::ErrorKind::WouldBlock
     );
     let reopened = owner.clone();
-    assert_eq!(reopened.run_goal().unwrap().unwrap().scope, "chunk:second");
+    assert_eq!(reopened.run_goal().unwrap().unwrap().scope, "task:second");
     assert!(reopened.start_step("second-verify").is_err());
-    goal_with_step(&reopened, "chunk:second", "second-scope-verify");
+    goal_with_step(&reopened, "task:second", "second-scope-verify");
     assert_eq!(
         owner.run_active_step_id().unwrap().unwrap(),
         "second-scope-verify"
     );
     owner
-        .run_open("First plan".into(), vec![], vec![], "chunk:first".into())
+        .run_open("First plan".into(), vec![], vec![], "task:first".into())
         .expect("restore first scope");
     assert_eq!(
         reopened.run_active_step_id().unwrap().unwrap(),
@@ -110,7 +110,7 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
         .with_data_dir(tmp.path().join("native-store"));
     let independent = host(&independent_config, "project-b");
     assert!(independent.run_goal().unwrap().is_none());
-    goal_with_step(&independent, "chunk:independent", "independent-verify");
+    goal_with_step(&independent, "task:independent", "independent-verify");
     assert_eq!(
         independent.run_active_step_id().unwrap().unwrap(),
         "independent-verify"
@@ -120,7 +120,7 @@ fn one_execution_shares_selection_and_other_projects_keep_their_scopes() {
 
 /// A writer admitted on a configuration that carries no evidence capability
 /// (what every test here opens) still composes the run family as the
-/// roadmap's completion authority: completion is refused with the missing
+/// plan's completion authority: completion is refused with the missing
 /// capability named, and neither the phase guard nor finalization changes
 /// what that refusal decided.
 #[test]
@@ -130,11 +130,11 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
     let config = config(&tmp);
     let engines = host(&config, "completion");
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             "fixture".into(),
             "Characterize completion".into(),
             String::new(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             100,
             "Native completion and verification have separate boundaries.".into(),
             vec!["A real required check passes.".into()],
@@ -142,9 +142,9 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
             None,
             None,
         )
-        .expect("add chunk");
-    engines.roadmap_start_chunk("fixture").expect("start chunk");
-    goal_with_step(&engines, "chunk:fixture", "fixture-verify");
+        .expect("add task");
+    engines.plan_start_task("fixture").expect("start task");
+    goal_with_step(&engines, "task:fixture", "fixture-verify");
     let before = RunGuardState::from_run(
         engines.run_goal().unwrap().as_ref(),
         &engines.run_steps().unwrap(),
@@ -155,7 +155,7 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
     // No evidence capability, no completion — on the verb every adapter
     // lands on, in words that name what is missing.
     let refused = engines
-        .roadmap_complete_chunk("fixture", None)
+        .plan_complete_task("fixture", None)
         .expect_err("no capability certifies the gates");
     assert!(
         refused
@@ -164,15 +164,15 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
         "{refused}"
     );
     let refused = engines
-        .roadmap_set_status("fixture", ChunkStatus::Done)
+        .plan_set_status("fixture", TaskStatus::Done)
         .expect_err("done is never set by name");
     assert!(
-        refused.to_string().contains("roadmap_complete_chunk"),
+        refused.to_string().contains("plan_complete_task"),
         "{refused}"
     );
-    let chunk = engines.roadmap_chunk("fixture").unwrap().expect("chunk");
-    assert_eq!(chunk.status, ChunkStatus::InProgress);
-    assert!(chunk.cross_refs.is_empty());
+    let task = engines.plan_task("fixture").unwrap().expect("task");
+    assert_eq!(task.status, TaskStatus::InProgress);
+    assert!(task.refs.is_empty());
     assert!(
         RunGuardState::from_run(
             engines.run_goal().unwrap().as_ref(),
@@ -234,10 +234,10 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
         magistr_workflow::run::domain::goal::GoalStatus::Finished
     );
     assert!(!reopened.run_steps().unwrap()[0].checks[0].passed);
-    let chunk = reopened
-        .roadmap_chunk("fixture")
+    let task = reopened
+        .plan_task("fixture")
         .unwrap()
-        .expect("persisted chunk");
-    assert_eq!(chunk.status, ChunkStatus::InProgress);
-    assert!(chunk.cross_refs.is_empty());
+        .expect("persisted task");
+    assert_eq!(task.status, TaskStatus::InProgress);
+    assert!(task.refs.is_empty());
 }

@@ -155,23 +155,23 @@ impl AgentGoal {
     }
 
     /// The condition a delegated iteration hands the agent, compiled
-    /// for its evaluator: it names the chunk, points at the project's
+    /// for its evaluator: it names the task, points at the project's
     /// own `/next` workflow, and — because the evaluator reads the
     /// transcript only — tells the agent to run the gates and print
     /// their verdict. Canonicalised (whitespace collapsed) and held
     /// under [`Self::OBJECTIVE_CAP`] by trimming the title first, so the
-    /// agent never refuses it as too long. `chunk` is `(id, title)`, or
-    /// `None` on a project with no roadmap chunk to name.
+    /// agent never refuses it as too long. `task` is `(id, title)`, or
+    /// `None` on a project with no plan task to name.
     #[must_use]
-    pub fn compile_objective(chunk: Option<(&str, &str)>) -> String {
-        let subject = match chunk {
-            Some((id, _)) => format!("roadmap chunk `{id}`"),
-            None => "the next roadmap item".to_owned(),
+    pub fn compile_objective(task: Option<(&str, &str)>) -> String {
+        let subject = match task {
+            Some((id, _)) => format!("plan task `{id}`"),
+            None => "the next plan item".to_owned(),
         };
         let mut out = format!("Done means: {subject} is complete");
-        let title = chunk.map(|(_, title)| canonical(title)).unwrap_or_default();
+        let title = task.map(|(_, title)| canonical(title)).unwrap_or_default();
         let tail = " — run the /next workflow for it until every acceptance criterion \
-                    roadmap_get lists is met, run `magistr validate` and print its verdict \
+                    plan_get lists is met, run `magistr validate` and print its verdict \
                     line in the transcript, every gate passes, and the work is committed.";
         let room = Self::OBJECTIVE_CAP.saturating_sub(out.chars().count() + tail.chars().count());
         if !title.is_empty() && room > 8 {

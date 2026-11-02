@@ -11,7 +11,7 @@
 use std::sync::Arc;
 
 use magistr_workflow::mcp::UnifiedService;
-use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
+use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::application::{
     EvidencePort, GateContract, SourceFreshness, SourceObservation, SourceWitness,
@@ -36,7 +36,7 @@ impl ClientHandler for TestClient {}
 
 /// A source that never moves and a project that configures no gates: the
 /// evidence capability a host composes, at its simplest, so a check the
-/// server runs over the wire certifies a source and a chunk can complete.
+/// server runs over the wire certifies a source and a task can complete.
 struct Fixed(String);
 
 impl SourceWitness for Fixed {
@@ -84,9 +84,9 @@ fn build_unified() -> UnifiedService {
                 tempfile::tempdir().expect("evidence workspace"),
             ))),
     );
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), run.use_cases());
+    let plan = PlanService::new(PlanEngine::new("test-abc123".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
-    UnifiedService::new(think, run, roadmap, signal)
+    UnifiedService::new(think, run, plan, signal)
 }
 
 async fn pair() -> (
@@ -124,9 +124,9 @@ async fn tools_list_serves_unique_typed_operations_for_every_workflow_family() {
         "check_step",
         "finish_step",
         "run_finish",
-        "roadmap_add_chunk",
-        "roadmap_start_chunk",
-        "roadmap_complete_chunk",
+        "plan_add_task",
+        "plan_start_task",
+        "plan_complete_task",
         "signal_capture",
     ] {
         assert!(names.contains(required), "missing {required}");
@@ -203,39 +203,36 @@ async fn run_finish_round_trips_over_the_wire() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn roadmap_family_round_trips_over_the_wire() {
+async fn plan_family_round_trips_over_the_wire() {
     let (client_service, server_handle) = pair().await;
 
-    // Add a chunk via the roadmap_* family.
+    // Add a task via the plan_* family.
     let mut args = serde_json::Map::new();
     args.insert("id".to_string(), Value::String("phase-1".to_string()));
-    args.insert(
-        "title".to_string(),
-        Value::String("First chunk".to_string()),
-    );
+    args.insert("title".to_string(), Value::String("First task".to_string()));
     args.insert("priority".to_string(), Value::from(5));
-    let mut add = CallToolRequestParams::new("roadmap_add_chunk");
+    let mut add = CallToolRequestParams::new("plan_add_task");
     add.arguments = Some(args);
     let result = client_service.peer().call_tool(add).await.unwrap();
-    assert_ne!(result.is_error, Some(true), "add_chunk failed: {result:?}");
+    assert_ne!(result.is_error, Some(true), "add_task failed: {result:?}");
 
-    // roadmap_status should report the chunk and select it as next.
+    // plan_status should report the task and select it as next.
     let status = client_service
         .peer()
-        .call_tool(CallToolRequestParams::new("roadmap_status"))
+        .call_tool(CallToolRequestParams::new("plan_status"))
         .await
         .unwrap();
     let sc = status
         .structured_content
-        .expect("roadmap_status returns structured content");
+        .expect("plan_status returns structured content");
     assert_eq!(sc["counts"]["total"], 1);
     assert_eq!(sc["next"], "phase-1");
 
-    // roadmap_export markdown projection should contain the chunk title.
+    // plan_export markdown projection should contain the task title.
     let export = client_service
         .peer()
         .call_tool(
-            CallToolRequestParams::new("roadmap_export").with_arguments(
+            CallToolRequestParams::new("plan_export").with_arguments(
                 serde_json::json!({"output": "inline"})
                     .as_object()
                     .unwrap()
@@ -246,11 +243,11 @@ async fn roadmap_family_round_trips_over_the_wire() {
         .unwrap();
     let ec = export
         .structured_content
-        .expect("roadmap_export returns structured content");
-    let md = ec["roadmap"].as_str().unwrap_or_default();
+        .expect("plan_export returns structured content");
+    let md = ec["plan"].as_str().unwrap_or_default();
     assert!(
-        md.contains("First chunk"),
-        "markdown export should contain the chunk title, got: {md}"
+        md.contains("First task"),
+        "markdown export should contain the task title, got: {md}"
     );
 
     let _ = client_service.cancel().await;
@@ -258,7 +255,7 @@ async fn roadmap_family_round_trips_over_the_wire() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn roadmap_cross_family_linkage_over_the_wire() {
+async fn plan_cross_family_linkage_over_the_wire() {
     let (client_service, server_handle) = pair().await;
 
     let call = |name: &'static str, args: serde_json::Map<String, Value>| {
@@ -268,28 +265,25 @@ async fn roadmap_cross_family_linkage_over_the_wire() {
         async move { peer.call_tool(req).await.unwrap() }
     };
 
-    // Seed a chunk.
+    // Seed a task.
     let mut a = serde_json::Map::new();
     a.insert("id".to_string(), Value::String("phase-1".to_string()));
     a.insert("title".to_string(), Value::String("Wire it".to_string()));
-    assert_ne!(call("roadmap_add_chunk", a).await.is_error, Some(true));
+    assert_ne!(call("plan_add_task", a).await.is_error, Some(true));
 
-    // start_chunk → in_progress + the chunk:<id> backref for run/think.
+    // start_task → in_progress + the task:<id> reference for run/think.
     let mut s = serde_json::Map::new();
     s.insert("id".to_string(), Value::String("phase-1".to_string()));
-    let started = call("roadmap_start_chunk", s).await;
+    let started = call("plan_start_task", s).await;
     let sc = started.structured_content.expect("start structured");
-    assert_eq!(sc["value"]["backref"], "chunk:phase-1");
-    assert_eq!(sc["value"]["chunk"]["status"], "in_progress");
+    assert_eq!(sc["value"]["ref"], "task:phase-1");
+    assert_eq!(sc["value"]["task"]["status"], "in_progress");
 
-    // link a think step to the chunk.
+    // link a think step to the task.
     let mut l = serde_json::Map::new();
     l.insert("id".to_string(), Value::String("phase-1".to_string()));
-    l.insert(
-        "cross_ref".to_string(),
-        Value::String("think:1".to_string()),
-    );
-    assert_ne!(call("roadmap_link", l).await.is_error, Some(true));
+    l.insert("ref".to_string(), Value::String("think:1".to_string()));
+    assert_ne!(call("plan_link", l).await.is_error, Some(true));
 
     // Completion is governed by the run's receipts on every route, the
     // wire included: with nothing verified yet it is refused by name.
@@ -299,15 +293,15 @@ async fn roadmap_cross_family_linkage_over_the_wire() {
         "step_ref".to_string(),
         Value::String("step:wire-it".to_string()),
     );
-    let refused = call("roadmap_complete_chunk", c.clone()).await;
+    let refused = call("plan_complete_task", c.clone()).await;
     assert_eq!(refused.is_error, Some(true));
     let refusal = refused.structured_content.expect("refusal structured");
     assert!(refusal.to_string().contains("no run goal"), "{refusal}");
 
-    // The goal scoped to the chunk, its verification task, and a
+    // The goal scoped to the task, its verification task, and a
     // check the server runs itself: the receipt that lets it complete.
     let goal = serde_json::json!({
-        "description": "Wire it", "scope": "chunk:phase-1",
+        "description": "Wire it", "scope": "task:phase-1",
     });
     assert_ne!(
         call("run_open", goal.as_object().unwrap().clone())
@@ -336,10 +330,10 @@ async fn roadmap_cross_family_linkage_over_the_wire() {
     assert_ne!(checked.is_error, Some(true), "{checked:?}");
 
     // complete with the verification task as its proof-of-run ref.
-    let done = call("roadmap_complete_chunk", c).await;
+    let done = call("plan_complete_task", c).await;
     let dc = done.structured_content.expect("complete structured");
     assert_eq!(dc["value"]["status"], "done");
-    let refs = dc["value"]["cross_refs"].as_array().unwrap();
+    let refs = dc["value"]["refs"].as_array().unwrap();
     assert!(refs.iter().any(|r| r == "think:1"));
     assert!(refs.iter().any(|r| r == "step:wire-it"));
 
@@ -353,7 +347,7 @@ async fn roadmap_cross_family_linkage_over_the_wire() {
         "think_steps".to_string(),
         Value::Array(vec![Value::from(8)]),
     );
-    let refreshed = call("roadmap_record_refresh", r).await;
+    let refreshed = call("plan_record_refresh", r).await;
     let rc = refreshed.structured_content.expect("refresh structured");
     assert_eq!(rc["value"]["total_refreshes"], 1);
 
@@ -374,7 +368,7 @@ async fn resources_list_and_read_end_to_end() {
     // Capabilities advertise resources (and the listing has our three URIs).
     let listed = peer.list_resources(None).await.expect("resources/list");
     let uris: Vec<&str> = listed.resources.iter().map(|r| r.uri.as_str()).collect();
-    assert!(uris.contains(&"roadmap://view"), "got {uris:?}");
+    assert!(uris.contains(&"plan://view"), "got {uris:?}");
     assert!(uris.contains(&"decisions://pinned"), "got {uris:?}");
     assert!(uris.contains(&"digest://since/24h"), "got {uris:?}");
 
@@ -389,7 +383,7 @@ async fn resources_list_and_read_end_to_end() {
             .any(|t| t.uri_template == "digest://since/{window}"),
     );
 
-    // Seed state through the normal tool surface: one pinned step + a chunk.
+    // Seed state through the normal tool surface: one pinned step + a task.
     let mut step = serde_json::Map::new();
     for (k, v) in [
         ("purpose", "anchor decision"),
@@ -407,11 +401,11 @@ async fn resources_list_and_read_end_to_end() {
     let req = CallToolRequestParams::new("think_record_step").with_arguments(step);
     peer.call_tool(req).await.expect("record step");
 
-    let mut chunk = serde_json::Map::new();
-    chunk.insert("id".into(), Value::String("res-e2e".into()));
-    chunk.insert("title".into(), Value::String("resource e2e chunk".into()));
-    let req = CallToolRequestParams::new("roadmap_add_chunk").with_arguments(chunk);
-    peer.call_tool(req).await.expect("add chunk");
+    let mut task = serde_json::Map::new();
+    task.insert("id".into(), Value::String("res-e2e".into()));
+    task.insert("title".into(), Value::String("resource e2e task".into()));
+    let req = CallToolRequestParams::new("plan_add_task").with_arguments(task);
+    peer.call_tool(req).await.expect("add task");
 
     let read = |uri: &str| {
         let peer = peer.clone();
@@ -428,8 +422,8 @@ async fn resources_list_and_read_end_to_end() {
         }
     };
 
-    let roadmap_md = read("roadmap://view").await;
-    assert!(roadmap_md.contains("res-e2e") || roadmap_md.contains("resource e2e chunk"));
+    let plan_md = read("plan://view").await;
+    assert!(plan_md.contains("res-e2e") || plan_md.contains("resource e2e task"));
 
     let pinned_md = read("decisions://pinned").await;
     assert!(pinned_md.contains("anchor decision"), "got: {pinned_md}");
@@ -517,15 +511,15 @@ async fn a_2026_07_28_client_negotiates_and_calls_a_tool() {
     // …and the connection actually works: list, then call.
     let listed = client.list_tools(None).await.expect("tools/list");
     assert!(
-        listed.tools.iter().any(|t| t.name == "roadmap_status"),
-        "expected roadmap_status in the 2026-07-28 tools/list"
+        listed.tools.iter().any(|t| t.name == "plan_status"),
+        "expected plan_status in the 2026-07-28 tools/list"
     );
     let called = client
         .peer()
-        .call_tool(CallToolRequestParams::new("roadmap_status"))
+        .call_tool(CallToolRequestParams::new("plan_status"))
         .await
         .expect("tools/call over a 2026-07-28 connection");
-    assert_ne!(called.is_error, Some(true), "roadmap_status errored");
+    assert_ne!(called.is_error, Some(true), "plan_status errored");
 
     let _ = client.cancel().await;
     server_handle.abort();

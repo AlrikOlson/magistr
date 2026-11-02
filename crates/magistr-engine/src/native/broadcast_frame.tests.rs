@@ -1,20 +1,20 @@
 use super::*;
 use crate::native::{EventCursor, NativeEvent, OwnerGeneration};
-use crate::native::{GateOutput, MagistrFrame, RoadmapFrame, RunFrame, SignalFrame, ThinkFrame};
+use crate::native::{GateOutput, MagistrFrame, PlanFrame, RunFrame, SignalFrame, ThinkFrame};
 use crate::workflow::WorkflowPhase;
 #[cfg(unix)]
 use magistr_workflow::infra::Broadcaster;
 use magistr_workflow::infra::Family;
-use magistr_workflow::roadmap::domain::ChunkStatus;
+use magistr_workflow::plan::domain::TaskStatus;
 use magistr_workflow::signal::domain::SignalKind;
 
 #[test]
 fn parses_family_and_type() {
-    let line = r#"{"family":"roadmap","type":"chunk_changed","chunk":{"id":"a"}}"#;
+    let line = r#"{"family":"plan","type":"task_changed","task":{"id":"a"}}"#;
     let f = NativeFrame::parse_line(line).expect("frame");
-    assert_eq!(f.family, "roadmap");
-    assert_eq!(f.kind, "chunk_changed");
-    assert_eq!(f.payload["chunk"]["id"], "a");
+    assert_eq!(f.family, "plan");
+    assert_eq!(f.kind, "task_changed");
+    assert_eq!(f.payload["task"]["id"], "a");
 }
 
 #[test]
@@ -33,27 +33,27 @@ fn junk_lines_are_dropped() {
     assert!(NativeFrame::parse_line("{\"family\":3}").is_none());
 }
 
-fn chunk(id: &str) -> magistr_workflow::roadmap::domain::Chunk {
-    magistr_workflow::roadmap::domain::Chunk {
+fn task(id: &str) -> magistr_workflow::plan::domain::Task {
+    magistr_workflow::plan::domain::Task {
         id: id.to_owned(),
-        title: format!("Chunk {id}"),
+        title: format!("Task {id}"),
         name: id.to_owned(),
-        status: ChunkStatus::InProgress,
+        status: TaskStatus::InProgress,
         priority: 100,
         description: String::new(),
         content: None,
         notes: String::new(),
-        group: None,
+        feature: None,
         acceptance: vec![],
         deps: vec![],
         tier: None,
-        cross_refs: vec![],
+        refs: vec![],
         shared: false,
         reprioritize: None,
         status_proposal: None,
         title_proposal: None,
-        obsoleted_reason: None,
-        blocked_by: None,
+        retired_reason: None,
+        waiting_on: None,
         project_id: None,
         created_at: "2026-09-12T00:00:00Z".to_owned(),
         updated_at: "2026-09-12T00:00:00Z".to_owned(),
@@ -70,7 +70,7 @@ fn signal(id: &str) -> magistr_workflow::signal::domain::Signal {
         created: "2026-09-12T00:00:00Z".to_owned(),
         status: magistr_workflow::signal::domain::SignalStatus::New,
         enrichment: vec![],
-        cross_refs: vec![],
+        refs: vec![],
         surfaced_at: None,
         snooze_until: None,
         project_id: None,
@@ -120,9 +120,9 @@ fn every_family_round_trips_through_the_wire_line() {
             }),
         ),
         (
-            Family::Roadmap,
-            serde_json::to_value(RoadmapFrame::ChunkChanged { chunk: chunk("a") }).unwrap(),
-            NativeEvent::Roadmap(RoadmapFrame::ChunkChanged { chunk: chunk("a") }),
+            Family::Plan,
+            serde_json::to_value(PlanFrame::TaskChanged { task: task("a") }).unwrap(),
+            NativeEvent::Plan(PlanFrame::TaskChanged { task: task("a") }),
         ),
         (
             Family::Signal,
@@ -261,7 +261,7 @@ fn unknown_families_kinds_and_malformed_payloads_are_dropped_not_half_read() {
         // The right kind with the wrong shape.
         r#"{"family":"magistr","type":"gate_output","gate":"check","bytes":"not an array"}"#,
         r#"{"family":"magistr","type":"phase_set","phase":"nowhere"}"#,
-        r#"{"family":"roadmap","type":"chunk_changed","chunk":{"id":"a"}}"#,
+        r#"{"family":"plan","type":"task_changed","task":{"id":"a"}}"#,
         // No kind at all.
         r#"{"family":"run"}"#,
     ] {

@@ -341,7 +341,7 @@ mod tests {
     fn every_other_tool_stays_inline_even_carrying_a_command_key() {
         for tool in [
             "think_record_step",
-            "roadmap_status",
+            "plan_status",
             "signal_capture",
             "tracker_setup",
             "run_finish",

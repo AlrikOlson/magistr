@@ -15,8 +15,8 @@
 //! version is stale AND our local plan has moved, then projects once, and
 //! asserts the outcome is defined, recorded, and stable on a second run.
 
-use magistr_workflow::roadmap::domain::{ChunkStatus, StatusProposal};
-use magistr_workflow::roadmap::engine::RoadmapEngine;
+use magistr_workflow::plan::domain::{StatusProposal, TaskStatus};
+use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::tracker::concern::propose_status_from_sweep;
 use magistr_workflow::tracker::domain::WorkItemState;
 use magistr_workflow::tracker::fake::FakeTracker;
@@ -29,34 +29,34 @@ const T0: &str = "2026-07-26T10:00:00+00:00";
 const T1: &str = "2026-07-26T11:00:00+00:00";
 const T2: &str = "2026-07-26T12:00:00+00:00";
 
-fn engine() -> RoadmapEngine {
-    RoadmapEngine::new("proj".into())
+fn engine() -> PlanEngine {
+    PlanEngine::new("proj".into())
 }
 
-fn add(e: &mut RoadmapEngine, id: &str) {
-    e.add_chunk(
+fn add(e: &mut PlanEngine, id: &str) {
+    e.add_task(
         id.into(),
-        format!("Chunk {id}"),
-        ChunkStatus::Pending,
+        format!("Task {id}"),
+        TaskStatus::ToDo,
         10,
         format!("why {id} exists"),
         vec![format!("{id} works")],
         vec![],
         false,
     )
-    .expect("add chunk");
+    .expect("add task");
     e.set_tracker_opt_in(id, PROVIDER, true).expect("opt in");
 }
 
-fn proposal(e: &RoadmapEngine, id: &str) -> Option<StatusProposal> {
-    e.roadmap()
-        .chunks
+fn proposal(e: &PlanEngine, id: &str) -> Option<StatusProposal> {
+    e.plan()
+        .tasks
         .iter()
         .find(|c| c.id == id)
         .and_then(|c| c.status_proposal.clone())
 }
 
-/// THE promise. Somebody closes the ticket. The chunk does NOT go done — a
+/// THE promise. Somebody closes the ticket. The task does NOT go done — a
 /// close means the ticket is finished, not that the acceptance criteria were
 /// met, and transitioning silently removes the one moment a human was going to
 /// look at the evidence.
@@ -83,20 +83,20 @@ async fn a_closed_ticket_proposes_done_it_does_not_transition() {
     assert_eq!(touched, vec!["c1".to_string()]);
 
     let status = e
-        .roadmap()
-        .chunks
+        .plan()
+        .tasks
         .iter()
         .find(|c| c.id == "c1")
         .map(|c| c.status);
     assert_eq!(
         status,
-        Some(ChunkStatus::Pending),
-        "the chunk TRANSITIONED. A tracker close is not evidence the acceptance \
+        Some(TaskStatus::ToDo),
+        "the task TRANSITIONED. A tracker close is not evidence the acceptance \
          criteria were met, and the machine must not decide that"
     );
 
     let p = proposal(&e, "c1").expect("a proposal must be recorded");
-    assert_eq!(p.suggested_status, ChunkStatus::Done);
+    assert_eq!(p.suggested_status, TaskStatus::Done);
     assert!(
         p.source.starts_with("ext:fake/"),
         "a proposal a human cannot trace back is one they cannot evaluate: {}",
@@ -120,22 +120,17 @@ fn the_proposal_sits_where_reprioritize_already_taught_people_to_look() {
         .expect("reprioritize");
     e.propose_status(
         "c1",
-        ChunkStatus::Done,
+        TaskStatus::Done,
         "the ticket closed".into(),
         "ext:fake/1".into(),
     )
     .expect("status");
 
-    let c = e
-        .roadmap()
-        .chunks
-        .iter()
-        .find(|c| c.id == "c1")
-        .expect("chunk");
+    let c = e.plan().tasks.iter().find(|c| c.id == "c1").expect("task");
     assert!(c.reprioritize.is_some(), "the established surface");
     assert!(c.status_proposal.is_some(), "the new one, alongside it");
     assert_eq!(c.priority, 10, "neither proposal touched the real value");
-    assert_eq!(c.status, ChunkStatus::Pending);
+    assert_eq!(c.status, TaskStatus::ToDo);
 }
 
 /// A sweep runs on a schedule. Re-proposing the same thing must not restamp
@@ -148,7 +143,7 @@ async fn an_unchanged_proposal_is_not_restamped() {
 
     e.propose_status(
         "c1",
-        ChunkStatus::Done,
+        TaskStatus::Done,
         "same reason".into(),
         "ext:fake/1".into(),
     )
@@ -157,7 +152,7 @@ async fn an_unchanged_proposal_is_not_restamped() {
 
     e.propose_status(
         "c1",
-        ChunkStatus::Done,
+        TaskStatus::Done,
         "same reason".into(),
         "ext:fake/1".into(),
     )
@@ -170,7 +165,7 @@ async fn an_unchanged_proposal_is_not_restamped() {
     );
 }
 
-/// A ticket nobody projected has no chunk to propose against. Inventing one
+/// A ticket nobody projected has no task to propose against. Inventing one
 /// would be worse than silence.
 #[tokio::test]
 async fn a_ticket_we_never_projected_proposes_nothing() {
@@ -225,7 +220,7 @@ async fn simultaneous_edits_converge_and_the_conflict_is_recorded() {
         item.body = "rewritten in the tracker".into();
         item.state = WorkItemState::InProgress;
     });
-    e.update_chunk(
+    e.update_task(
         "c1",
         Some("renamed in the plan".into()),
         None,
@@ -279,12 +274,12 @@ async fn simultaneous_edits_converge_and_the_conflict_is_recorded() {
         first.divergences
     );
 
-    // REMEMBERED: the concession is durable state on the chunk, not a
+    // REMEMBERED: the concession is durable state on the task, not a
     // one-round mood. Round 1 wrote a title proposal; a human can see it,
     // trace it, and resolve it.
     let concession = e
-        .roadmap()
-        .chunks
+        .plan()
+        .tasks
         .iter()
         .find(|c| c.id == "c1")
         .and_then(|c| c.title_proposal.clone())
@@ -363,7 +358,7 @@ async fn accepting_the_concession_adopts_the_trackers_title() {
         item.title = "the human's better title".into();
     });
     // A local edit forces a real patch, which is what surfaces the contest.
-    e.update_chunk(
+    e.update_task(
         "c1",
         None,
         None,
@@ -376,12 +371,7 @@ async fn accepting_the_concession_adopts_the_trackers_title() {
     project_all(&mut e, &tracker, None).await.expect("round 1");
 
     e.resolve_title_proposal("c1", true).expect("accept");
-    let c = e
-        .roadmap()
-        .chunks
-        .iter()
-        .find(|c| c.id == "c1")
-        .expect("chunk");
+    let c = e.plan().tasks.iter().find(|c| c.id == "c1").expect("task");
     assert_eq!(
         c.title, "the human's better title",
         "accepting must adopt the tracker's title into the plan"
@@ -409,7 +399,7 @@ async fn an_uncontested_local_rename_still_reaches_the_tracker() {
     project_all(&mut e, &tracker, None).await.expect("project");
     let link = e.tracker_link("c1", PROVIDER).expect("link").clone();
 
-    e.update_chunk(
+    e.update_task(
         "c1",
         Some("a plain local rename".into()),
         None,
@@ -444,8 +434,8 @@ fn an_unchanged_title_proposal_is_not_restamped() {
     )
     .expect("first");
     let first = e
-        .roadmap()
-        .chunks
+        .plan()
+        .tasks
         .iter()
         .find(|c| c.id == "c1")
         .and_then(|c| c.title_proposal.clone())
@@ -460,8 +450,8 @@ fn an_unchanged_title_proposal_is_not_restamped() {
     )
     .expect("second");
     let second = e
-        .roadmap()
-        .chunks
+        .plan()
+        .tasks
         .iter()
         .find(|c| c.id == "c1")
         .and_then(|c| c.title_proposal.clone())
@@ -489,7 +479,7 @@ fn an_explicit_title_edit_disposes_the_open_proposal() {
     )
     .expect("propose");
 
-    e.update_chunk(
+    e.update_task(
         "c1",
         Some("the human's own new title".into()),
         None,
@@ -500,12 +490,7 @@ fn an_explicit_title_edit_disposes_the_open_proposal() {
     )
     .expect("edit");
 
-    let c = e
-        .roadmap()
-        .chunks
-        .iter()
-        .find(|c| c.id == "c1")
-        .expect("chunk");
+    let c = e.plan().tasks.iter().find(|c| c.id == "c1").expect("task");
     assert!(
         c.title_proposal.is_none(),
         "the proposal outlived an explicit human edit to the same field"
@@ -513,7 +498,7 @@ fn an_explicit_title_edit_disposes_the_open_proposal() {
     assert_eq!(c.title, "the human's own new title");
 }
 
-/// "Resolved" must mean something happened. Resolving a chunk with no open
+/// "Resolved" must mean something happened. Resolving a task with no open
 /// proposal is an error, not a silent no-op.
 #[test]
 fn resolving_without_an_open_proposal_is_loud() {

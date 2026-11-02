@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// One chunk a gate's command wrote to its pty — escapes and all, in the
+/// One task a gate's command wrote to its pty — escapes and all, in the
 /// order it wrote them — keyed by the gate's name.
 ///
 /// Both gate callers speak it: the loop driver posts it on the cockpit's
@@ -16,6 +16,6 @@ use serde::{Deserialize, Serialize};
 pub struct GateOutput {
     /// The gate's name (`check`, `test`, `lint`, a custom gate).
     pub gate: String,
-    /// The chunk, raw.
+    /// The task, raw.
     pub bytes: Vec<u8>,
 }

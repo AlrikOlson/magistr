@@ -1,7 +1,7 @@
 //! The structured body of a record — `record.content` on the wire.
 //!
 //! Agents historically packed everything a record had to say into one prose
-//! field (`body` on a signal, `description` on a chunk), which the webapp can
+//! field (`body` on a signal, `description` on a task), which the webapp can
 //! only render as a wall of text. This module is the contract-owned answer: a
 //! flat, closed set of shapes (`summary` + `facts` + `sections`) that every
 //! family may carry under the uniform payload key `content`, mirroring

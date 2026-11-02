@@ -18,7 +18,7 @@ Investigate names.py and its test using source tools, identify the defect, and f
 with a current content hash. Run the actual unittest command through recorded workflow
 verification. Create a focused goal with a small plan, start the task, record
 a concise design decision and the change, and capture the observed defect as feedback. Add one
-small future improvement to the native roadmap (create a phase if needed).
+small future improvement to the native plan (create a phase if needed).
 Save a concise factual checkpoint for a fresh session, with observed evidence and\na decision summary. Do not record private chain-of-thought or hidden model reasoning. Finish the task after the check
 passes, but leave the goal open for a second session to inspect and finalize.
 Use discover for schemas if it is present; use execute with synchronous
@@ -28,7 +28,7 @@ In your final response explain the source defect and report the verification res
 """
 RESUME = """Resume the existing work in this disposable project through its MCP tools.
 Do not use subagents, other servers or external services. Read context, saved execution,
-feedback, roadmap and the saved decision summary. Confirm the earlier task and its recorded
+feedback, plan and the saved decision summary. Confirm the earlier task and its recorded
 check completed; preserve its source change and all existing records. Finalize that
 goal if its required checks pass. Do not create a new goal or repeat a
 completed edit/check. Report what was recovered and the outcome. Advanced operations
@@ -53,7 +53,7 @@ def verify_saved_work(root):
         paths=list((root/"state"/family).rglob("sessions/*.json"))
         if len(paths)!=1:raise AssertionError(f"{family}: expected one isolated project, found {len(paths)}")
         return json.loads(paths[0].read_text())
-    run=saved("run");think=saved("think");signals=saved("signal");roadmap=saved("roadmap")
+    run=saved("run");think=saved("think");signals=saved("signal");plan=saved("plan")
     checks=[c for task in run["tasks"] for c in task.get("checks",[])]
     proof=subprocess.run(["python3","-m","unittest","-q"],cwd=root,capture_output=True,text=True)
     result={
@@ -61,7 +61,7 @@ def verify_saved_work(root):
         "tasksCompleted":bool(run["tasks"]) and all(t["status"]=="completed" for t in run["tasks"]),
         "recordedCheckPassed":required_checks_passed(checks),
         "feedbackSaved":bool(signals["signals"]),
-        "futureRoadmapSaved":any(c["status"] in ("backlog","pending") for c in roadmap["chunks"]),
+        "futurePlanSaved":any(c["status"] in ("idea","to_do") for c in plan["tasks"]),
         "decisionRecordsSaved":any(h["steps"] for h in think["histories"].values()),
         "testUnchanged":(root/"test_names.py").read_text()==TEST_SOURCE,
         "independentSourceCheckPassed":proof.returncode==0,
@@ -86,7 +86,7 @@ def fixture(root):
                  "test_framework":"unittest","linter":"none","formatter":"none"},
         "format":{"command":"true","extensions":["py"]},
         "testing":{"companion_pattern":"test_{name}.py","test_dir":"."},
-        "reference_repos":[],"state_prefix":"mcp-evaluation","roadmap_exports":False,
+        "reference_repos":[],"state_prefix":"mcp-evaluation","plan_exports":False,
         "quality_gate":{"check":cmd,"test":cmd,"lint":cmd},"lifecycle_hooks":[]}))
     (root/".magistr/workspace.toml").write_text('[edit]\nconfirm_mode = "token"\n[commands]\ntest = "python3 -m unittest -q"\n')
 

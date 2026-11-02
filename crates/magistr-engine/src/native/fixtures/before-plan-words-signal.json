@@ -1,0 +1,31 @@
+{
+  "project_id": "magistr-5a5bc6",
+  "signals": [
+    {
+      "id": "237dae7f-4780-4af0-80cc-86557746ca97",
+      "kind": "bug",
+      "from": "verification",
+      "body": "A stakeholder report linked to the plan task it was promoted into.",
+      "created": "2026-10-25T09:29:28.841758+00:00",
+      "status": "dismissed",
+      "enrichment": [
+        {
+          "think_step": 57,
+          "sources": [
+            "crates/magistr-workflow/src/signal/engine.rs"
+          ],
+          "summary": "Recorded research.",
+          "confidence": 0.99,
+          "at": "2026-10-25T09:41:47.923742+00:00"
+        }
+      ],
+      "cross_refs": [
+        "chunk:net-prediction",
+        "think:56",
+        "think:57",
+        "think:58"
+      ],
+      "project_id": "magistr-5a5bc6"
+    }
+  ]
+}

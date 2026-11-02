@@ -39,7 +39,7 @@ Inspect the resulting trajectories to establish which tools were actually used.
 Harbor owns container execution, hidden verification, reward files and result
 records. Magistr owns workspace and workflow operations inside the task.
 This does not test Magistr's terminal rendering, desktop UI or long-running
-roadmap recovery.
+plan recovery.
 
 ## Reproduce
 

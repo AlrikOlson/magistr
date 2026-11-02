@@ -7,8 +7,8 @@
 //!   recorded in the run engine, and refuses `done` until a check is
 //!   recorded — no plan file is consulted anywhere;
 //! - the four families end the iteration cross-referenced:
-//!   `chunk:X` → `step:X` (roadmap ↔ run), `think:N` → `step:X`
-//!   (think ↔ run) and `chunk:X` → `think:N` (roadmap ↔ think), plus a
+//!   `task:X` → `step:X` (plan ↔ run), `think:N` → `step:X`
+//!   (think ↔ run) and `task:X` → `think:N` (plan ↔ think), plus a
 //!   signal record, all persisted under the temp data dir.
 
 use std::path::Path;
@@ -24,8 +24,8 @@ impl ClientHandler for TestClient {}
 
 type Client = rmcp::service::RunningService<rmcp::RoleClient, TestClient>;
 
-const CHUNK: &str = "e2e-guard-chunk";
-const TASK: &str = "e2e-implement";
+const TASK: &str = "e2e-guard-chunk";
+const STEP: &str = "e2e-implement";
 
 fn write_fixture(root: &Path) {
     std::fs::create_dir_all(root.join(".magistr")).expect("mkdir .magistr");
@@ -37,11 +37,11 @@ fn write_fixture(root: &Path) {
         },
         "quality_gate": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "true", "extensions": ["rs"]},
-        "spec": {"file": "ROADMAP.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
+        "spec": {"file": "PLAN.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [],
         "state_prefix": "fixture",
-        "roadmap_backend": "native"
+        "plan_backend": "native"
     });
     std::fs::write(
         root.join(".magistr/project.json"),
@@ -135,29 +135,29 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
     let data_dir = tmp.path().join("data");
     let (client, server) = pair(&root, &data_dir).await;
 
-    // ── Fixture roadmap: one ready chunk ────────────────────────────────
+    // ── Fixture plan: one ready task ────────────────────────────────
     ok(
         &client,
-        "roadmap_add_chunk",
+        "plan_add_task",
         json!({
-            "id": CHUNK,
+            "id": TASK,
             "title": "Prove the guarded iteration end to end",
-            "status": "pending",
+            "status": "to_do",
             "priority": 100,
-            "description": "fixture chunk for the ts2c e2e test",
+            "description": "fixture task for the ts2c e2e test",
             "acceptance": ["guard blocks, then passes", "families cross-referenced"],
-            "group": "Fixture"
+            "feature": "Fixture"
         }),
     )
     .await;
-    let next = ok(&client, "roadmap_next", json!({})).await;
-    assert_eq!(next["id"], CHUNK, "{next}");
-    let started = ok(&client, "roadmap_start_chunk", json!({"id": CHUNK})).await;
+    let next = ok(&client, "plan_next", json!({})).await;
+    assert_eq!(next["id"], TASK, "{next}");
+    let started = ok(&client, "plan_start_task", json!({"id": TASK})).await;
     assert_eq!(
-        started["value"]["chunk"]["status"], "in_progress",
+        started["value"]["task"]["status"], "in_progress",
         "{started}"
     );
-    assert_eq!(started["value"]["backref"], format!("chunk:{CHUNK}"));
+    assert_eq!(started["value"]["ref"], format!("task:{TASK}"));
 
     // ── Research and plan are always open; execute is not ──────────────
     phase_ok(&client, "research").await;
@@ -169,8 +169,8 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
         &client,
         "run_open",
         json!({
-            "description": "realize the fixture chunk",
-            "scope": format!("chunk:{CHUNK}"),
+            "description": "realize the fixture task",
+            "scope": format!("task:{TASK}"),
             "acceptance_criteria": ["the test passes"]
         }),
     )
@@ -181,7 +181,7 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
     ok(
         &client,
         "arrange_steps",
-        json!({"action": "add", "step_id": TASK, "title": "implement", "step_type": "implement"}),
+        json!({"action": "add", "step_id": STEP, "title": "implement", "step_type": "implement"}),
     )
     .await;
     phase_ok(&client, "execute").await;
@@ -198,20 +198,20 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
             "next_action": "start_step",
             "rationale": "one task, one commit",
             "estimated_total": 2,
-            "execution_ref": format!("step:{TASK}")
+            "execution_ref": format!("step:{STEP}")
         }),
     )
     .await;
     let step = open["step_number"].as_u64().expect("step_number");
     ok(
         &client,
-        "roadmap_link",
-        json!({"id": CHUNK, "cross_ref": format!("think:{step}")}),
+        "plan_link",
+        json!({"id": TASK, "ref": format!("think:{step}")}),
     )
     .await;
 
     // ── Execute: start the task, record an action pointing back at the step
-    ok(&client, "start_step", json!({"step_id": TASK})).await;
+    ok(&client, "start_step", json!({"step_id": STEP})).await;
     ok(
         &client,
         "record_progress",
@@ -237,12 +237,12 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
         "{rows:?}"
     );
 
-    // ── Close: task, chunk (with proof of run), goal, signal, think ──
-    ok(&client, "finish_step", json!({"step_id": TASK})).await;
+    // ── Close: task, task (with proof of run), goal, signal, think ──
+    ok(&client, "finish_step", json!({"step_id": STEP})).await;
     let done = ok(
         &client,
-        "roadmap_complete_chunk",
-        json!({"id": CHUNK, "step_ref": format!("step:{TASK}")}),
+        "plan_complete_task",
+        json!({"id": TASK, "step_ref": format!("step:{STEP}")}),
     )
     .await;
     assert_eq!(done["value"]["status"], "done", "{done}");
@@ -268,11 +268,11 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
             "purpose": "close the fixture iteration",
             "context": "e2e",
             "thought": "shipped as planned",
-            "outcome": "chunk done",
+            "outcome": "task done",
             "next_action": "stop",
             "rationale": "acceptance met",
             "estimated_total": 2,
-            "execution_ref": format!("step:{TASK}"),
+            "execution_ref": format!("step:{STEP}"),
             "is_final_step": true
         }),
     )
@@ -280,25 +280,25 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
     phase_ok(&client, "done").await;
 
     // ── Cross-refs in all four families ────────────────────────────────
-    let chunk = ok(&client, "roadmap_get", json!({"ids": [CHUNK]})).await;
-    let record = &chunk["records"][0];
-    let refs: Vec<&str> = record["cross_refs"]
+    let task = ok(&client, "plan_get", json!({"ids": [TASK]})).await;
+    let record = &task["records"][0];
+    let refs: Vec<&str> = record["refs"]
         .as_array()
         .map(|a| a.iter().filter_map(Value::as_str).collect())
         .unwrap_or_default();
-    assert!(refs.contains(&format!("step:{TASK}").as_str()), "{refs:?}");
+    assert!(refs.contains(&format!("step:{STEP}").as_str()), "{refs:?}");
     assert!(refs.contains(&format!("think:{step}").as_str()), "{refs:?}");
     assert_eq!(record["status"], "done");
-    assert_eq!(ok(&client, "roadmap_next", json!({})).await, Value::Null);
+    assert_eq!(ok(&client, "plan_next", json!({})).await, Value::Null);
 
     let run = ok(&client, "run_status", json!({})).await;
     assert_eq!(run["goal"]["status"], "finished", "{run}");
-    assert_eq!(run["goal"]["scope"], format!("chunk:{CHUNK}"));
+    assert_eq!(run["goal"]["scope"], format!("task:{TASK}"));
     let think_refs = run["think_refs"].as_array().expect("think_refs");
     assert!(
         think_refs
             .iter()
-            .any(|r| r["step_id"] == TASK && r["value"] == step),
+            .any(|r| r["step_id"] == STEP && r["value"] == step),
         "{think_refs:?}"
     );
     let checks = run["checks"].as_array().expect("checks");
@@ -306,17 +306,17 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
     assert!(
         checks
             .iter()
-            .all(|c| c["step_id"] == TASK && c["verified"] == true)
+            .all(|c| c["step_id"] == STEP && c["verified"] == true)
     );
 
     let think = ok(&client, "think_get_step", json!({"step_number": step})).await;
-    assert_eq!(think["execution_ref"], format!("step:{TASK}"), "{think}");
+    assert_eq!(think["execution_ref"], format!("step:{STEP}"), "{think}");
 
     let signals = ok(&client, "signal_status", json!({})).await;
     assert_ne!(signals, Value::Null);
 
     // ── Persisted under the temp store, one file per family ────────────
-    for family in ["roadmap", "think", "signal"] {
+    for family in ["plan", "think", "signal"] {
         assert!(
             has_session_file(&data_dir, family),
             "{family} session file missing"

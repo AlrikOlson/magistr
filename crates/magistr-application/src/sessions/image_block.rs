@@ -7,7 +7,7 @@ use alloc::string::String;
 /// said.
 ///
 /// The cockpit decodes it in the fold, where the terminal's cell size is
-/// known — the same block whether it rode a message chunk
+/// known — the same block whether it rode a message task
 /// ([`AgentEvent::Image`]) or a tool call's content
 /// ([`AgentEvent::ToolCall`]), so there is one decode path and one
 /// rendering route.

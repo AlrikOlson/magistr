@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 pub enum RunMode {
     /// An ongoing conversation has no Git progress or iteration requirement.
     Conversation,
-    /// Settle one selected chunk attempt and stop.
-    OneChunk,
+    /// Settle one selected task attempt and stop.
+    OneTask,
     /// Admit attempts within a persisted iteration and progress budget.
-    ChunkLoop,
+    TaskLoop,
 }

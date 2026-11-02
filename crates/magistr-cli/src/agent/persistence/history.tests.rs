@@ -108,16 +108,16 @@ async fn no_provider_id_and_unknown_usage_survive_reopen_and_repeated_settlement
 async fn reconnect_retains_identity_purpose_and_counts_new_terminal_responses_once() {
     let directory = tempfile::tempdir().unwrap();
     let inputs = inputs(&directory);
-    let history = SessionHistory::for_purpose(SessionPurpose::Roadmap);
+    let history = SessionHistory::for_purpose(SessionPurpose::Plan);
     let id = history.id();
-    assert_eq!(history.purpose(), SessionPurpose::Roadmap);
+    assert_eq!(history.purpose(), SessionPurpose::Plan);
     history
         .begin(&inputs, directory.path(), "scripted", None)
         .await
         .unwrap();
     assert_eq!(
         history.conversation().unwrap().purpose,
-        SessionPurpose::Roadmap
+        SessionPurpose::Plan
     );
     history.finished_turn();
     history.settle(SessionOutcome::Completed).await.unwrap();
@@ -137,10 +137,10 @@ async fn reconnect_retains_identity_purpose_and_counts_new_terminal_responses_on
         .unwrap();
     assert_eq!(storage::count_sessions(&conn).unwrap(), 1);
     assert_eq!(second.session_id, id);
-    assert_eq!(second.purpose, SessionPurpose::Roadmap);
+    assert_eq!(second.purpose, SessionPurpose::Plan);
     let restored = SessionHistory::from_record(second.clone());
     assert_eq!(restored.id(), id);
-    assert_eq!(restored.purpose(), SessionPurpose::Roadmap);
+    assert_eq!(restored.purpose(), SessionPurpose::Plan);
     assert_eq!(second.started_at, first.started_at);
     assert_eq!(second.turns, Some(2));
     assert_eq!(second.outcome, Some(SessionOutcome::Cancelled));

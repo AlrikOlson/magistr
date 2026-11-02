@@ -21,7 +21,7 @@ fn project_config_with_format_command(
         },
         "quality_gate": { "check": "true", "test": "true", "lint": "true" },
         "format": { "extensions": ["rs"], "command": format_cmd, "exclusions": [] },
-        "spec": { "file": "ROADMAP.md", "unchecked_pattern": "- \\[ \\]" },
+        "spec": { "file": "PLAN.md", "unchecked_pattern": "- \\[ \\]" },
         "testing": { "companion_pattern": "{name}.tests.rs", "test_dir": "tests" },
         "reference_repos": [],
         "state_prefix": ".magistr",

@@ -11,7 +11,7 @@ pub use content::{
 mod family;
 mod mutation_error;
 pub use mutation_error::WorkflowMutationError;
-pub mod roadmap;
+pub mod plan;
 pub mod run;
 pub mod signal;
 pub mod think;
@@ -26,8 +26,8 @@ mod magistr_frame;
 mod native_event;
 mod native_snapshot;
 mod owner_generation;
+mod plan_progress;
 mod read_state;
-mod roadmap_progress;
 mod store_stamp;
 mod think_branch;
 mod write_error;
@@ -41,22 +41,24 @@ pub use feed_status::FeedStatus;
 pub use gate_output::GateOutput;
 pub use magistr_frame::MagistrFrame;
 pub use native_event::NativeEvent;
-pub use native_snapshot::{NativeSnapshot, RoadmapData, Run, RunData, ThinkData};
+pub use native_snapshot::{NativeSnapshot, PlanData, Run, RunData, ThinkData};
 pub use owner_generation::OwnerGeneration;
+pub use plan_progress::PlanProgress;
 pub use read_state::{Observed, ReadError, ReadErrorKind, ReadSource, ReadState};
-pub use roadmap_progress::RoadmapProgress;
 pub use store_stamp::StoreStamp;
 pub use think_branch::ThinkBranch;
 
-pub use roadmap::{
-    BlockedBy, BlockerKind, Chunk, ChunkStatus, ReprioritizeProposal, RoadmapFrame, StatusProposal,
-    TitleProposal,
+pub use plan::{
+    PLAN_SCHEMA_VERSION, PlanFrame, ReprioritizeProposal, StatusProposal, Task, TaskStatus,
+    TitleProposal, WaitingOn, WaitingReason,
 };
 pub use run::{
     Artifact, ArtifactType, Check, CheckType, Goal, GoalStatus, Progress, ProgressType, RunFrame,
     Step, StepStatus, StepType, VerificationMode,
 };
-pub use signal::{Enrichment, Signal, SignalFrame, SignalKind, SignalStatus};
+pub use signal::{
+    Enrichment, SIGNALS_SCHEMA_VERSION, Signal, SignalFrame, SignalKind, SignalStatus,
+};
 pub use think::{BranchStatus, DepEdge, NextAction, ThinkFrame, ThinkStep};
 
 pub use family::{EPOCH_KEY, SEQ_KEY};

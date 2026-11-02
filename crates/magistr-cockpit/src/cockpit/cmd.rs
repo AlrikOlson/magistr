@@ -9,8 +9,8 @@ pub enum Cmd {
     },
     Quit,
     Prompt(magistr_application::sessions::PromptInput),
-    RoadmapPrompt(magistr_application::sessions::PromptInput),
-    CancelRoadmapPrompt,
+    PlanPrompt(magistr_application::sessions::PromptInput),
+    CancelPlanPrompt,
     Cancel,
     Permission {
         id: u64,

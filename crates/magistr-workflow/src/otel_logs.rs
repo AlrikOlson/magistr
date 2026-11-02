@@ -34,14 +34,14 @@
 //! loses the one they had, and finds out during the incident. This layer is
 //! added beside the existing `fmt` layer, which is untouched.
 //!
-//! **A `tracing` Layer, fenced on two axes.** The filing chunk framed a Layer as
+//! **A `tracing` Layer, fenced on two axes.** The filing task framed a Layer as
 //! "every existing log for free, which is both the cheap answer and the risky
 //! one". Counting the tree falsified the premise: 39 `tracing::warn!`, 9
 //! `info!`, 15 `debug!` and zero `error!` — against 91 `eprintln!`, which a
 //! Layer cannot see at all and which are mostly CLI output for a human at a
 //! terminal. So the Layer is not "everything", it is exactly the operational
 //! half; and the risk is bounded by requiring `TARGET_FENCE` and WARN+. The
-//! `otel-eprintln-to-tracing` chunk has since moved 34 of those `eprintln!`
+//! `otel-eprintln-to-tracing` task has since moved 34 of those `eprintln!`
 //! sites — every one that reports a failure of our own side effects — onto
 //! `tracing::warn!`, so the Layer now sees them. Routine library narration
 //! uses opt-in debug tracing; clients present findings and outcomes from the
@@ -58,7 +58,7 @@
 //! audience. Here the relationship is inverted — the destination is the endpoint
 //! the OPERATOR configured, about the operator's own workload, and they
 //! configured it precisely to see which project's sweep failed. Redacting the
-//! project name or the chunk title would destroy the entire payload in order to
+//! project name or the task title would destroy the entire payload in order to
 //! protect someone from their own data. So domain content is emitted VERBATIM.
 //!
 //! Credentials get the opposite answer, because a token is never the payload:
@@ -136,7 +136,7 @@ pub fn current() -> Option<Correlation> {
 
 /// Scrub credential-shaped substrings from a log body.
 ///
-/// Deliberately NOT a general redactor: domain content (project names, chunk
+/// Deliberately NOT a general redactor: domain content (project names, task
 /// titles, tracker URLs) passes through untouched, because that is the payload
 /// the operator configured an endpoint to receive. What is removed is only what
 /// can never be payload — a bearer token, a secret-shaped query parameter, URL
@@ -688,11 +688,11 @@ mod tests {
 
     /// REDACTION, the "keep" half — and this is the decision, not an oversight.
     /// The operator configured an endpoint precisely to learn WHICH project's
-    /// sweep failed and WHICH chunk it was about. A general redactor would
+    /// sweep failed and WHICH task it was about. A general redactor would
     /// deliver an empty diagnostic and call it privacy.
     #[test]
     fn domain_content_survives_redaction_intact() {
-        let body = "tracker push failed for chunk otel-live-logs-signal in project \
+        let body = "tracker push failed for task otel-live-logs-signal in project \
                     magistr-676f38: https://tracker.example.com/team/TAS/issue/TAS-1";
         assert_eq!(redact(body), body, "domain content is the payload");
     }

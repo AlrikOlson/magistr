@@ -45,7 +45,7 @@ async fn format_command_runs_successfully() {
             exclusions: vec![],
         },
         spec: Some(crate::types::SpecConfig {
-            file: "ROADMAP.md".into(),
+            file: "PLAN.md".into(),
             unchecked_pattern: "- [ ]".into(),
         }),
         testing: crate::types::TestingConfig {
@@ -58,8 +58,8 @@ async fn format_command_runs_successfully() {
         guards: Default::default(),
         hints: vec![],
         lifecycle_hooks: vec![],
-        roadmap_backend: Default::default(),
-        roadmap_exports: true,
+        plan_backend: Default::default(),
+        plan_exports: true,
         archetypes: vec![],
         topology: None,
         relationships: vec![],

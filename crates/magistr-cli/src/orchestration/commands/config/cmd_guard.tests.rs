@@ -1,6 +1,6 @@
 use super::*;
 use magistr_cockpit::harness::fixtures;
-use magistr_engine::{ChunkStatus, RunData};
+use magistr_engine::{RunData, TaskStatus};
 use serde_json::json;
 
 fn run_state(scope: &str, status: magistr_workflow::run::domain::goal::GoalStatus) -> RunData {
@@ -18,10 +18,10 @@ fn run_state(scope: &str, status: magistr_workflow::run::domain::goal::GoalStatu
     }
 }
 
-fn chunk(id: &str, status: ChunkStatus) -> magistr_workflow::roadmap::domain::Chunk {
-    let mut chunk = fixtures::chunk(id);
-    chunk.status = status;
-    chunk
+fn task(id: &str, status: TaskStatus) -> magistr_workflow::plan::domain::Task {
+    let mut task = fixtures::task(id);
+    task.status = status;
+    task
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn hook_fields_are_inert_on_null_or_foreign_json() {
 #[test]
 fn apply_engine_state_reads_validated_typed_records() {
     use magistr_workflow::run::domain::goal::GoalStatus;
-    let mut run = run_state("chunk:b", GoalStatus::Finished);
+    let mut run = run_state("task:b", GoalStatus::Finished);
     run.current.as_mut().unwrap().steps = (0..4)
         .map(|id| fixtures::run_step(&id.to_string(), "work"))
         .collect();
@@ -66,8 +66,8 @@ fn apply_engine_state_reads_validated_typed_records() {
         &mut input,
         &run,
         &[
-            chunk("a", ChunkStatus::Done),
-            chunk("b", ChunkStatus::InProgress),
+            task("a", TaskStatus::Done),
+            task("b", TaskStatus::InProgress),
         ],
     );
     assert_eq!(input.goal_status.as_deref(), Some("finished"));
@@ -89,22 +89,22 @@ fn apply_engine_state_reads_validated_typed_records() {
             ("manual", true, true, false)
         ]
     );
-    assert!(input.chunk_in_progress);
+    assert!(input.task_in_progress);
 }
 
 #[test]
-fn apply_engine_state_with_no_goal_and_no_chunks() {
+fn apply_engine_state_with_no_goal_and_no_tasks() {
     let mut input = GuardInput::default();
     apply_engine_state(&mut input, &RunData::default(), &[]);
     assert_eq!(input.goal_status, None);
     assert_eq!(input.steps_total, 0);
     assert!(input.checks.is_empty());
-    assert!(!input.chunk_in_progress);
+    assert!(!input.task_in_progress);
 }
 
 #[test]
-fn stop_ignores_other_chunks_and_unscoped_goals() {
-    for scope in ["chunk:finished", "chunk:ongoing-extra", "fix:hooks", ""] {
+fn stop_ignores_other_tasks_and_unscoped_goals() {
+    for scope in ["task:finished", "task:ongoing-extra", "fix:hooks", ""] {
         let mut input = GuardInput::default();
         apply_engine_state(
             &mut input,
@@ -113,8 +113,8 @@ fn stop_ignores_other_chunks_and_unscoped_goals() {
                 magistr_workflow::run::domain::goal::GoalStatus::Finished,
             ),
             &[
-                chunk("finished", ChunkStatus::Done),
-                chunk("ongoing", ChunkStatus::InProgress),
+                task("finished", TaskStatus::Done),
+                task("ongoing", TaskStatus::InProgress),
             ],
         );
         assert_eq!(
@@ -157,17 +157,17 @@ fn stop_preserves_preexisting_and_untracked_files_after_completion() {
     apply_engine_state(
         &mut input,
         &run_state(
-            "chunk:work",
+            "task:work",
             magistr_workflow::run::domain::goal::GoalStatus::Finished,
         ),
-        &[chunk("work", ChunkStatus::Done)],
+        &[task("work", TaskStatus::Done)],
     );
     assert_eq!(
         evaluate(GuardEvent::Stop, &input),
         GuardVerdict::Allow(None)
     );
     assert_eq!(run(&["status", "--porcelain"]), before);
-    assert!(!tmp.path().join("ROADMAP.md").exists());
+    assert!(!tmp.path().join("PLAN.md").exists());
 }
 
 // ── Write: hook fields, path resolution, frozen declaration ─────────
@@ -321,14 +321,14 @@ fn workspace_declared_reads_the_mcp_declaration() {
 #[test]
 fn apply_engine_state_reads_the_goal_scope() {
     let run = run_state(
-        "chunk:gui2-0-freeze-tauri — legacy-gui freeze",
+        "task:gui2-0-freeze-tauri — legacy-gui freeze",
         magistr_workflow::run::domain::goal::GoalStatus::Active,
     );
     let mut input = GuardInput::default();
     apply_engine_state(&mut input, &run, &[]);
     assert_eq!(
         input.goal_scope.as_deref(),
-        Some("chunk:gui2-0-freeze-tauri — legacy-gui freeze")
+        Some("task:gui2-0-freeze-tauri — legacy-gui freeze")
     );
 }
 
@@ -342,8 +342,7 @@ fn unreadable_required_owner_refuses_guard_state_and_repair_recovers() {
     let reader = NativeReader::open_for_project(&config, "guard-read".into());
     let mut input = GuardInput::default();
     read_engine_state(&mut input, &reader).unwrap();
-    let path =
-        Persistence::new(&config.persistence_config(), Domain::Roadmap).path_for("guard-read");
+    let path = Persistence::new(&config.persistence_config(), Domain::Plan).path_for("guard-read");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, "broken records").unwrap();
     assert!(read_engine_state(&mut input, &reader).is_err());

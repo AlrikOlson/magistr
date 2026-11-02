@@ -65,7 +65,7 @@ Consequently these agreed acceptance criteria remain unverified:
   Deterministic narrow/wide element trees are not screenshots or live keyboard evidence.
 - Invocation of the namespaced text skill in an authenticated Claude session.
 
-The native goal and integration chunk must remain open until those checks
+The native goal and integration task must remain open until those checks
 pass. The package is a preview, not a verified finished release.
 
 ## Connection boundary at capture time

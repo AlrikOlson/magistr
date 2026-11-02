@@ -31,7 +31,7 @@ fn section_is_bounded_by_the_shared_markers() {
     assert!(section.starts_with(CLAUDE_MD_MARKER));
     assert!(section.trim_end().ends_with(CLAUDE_MD_END_MARKER));
     assert!(section.contains("# magistr"));
-    for family in ["think_*", "run_*", "roadmap_*", "signal_*"] {
+    for family in ["think_*", "run_*", "plan_*", "signal_*"] {
         assert!(section.contains(family), "names the {family} family");
     }
 }

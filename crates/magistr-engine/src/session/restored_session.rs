@@ -1,5 +1,5 @@
 use crate::cost::CostGovernor;
-use crate::roadmap::RoadmapProgress;
+use crate::plan::PlanProgress;
 use crate::workflow::{IterationState, RunState};
 
 use super::engine_session::EngineSession;
@@ -32,10 +32,10 @@ pub struct RestoredSession {
     pub run: RunState,
     /// Complete cost enforcement state.
     pub cost_governor: CostGovernor,
-    /// Roadmap progress as of the capture.
-    pub roadmap: RoadmapProgress,
-    /// The chunk the session was working on, when it named one.
-    pub roadmap_cursor: Option<String>,
+    /// Plan progress as of the capture.
+    pub plan: PlanProgress,
+    /// The task the session was working on, when it named one.
+    pub plan_cursor: Option<String>,
     /// Everything the move left on the old machine, each able to say why.
     pub severed: Vec<SessionResidency>,
     /// The status the snapshot carried, when restoring changed it.

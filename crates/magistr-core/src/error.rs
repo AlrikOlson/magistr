@@ -187,7 +187,7 @@ impl MagistrError {
             }
             Self::SyncLock(_) => Some(
                 "Another sync operation may be in progress.\n  \
-                 Check for stale lock files at .magistr/roadmap.lock and remove if needed.",
+                 Check for stale lock files at .magistr/plan.lock and remove if needed.",
             ),
             Self::TaskJoin(_) => None,
             Self::Cancelled(_) => None,

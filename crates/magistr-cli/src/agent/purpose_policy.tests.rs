@@ -17,18 +17,18 @@ fn request(name: &str, input: serde_json::Value) -> AcpPermissionRequest {
 }
 
 #[test]
-fn roadmap_purpose_is_a_ceiling_even_under_yolo() {
-    let mut policy = RoadmapPolicy::new(
+fn plan_purpose_is_a_ceiling_even_under_yolo() {
+    let mut policy = PlanPolicy::new(
         SessionPermissionPolicy::new(PermissionProfile::Yolo, vec![], vec![], vec![], true)
             .audit_to(None),
     );
     for name in [
-        "mcp__magistr__roadmap_start_chunk",
+        "mcp__magistr__plan_start_task",
         "mcp__magistr__start_step",
         "Bash",
         "Write",
         "mcp__workspace_mcp__edit",
-        "mcp__magistr__roadmap_export",
+        "mcp__magistr__plan_export",
     ] {
         assert_eq!(
             policy.decide(&policy_request(&request(name, serde_json::json!({})))),
@@ -56,7 +56,7 @@ fn planning_keeps_the_project_model_policy() {
     let inner =
         SessionPermissionPolicy::new(PermissionProfile::Standard, vec![], vec![], vec![], false)
             .governed_by(governance.compile());
-    let mut policy = RoadmapPolicy::new(inner);
+    let mut policy = PlanPolicy::new(inner);
     assert!(!policy.can_use_model("unapproved"));
     policy.model_changed(Some("approved".into()));
     assert!(policy.can_use_model("approved"));

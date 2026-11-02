@@ -38,7 +38,7 @@ def check(root):
         required_file(SUBSYSTEM / relative)
     for relative in (
         "Cargo.toml", "src/lib.rs",
-        "src/think/mod.rs", "src/run/mod.rs", "src/roadmap/mod.rs", "src/signal/mod.rs",
+        "src/think/mod.rs", "src/run/mod.rs", "src/plan/mod.rs", "src/signal/mod.rs",
         "src/tracker/host/mod.rs",
         "tests/family_stores_durability.rs", "tests/workflow_e2e.rs",
         "tests/unified_service.rs",
@@ -65,23 +65,23 @@ def check(root):
         require(REVISION in provenance.read_text(), "workflow provenance must name the audited revision")
 
     project = json.loads((root / ".magistr/project.json").read_text())
-    require(project.get("roadmap_exports") is False, "roadmap_exports must remain false")
+    require(project.get("plan_exports") is False, "plan_exports must remain false")
     # Generated agent setup is local/ignored (`magistr init`); check each client
-    # when present. The tracked owner of the policy is roadmap_exports above.
+    # when present. The tracked owner of the policy is plan_exports above.
     settings_path = root / ".claude/settings.json"
     if settings_path.is_file():
         settings = json.loads(settings_path.read_text())
-        require("mcp__magistr__roadmap_export" in settings.get("permissions", {}).get("deny", []),
+        require("mcp__magistr__plan_export" in settings.get("permissions", {}).get("deny", []),
                 "the local Claude export-tool denial must remain enabled")
     codex_path = root / ".codex/config.toml"
     if codex_path.is_file():
         codex = tomllib.loads(codex_path.read_text())
         magistr = codex.get("mcp_servers", {}).get("magistr")
         if magistr is not None:
-            require("roadmap_export" in magistr.get("disabled_tools", []),
+            require("plan_export" in magistr.get("disabled_tools", []),
                     "the local Codex Magistr export-tool denial must remain enabled")
-    for filename in ("ROADMAP.md", "ROADMAP.json"):
-        require(not (root / filename).exists(), f"native roadmap must not be exported to {filename}")
+    for filename in ("PLAN.md", "PLAN.json"):
+        require(not (root / filename).exists(), f"native plan must not be exported to {filename}")
 
     lock = tomllib.loads((root / "Cargo.lock").read_text())
     locked = [package for package in lock.get("package", []) if package["name"] == PACKAGE]
@@ -148,4 +148,4 @@ if __name__ == "__main__":
         print(f"ERROR: workflow-source — {failure}", file=sys.stderr)
     if failures:
         sys.exit(1)
-    print("OK: workflow source is one Magistr-named workspace member without its standalone surfaces; imported inputs and native-only roadmap policy retained")
+    print("OK: workflow source is one Magistr-named workspace member without its standalone surfaces; imported inputs and native-only plan policy retained")

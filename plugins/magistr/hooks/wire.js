@@ -48,7 +48,7 @@ const workRecord = (c) => {
   optionalArray(c.acceptance, 'acceptance criteria').forEach((p) =>
     string(p, 'an acceptance criterion'),
   )
-  optionalArray(c.cross_refs, 'linked findings').forEach((p) =>
+  optionalArray(c.refs, 'linked findings').forEach((p) =>
     string(p, 'a linked finding'),
   )
 }
@@ -146,9 +146,9 @@ export function validate(kind, raw) {
       array(v.goal.acceptance_criteria, 'the acceptance criteria')
     }
     if (v.active_step != null) stepRecord(v.active_step)
-  } else if (kind === 'roadmap') {
+  } else if (kind === 'plan') {
     string(v.project_id, 'the project')
-    array(v.chunks, 'the roadmap').forEach(workRecord)
+    array(v.tasks, 'the plan').forEach(workRecord)
     array(v.recent_done, 'finished work').forEach(workRecord)
   } else if (kind === 'context') {
     if (
@@ -181,7 +181,7 @@ export function validate(kind, raw) {
         typeof v.check_result.gate !== 'string' ||
         !record(v.check_result.target)
       )
-        throw new Error('The check check_result could not be read.')
+        throw new Error('The check result could not be read.')
       optionalArray(v.check_result.freshness?.paths, 'changed files').forEach((p) =>
         string(p, 'a file'),
       )
@@ -202,9 +202,9 @@ export function validate(kind, raw) {
     )
       throw new Error('The chosen workstream could not be checked.')
     if (v.focus != null) {
-      string(v.focus.group, 'the workstream')
+      string(v.focus.feature, 'the workstream')
       string(v.focus.mode, 'the work mode')
-      if (focusState.state === 'unset' || focusState.group !== v.focus.group)
+      if (focusState.state === 'unset' || focusState.feature !== v.focus.feature)
         throw new Error(
           'The chosen workstream does not match its reported state.',
         )
@@ -266,7 +266,7 @@ export function validateAction(kind, value, target) {
         'The reply did not confirm recorded command evidence. Inspect the check before acting again.',
       )
   } else if (kind === 'focus') {
-    if (value.focus?.group !== target.group || value.focus?.mode !== 'build')
+    if (value.focus?.feature !== target.feature || value.focus?.mode !== 'build')
       throw new Error(
         'The workstream reply did not confirm your choice. Refresh and inspect it.',
       )
@@ -405,9 +405,9 @@ export function summary(m, tab = m.tab) {
             clean(t.status.replaceAll('_', ' '), 30),
         ),
     )
-  } else if (tab === 'roadmap') {
+  } else if (tab === 'plan') {
     lines.push(
-      ...v.chunks
+      ...v.tasks
         .slice(0, LIMIT)
         .map(
           (c) =>
@@ -421,9 +421,9 @@ export function summary(m, tab = m.tab) {
                 : ''),
         ),
     )
-    if (!v.chunks.length) lines.push('No planned work.')
+    if (!v.tasks.length) lines.push('No planned work.')
     if (v.omitted_active)
-      lines.push(v.omitted_active + ' more items are available in the roadmap.')
+      lines.push(v.omitted_active + ' more items are available in the plan.')
   } else if (tab === 'checks') {
     lines.push(
       verification(v),
@@ -501,7 +501,7 @@ export function detailSummary(kind, value) {
     lines.push(
       ...(w.acceptance ?? []).slice(0, 20).map((s) => '• ' + clean(s, 500)),
     )
-    if (w.blocked_by) lines.push('Waiting: ' + clean(w.blocked_by.reason, 1000))
+    if (w.waiting_on) lines.push('Waiting: ' + clean(w.waiting_on.reason, 1000))
   } else if (kind === 'finding') {
     lines.push(
       clean(value.purpose, 180),

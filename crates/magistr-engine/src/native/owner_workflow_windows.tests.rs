@@ -6,10 +6,10 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use super::*;
 use crate::native::{
     AttachError, CallerIdentity, LocalStream, NativeConfig, NativeReader, OwnerClient,
-    OwnerCommand, OwnerIdentity, OwnerLiveness, OwnerProbe, ProjectAuthority, RoadmapCommand,
+    OwnerCommand, OwnerIdentity, OwnerLiveness, OwnerProbe, PlanCommand, ProjectAuthority,
     WriterRole, owner_socket_path,
 };
-use magistr_workflow::roadmap::domain::ChunkStatus;
+use magistr_workflow::plan::domain::TaskStatus;
 
 const DEADLINE: Duration = Duration::from_secs(2);
 
@@ -37,18 +37,18 @@ fn client(cfg: &NativeConfig) -> Result<OwnerClient, AttachError> {
     )
 }
 
-fn add_chunk(id: &str) -> OwnerCommand {
-    OwnerCommand::Roadmap(RoadmapCommand::AddChunk {
+fn add_task(id: &str) -> OwnerCommand {
+    OwnerCommand::Plan(PlanCommand::AddTask {
         id: id.into(),
-        title: format!("Chunk {id}"),
+        title: format!("Task {id}"),
         name: String::new(),
-        status: ChunkStatus::Pending,
+        status: TaskStatus::ToDo,
         priority: 100,
         description: String::new(),
         acceptance: vec![],
         deps: vec![],
         content: None,
-        group: None,
+        feature: None,
     })
 }
 
@@ -92,10 +92,10 @@ async fn a_synchronous_client_commands_the_workflow_owner_over_its_pipe() {
     assert_eq!(attached.path(), endpoint.path());
     assert_eq!(attached.generation(), endpoint.generation());
     assert_eq!(attached.owner_pid(), std::process::id());
-    attached.command(add_chunk("over-a-pipe")).expect("command");
+    attached.command(add_task("over-a-pipe")).expect("command");
     assert!(
         NativeReader::open_for_project(&cfg, "lease".into())
-            .roadmap_chunk("over-a-pipe")
+            .plan_task("over-a-pipe")
             .unwrap()
             .is_some()
     );
@@ -104,7 +104,7 @@ async fn a_synchronous_client_commands_the_workflow_owner_over_its_pipe() {
         endpoint.generation()
     );
     attached
-        .command(add_chunk("after-reconnect"))
+        .command(add_task("after-reconnect"))
         .expect("command");
 
     let probe = OwnerProbe::at(

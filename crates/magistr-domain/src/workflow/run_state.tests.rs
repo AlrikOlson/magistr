@@ -2,12 +2,12 @@ use super::*;
 
 #[test]
 fn mode_decides_the_same_observation_sequence() {
-    for mode in [RunMode::Conversation, RunMode::OneChunk, RunMode::ChunkLoop] {
+    for mode in [RunMode::Conversation, RunMode::OneTask, RunMode::TaskLoop] {
         let mut run = RunState::new(mode, 10, None);
         run.record_commit(false);
         assert_eq!(
             run.stop_reason(),
-            (mode == RunMode::OneChunk).then_some(StopReason::OneChunkComplete)
+            (mode == RunMode::OneTask).then_some(StopReason::OneTaskComplete)
         );
         run.advance_attempt();
         run.record_commit(false);
@@ -15,8 +15,8 @@ fn mode_decides_the_same_observation_sequence() {
             run.stop_reason(),
             match mode {
                 RunMode::Conversation => None,
-                RunMode::OneChunk => Some(StopReason::OneChunkComplete),
-                RunMode::ChunkLoop => Some(StopReason::NoProgress),
+                RunMode::OneTask => Some(StopReason::OneTaskComplete),
+                RunMode::TaskLoop => Some(StopReason::NoProgress),
             }
         );
     }
@@ -24,7 +24,7 @@ fn mode_decides_the_same_observation_sequence() {
 
 #[test]
 fn duplicate_settlement_and_recovery_cannot_manufacture_progress_or_failure() {
-    let mut run = RunState::new(RunMode::ChunkLoop, 10, None);
+    let mut run = RunState::new(RunMode::TaskLoop, 10, None);
     run.record_commit(false);
     let mut restored: RunState =
         serde_json::from_str(&serde_json::to_string(&run).unwrap()).unwrap();
@@ -41,7 +41,7 @@ fn duplicate_settlement_and_recovery_cannot_manufacture_progress_or_failure() {
 
 #[test]
 fn recovery_preserves_budget_limit_and_iteration_ceiling() {
-    let mut run = RunState::new(RunMode::ChunkLoop, 2, Some(3.0));
+    let mut run = RunState::new(RunMode::TaskLoop, 2, Some(3.0));
     run.observe_budget(2.5);
     run.advance_attempt();
     let mut restored: RunState =
@@ -60,11 +60,11 @@ fn only_pause_can_resume_and_terminal_reasons_survive_later_events() {
         StopReason::Cancelled,
         StopReason::Failed,
         StopReason::Aborted,
-        StopReason::NoReadyChunk,
+        StopReason::NoReadyTask,
         StopReason::SpecComplete,
         StopReason::Paused,
     ] {
-        let mut run = RunState::new(RunMode::ChunkLoop, 10, None);
+        let mut run = RunState::new(RunMode::TaskLoop, 10, None);
         run.stop(reason);
         if reason == StopReason::Paused {
             assert!(run.resume());
@@ -80,7 +80,7 @@ fn only_pause_can_resume_and_terminal_reasons_survive_later_events() {
 
 #[test]
 fn missing_progress_evidence_and_impossible_budget_are_rejected() {
-    let run = RunState::new(RunMode::ChunkLoop, 10, None);
+    let run = RunState::new(RunMode::TaskLoop, 10, None);
     for field in [
         "consecutive_no_commits",
         "terminal_reason",
@@ -105,7 +105,7 @@ fn missing_progress_evidence_and_impossible_budget_are_rejected() {
 
 #[test]
 fn live_recovery_cannot_erase_observations_or_weaken_limits() {
-    let mut known = RunState::new(RunMode::ChunkLoop, 10, Some(3.0));
+    let mut known = RunState::new(RunMode::TaskLoop, 10, Some(3.0));
     known.advance_attempt();
     known.record_commit(false);
     known.observe_budget(2.0);

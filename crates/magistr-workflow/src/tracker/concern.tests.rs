@@ -1,13 +1,13 @@
 use super::*;
-use crate::roadmap::domain::ChunkStatus;
+use crate::plan::domain::TaskStatus;
 use crate::tracker::ownership::{Divergence, Field, Owner};
 
-fn roadmap_with_link() -> RoadmapEngine {
-    let mut e = RoadmapEngine::new("proj".into());
-    e.add_chunk(
+fn plan_with_link() -> PlanEngine {
+    let mut e = PlanEngine::new("proj".into());
+    e.add_task(
         "c1".into(),
-        "Chunk c1".into(),
-        ChunkStatus::Pending,
+        "Task c1".into(),
+        TaskStatus::ToDo,
         10,
         "why".into(),
         vec!["works".into()],
@@ -38,28 +38,24 @@ fn report_with(owner: Owner) -> ProjectionReport {
 #[test]
 fn a_contested_divergence_becomes_a_concern_linked_both_ways() {
     let mut signal = SignalEngine::new("proj".into());
-    let roadmap = roadmap_with_link();
+    let plan = plan_with_link();
 
-    let ids = emit_divergence_concerns(
-        &mut signal,
-        &roadmap,
-        "linear",
-        &report_with(Owner::Contested),
-    )
-    .unwrap();
+    let ids =
+        emit_divergence_concerns(&mut signal, &plan, "linear", &report_with(Owner::Contested))
+            .unwrap();
 
     assert_eq!(ids.len(), 1);
     let s = signal.get(&ids[0]).expect("signal");
     assert_eq!(s.kind, SignalKind::Concern);
     assert!(
-        s.cross_refs.contains(&"chunk:c1".to_string()),
-        "findable from the chunk: {:?}",
-        s.cross_refs
+        s.refs.contains(&"task:c1".to_string()),
+        "findable from the task: {:?}",
+        s.refs
     );
     assert!(
-        s.cross_refs.contains(&"ext:linear/THI-1".to_string()),
+        s.refs.contains(&"ext:linear/THI-1".to_string()),
         "findable from the ticket: {:?}",
-        s.cross_refs
+        s.refs
     );
     assert!(
         s.body.contains("neither side owns it"),
@@ -73,11 +69,11 @@ fn a_contested_divergence_becomes_a_concern_linked_both_ways() {
 #[test]
 fn re_raising_an_unchanged_conflict_mints_nothing() {
     let mut signal = SignalEngine::new("proj".into());
-    let roadmap = roadmap_with_link();
+    let plan = plan_with_link();
     let report = report_with(Owner::Contested);
 
-    let first = emit_divergence_concerns(&mut signal, &roadmap, "linear", &report).unwrap();
-    let second = emit_divergence_concerns(&mut signal, &roadmap, "linear", &report).unwrap();
+    let first = emit_divergence_concerns(&mut signal, &plan, "linear", &report).unwrap();
+    let second = emit_divergence_concerns(&mut signal, &plan, "linear", &report).unwrap();
 
     assert_eq!(first.len(), 1);
     assert!(second.is_empty(), "the same conflict was raised twice");
@@ -89,19 +85,13 @@ fn re_raising_an_unchanged_conflict_mints_nothing() {
 #[test]
 fn a_changed_conflict_raises_again() {
     let mut signal = SignalEngine::new("proj".into());
-    let roadmap = roadmap_with_link();
+    let plan = plan_with_link();
 
-    emit_divergence_concerns(
-        &mut signal,
-        &roadmap,
-        "linear",
-        &report_with(Owner::Contested),
-    )
-    .unwrap();
+    emit_divergence_concerns(&mut signal, &plan, "linear", &report_with(Owner::Contested)).unwrap();
 
     let mut moved = report_with(Owner::Contested);
     moved.divergences[0].1.theirs = "a different retitle".into();
-    let again = emit_divergence_concerns(&mut signal, &roadmap, "linear", &moved).unwrap();
+    let again = emit_divergence_concerns(&mut signal, &plan, "linear", &moved).unwrap();
 
     assert_eq!(again.len(), 1, "a new disagreement must reach someone");
     assert_eq!(signal.signals().signals.len(), 2);
@@ -112,11 +102,10 @@ fn a_changed_conflict_raises_again() {
 #[test]
 fn a_field_they_own_raises_nothing() {
     let mut signal = SignalEngine::new("proj".into());
-    let roadmap = roadmap_with_link();
+    let plan = plan_with_link();
 
-    let ids =
-        emit_divergence_concerns(&mut signal, &roadmap, "linear", &report_with(Owner::Theirs))
-            .unwrap();
+    let ids = emit_divergence_concerns(&mut signal, &plan, "linear", &report_with(Owner::Theirs))
+        .unwrap();
 
     assert!(ids.is_empty());
     assert!(signal.signals().signals.is_empty());
@@ -125,17 +114,13 @@ fn a_field_they_own_raises_nothing() {
 /// Without a link there is no ticket to name, and a concern that cannot say
 /// which ticket it is about is not worth raising.
 #[test]
-fn a_chunk_with_no_link_raises_nothing() {
+fn a_task_with_no_link_raises_nothing() {
     let mut signal = SignalEngine::new("proj".into());
-    let roadmap = RoadmapEngine::new("proj".into());
+    let plan = PlanEngine::new("proj".into());
 
-    let ids = emit_divergence_concerns(
-        &mut signal,
-        &roadmap,
-        "linear",
-        &report_with(Owner::Contested),
-    )
-    .unwrap();
+    let ids =
+        emit_divergence_concerns(&mut signal, &plan, "linear", &report_with(Owner::Contested))
+            .unwrap();
     assert!(ids.is_empty());
 }
 
@@ -154,7 +139,7 @@ fn item_titled(title: &str) -> WorkItem {
         labels: vec![],
         assignee: None,
         version: Some("v2".into()),
-        group: None,
+        feature: None,
     }
 }
 
@@ -168,10 +153,10 @@ fn sweep_finding(item: WorkItem) -> SweepReport {
 
 #[test]
 fn a_remote_retitle_becomes_a_title_proposal_and_the_title_does_not_move() {
-    let mut roadmap = roadmap_with_link();
+    let mut plan = plan_with_link();
 
     let proposed = propose_titles_from_sweep(
-        &mut roadmap,
+        &mut plan,
         "linear",
         &sweep_finding(item_titled("A human's better name")),
         &Ownership::default(),
@@ -179,13 +164,13 @@ fn a_remote_retitle_becomes_a_title_proposal_and_the_title_does_not_move() {
     .unwrap();
 
     assert_eq!(proposed, vec!["c1".to_string()]);
-    let chunk = roadmap
-        .roadmap()
-        .chunks
+    let task = plan
+        .plan()
+        .tasks
         .iter()
         .find(|c| c.id == "c1")
-        .expect("chunk");
-    let p = chunk
+        .expect("task");
+    let p = task
         .title_proposal
         .as_ref()
         .expect("the proposal must be RECORDED, not merely returned");
@@ -195,7 +180,7 @@ fn a_remote_retitle_becomes_a_title_proposal_and_the_title_does_not_move() {
         "the proposal must say which ticket caused it"
     );
     assert_eq!(
-        chunk.title, "Chunk c1",
+        task.title, "Task c1",
         "a proposal is never a rename — the plan's title must not move"
     );
 }
@@ -207,9 +192,9 @@ fn a_remote_retitle_becomes_a_title_proposal_and_the_title_does_not_move() {
 #[test]
 fn a_title_the_plan_owns_gets_no_proposal_from_the_sweep() {
     for owner in [Owner::Ours, Owner::Theirs] {
-        let mut roadmap = roadmap_with_link();
+        let mut plan = plan_with_link();
         let proposed = propose_titles_from_sweep(
-            &mut roadmap,
+            &mut plan,
             "linear",
             &sweep_finding(item_titled("A human's better name")),
             &Ownership::default().with(Field::Title, owner),
@@ -217,8 +202,8 @@ fn a_title_the_plan_owns_gets_no_proposal_from_the_sweep() {
         .unwrap();
         assert!(proposed.is_empty(), "{owner:?} must not propose");
         assert!(
-            roadmap.roadmap().chunks[0].title_proposal.is_none(),
-            "{owner:?}: a proposal landed on the chunk anyway"
+            plan.plan().tasks[0].title_proposal.is_none(),
+            "{owner:?}: a proposal landed on the task anyway"
         );
     }
 }
@@ -230,20 +215,20 @@ fn a_title_the_plan_owns_gets_no_proposal_from_the_sweep() {
 /// adapter lossage into a stream of phantom proposals.
 #[test]
 fn an_echo_classified_item_cannot_mint_a_title_proposal() {
-    let mut roadmap = roadmap_with_link();
+    let mut plan = plan_with_link();
     let report = SweepReport {
         fetched: 2,
         echoes: 2,
-        drifted: vec![item_titled("Chunk c1 (mangled by the round trip)")],
+        drifted: vec![item_titled("Task c1 (mangled by the round trip)")],
         ..SweepReport::default()
     };
 
     let proposed =
-        propose_titles_from_sweep(&mut roadmap, "linear", &report, &Ownership::default()).unwrap();
+        propose_titles_from_sweep(&mut plan, "linear", &report, &Ownership::default()).unwrap();
 
     assert!(proposed.is_empty());
     assert!(
-        roadmap.roadmap().chunks[0].title_proposal.is_none(),
+        plan.plan().tasks[0].title_proposal.is_none(),
         "an echo minted a title proposal — the sweep is proposing our own \
          write back at us"
     );
@@ -251,18 +236,18 @@ fn an_echo_classified_item_cannot_mint_a_title_proposal() {
 
 #[test]
 fn an_unchanged_remote_title_proposes_nothing() {
-    let mut roadmap = roadmap_with_link();
+    let mut plan = plan_with_link();
 
     let proposed = propose_titles_from_sweep(
-        &mut roadmap,
+        &mut plan,
         "linear",
-        &sweep_finding(item_titled("Chunk c1")),
+        &sweep_finding(item_titled("Task c1")),
         &Ownership::default(),
     )
     .unwrap();
 
     assert!(proposed.is_empty());
-    assert!(roadmap.roadmap().chunks[0].title_proposal.is_none());
+    assert!(plan.plan().tasks[0].title_proposal.is_none());
 }
 
 /// A sweep runs every few minutes forever, so the criterion is not "it
@@ -271,19 +256,19 @@ fn an_unchanged_remote_title_proposes_nothing() {
 /// perpetually new.
 #[test]
 fn re_proposing_the_same_retitle_does_not_restamp() {
-    let mut roadmap = roadmap_with_link();
+    let mut plan = plan_with_link();
     let report = sweep_finding(item_titled("A human's better name"));
 
-    propose_titles_from_sweep(&mut roadmap, "linear", &report, &Ownership::default()).unwrap();
-    let first = roadmap.roadmap().chunks[0]
+    propose_titles_from_sweep(&mut plan, "linear", &report, &Ownership::default()).unwrap();
+    let first = plan.plan().tasks[0]
         .title_proposal
         .as_ref()
         .expect("recorded")
         .proposed_at
         .clone();
 
-    propose_titles_from_sweep(&mut roadmap, "linear", &report, &Ownership::default()).unwrap();
-    let second = roadmap.roadmap().chunks[0]
+    propose_titles_from_sweep(&mut plan, "linear", &report, &Ownership::default()).unwrap();
+    let second = plan.plan().tasks[0]
         .title_proposal
         .as_ref()
         .expect("still recorded")

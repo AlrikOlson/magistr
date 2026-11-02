@@ -50,7 +50,7 @@ fn native_capture_and_research_enforce_validation_before_mutation() {
         .unwrap();
     assert_eq!(updated.value.status, SignalStatus::Researched);
     assert_eq!(updated.value.enrichment[0].confidence, 1.0);
-    assert_eq!(updated.value.cross_refs, ["think:42"]);
+    assert_eq!(updated.value.refs, ["think:42"]);
     assert_eq!(app.pending(None, &[], None).unwrap(), [updated.value]);
 }
 
@@ -111,10 +111,7 @@ fn native_link_and_terminal_mutations_keep_domain_rules() {
     ));
     app.link(&signal.value.id, "think:8").unwrap();
     assert_eq!(
-        app.link(&signal.value.id, "think:8")
-            .unwrap()
-            .value
-            .cross_refs,
+        app.link(&signal.value.id, "think:8").unwrap().value.refs,
         ["think:8"]
     );
     assert!(

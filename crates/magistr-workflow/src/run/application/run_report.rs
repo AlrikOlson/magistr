@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::run::domain::artifact::Artifact;
 
 /// Ordinary completion report. Failed required checks are warnings here —
-/// completion of a roadmap chunk is where evidence is enforced — and they
+/// completion of a plan task is where evidence is enforced — and they
 /// are told apart: a check that failed and later passed under the same
 /// name in this cycle is `recovered`, one whose latest record still fails
 /// is `outstanding`.

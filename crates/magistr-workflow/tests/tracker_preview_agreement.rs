@@ -18,7 +18,7 @@
 //!
 //! The two gates disagree permanently wherever the ownership table hands a
 //! field to the team. `State`, `Labels` and `Assignee` are all `Owner::Theirs`
-//! by default, and all three are inside `content_hash`. So a chunk whose Linear
+//! by default, and all three are inside `content_hash`. So a task whose Linear
 //! state moved on without us mismatches gate one on every run forever, while
 //! gate two correctly skips it forever.
 //!
@@ -37,8 +37,8 @@
 //! get by answering "unchanged" to everything, and that would be a worse bug
 //! than the one being fixed.
 
-use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::roadmap::engine::RoadmapEngine;
+use magistr_workflow::plan::domain::TaskStatus;
+use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::tracker::domain::{TrackerCapabilities, WorkItemState};
 use magistr_workflow::tracker::ownership::{Field, Owner, Ownership, authored_hash};
 use magistr_workflow::tracker::project::{
@@ -48,38 +48,38 @@ use magistr_workflow::tracker::{FakeTracker, TrackerPort, WorkItem};
 
 const PROVIDER: &str = "fake";
 
-fn engine() -> RoadmapEngine {
-    RoadmapEngine::new("proj".into())
+fn engine() -> PlanEngine {
+    PlanEngine::new("proj".into())
 }
 
-fn add(e: &mut RoadmapEngine, id: &str) {
-    e.add_chunk(
+fn add(e: &mut PlanEngine, id: &str) {
+    e.add_task(
         id.into(),
-        format!("Chunk {id}"),
-        ChunkStatus::Pending,
+        format!("Task {id}"),
+        TaskStatus::ToDo,
         10,
         format!("why {id} exists"),
         vec![format!("{id} works")],
         vec![],
         false,
     )
-    .expect("add chunk");
+    .expect("add task");
     e.set_tracker_opt_in(id, PROVIDER, true).expect("opt in");
 }
 
 /// The preview, computed exactly as the CLI computes it.
-fn preview(e: &RoadmapEngine, id: &str, caps: &TrackerCapabilities) -> PreviewVerdict {
-    let chunk = e
-        .roadmap()
-        .chunks
+fn preview(e: &PlanEngine, id: &str, caps: &TrackerCapabilities) -> PreviewVerdict {
+    let task = e
+        .plan()
+        .tasks
         .iter()
         .find(|c| c.id == id)
-        .expect("chunk exists");
-    let item = to_work_item(e, chunk, PROVIDER, caps);
+        .expect("task exists");
+    let item = to_work_item(e, task, PROVIDER, caps);
     preview_verdict(e.tracker_link(id, PROVIDER), &item, &Ownership::default())
 }
 
-async fn push(e: &mut RoadmapEngine, t: &FakeTracker) -> Vec<(String, ProjectionOutcome)> {
+async fn push(e: &mut PlanEngine, t: &FakeTracker) -> Vec<(String, ProjectionOutcome)> {
     project_all_with_policy(e, t, None, &Ownership::default(), None)
         .await
         .expect("projection")
@@ -91,7 +91,7 @@ fn outcome_for(outcomes: &[(String, ProjectionOutcome)], id: &str) -> Projection
         .iter()
         .find(|(c, _)| c == id)
         .map(|(_, o)| o.clone())
-        .expect("chunk was in the run")
+        .expect("task was in the run")
 }
 
 // ── THE AGREEMENT INVARIANT ─────────────────────────────────────────────────
@@ -120,11 +120,11 @@ async fn a_tracker_owned_state_edit_makes_the_projector_skip_and_the_preview_mus
     // is authoritative and we will never write over it.
     t.remote_edit(&ext, |i| i.state = WorkItemState::InProgress);
 
-    // (2) The plan finishes the chunk. This moves a field we DO author — the
+    // (2) The plan finishes the task. This moves a field we DO author — the
     // provenance footer carries `status`, and the body is `Owner::Ours` — so
     // the cheap gate mismatches and a real reconciling write happens.
-    e.set_status("a", ChunkStatus::InProgress).expect("start");
-    e.set_status("a", ChunkStatus::Done).expect("finish");
+    e.set_status("a", TaskStatus::InProgress).expect("start");
+    e.set_status("a", TaskStatus::Done).expect("finish");
 
     let adopted = push(&mut e, &t).await;
     assert!(
@@ -145,7 +145,7 @@ async fn a_tracker_owned_state_edit_makes_the_projector_skip_and_the_preview_mus
     let third = push(&mut e, &t).await;
     assert!(
         matches!(outcome_for(&third, "a"), ProjectionOutcome::Skipped { .. }),
-        "the projector must skip a chunk that differs only where the tracker owns the field"
+        "the projector must skip a task that differs only where the tracker owns the field"
     );
     assert_eq!(t.writes(), writes_before, "and must make no call at all");
 
@@ -159,7 +159,7 @@ async fn a_tracker_owned_state_edit_makes_the_projector_skip_and_the_preview_mus
 }
 
 /// The same invariant on the LABELS axis — the second shape found live, where
-/// an issue holds `roadmap:critical` while the plan's band says `medium`.
+/// an issue holds `plan:critical` while the plan's band says `medium`.
 ///
 /// A separate test rather than a parameter, because the two axes reach the
 /// divergence through different fields and a fix could plausibly cover one.
@@ -181,7 +181,7 @@ async fn a_tracker_owned_label_edit_also_agrees() {
     // (low) — which changes nothing we author, but the description does, so a
     // reconciling write happens and stores THEIR labels.
     t.remote_edit(&ext, |i| i.labels = vec!["team-owned-label".into()]);
-    e.update_chunk(
+    e.update_task(
         "a",
         None,
         Some(350),
@@ -223,7 +223,7 @@ async fn an_edit_to_a_field_we_author_is_still_predicted_and_still_written() {
 
     // `Body` is `Owner::Ours`. Changing the description is a genuine pending
     // write and nothing about ownership can excuse it.
-    e.update_chunk(
+    e.update_task(
         "a",
         None,
         None,
@@ -255,7 +255,7 @@ async fn an_edit_to_a_field_we_author_is_still_predicted_and_still_written() {
 /// projector's own first gate, character for character, and a fix that made it
 /// fuzzy would turn every no-op run into noise.
 #[tokio::test]
-async fn a_genuinely_unchanged_chunk_is_still_reported_certain() {
+async fn a_genuinely_unchanged_task_is_still_reported_certain() {
     let t = FakeTracker::new(PROVIDER);
     let caps = t.capabilities();
     let mut e = engine();
@@ -273,14 +273,14 @@ async fn a_genuinely_unchanged_chunk_is_still_reported_certain() {
     assert_eq!(
         t.writes(),
         writes_before,
-        "an unchanged chunk must make no call at all"
+        "an unchanged task must make no call at all"
     );
 }
 
-/// A chunk with no link is a create, and the preview must say so — the one
+/// A task with no link is a create, and the preview must say so — the one
 /// verdict that was never wrong, asserted so a refactor cannot lose it.
 #[tokio::test]
-async fn an_unprojected_chunk_reads_as_a_create() {
+async fn an_unprojected_task_reads_as_a_create() {
     let t = FakeTracker::new(PROVIDER);
     let caps = t.capabilities();
     let mut e = engine();
@@ -312,14 +312,14 @@ async fn a_pre_fence_link_admits_it_cannot_tell() {
     // Exactly the on-disk shape of a link written by an older binary.
     let mut link = e.tracker_link("a", PROVIDER).expect("link").clone();
     link.our_last_authored_hash = None;
-    let chunk = e
-        .roadmap()
-        .chunks
+    let task = e
+        .plan()
+        .tasks
         .iter()
         .find(|c| c.id == "a")
-        .expect("chunk")
+        .expect("task")
         .clone();
-    let mut item = to_work_item(&e, &chunk, PROVIDER, &caps);
+    let mut item = to_work_item(&e, &task, PROVIDER, &caps);
     // Make the full hash differ, as a tracker-owned drift would.
     item.state = WorkItemState::Done;
 

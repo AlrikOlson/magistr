@@ -1,5 +1,5 @@
 import {stateAt,chapters,elapsed,kindLabels,statusLabels,walkthroughEnd} from "../data/build-recording.mjs";
-import {RoadmapSurface} from "../../../../crates/magistr-desktop/ui/work_roadmap_surface.mjs";
+import {PlanSurface} from "../../../../crates/magistr-desktop/ui/work_plan_surface.mjs";
 import {ReasoningMap} from "../../../../crates/magistr-desktop/ui/work_reasoning_map.mjs";
 import "../../../../crates/magistr-desktop/ui/work_surface.css";
 import {TerminalPlayback} from "./terminal-playback";
@@ -28,7 +28,7 @@ async function setup(root:HTMLElement){
   let index=Number(root.dataset.index),view="",timer:ReturnType<typeof setTimeout>|undefined,playing=false,ended=false,cycle=0;
   let terminal:TerminalPlayback;
   let opener:HTMLElement=openAction;
-  const roadmap=new RoadmapSurface(()=>renderRecords()),reasoning=new ReasoningMap();
+  const plan=new PlanSurface(()=>renderRecords()),reasoning=new ReasoningMap();
   const button=(text:string,fn:()=>void)=>{const b=el("button",text) as HTMLButtonElement;b.type="button";b.onclick=fn;return b;};
   const stop=()=>{playing=false;++cycle;clearTimeout(timer);timer=undefined;terminal?.pause();play.textContent="Play";play.setAttribute("aria-pressed","false");};
   const cloneOutput=(id:string,diff=false)=>{
@@ -38,7 +38,7 @@ async function setup(root:HTMLElement){
   const closeDetails=(focus=true)=>{view="";details.close();document.documentElement.classList.remove("record-dialog-open");root.dataset.view="session";views.forEach(b=>b.setAttribute("aria-expanded","false"));if(focus)opener.focus({preventScroll:true});};
   const showDetails=(name:string,focus=true)=>{
    stop();view=name;if(!details.open){details.showModal();document.documentElement.classList.add("record-dialog-open");}root.dataset.view=name;panel.dataset.mode=name;panel.scrollTop=0;
-   root.querySelector("#build-detail-title")!.textContent=({roadmap:"Roadmap",reasoning:"Reasoning",work:"Work",checks:"Checks",file:"Changes",output:"Session message",transcript:"Full session"} as any)[name]+" · "+elapsed(recording,index);
+   root.querySelector("#build-detail-title")!.textContent=({plan:"Plan",reasoning:"Reasoning",work:"Work",checks:"Checks",file:"Changes",output:"Session message",transcript:"Full session"} as any)[name]+" · "+elapsed(recording,index);
    views.forEach(b=>b.setAttribute("aria-expanded",String(b.dataset.view===name)));
    if(focus){panel.focus({preventScroll:true});}
   };
@@ -55,13 +55,13 @@ async function setup(root:HTMLElement){
    const b=button(label,async()=>{try{await navigator.clipboard.writeText(text);b.textContent="Copied";}catch{b.textContent="Select the text to copy";}});
    return b;
   };
-  function openChunk(chunk:any){
-   const a=reader(chunk.title,"roadmap");a.append(el("p",statusLabels[chunk.status]??chunk.status,"record-status"));
-   if(chunk.content?.summary)a.append(el("p",chunk.content.summary));
-   a.append(el("h4","Done when"));const list=el("ul");for(const requirement of chunk.acceptance)list.append(el("li",requirement));a.append(list);
+  function openTask(task:any){
+   const a=reader(task.title,"plan");a.append(el("p",statusLabels[task.status]??task.status,"record-status"));
+   if(task.content?.summary)a.append(el("p",task.content.summary));
+   a.append(el("h4","Done when"));const list=el("ul");for(const requirement of task.acceptance)list.append(el("li",requirement));a.append(list);
    const s=stateAt(recording,index);
-   for(const [heading,pieces]of [["Needs first",s.chunks.filter(c=>chunk.deps.includes(c.id))],["Makes possible",s.chunks.filter(c=>c.deps.includes(chunk.id))]] as any){
-    if(!pieces.length)continue;a.append(el("h4",heading));for(const c of pieces)a.append(button(c.title,()=>openChunk(c)));
+   for(const [heading,pieces]of [["Needs first",s.tasks.filter(c=>task.deps.includes(c.id))],["Makes possible",s.tasks.filter(c=>c.deps.includes(task.id))]] as any){
+    if(!pieces.length)continue;a.append(el("h4",heading));for(const c of pieces)a.append(button(c.title,()=>openTask(c)));
    }
   }
   function openStep(step:any){
@@ -111,14 +111,14 @@ async function setup(root:HTMLElement){
     }
     records.replaceChildren(list);return;
    }
-   if(view==="roadmap"){
-    if(!s.chunks.length){records.replaceChildren(el("p","No roadmap has been saved at this point.","record-empty"));return;}
-    if(compact.matches){list(s.chunks,c=>c.title,c=>statusLabels[c.status]??c.status,openChunk,"No roadmap has been saved at this point.");return;}
-    const all=new Map(s.chunks.map(c=>[c.id,c]));
-    const items=s.chunks.map(c=>({id:c.id,readiness:{state:c.status==="pending"?(c.deps.every(d=>all.get(d)?.status==="done")?"ready":"waiting"):c.status}}));
+   if(view==="plan"){
+    if(!s.tasks.length){records.replaceChildren(el("p","No plan has been saved at this point.","record-empty"));return;}
+    if(compact.matches){list(s.tasks,c=>c.title,c=>statusLabels[c.status]??c.status,openTask,"No plan has been saved at this point.");return;}
+    const all=new Map(s.tasks.map(c=>[c.id,c]));
+    const items=s.tasks.map(c=>({id:c.id,readiness:{state:c.status==="pending"?(c.deps.every(d=>all.get(d)?.status==="done")?"ready":"waiting"):c.status}}));
     const readiness={ready:items.filter(i=>i.readiness.state==="ready").length,waiting:items.filter(i=>i.readiness.state==="waiting").length,blocked:items.filter(i=>i.readiness.state==="blocked").length};
     const frontier={group:"Website example",items,activity:{readiness,next_ready:null}};
-    const node=roadmap.render(frontier,{frontiers:[frontier]},s.chunks,true,(id:string)=>{const c=all.get(id);if(c)openChunk(c);},"recording",undefined);
+    const node=plan.render(frontier,{frontiers:[frontier]},s.tasks,true,(id:string)=>{const c=all.get(id);if(c)openTask(c);},"recording",undefined);
     node.querySelector(".surface-heading h3")!.textContent="Tic-tac-toe";records.replaceChildren(node);return;
    }
    if(view==="reasoning"){
@@ -145,9 +145,9 @@ async function setup(root:HTMLElement){
    root.querySelector("[data-action-title]")!.textContent=explanation.title;
    root.querySelector("[data-action-explanation]")!.innerHTML=explanationHTML(explanation);
    facts.replaceChildren();
-   if(e.operation==="roadmap_add_chunk"){
-    const ul=el("ul","","annotation-roadmap");
-    for(const c of s.chunks){const li=el("li");li.dataset.status=c.status;li.append(el("span",c.name??c.title),el("small",statusLabels[c.status]??c.status));ul.append(li);}facts.append(ul);
+   if(e.operation==="plan_add_task"){
+    const ul=el("ul","","annotation-plan");
+    for(const c of s.tasks){const li=el("li");li.dataset.status=c.status;li.append(el("span",c.name??c.title),el("small",statusLabels[c.status]??c.status));ul.append(li);}facts.append(ul);
    }else if(e.file){
     const change=playback.events[index].changes;
     facts.append(el("p",e.file.path,"annotation-file"));
@@ -155,8 +155,8 @@ async function setup(root:HTMLElement){
    }else if(e.check){
     facts.append(el("p",(e.check.passed?"✓ Passed":"× Failed")+(e.check.verified?" · Automated check":" · Visual review"),e.check.passed?"check-passed":"check-failed"));
    }
-   const target=({roadmap:"roadmap",reasoning:"reasoning",work:"work",check:"checks"} as Record<string,string>)[e.kind];
-   openAction.textContent=e.file?"Open changes":e.check?"Inspect this check":target?"Open "+({roadmap:"the roadmap",reasoning:"the reasoning",work:"the work plan"} as any)[e.kind]:e.kind==="message"?"Read message":"Read full output";
+   const target=({plan:"plan",reasoning:"reasoning",work:"work",check:"checks"} as Record<string,string>)[e.kind];
+   openAction.textContent=e.file?"Open changes":e.check?"Inspect this check":target?"Open "+({plan:"the plan",reasoning:"the reasoning",work:"the work plan"} as any)[e.kind]:e.kind==="message"?"Read message":"Read full output";
    openAction.onclick=()=>{
     opener=openAction;
     if(e.file)openFile();

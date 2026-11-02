@@ -4,8 +4,8 @@ use crate::{Observed, ReadErrorKind, ReadSource};
 #[test]
 fn workstream_projection_and_worker_failure_keep_family_provenance() {
     let snapshot = NativeSnapshot {
-        roadmap: ReadState::Current(Observed {
-            value: RoadmapData::default(),
+        plan: ReadState::Current(Observed {
+            value: PlanData::default(),
             source: ReadSource::Missing,
         }),
         run: ReadState::Current(Observed {
@@ -26,7 +26,7 @@ fn workstream_projection_and_worker_failure_keep_family_provenance() {
     );
     let failed = snapshot.failed(error.clone());
     assert!(matches!(
-        failed.roadmap,
+        failed.plan,
         ReadState::Stale {
             last: Observed {
                 source: ReadSource::Missing,

@@ -20,7 +20,7 @@ use super::saml_config::SamlConfig;
 /// performed — [`validate`](Self::validate) — are the ones the
 /// recurring real-world failure is about: the validity window, the
 /// audience restriction and the issuer. Signature verification needs
-/// XMLDSig with exclusive canonicalization and is its own chunk, the
+/// XMLDSig with exclusive canonicalization and is its own task, the
 /// sibling of the OIDC `id_token`'s JWKS verification.
 ///
 /// One half of the signature story *is* enforced here, because it costs

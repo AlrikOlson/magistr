@@ -1,16 +1,16 @@
 ---
 name: roadmap-refresh
-description: Research and update a focused part of Magistr's native roadmap without implementing features. Use for {{invoke}}roadmap-refresh or requests to revisit priorities, refresh stale plans, or research the project's direction.
+description: Research and update a focused part of Magistr's native plan without implementing features. Use for {{invoke}}roadmap-refresh or requests to revisit priorities, refresh stale plans, or research the project's direction.
 ---
 
-# Refresh a Magistr roadmap area
+# Refresh a Magistr plan area
 
 Apply [craft](../craft/SKILL.md) and its runtime contract. Use **magistr** native
-roadmap/reasoning tools, **magistr** workspace code grounding, and the host's web
+plan/reasoning tools, **magistr** workspace code grounding, and the host's web
 tools. Do one focused research pass without starting an implementation goal.
 
-1. Read `roadmap_status`, relevant chunks, and pertinent prior reasoning. Use
-   the user's topic or state one consequential stale area. If the roadmap is
+1. Read `plan_status`, relevant tasks, and pertinent prior reasoning. Use
+   the user's topic or state one consequential stale area. If the plan is
    empty, report it rather than inventing unrelated implementation work.
 2. Ground real entry points, dependencies, and current behavior with workspace.
    Record the research question with `think_record_step` and identify evidence
@@ -20,14 +20,14 @@ tools. Do one focused research pass without starting an implementation goal.
    findings as evidence arrives, including changed conclusions, uncertainty,
    and refuted ideas, following the shared runtime's reasoning guidance.
 4. Apply scoped descriptive, acceptance, and dependency corrections with
-   `roadmap_update_chunk`. Put discoveries in `backlog` by default; use
-   `roadmap_link` for evidence. Mark work obsolete only with supporting evidence
+   `plan_update_task`. Put discoveries in `idea` by default; use
+   `plan_link` for evidence. Mark work obsolete only with supporting evidence
    and within the user's requested scope.
-5. `roadmap_reprioritize` records an ordering proposal; it does not apply it.
+5. `plan_reprioritize` records an ordering proposal; it does not apply it.
    Use the advertised mutation tools to apply priority/status changes already
    authorized by the user. Otherwise present the concrete proposal for review.
-6. Synthesize the recorded findings and add `roadmap_record_refresh` provenance.
-   Honor the runtime's roadmap/export policy. Report changes, remaining proposals,
-   evidence, and the next useful decision. Stop without implementing a chunk.
+6. Synthesize the recorded findings and add `plan_record_refresh` provenance.
+   Honor the runtime's plan/export policy. Report changes, remaining proposals,
+   evidence, and the next useful decision. Stop without implementing a task.
 
 Preserve active implementation goals and the existing shared state store.

@@ -29,7 +29,7 @@ struct FakeState {
     /// Returned (and consumed) by the next call, for failure-path tests.
     fail_next: Option<TrackerError>,
     clock: String,
-    /// `(from, blocked_by)` — the last declared set per item, since
+    /// `(from, waiting_on)` — the last declared set per item, since
     /// `relate_items` converges rather than appends.
     relations: Vec<(ExternalId, Vec<ExternalId>)>,
     /// Every successful `relate_items`, counted separately from `writes` so a
@@ -44,21 +44,21 @@ struct FakeState {
     /// once and never behind a `--dry-run`.
     created_targets: Vec<String>,
     /// `name -> state`, the containers ensured so far.
-    groups: Vec<(String, crate::tracker::domain::GroupState)>,
-    /// Every upsert_group WRITE, excluding no-ops. A counter rather than a flag,
+    features: Vec<(String, crate::tracker::domain::FeatureState)>,
+    /// Every upsert_feature WRITE, excluding no-ops. A counter rather than a flag,
     /// so a test can prove a second push did not re-write an unchanged container.
-    group_writes: usize,
+    feature_writes: usize,
     /// The roof, if one was ever ensured. One slot, not a list: a push carries
     /// at most one initiative, and holding a Vec would let a duplicate-creation
     /// bug hide as "the newest entry looks right".
-    initiative: Option<(String, crate::tracker::domain::GroupState)>,
+    initiative: Option<(String, crate::tracker::domain::FeatureState)>,
     /// Every upsert_initiative WRITE, excluding no-ops — same contract as
-    /// `group_writes`, so idempotence stays provable one level up.
+    /// `feature_writes`, so idempotence stays provable one level up.
     initiative_writes: usize,
-    /// `(name, remembered external_id)` per upsert_group CALL, in order — so a
+    /// `(name, remembered external_id)` per upsert_feature CALL, in order — so a
     /// test can prove the projector passed the identity it recorded last push,
     /// which is the whole of rename survival at the projector's level.
-    group_calls: Vec<(String, Option<String>)>,
+    feature_calls: Vec<(String, Option<String>)>,
     /// The same log for the roof.
     initiative_calls: Vec<(String, Option<String>)>,
 }
@@ -115,8 +115,8 @@ impl FakeTracker {
 
     /// The containers this double holds, name-sorted.
     #[must_use]
-    pub fn groups(&self) -> Vec<(String, crate::tracker::domain::GroupState)> {
-        let mut g = self.lock().groups.clone();
+    pub fn features(&self) -> Vec<(String, crate::tracker::domain::FeatureState)> {
+        let mut g = self.lock().features.clone();
         g.sort_by(|a, b| a.0.cmp(&b.0));
         g
     }
@@ -124,27 +124,27 @@ impl FakeTracker {
     /// How many times a container was WRITTEN (created or re-stated). The number
     /// an idempotent re-push must not increase.
     #[must_use]
-    pub fn group_writes(&self) -> usize {
-        self.lock().group_writes
+    pub fn feature_writes(&self) -> usize {
+        self.lock().feature_writes
     }
 
     /// The roof this double holds, if a push ever ensured one.
     #[must_use]
-    pub fn initiative(&self) -> Option<(String, crate::tracker::domain::GroupState)> {
+    pub fn initiative(&self) -> Option<(String, crate::tracker::domain::FeatureState)> {
         self.lock().initiative.clone()
     }
 
-    /// How many times the roof was WRITTEN — the `group_writes` contract one
+    /// How many times the roof was WRITTEN — the `feature_writes` contract one
     /// level up.
     #[must_use]
     pub fn initiative_writes(&self) -> usize {
         self.lock().initiative_writes
     }
 
-    /// `(name, remembered external_id)` per `upsert_group` call, in order.
+    /// `(name, remembered external_id)` per `upsert_feature` call, in order.
     #[must_use]
-    pub fn group_calls(&self) -> Vec<(String, Option<String>)> {
-        self.lock().group_calls.clone()
+    pub fn feature_calls(&self) -> Vec<(String, Option<String>)> {
+        self.lock().feature_calls.clone()
     }
 
     /// `(name, remembered external_id)` per `upsert_initiative` call, in order.
@@ -176,7 +176,7 @@ impl FakeTracker {
     /// relation has ever been declared for it — distinct from a declared-empty
     /// set, which is how "the deps were removed" is represented.
     #[must_use]
-    pub fn blocked_by(&self, from: &str) -> Option<Vec<ExternalId>> {
+    pub fn waiting_on(&self, from: &str) -> Option<Vec<ExternalId>> {
         self.lock()
             .relations
             .iter()
@@ -327,7 +327,7 @@ impl TrackerPort for FakeTracker {
     async fn relate_items(
         &self,
         from: &ExternalId,
-        blocked_by: &[ExternalId],
+        waiting_on: &[ExternalId],
     ) -> Result<(), TrackerError> {
         // Refuse before touching state, exactly as a capability-constrained
         // provider would — the projector must degrade, not retry.
@@ -344,7 +344,7 @@ impl TrackerPort for FakeTracker {
         // Every referenced item must already exist. This is the fake's way of
         // enforcing the ordering constraint a real provider enforces with a 422:
         // you cannot be blocked by an issue that has not been created yet.
-        for id in std::iter::once(from).chain(blocked_by.iter()) {
+        for id in std::iter::once(from).chain(waiting_on.iter()) {
             if !st
                 .items
                 .iter()
@@ -354,7 +354,7 @@ impl TrackerPort for FakeTracker {
             }
         }
 
-        let set = blocked_by.to_vec();
+        let set = waiting_on.to_vec();
         match st.relations.iter_mut().find(|(f, _)| f == from) {
             Some(slot) => slot.1 = set,
             None => st.relations.push((from.clone(), set)),
@@ -363,32 +363,32 @@ impl TrackerPort for FakeTracker {
         Ok(())
     }
 
-    async fn upsert_group(
+    async fn upsert_feature(
         &self,
-        group: &crate::tracker::domain::WorkGroup,
+        feature: &crate::tracker::domain::WorkFeature,
     ) -> Result<UpsertOutcome, TrackerError> {
         let mut st = self.lock();
         if let Some(err) = st.fail_next.take() {
             return Err(err);
         }
-        st.group_calls
-            .push((group.name.clone(), group.external_id.clone()));
+        st.feature_calls
+            .push((feature.name.clone(), feature.external_id.clone()));
         // Deterministic synthetic id — the double has no rename to survive, so
         // the name suffices as the id's seed.
-        let id = format!("grp-{}", group.name);
-        let created = match st.groups.iter_mut().find(|(n, _)| n == &group.name) {
+        let id = format!("grp-{}", feature.name);
+        let created = match st.features.iter_mut().find(|(n, _)| n == &feature.name) {
             // Unchanged is a NO-OP, not a re-write. The contract says this verb
-            // is called on every push for every group, so counting an unchanged
+            // is called on every push for every feature, so counting an unchanged
             // container as a write would make idempotence untestable.
-            Some(slot) if slot.1 == group.state => false,
+            Some(slot) if slot.1 == feature.state => false,
             Some(slot) => {
-                slot.1 = group.state;
-                st.group_writes += 1;
+                slot.1 = feature.state;
+                st.feature_writes += 1;
                 false
             }
             None => {
-                st.groups.push((group.name.clone(), group.state));
-                st.group_writes += 1;
+                st.features.push((feature.name.clone(), feature.state));
+                st.feature_writes += 1;
                 true
             }
         };
@@ -401,7 +401,7 @@ impl TrackerPort for FakeTracker {
 
     async fn upsert_initiative(
         &self,
-        initiative: &crate::tracker::domain::WorkGroup,
+        initiative: &crate::tracker::domain::WorkFeature,
     ) -> Result<UpsertOutcome, TrackerError> {
         let mut st = self.lock();
         if let Some(err) = st.fail_next.take() {
@@ -410,7 +410,7 @@ impl TrackerPort for FakeTracker {
         st.initiative_calls
             .push((initiative.name.clone(), initiative.external_id.clone()));
         let id = format!("init-{}", initiative.name);
-        // Same no-op contract as upsert_group: an unchanged roof on a re-push
+        // Same no-op contract as upsert_feature: an unchanged roof on a re-push
         // must cost zero writes or idempotence is untestable one level up.
         let created = match &mut st.initiative {
             Some(slot) if slot.0 == initiative.name && slot.1 == initiative.state => false,

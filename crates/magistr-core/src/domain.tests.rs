@@ -12,7 +12,7 @@ fn domain_state_default() {
     assert!(state.agent_options.is_none());
     assert!(state.messages.is_empty());
     assert!(state.sync_status.is_empty());
-    assert!(!state.roadmap_stale);
+    assert!(!state.plan_stale);
 }
 
 #[test]

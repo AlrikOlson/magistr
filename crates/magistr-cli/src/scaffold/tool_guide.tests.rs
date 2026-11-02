@@ -12,7 +12,7 @@ fn guide_uses_public_catalog_and_explains_advanced_authorization() {
         "same authorization",
         "never replay",
         "verification: \"focused\"",
-        "roadmap_exports",
+        "plan_exports",
         "check_step",
         "run_finish",
     ] {

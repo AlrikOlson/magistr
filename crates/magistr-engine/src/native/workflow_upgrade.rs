@@ -37,7 +37,12 @@ impl WorkflowUpgrade {
     }
 
     pub fn has_records(config: &NativeConfig, id: &str) -> io::Result<bool> {
-        Ok(!records(config.data_dir(), id, CURRENT_FAMILIES)?.is_empty())
+        // A store still waiting for the vocabulary move keeps the same records
+        // under its earlier family names.
+        Ok(
+            !records(config.data_dir(), id, CURRENT_FAMILIES)?.is_empty()
+                || !records(config.data_dir(), id, OLDER_FAMILIES)?.is_empty(),
+        )
     }
 
     pub(super) fn ready(
@@ -45,7 +50,7 @@ impl WorkflowUpgrade {
         id: &str,
     ) -> Result<(), magistr_workflow_contracts::ReadError> {
         use magistr_workflow_contracts::{ReadError, ReadErrorKind};
-        super::RunWordsUpgrade::ready(config, id)?;
+        super::StoreWordsUpgrade::ready(config, id)?;
         if !config.persist || older_root(config.data_dir()).is_none() {
             return Ok(());
         }
@@ -199,8 +204,8 @@ fn older_root(current: &Path) -> Option<PathBuf> {
 }
 
 /// Family directories in the current store and in the older standalone store,
-/// whose run family was still named `ship`.
-const CURRENT_FAMILIES: [&str; 4] = ["think", "run", "roadmap", "signal"];
+/// whose run family was still named `ship` and plan family `roadmap`.
+const CURRENT_FAMILIES: [&str; 4] = ["think", "run", "plan", "signal"];
 const OLDER_FAMILIES: [&str; 4] = ["think", "ship", "roadmap", "signal"];
 
 fn records(root: &Path, id: &str, families: [&str; 4]) -> io::Result<Vec<PathBuf>> {
@@ -254,7 +259,7 @@ fn converted_records(
     id: &str,
     records: Vec<(PathBuf, Vec<u8>)>,
 ) -> io::Result<Vec<(PathBuf, Vec<u8>)>> {
-    use magistr_workflow::{roadmap::RoadmapEngine, run, signal::SignalEngine, think};
+    use magistr_workflow::{plan::PlanEngine, run, signal::SignalEngine, think};
     use std::collections::BTreeMap;
     let execution = super::ExecutionContext::new(&config.workflow_root(), "default")?;
     let execution_root = Path::new("run/executions").join(execution.key());
@@ -303,8 +308,14 @@ fn converted_records(
                 run::persistence::Persistence::upgrade_document(&bytes, id)
                     .map_err(|error| io::Error::other(format!("{}: {error}", relative.display())))?
             }
-        } else if relative == Path::new("roadmap/sessions").join(format!("{id}.json")) {
-            RoadmapEngine::upgrade_document(&bytes, id).map_err(io::Error::other)?
+        } else if let Ok(rest) = relative.strip_prefix("roadmap") {
+            // The older store names the plan family `roadmap`.
+            target = Path::new("plan").join(rest);
+            if rest == Path::new("sessions").join(format!("{id}.json")) {
+                PlanEngine::upgrade_document(&bytes, id).map_err(io::Error::other)?
+            } else {
+                bytes
+            }
         } else if relative == Path::new("signal/sessions").join(format!("{id}.json")) {
             SignalEngine::upgrade_document(&bytes, id).map_err(io::Error::other)?
         } else {

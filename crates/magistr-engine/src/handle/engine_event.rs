@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::cost::CostEvent;
-use crate::roadmap::RoadmapEvent;
+use crate::plan::PlanEvent;
 use crate::session::SessionEvent;
 
 use super::workflow_event::WorkflowEvent;
@@ -19,6 +19,6 @@ pub enum EngineEvent {
     Workflow(WorkflowEvent),
     /// Cost/budget event.
     Cost(CostEvent),
-    /// Roadmap progress event.
-    Roadmap(RoadmapEvent),
+    /// Plan progress event.
+    Plan(PlanEvent),
 }

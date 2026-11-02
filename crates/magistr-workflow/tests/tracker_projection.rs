@@ -1,4 +1,4 @@
-//! Projection: a chunk becomes a GitHub issue, idempotently, and nothing
+//! Projection: a task becomes a GitHub issue, idempotently, and nothing
 //! leaves without explicit consent.
 //!
 //! Every test here drives the REAL adapter — the same request shapes, headers,
@@ -12,8 +12,8 @@
 //! these: it is the difference between "the result happened to be the same" and
 //! "no call was made at all".
 
-use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::roadmap::engine::RoadmapEngine;
+use magistr_workflow::plan::domain::TaskStatus;
+use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::tracker::budget::{RateBudget, Spend, Transport};
 use magistr_workflow::tracker::github::GithubTracker;
 use magistr_workflow::tracker::outbox::TrackerOutbox;
@@ -21,25 +21,25 @@ use magistr_workflow::tracker::project::{ProjectionOutcome, project_all};
 use wiremock::matchers::{body_json_string, method, path};
 use wiremock::{Mock, MockServer, Request, ResponseTemplate};
 
-fn engine() -> RoadmapEngine {
-    RoadmapEngine::new("proj".into())
+fn engine() -> PlanEngine {
+    PlanEngine::new("proj".into())
 }
 
-fn add(e: &mut RoadmapEngine, id: &str, deps: Vec<String>) {
-    e.add_chunk(
+fn add(e: &mut PlanEngine, id: &str, deps: Vec<String>) {
+    e.add_task(
         id.into(),
-        format!("Chunk {id}"),
-        ChunkStatus::Pending,
+        format!("Task {id}"),
+        TaskStatus::ToDo,
         10,
         format!("why {id} exists"),
         vec![format!("{id} works")],
         deps,
         false,
     )
-    .expect("add chunk");
+    .expect("add task");
 }
 
-fn opt_in(e: &mut RoadmapEngine, id: &str) {
+fn opt_in(e: &mut PlanEngine, id: &str) {
     e.set_tracker_opt_in(id, "github", true).expect("opt in");
 }
 
@@ -84,10 +84,10 @@ async fn a_default_configuration_emits_nothing() {
     );
 }
 
-/// A chunk becomes an issue carrying title, body, acceptance as a checklist and
+/// A task becomes an issue carrying title, body, acceptance as a checklist and
 /// the machine-readable provenance footer.
 #[tokio::test]
-async fn a_chunk_projects_to_an_issue_with_its_provenance() {
+async fn a_task_projects_to_an_issue_with_its_provenance() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
         .and(path("/repos/owner/repo/issues"))
@@ -97,8 +97,8 @@ async fn a_chunk_projects_to_an_issue_with_its_provenance() {
 
     let mut e = engine();
     add(&mut e, "c1", vec![]);
-    e.link_chunk("c1", "think:7").expect("think ref");
-    e.link_chunk("c1", "step:projector").expect("run ref");
+    e.link_task("c1", "think:7").expect("think ref");
+    e.link_task("c1", "step:projector").expect("run ref");
     opt_in(&mut e, "c1");
 
     let report = project_all(&mut e, &github(&server), None)
@@ -114,7 +114,7 @@ async fn a_chunk_projects_to_an_issue_with_its_provenance() {
     let reqs = server.received_requests().await.expect("recorded");
     assert_eq!(reqs.len(), 1);
     let sent: serde_json::Value = reqs[0].body_json().expect("json body");
-    assert_eq!(sent["title"], "Chunk c1");
+    assert_eq!(sent["title"], "Task c1");
     let body = sent["body"].as_str().expect("body");
     assert!(body.contains("why c1 exists"));
     assert!(body.contains("- [ ] c1 works"), "acceptance as a checklist");
@@ -124,7 +124,7 @@ async fn a_chunk_projects_to_an_issue_with_its_provenance() {
     let footer = body.split("<!-- magistr:").nth(1).expect("footer present");
     let json_text = footer.trim().trim_end_matches("-->").trim();
     let parsed: serde_json::Value = serde_json::from_str(json_text).expect("footer is JSON");
-    assert_eq!(parsed["chunk"], "c1");
+    assert_eq!(parsed["task"], "c1");
     assert_eq!(parsed["think"][0], "think:7");
     assert_eq!(parsed["run"][0], "step:projector");
 
@@ -140,7 +140,7 @@ async fn a_chunk_projects_to_an_issue_with_its_provenance() {
 /// request" are very different properties, and only the second one keeps a
 /// restart from looking like activity to everyone watching the repo.
 #[tokio::test]
-async fn re_running_an_unchanged_chunk_makes_no_request() {
+async fn re_running_an_unchanged_task_makes_no_request() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
         .and(path("/repos/owner/repo/issues"))
@@ -164,14 +164,14 @@ async fn re_running_an_unchanged_chunk_makes_no_request() {
     assert_eq!(
         server.received_requests().await.expect("recorded").len(),
         1,
-        "an unchanged chunk must not reach the provider at all"
+        "an unchanged task must not reach the provider at all"
     );
 }
 
 /// Identity, not title, decides create-vs-patch — so renaming a ticket upstream
-/// (or renaming the chunk locally) can never mint a duplicate.
+/// (or renaming the task locally) can never mint a duplicate.
 #[tokio::test]
-async fn a_changed_chunk_patches_the_same_issue() {
+async fn a_changed_task_patches_the_same_issue() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
         .and(path("/repos/owner/repo/issues"))
@@ -190,7 +190,7 @@ async fn a_changed_chunk_patches_the_same_issue() {
     let tracker = github(&server);
     project_all(&mut e, &tracker, None).await.expect("first");
 
-    e.update_chunk("c1", Some("Renamed".into()), None, None, None, None, None)
+    e.update_task("c1", Some("Renamed".into()), None, None, None, None, None)
         .expect("rename");
     let report = project_all(&mut e, &tracker, None).await.expect("second");
 
@@ -230,12 +230,12 @@ async fn deps_become_native_blocking_links_with_the_database_id() {
         .mount(&server)
         .await;
     Mock::given(method("GET"))
-        .and(path("/repos/owner/repo/issues/2/dependencies/blocked_by"))
+        .and(path("/repos/owner/repo/issues/2/dependencies/waiting_on"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!([])))
         .mount(&server)
         .await;
     Mock::given(method("POST"))
-        .and(path("/repos/owner/repo/issues/2/dependencies/blocked_by"))
+        .and(path("/repos/owner/repo/issues/2/dependencies/waiting_on"))
         // The blocker's DATABASE id (900_001), never its number (1).
         .and(body_json_string(r#"{"issue_id":900001}"#))
         .respond_with(ResponseTemplate::new(201).set_body_json(serde_json::json!({})))
@@ -256,7 +256,7 @@ async fn deps_become_native_blocking_links_with_the_database_id() {
 }
 
 /// The outbox contract, first half: a 5xx queues for replay, and the run carries
-/// on to the next chunk instead of abandoning it.
+/// on to the next task instead of abandoning it.
 #[tokio::test]
 async fn a_5xx_queues_for_replay() {
     let server = MockServer::start().await;
@@ -279,7 +279,7 @@ async fn a_5xx_queues_for_replay() {
         report.outcomes[0].1,
         ProjectionOutcome::Queued { .. }
     ));
-    assert_eq!(outbox.queued_chunks("github"), vec!["c1".to_string()]);
+    assert_eq!(outbox.queued_tasks("github"), vec!["c1".to_string()]);
     assert!(
         e.tracker_link("c1", "github").is_none(),
         "a queued write has not landed, so no binding may be recorded"
@@ -407,8 +407,8 @@ fn rest_and_graphql_budgets_are_not_shared() {
 /// The cross-machine story, end to end — and the answer to the discovered
 /// problem that tracker links were local-only.
 ///
-/// Machine A projects a chunk and records the binding. That binding rides the
-/// chunk's cloud envelope as a sidecar. Machine B reconciles, inherits the
+/// Machine A projects a task and records the binding. That binding rides the
+/// task's cloud envelope as a sidecar. Machine B reconciles, inherits the
 /// binding, and therefore PATCHES the existing issue instead of creating a
 /// second one. Without this, two machines each mint their own twin and every
 /// later write is ambiguous about which one it meant.
@@ -434,11 +434,11 @@ async fn a_second_machine_inherits_the_binding_instead_of_minting_a_twin() {
     );
 
     // --- the wire: exactly the envelope A's write-through push would send.
-    let chunk = a.roadmap().chunks[0].clone();
-    let links: Vec<_> = a.roadmap().links.clone();
-    let opt_ins: Vec<_> = a.roadmap().tracker_opt_ins.clone();
-    let envelope = serde_json::to_value(magistr_workflow::cloud::build::from_chunk(
-        "proj", &chunk, &links, &opt_ins,
+    let task = a.plan().tasks[0].clone();
+    let links: Vec<_> = a.plan().links.clone();
+    let opt_ins: Vec<_> = a.plan().tracker_opt_ins.clone();
+    let envelope = serde_json::to_value(magistr_workflow::cloud::build::from_task(
+        "proj", &task, &links, &opt_ins,
     ))
     .expect("envelope serializes");
 
@@ -456,7 +456,7 @@ async fn a_second_machine_inherits_the_binding_instead_of_minting_a_twin() {
     assert!(b.tracker_link("c1", "github").is_none());
 
     let client = magistr_workflow::cloud::client::CloudClient::new(cloud.uri(), "tok");
-    magistr_workflow::cloud::pull::reconcile_roadmap(&client, &mut b)
+    magistr_workflow::cloud::pull::reconcile_plan(&client, &mut b)
         .await
         .expect("machine B reconciles");
 
@@ -472,7 +472,7 @@ async fn a_second_machine_inherits_the_binding_instead_of_minting_a_twin() {
         "the opt-in must cross too, or B does not know the item is in scope"
     );
 
-    // --- B re-projecting the UNCHANGED chunk writes nothing at all: the content
+    // --- B re-projecting the UNCHANGED task writes nothing at all: the content
     // hash crossed too, so B knows A already wrote exactly this. Two machines
     // running a push must not produce two writes of the same content.
     let quiet = MockServer::start().await;
@@ -492,9 +492,9 @@ async fn a_second_machine_inherits_the_binding_instead_of_minting_a_twin() {
         "the content fence must cross machines too, or every peer re-writes every item"
     );
 
-    // --- and when B genuinely changes the chunk, it PATCHES A's issue rather
+    // --- and when B genuinely changes the task, it PATCHES A's issue rather
     // than creating a second one. No POST mock is mounted, so a create 404s.
-    b.update_chunk(
+    b.update_task(
         "c1",
         Some("Renamed on B".into()),
         None,
@@ -549,7 +549,7 @@ async fn a_queued_projection_survives_a_restart() {
     // A fresh handle over the same path is what the next run gets.
     let reopened = TrackerOutbox::new(Some(queue_path));
     assert_eq!(
-        reopened.queued_chunks("github"),
+        reopened.queued_tasks("github"),
         vec!["c1".to_string()],
         "the queue must outlive the process that filled it"
     );
@@ -569,7 +569,7 @@ async fn a_queued_projection_survives_a_restart() {
 /// `provenance_footer` ends with a newline, so every projected body did too.
 /// Linear strips trailing whitespace from a description on save, so we wrote
 /// one byte we could never read back — and `content_hash` differed on every
-/// projected chunk, which is enough to make the echo fence misjudge every
+/// projected task, which is enough to make the echo fence misjudge every
 /// inbound event. It only became visible after the label loss was fixed,
 /// because that defect was masking it.
 ///
@@ -642,14 +642,14 @@ fn the_projectors_own_body_round_trips_through_adf() {
         max_body_len: None,
         required_fields: Vec::new(),
     };
-    let chunk = e
-        .roadmap()
-        .chunks
+    let task = e
+        .plan()
+        .tasks
         .iter()
         .find(|c| c.id == "c1")
-        .expect("chunk c1")
+        .expect("task c1")
         .clone();
-    let item = to_work_item(&e, &chunk, "jira", &caps);
+    let item = to_work_item(&e, &task, "jira", &caps);
 
     let doc = render_body(&item.body);
     assert_eq!(doc["version"], 1, "ADF documents are version 1");

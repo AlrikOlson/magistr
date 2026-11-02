@@ -38,7 +38,7 @@ pub async fn cmd_next_continue(
         .with_native(Some(reader));
     let summary = wf.spec_summary().suggest()?;
     let mut prompt = workflow::prompt::build_next_prompt(&wf.project_config, &summary);
-    prompt.push_str("\n\nContinue this execution's selected unfinished goal and plan. Read run_status first and retain its existing tasks and evidence. Do not select new work or infer goal completion from overall roadmap counts.");
+    prompt.push_str("\n\nContinue this execution's selected unfinished goal and plan. Read run_status first and retain its existing tasks and evidence. Do not select new work or infer goal completion from overall plan counts.");
 
     let workspace =
         crate::commands::start::admit_workspace(&inputs, |line| eprintln!("{line}")).await;

@@ -1,6 +1,6 @@
 import { resumeReason } from "./session_controls.mjs";
 import { renderDocument } from "./transcript.mjs";
-export const historyName=record=>record.name??((record.purpose==="roadmap"?"Planning in ":"Conversation in ")+record.workspace.split(/[\\/]/).filter(Boolean).at(-1));
+export const historyName=record=>record.name??((record.purpose==="plan"?"Planning in ":"Conversation in ")+record.workspace.split(/[\\/]/).filter(Boolean).at(-1));
 export function matchesHistory(record,query) {
   const words=query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   const content=[historyName(record),record.workspace,record.provider,record.model,record.summary].filter(Boolean).join(" ").toLocaleLowerCase();

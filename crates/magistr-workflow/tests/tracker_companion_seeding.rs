@@ -9,18 +9,18 @@
 //! no ordinary test would notice:
 //!
 //! 1. Seeding with the source lane's content hash would make the companion's
-//!    first push SKIP every chunk, because that hash is exactly what the
+//!    first push SKIP every task, because that hash is exactly what the
 //!    projector compares to decide "nothing changed". The loud refusal would
 //!    become a silent no-op.
-//! 2. Copying identities for chunks the companion was never opted into, or
+//! 2. Copying identities for tasks the companion was never opted into, or
 //!    overwriting identities it already has, would make the seed a synchroniser
 //!    rather than a first-identity-only step.
 //!
 //! Every negative here is paired with a positive in the SAME test against the
 //! same engine, so none of them can pass by doing nothing.
 
-use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::roadmap::engine::RoadmapEngine;
+use magistr_workflow::plan::domain::TaskStatus;
+use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::tracker::config::{CompanionLane, TrackerConfig, companion_lane};
 use magistr_workflow::tracker::domain::TrackerCapabilities;
 use magistr_workflow::tracker::fake::FakeTracker;
@@ -32,39 +32,39 @@ use magistr_workflow::tracker::seed::seed_links_from;
 const ISSUES: &str = "github";
 const BOARD: &str = "github_projects";
 
-fn engine() -> RoadmapEngine {
-    RoadmapEngine::new("proj".into())
+fn engine() -> PlanEngine {
+    PlanEngine::new("proj".into())
 }
 
-fn add(e: &mut RoadmapEngine, id: &str) {
-    e.add_chunk(
+fn add(e: &mut PlanEngine, id: &str) {
+    e.add_task(
         id.into(),
-        format!("Chunk {id}"),
-        ChunkStatus::Pending,
+        format!("Task {id}"),
+        TaskStatus::ToDo,
         10,
         format!("why {id} exists"),
         vec![format!("{id} works")],
         vec![],
         false,
     )
-    .expect("add chunk");
+    .expect("add task");
 }
 
-fn opt_in(e: &mut RoadmapEngine, id: &str, provider: &str) {
+fn opt_in(e: &mut PlanEngine, id: &str, provider: &str) {
     e.set_tracker_opt_in(id, provider, true).expect("opt in");
 }
 
-fn chunk_of<'a>(e: &'a RoadmapEngine, id: &str) -> &'a magistr_workflow::roadmap::domain::Chunk {
-    e.roadmap()
-        .chunks
+fn task_of<'a>(e: &'a PlanEngine, id: &str) -> &'a magistr_workflow::plan::domain::Task {
+    e.plan()
+        .tasks
         .iter()
         .find(|c| c.id == id)
-        .expect("chunk exists")
+        .expect("task exists")
 }
 
-/// THE gate. A chunk the issues lane has already filed reaches the board's lane
+/// THE gate. A task the issues lane has already filed reaches the board's lane
 /// carrying the ISSUES lane's coordinate — the exact `owner/repo#number` a board
-/// item needs — and a chunk the issues lane has never filed is left alone rather
+/// item needs — and a task the issues lane has never filed is left alone rather
 /// than given a made-up one.
 #[test]
 fn the_board_takes_the_issue_coordinate_the_issues_lane_already_recorded() {
@@ -94,10 +94,10 @@ fn the_board_takes_the_issue_coordinate_the_issues_lane_already_recorded() {
     );
     assert_eq!(report.seeded, vec!["filed".to_string()]);
     // THE PAIRED NEGATIVE, same engine, same pass: nothing is invented for a
-    // chunk the source lane has never written.
+    // task the source lane has never written.
     assert!(
         e.tracker_link("not-filed", BOARD).is_none(),
-        "a chunk with no issue must not be given a board identity"
+        "a task with no issue must not be given a board identity"
     );
     assert_eq!(report.not_yet_upstream, 1);
     // And the source lane is untouched — a seed reads it, never writes it.
@@ -112,11 +112,11 @@ fn the_board_takes_the_issue_coordinate_the_issues_lane_already_recorded() {
 ///
 /// The obvious implementation seeds the link with the SOURCE lane's content
 /// hash. That hash is character for character what the projector's cheap skip
-/// compares, so the companion's first push would skip every chunk: the loud
-/// refusal this whole chunk removes would become a silent no-op, which is worse,
+/// compares, so the companion's first push would skip every task: the loud
+/// refusal this whole task removes would become a silent no-op, which is worse,
 /// because a refusal at least says what to fix.
 ///
-/// The positive control is the same chunk, the same double, the same run —
+/// The positive control is the same task, the same double, the same run —
 /// re-seeded by hand with the hash of what we are about to send. It goes to
 /// `Skipped`, which is what proves the empty hash is load-bearing rather than
 /// incidental.
@@ -134,9 +134,9 @@ async fn a_seeded_link_is_written_and_a_matching_hash_would_be_skipped() {
     // THE COLLISION IS REAL, and this is what makes the trap dangerous rather
     // than theoretical: `content_hash` deliberately ignores external_id and
     // version, so two lanes with the same capabilities produce the SAME hash for
-    // the same chunk. The issues lane's recorded hash is therefore exactly what
+    // the same task. The issues lane's recorded hash is therefore exactly what
     // the board is about to send.
-    let item = to_work_item(&e, chunk_of(&e, "c1"), BOARD, &TrackerCapabilities::full());
+    let item = to_work_item(&e, task_of(&e, "c1"), BOARD, &TrackerCapabilities::full());
     e.record_tracker_link("c1", ISSUES, "owner/repo#7", &item.content_hash(), None)
         .expect("issues link");
     seed_links_from(&mut e, ISSUES, BOARD).expect("seed");
@@ -145,7 +145,7 @@ async fn a_seeded_link_is_written_and_a_matching_hash_would_be_skipped() {
 
     let report = project_all(&mut e, &board, None).await.expect("push");
 
-    // LOAD-BEARING FIRST: the seeded chunk was NOT skipped. The double rejects
+    // LOAD-BEARING FIRST: the seeded task was NOT skipped. The double rejects
     // an id it has never seen, which is itself proof the write was attempted
     // against the seeded coordinate.
     assert!(
@@ -159,7 +159,7 @@ async fn a_seeded_link_is_written_and_a_matching_hash_would_be_skipped() {
         "the seeded hash must be one no payload can produce"
     );
 
-    // THE POSITIVE CONTROL: same chunk, same double, hash that matches what we
+    // THE POSITIVE CONTROL: same task, same double, hash that matches what we
     // would send — and the projector skips. So the assertion above is about the
     // seed's hash, not about this projector never skipping.
     e.record_tracker_link("c1", BOARD, "owner/repo#7", &item.content_hash(), None)
@@ -200,10 +200,10 @@ fn seeding_is_first_identity_only_and_never_restamps() {
     assert!(!second.changed());
 }
 
-/// Scope is the companion's OWN opt-in, not the source lane's. A chunk mirrored
+/// Scope is the companion's OWN opt-in, not the source lane's. A task mirrored
 /// to Issues but deliberately kept off the board stays off it.
 #[test]
-fn only_chunks_opted_into_the_companion_are_seeded() {
+fn only_tasks_opted_into_the_companion_are_seeded() {
     let mut e = engine();
     add(&mut e, "on-board");
     add(&mut e, "issues-only");
@@ -216,10 +216,10 @@ fn only_chunks_opted_into_the_companion_are_seeded() {
 
     let report = seed_links_from(&mut e, ISSUES, BOARD).expect("seed");
 
-    // LOAD-BEARING FIRST: the excluded chunk gained nothing.
+    // LOAD-BEARING FIRST: the excluded task gained nothing.
     assert!(
         e.tracker_link("issues-only", BOARD).is_none(),
-        "a chunk kept off the board must not be seeded onto it"
+        "a task kept off the board must not be seeded onto it"
     );
     // Paired positive, same pass: the included one did.
     assert_eq!(report.seeded, vec!["on-board".to_string()]);
@@ -258,7 +258,7 @@ async fn the_companion_push_addresses_the_issues_identity_instead_of_minting_one
             .expect("outcome recorded")
     };
 
-    // LOAD-BEARING FIRST: the seeded chunk was addressed by the issues lane's
+    // LOAD-BEARING FIRST: the seeded task was addressed by the issues lane's
     // coordinate. A `NotFound` on that exact id is the double saying "you asked
     // me about owner/repo#7" — which is the whole point, and is what a real
     // board would resolve rather than reject.

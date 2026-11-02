@@ -58,8 +58,8 @@ export function terminalFrameHTML(frame){
   return frame.rows.map(row=>'<div class="terminal-row'+(row.heading?' terminal-heading':'')+(row.background?' terminal-'+row.background:'')+'" style="--gutter:'+row.prefix.length+'ch;--hanging:'+(row.continuation.length-row.prefix.length)+'ch"><span class="terminal-gutter" aria-hidden="true">'+escape(row.prefix)+'</span><span>'+row.spans.map(span=>'<span style="color:'+color(span,"light")+';--terminal-dark:'+color(span,"dark")+(span.bold?';font-weight:600':'')+'">'+escape(span.text)+'</span>').join("")+'</span></div>').join("");
 }
 
-// Chunk only complete SGR sequences and Unicode code points. Concatenating the
-// chunks always reproduces the exact highlighted terminal frame.
+// Task only complete SGR sequences and Unicode code points. Concatenating the
+// tasks always reproduces the exact highlighted terminal frame.
 export function terminalStreamParts(text,role){
  if(role==="user")return [text];
  if(!role)return text.match(/[^\n]*\n|[^\n]+$/g)??[];

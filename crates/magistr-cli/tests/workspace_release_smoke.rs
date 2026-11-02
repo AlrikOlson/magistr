@@ -1,4 +1,4 @@
-//! The shipping artifact, smoked (chunk arch-14c10b): the release-profile
+//! The shipping artifact, smoked (task arch-14c10b): the release-profile
 //! `magistr` binary serving a disposable workspace over its own stdio with
 //! nothing beside it — a PATH holding only `echo`, so no Bun, Node, N-API
 //! addon or addon-to-WASM fallback can be reached — driven through

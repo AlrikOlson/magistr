@@ -7,7 +7,7 @@ Use the single **magistr** MCP connection. Common tasks have direct typed tools:
 Find every other operation with `discover`, then request its exact schema with
 `discover({"operation":"name"})`. Execute it with
 `execute({"source":"return magistr.call('name', { /* schema arguments */ });"})`.
-This includes `roadmap_*`, `think_*`, `signal_*`, `tracker_*`, the remaining
+This includes `plan_*`, `think_*`, `signal_*`, `tracker_*`, the remaining
 `run_*` and `magistr_*` operations, and workspace `map`, `files`, `command`,
 `undo`, `script` and health. Names in the instructions below refer to catalog
 operations; use direct tools where advertised and `execute` for the rest.
@@ -32,7 +32,7 @@ remain the target; legacy search tool names describe a capability.
 ## Project release policy
 
 Follow the project's explicit release and backward-compatibility policy before
-using roadmap acceptance, older instructions, reference implementations, or
+using plan acceptance, older instructions, reference implementations, or
 existing tests as requirements. A project that forbids backward compatibility
 before official public release should keep one current design: update callers,
 configuration, docs and tests together. Follow explicit project exceptions for
@@ -45,17 +45,17 @@ tooling.
 
 ## State and evidence
 
-- The native roadmap is authoritative and run steps live in `arrange_steps`.
-  Read `roadmap_status`, `roadmap_next`, and targeted `roadmap_get` records;
-  avoid dumping the complete roadmap.
-- Read `.magistr/project.json` and project instructions for roadmap export
-  policy. When `roadmap_exports` is `false`, never create or regenerate
-  `ROADMAP.md` or `ROADMAP.json`, run a file export, or redirect an export into
-  the checkout. Otherwise generate a roadmap view only when project policy
+- The native plan is authoritative and run steps live in `arrange_steps`.
+  Read `plan_status`, `plan_next`, and targeted `plan_get` records;
+  avoid dumping the complete plan.
+- Read `.magistr/project.json` and project instructions for plan export
+  policy. When `plan_exports` is `false`, never create or regenerate
+  `PLAN.md` or `PLAN.json`, run a file export, or redirect an export into
+  the checkout. Otherwise generate a plan view only when project policy
   requests it; a view never becomes the source of truth.
-- Recover existing work using `roadmap_status`, `run_status`, relevant steps,
+- Recover existing work using `plan_status`, `run_status`, relevant steps,
   checks and reasoning. Select only the scope authorized by the request;
-  roadmap work uses `chunk:<id>`. If another scope is selected, use
+  plan work uses `task:<id>`. If another scope is selected, use
   `run_open` to save its unfinished work and restore the authorized
   scope, or seed a new goal when that scope has no saved work. Restoration
   keeps goal details, verification and the complete plan unchanged. Read
@@ -70,7 +70,7 @@ tooling.
   `record_progress` entry to reasoning.
 - Select verification by the changed behavior, affected dependencies, and
   acceptance criteria. Explicitly set `verification: "focused"` for bounded
-  changes, including code and roadmap chunks, and record the relevant checks.
+  changes, including code and plan tasks, and record the relevant checks.
   Use `verification: "full"` and `magistr_gate(gate: "all")` only when the user
   requests the full suite or a concrete cross-cutting risk needs every gate;
   state the reason first. New goals default to focused; saved goals
@@ -116,7 +116,7 @@ tooling.
   in a commit only if Git already tracks it. Never force-add ignored local
   state. Stage and commit only the current iteration's changes.
 - A dirty checkout alone does not mean this work is unfinished. Stop hooks must
-  preserve unrelated edits and must not request roadmap exports. Once the step
+  preserve unrelated edits and must not request plan exports. Once the step
   is closed, the outer runner validates its recorded checks against the current
   source; it must not widen focused verification or rerun green checks just to
   obtain an active step. Missing or stale evidence requires the affected checks.

@@ -1,6 +1,6 @@
 use super::{SignalError, SignalUseCases};
-use crate::roadmap::domain::ChunkStatus;
-use crate::roadmap::engine::RoadmapMutationError;
+use crate::plan::domain::TaskStatus;
+use crate::plan::engine::PlanMutationError;
 #[cfg(test)]
 use crate::signal::domain::Signal;
 use crate::signal::domain::{SignalKind, SignalStatus};
@@ -10,7 +10,7 @@ pub use magistr_workflow_contracts::signal::SignalPromotion;
 impl SignalUseCases {
     /// Retry safely using the same work item and reciprocal links.
     pub fn promote(&self, id: &str) -> Result<SignalPromotion, SignalError> {
-        let roadmap = self.roadmap.as_ref().ok_or(SignalError::NotWired)?;
+        let plan = self.plan.as_ref().ok_or(SignalError::NotWired)?;
         let _operation = self.promotion.lock().map_err(|_| SignalError::Poisoned)?;
         let signal = self.get(id)?;
         if !matches!(
@@ -21,26 +21,22 @@ impl SignalUseCases {
                 "signal must be researched or surfaced before it can be promoted".into(),
             ));
         }
-        let chunk_id = signal
-            .cross_refs
+        let task_id = signal
+            .refs
             .iter()
-            .find_map(|reference| reference.strip_prefix("chunk:"))
+            .find_map(|reference| reference.strip_prefix("task:"))
             .map(str::to_owned)
-            .unwrap_or_else(|| chunk_id_for(id));
-        let chunk = roadmap
+            .unwrap_or_else(|| task_id_for(id));
+        let task = plan
             .lock()
             .map_err(|_| SignalError::Poisoned)?
             .mutate(|edit| {
-                let created = !edit
-                    .roadmap()
-                    .chunks
-                    .iter()
-                    .any(|chunk| chunk.id == chunk_id);
+                let created = !edit.plan().tasks.iter().any(|task| task.id == task_id);
                 if created {
-                    edit.add_chunk(
-                        chunk_id.clone(),
+                    edit.add_task(
+                        task_id.clone(),
                         promoted_title(signal.kind, &signal.body),
-                        ChunkStatus::Backlog,
+                        TaskStatus::Idea,
                         0,
                         format!(
                             "Promoted from signal {}. Original: {}",
@@ -51,15 +47,15 @@ impl SignalUseCases {
                         false,
                     )?;
                 }
-                let chunk = edit.link_chunk(&chunk_id, &format!("signal:{id}"))?.clone();
-                Ok((created, chunk))
+                let task = edit.link_task(&task_id, &format!("signal:{id}"))?.clone();
+                Ok((created, task))
             })
             .map_err(|error| match error {
-                RoadmapMutationError::Rejected(message) => SignalError::InvalidState(message),
-                RoadmapMutationError::Store(error) => SignalError::Store(error),
+                PlanMutationError::Rejected(message) => SignalError::InvalidState(message),
+                PlanMutationError::Store(error) => SignalError::Store(error),
             })?;
-        let created = chunk.value.0;
-        let chunk = chunk.map(|(_, chunk)| chunk);
+        let created = task.value.0;
+        let task = task.map(|(_, task)| task);
         let signal_result = self
             .engine
             .lock()
@@ -69,36 +65,36 @@ impl SignalUseCases {
                     .mutate(|edit| {
                         let current = edit.get(id)?;
                         if current
-                            .cross_refs
+                            .refs
                             .iter()
-                            .filter_map(|reference| reference.strip_prefix("chunk:"))
-                            .any(|linked| linked != chunk_id)
+                            .filter_map(|reference| reference.strip_prefix("task:"))
+                            .any(|linked| linked != task_id)
                         {
                             return Err("The signal is already linked to another work item.".into());
                         }
                         if current.status != SignalStatus::Promoted {
                             edit.promote(id)?;
                         }
-                        edit.link(id, &format!("chunk:{chunk_id}")).cloned()
+                        edit.link(id, &format!("task:{task_id}")).cloned()
                     })
                     .map_err(SignalError::invalid_state)
             });
         let signal = signal_result.map_err(|cause| SignalError::PartialPromotion {
-            chunk_id: chunk_id.clone(),
-            committed_source: chunk.source,
+            task_id: task_id.clone(),
+            committed_source: task.source,
             cause: Box::new(cause),
         })?;
         Ok(SignalPromotion {
             signal_id: id.to_owned(),
-            chunk_id,
+            task_id,
             created,
             signal,
-            chunk,
+            task,
         })
     }
 }
 
-fn chunk_id_for(signal_id: &str) -> String {
+fn task_id_for(signal_id: &str) -> String {
     format!("signal-{signal_id}")
 }
 

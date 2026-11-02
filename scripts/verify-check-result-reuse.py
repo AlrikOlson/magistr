@@ -31,7 +31,7 @@ def main():
             "quality_gate": {"check": "cargo check", "test": "cargo test", "lint": "cargo clippy"},
             "format": {"extensions": ["rs"], "command": "cargo fmt"},
             "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
-            "reference_repos": [], "state_prefix": "check-result-smoke", "roadmap_exports": False,
+            "reference_repos": [], "state_prefix": "check-result-smoke", "plan_exports": False,
         }), encoding="utf-8")
         env = os.environ.copy()
         env["MAGISTR_WORKFLOW_DATA_DIR"] = str(base / "store")
@@ -73,9 +73,9 @@ def main():
                 schema = rpc("tools/list", {})
                 check = next(tool for tool in schema["tools"] if tool["name"] == "check_step")
                 assert "reuse_only" in check["inputSchema"]["properties"], "server lacks reuse-only capability"
-                operation("roadmap_add_chunk", dict(id="reuse", title="Verify reuse", group="Verification"))
-                operation("roadmap_start_chunk", dict(id="reuse"))
-                operation("run_open", dict(description="Verify reuse", scope="chunk:reuse",
+                operation("plan_add_task", dict(id="reuse", title="Verify reuse", group="Verification"))
+                operation("plan_start_task", dict(id="reuse"))
+                operation("run_open", dict(description="Verify reuse", scope="task:reuse",
                                                      verification="focused"))
                 call("arrange_steps", dict(action="add", step_id="verify", title="Verify", step_type="test"))
                 call("start_step", dict(step_id="verify"))
@@ -91,14 +91,14 @@ def main():
                 assert reused["check"]["value"]["passed"], reused
                 assert reused["check_result"]["execution"] == dict(kind="reused", check_result_id=first["check_result"]["id"]), reused
                 assert (root / "calls.log").read_text().splitlines() == ["ran"]
-                operation("roadmap_complete_chunk", dict(id="reuse", step_ref="step:verify"))
+                operation("plan_complete_task", dict(id="reuse", step_ref="step:verify"))
                 (root / "source.txt").write_text("changed\n", encoding="utf-8")
                 refused = call("check_step", request)
                 check = refused["check"]["value"]
                 assert not check["passed"] and not check["verified"] and check.get("exit_code") is None, refused
                 assert refused["check_result"]["execution"]["kind"] == "reuse_unavailable", refused
                 assert (root / "calls.log").read_text().splitlines() == ["ran"]
-                closure = operation("roadmap_complete_chunk", dict(id="reuse", step_ref="step:verify"),
+                closure = operation("plan_complete_task", dict(id="reuse", step_ref="step:verify"),
                                     allow_error=True)
                 assert not closure["ok"], closure
                 print(json.dumps(dict(command_runs=1, reused=True, changed_input_ran=False,

@@ -95,7 +95,7 @@ test("wrapping is independent of syntax token boundaries and bounds long output"
  assert(plain(formatTerminalFrame({rows},40,"dark",8)).includes("… more in details"));
 });
 
-test("conversation has human and agent gutters, full messages, and lossless stream chunks",async()=>{
+test("conversation has human and agent gutters, full messages, and lossless stream tasks",async()=>{
  const text="A message with enough words to continue across a narrow terminal.\n\nA final sentence.";
  const frames=await renderRecording({events:[
   {id:"user",kind:"message",role:"user",output:text},

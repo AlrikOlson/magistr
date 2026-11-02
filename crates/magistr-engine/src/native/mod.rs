@@ -1,7 +1,7 @@
 //! Magistr's native workflow store and owner protocol.
 //!
 //! Magistr links its `magistr_workflow` library and runs its four engines —
-//! roadmap, think (reasoning trace), run (run history) and signal — in
+//! plan, think (reasoning trace), run (run history) and signal — in
 //! this process. State lives under the resolved Magistr workflow data root,
 //! keyed by `project.id` in `.magistr/project.json`.
 //! Agent tools and native views use Magistr's admitted owners; no standalone
@@ -35,9 +35,9 @@ pub mod delivery;
 pub mod event_cursor;
 mod execution_context;
 mod family_services;
-mod run_words_upgrade;
+mod store_words_upgrade;
 mod workflow_upgrade;
-pub use run_words_upgrade::RunWordsUpgrade;
+pub use store_words_upgrade::StoreWordsUpgrade;
 pub use workflow_upgrade::WorkflowUpgrade;
 pub mod feed_cursor;
 pub mod feed_status;
@@ -78,8 +78,8 @@ pub mod project_authority;
 mod project_location;
 mod working_copy_lease;
 pub use working_copy_lease::WorkingCopyLease;
-pub mod roadmap_backend;
-pub mod roadmap_command;
+pub mod plan_backend;
+pub mod plan_command;
 pub mod run_command;
 pub mod signal_command;
 pub mod snapshot;
@@ -107,7 +107,7 @@ pub use local_stream::LocalStream;
 pub use magistr_frame::MagistrFrame;
 pub use magistr_workflow::think::ConfigSource;
 pub use magistr_workflow_contracts::{
-    NativeSnapshot, Observed, ReadError, ReadErrorKind, ReadSource, ReadState, RoadmapData, Run,
+    NativeSnapshot, Observed, PlanData, ReadError, ReadErrorKind, ReadSource, ReadState, Run,
     RunData, StoreStamp, ThinkData,
 };
 pub use mcp_acceptor::McpAcceptor;
@@ -127,14 +127,14 @@ pub use owner_reply::OwnerReply;
 pub use owner_report::OwnerReport;
 pub use owner_socket::owner_socket_path;
 pub use owner_wire::OWNER_PROTOCOL_VERSION;
-pub use progress::progress_from_chunks;
+pub use plan_backend::PlanBackend;
+pub use plan_command::PlanCommand;
+pub use progress::progress_from_tasks;
 pub use project_authority::ProjectAuthority;
 pub use project_location::ProjectLocation;
-pub use roadmap_backend::RoadmapBackend;
-pub use roadmap_command::RoadmapCommand;
 pub use run_command::RunCommand;
 pub use signal_command::SignalCommand;
-pub use snapshot::NativeRoadmapSnapshot;
+pub use snapshot::NativePlanSnapshot;
 pub use think_branch::ThinkBranch;
 pub use think_command::ThinkCommand;
 pub use workspace_socket_path::workspace_socket_path;
@@ -151,10 +151,10 @@ pub use magistr_workflow::infra::{
 };
 // The workflow's own typed frames — what its engines hand their broadcaster
 // — are the events every surface folds, under the family's name.
-pub use magistr_workflow::roadmap::broadcast::RoadmapFrame;
-pub use magistr_workflow::roadmap::domain::{
-    BlockedBy, BlockerKind, Chunk, ChunkStatus, FocusState, Readiness, ReprioritizeProposal,
-    Roadmap, StatusProposal, TitleProposal, WorkstreamActivity, WorkstreamCatalog,
+pub use magistr_workflow::plan::broadcast::PlanFrame;
+pub use magistr_workflow::plan::domain::{
+    FocusState, Plan, Readiness, ReprioritizeProposal, StatusProposal, Task, TaskStatus,
+    TitleProposal, WaitingOn, WaitingReason, WorkstreamActivity, WorkstreamCatalog,
     WorkstreamFrontier, WorkstreamHistory, WorkstreamResolution, assess_readiness, next_ready,
     workstream_catalog, workstream_frontier,
 };

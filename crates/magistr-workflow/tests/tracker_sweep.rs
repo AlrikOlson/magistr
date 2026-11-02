@@ -8,8 +8,8 @@
 
 use std::path::Path;
 
-use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::roadmap::engine::RoadmapEngine;
+use magistr_workflow::plan::domain::TaskStatus;
+use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::tracker::fake::FakeTracker;
 use magistr_workflow::tracker::project::project_all;
 use magistr_workflow::tracker::sweep::{self, reconcile};
@@ -20,27 +20,27 @@ const T0: &str = "2026-07-26T10:00:00+00:00";
 const T1: &str = "2026-07-26T11:00:00+00:00";
 const T2: &str = "2026-07-26T12:00:00+00:00";
 
-fn engine() -> RoadmapEngine {
-    RoadmapEngine::new("proj".into())
+fn engine() -> PlanEngine {
+    PlanEngine::new("proj".into())
 }
 
-fn add(e: &mut RoadmapEngine, id: &str) {
-    e.add_chunk(
+fn add(e: &mut PlanEngine, id: &str) {
+    e.add_task(
         id.into(),
-        format!("Chunk {id}"),
-        ChunkStatus::Pending,
+        format!("Task {id}"),
+        TaskStatus::ToDo,
         10,
         format!("why {id} exists"),
         vec![format!("{id} works")],
         vec![],
         false,
     )
-    .expect("add chunk");
+    .expect("add task");
     e.set_tracker_opt_in(id, PROVIDER, true).expect("opt in");
 }
 
-/// Project one chunk so there is a link to classify against.
-async fn projected(dir: &Path) -> (RoadmapEngine, FakeTracker) {
+/// Project one task so there is a link to classify against.
+async fn projected(dir: &Path) -> (PlanEngine, FakeTracker) {
     let mut e = engine();
     add(&mut e, "c1");
     let tracker = FakeTracker::new(PROVIDER);
@@ -84,7 +84,7 @@ async fn a_remote_edit_that_fired_no_webhook_is_surfaced_by_the_sweep() {
 }
 
 /// The sweep must not re-surface our own writes. Without the 5a classifier it
-/// would report every projected chunk as a remote change on every run, and the
+/// would report every projected task as a remote change on every run, and the
 /// backstop would become the loop.
 #[tokio::test]
 async fn our_own_writes_come_back_as_echoes_not_as_changes() {

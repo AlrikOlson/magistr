@@ -1,5 +1,5 @@
 //! The run dogfood loop (progress slice): recording a run progress
-//! pushes its envelope to the cloud backend. Mirrors the roadmap/signal proofs.
+//! pushes its envelope to the cloud backend. Mirrors the plan/signal proofs.
 
 use std::time::Duration;
 

@@ -39,7 +39,7 @@
 //! # What is being asked
 //!
 //! One question, at one moment: after a human has run `tracker_setup`, may the
-//! unattended sweep record proposals on their roadmap? Today that is
+//! unattended sweep record proposals on their plan? Today that is
 //! `MAGISTR_WORKFLOW_TRACKER_PROPOSE`, default-off — an env var so invisible that
 //! dedicated follow-up work was needed just to make it announce itself. The
 //! answer is remembered in [`crate::tracker::propose_consent`], so nobody is
@@ -100,7 +100,7 @@ pub fn asking_enabled() -> bool {
 #[must_use]
 pub fn propose_consent_prompt() -> String {
     "magistr can watch your issue tracker in the background and record \
-     what changed as PROPOSALS on your roadmap — suggested status and title \
+     what changed as PROPOSALS on your plan — suggested status and title \
      changes that you accept or reject. It never edits the plan on its own. \
      May it do that? (You can change this any time with \
      MAGISTR_WORKFLOW_TRACKER_PROPOSE.)"
@@ -110,7 +110,7 @@ pub fn propose_consent_prompt() -> String {
 /// The shape a client fills in. One boolean, no free text: the whole decision.
 #[derive(Debug, Clone, Deserialize, schemars::JsonSchema)]
 pub struct ProposeConsentAnswer {
-    /// Whether background sweeps may record proposals on the roadmap.
+    /// Whether background sweeps may record proposals on the plan.
     pub enabled: bool,
 }
 

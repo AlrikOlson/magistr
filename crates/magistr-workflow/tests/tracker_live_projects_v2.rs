@@ -97,7 +97,7 @@ async fn a_real_board_resolves_to_a_real_node_id() {
     eprintln!("board title:  {}", resolved.title);
     eprintln!("board number: {}", resolved.number);
 
-    // The node id is the ONE thing every later sub-chunk needs, so assert its
+    // The node id is the ONE thing every later step needs, so assert its
     // shape rather than merely that a string came back. GitHub's Projects v2
     // node ids are prefixed; a bare number here would mean we read the wrong
     // field and would break 9c's mutations in a way no mock would catch.

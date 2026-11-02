@@ -1,11 +1,11 @@
-//! The composition boundary against its real adapters (chunks arch-14f and
+//! The composition boundary against its real adapters (tasks arch-14f and
 //! arch-14-verification-check_results): an admitted Host writer over the native
 //! workflow store — on the writer config production admits it on, carrying
 //! this workspace's evidence capability — and an admitted `WorkspaceService`
 //! over a disposable workspace, composed the way `magistr mcp` and the
 //! loop compose them. No fake port, no MCP roundtrip, no second owner.
 //!
-//! Every completion here goes through `roadmap_complete_chunk` on the
+//! Every completion here goes through `plan_complete_task` on the
 //! writer — the verb the MCP tool, the owner command, the loop judge and
 //! the cockpit's Complete action all land on — so what these tests prove
 //! about refusal and acceptance holds for every route.
@@ -17,8 +17,8 @@ use magistr::application::workflow_client::NativeEnginePort;
 use magistr_cockpit::engine::EnginePort;
 use magistr_engine::native::ProjectAuthority;
 use magistr_engine::native::{
-    CheckExecution, CheckResultSettlement, CheckSettlement, ChunkStatus, NativeConfig,
-    NativeEngines, NativeReader, SourceFreshness, StepType, WriterRole,
+    CheckExecution, CheckResultSettlement, CheckSettlement, NativeConfig, NativeEngines,
+    NativeReader, SourceFreshness, StepType, TaskStatus, WriterRole,
 };
 use magistr_workspace::{
     commands::{EditInput, EditOp},
@@ -28,7 +28,7 @@ use magistr_workspace::{
 };
 
 const PROJECT: &str = "composition-integration";
-const CHUNK: &str = "test";
+const TASK: &str = "test";
 
 /// A workspace with a project configuration naming three gates: the
 /// evidence capability resolves the contracts from it, and the snapshot
@@ -54,7 +54,7 @@ fn project_json(test_command: &str) -> String {
         "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
         "reference_repos": [],
         "state_prefix": "p",
-        "roadmap_backend": "native"
+        "plan_backend": "native"
     })
     .to_string()
 }
@@ -68,11 +68,11 @@ fn host(tmp: &tempfile::TempDir, root: &Path) -> (NativeEngines, NativeConfig) {
         .expect("host admitted")
         .open();
     engines
-        .roadmap_add_chunk(
-            CHUNK.into(),
-            "The chunk under test".into(),
+        .plan_add_task(
+            TASK.into(),
+            "The task under test".into(),
             String::new(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             100,
             String::new(),
             vec![],
@@ -80,8 +80,8 @@ fn host(tmp: &tempfile::TempDir, root: &Path) -> (NativeEngines, NativeConfig) {
             None,
             None,
         )
-        .expect("chunk");
-    engines.roadmap_start_chunk(CHUNK).expect("in progress");
+        .expect("task");
+    engines.plan_start_task(TASK).expect("in progress");
     (engines, config)
 }
 
@@ -103,7 +103,7 @@ fn goal_with(engines: &NativeEngines, step: &str, acceptance: Vec<String>) {
             "Compose".into(),
             acceptance,
             vec![],
-            format!("chunk:{CHUNK}"),
+            format!("task:{TASK}"),
             magistr_engine::native::VerificationMode::Full,
         )
         .expect("goal");
@@ -156,7 +156,7 @@ async fn owner_edit(service: &WorkspaceService, old: &str, new: &str) -> i64 {
 
 fn refusal(engines: &NativeEngines, step_ref: Option<&str>) -> String {
     engines
-        .roadmap_complete_chunk(CHUNK, step_ref)
+        .plan_complete_task(TASK, step_ref)
         .expect_err("completion refused")
         .to_string()
 }
@@ -258,9 +258,9 @@ async fn a_check_admitted_with_source_observes_the_owners_write_and_lands_on_its
     );
     all_gates(&engines, service.root());
     let done = engines
-        .roadmap_complete_chunk(CHUNK, Some("step:verify"))
+        .plan_complete_task(TASK, Some("step:verify"))
         .expect("every required gate is current");
-    assert_eq!(done.value.status, ChunkStatus::Done);
+    assert_eq!(done.value.status, TaskStatus::Done);
     service.shutdown().await.expect("clean shutdown");
 }
 
@@ -300,7 +300,7 @@ async fn completion_refuses_after_a_source_config_or_acceptance_change_until_the
             "Compose".into(),
             vec!["it works".into(), "and reads well".into()],
             vec![],
-            format!("chunk:{CHUNK}"),
+            format!("task:{TASK}"),
             magistr_engine::native::VerificationMode::Full,
         )
         .expect("edited in flight");
@@ -309,11 +309,11 @@ async fn completion_refuses_after_a_source_config_or_acceptance_change_until_the
     all_gates(&engines, service.root());
     assert_eq!(
         engines
-            .roadmap_complete_chunk(CHUNK, None)
+            .plan_complete_task(TASK, None)
             .expect("current again")
             .value
             .status,
-        ChunkStatus::Done
+        TaskStatus::Done
     );
     service.shutdown().await.expect("clean shutdown");
 }
@@ -415,7 +415,7 @@ async fn the_cockpit_complete_action_names_the_verification_step_and_refuses_wit
     let mut port = NativeEnginePort::new(engines.clone());
 
     // No goal yet: the button is refused in words the stage can show.
-    let refused = port.complete_chunk(CHUNK).expect_err("no evidence");
+    let refused = port.complete_task(TASK).expect_err("no evidence");
     assert!(refused.to_string().contains("no run goal"), "{refused}");
 
     goal(&engines, "verify");
@@ -424,7 +424,7 @@ async fn the_cockpit_complete_action_names_the_verification_step_and_refuses_wit
         gate(&engines, service.root(), "test", 1),
         CheckSettlement::Applied { .. }
     ));
-    let refused = port.complete_chunk(CHUNK).expect_err("red gate");
+    let refused = port.complete_task(TASK).expect_err("red gate");
     assert!(
         refused
             .to_string()
@@ -433,10 +433,10 @@ async fn the_cockpit_complete_action_names_the_verification_step_and_refuses_wit
     );
     all_gates(&engines, service.root());
 
-    let done = port.complete_chunk(CHUNK).expect("current evidence");
-    assert_eq!(done.value.status, magistr_engine::ChunkStatus::Done);
+    let done = port.complete_task(TASK).expect("current evidence");
+    assert_eq!(done.value.status, magistr_engine::TaskStatus::Done);
     assert!(
-        done.value.cross_refs.iter().any(|r| r == "step:verify"),
+        done.value.refs.iter().any(|r| r == "step:verify"),
         "the completion names the verification step it was decided on: {done:?}"
     );
     // The final summary tells the recovered failure apart from an
@@ -463,15 +463,15 @@ async fn the_plain_status_route_and_a_foreign_scope_are_refused() {
     let service = owner(&root).await;
     let (engines, _) = host(&tmp, service.root());
     let refused = engines
-        .roadmap_set_status(CHUNK, ChunkStatus::Done)
+        .plan_set_status(TASK, TaskStatus::Done)
         .expect_err("no direct done");
     assert!(
-        refused.to_string().contains("roadmap_complete_chunk"),
+        refused.to_string().contains("plan_complete_task"),
         "{refused}"
     );
 
     engines
-        .run_open("Other".into(), vec![], vec![], "chunk:other".into())
+        .run_open("Other".into(), vec![], vec![], "task:other".into())
         .expect("goal");
     engines
         .add_step("verify".into(), "Verify".into(), StepType::Test, None)
@@ -479,6 +479,6 @@ async fn the_plain_status_route_and_a_foreign_scope_are_refused() {
     engines.start_step("verify").expect("active");
     all_gates(&engines, service.root());
     let refused = refusal(&engines, Some("step:verify"));
-    assert!(refused.contains("scoped to `chunk:other`"), "{refused}");
+    assert!(refused.contains("scoped to `task:other`"), "{refused}");
     service.shutdown().await.expect("clean shutdown");
 }

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::CompletionEvidence;
 
-/// Why a chunk may not complete now, in the words the caller needs to act
+/// Why a task may not complete now, in the words the caller needs to act
 /// on: which authority refused and what would satisfy it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "refusal", rename_all = "snake_case")]
@@ -14,7 +14,7 @@ pub enum CompletionRefusal {
     NoEvidenceCapability,
     /// No run goal is set in this project.
     NoGoal,
-    /// The current goal is scoped to another chunk (or to nothing).
+    /// The current goal is scoped to another task (or to nothing).
     ForeignScope { expected: String, actual: String },
     /// The named step is not a step of the current run.
     StepNotCurrent { step_id: String, reason: String },
@@ -35,11 +35,11 @@ impl fmt::Display for CompletionRefusal {
             ),
             Self::NoGoal => write!(
                 f,
-                "completion refused: no run goal is set — run_open scoped to this chunk, run the gates on its verification step, then complete"
+                "completion refused: no run goal is set — run_open scoped to this task, run the gates on its verification step, then complete"
             ),
             Self::ForeignScope { expected, actual } => write!(
                 f,
-                "completion refused: the run goal is scoped to `{actual}`, not `{expected}` — its check_results certify another chunk"
+                "completion refused: the run goal is scoped to `{actual}`, not `{expected}` — its check_results certify another task"
             ),
             Self::StepNotCurrent { step_id, reason } => write!(
                 f,

@@ -9,7 +9,7 @@
 //! the initial assumption expected it to.
 //!
 //! The risk written down for wiki markup — that REST v2 is on a removal
-//! roadmap — is not real. The deprecation everyone cites, CHANGE-2046, is
+//! plan — is not real. The deprecation everyone cites, CHANGE-2046, is
 //! endpoint-level, and its paths are `/rest/api/{2|3|latest}/search` and
 //! `/rest/api/{2|3|latest}/expression/eval`: it hits v2 and v3 identically.
 //! Atlassian's own answer is that v3 is the ADF-aware counterpart of v2, not
@@ -321,7 +321,7 @@ mod tests {
     /// bytes must be untouched, because the inbound side parses them back.
     #[test]
     fn the_provenance_footer_lands_in_a_code_block_byte_for_byte() {
-        let footer = r#"<!-- magistr: {"chunk":"jira-body-format","project":"p"} -->"#;
+        let footer = r#"<!-- magistr: {"task":"jira-body-format","project":"p"} -->"#;
         let doc = render_body(footer);
         let node = &doc["content"][0];
         assert_eq!(node["type"], "codeBlock");
@@ -364,7 +364,7 @@ mod tests {
         );
     }
 
-    /// The chunk's round-trip criterion, on the whole authored shape rather
+    /// The task's round-trip criterion, on the whole authored shape rather
     /// than on a fragment.
     #[test]
     fn the_full_projected_shape_round_trips_readably() {
@@ -376,7 +376,7 @@ Sub 2 of 6, split from tracker-jira-adapter.
 - [ ] the decision is made in writing
 - [ ] three Rust gates green
 
-<!-- magistr: {\"chunk\":\"jira-body-format\"} -->";
+<!-- magistr: {\"task\":\"jira-body-format\"} -->";
         let doc = render_body(body);
         let text = plain_text(&doc);
 
@@ -385,7 +385,7 @@ Sub 2 of 6, split from tracker-jira-adapter.
         assert!(text.contains("[ ] the decision is made in writing"));
         assert!(text.contains("[ ] three Rust gates green"));
         assert!(
-            text.contains("<!-- magistr: {\"chunk\":\"jira-body-format\"} -->"),
+            text.contains("<!-- magistr: {\"task\":\"jira-body-format\"} -->"),
             "the footer did not survive the round trip: {text}"
         );
     }

@@ -46,7 +46,7 @@ fn partial_output_does_not_split_words_and_status_only_completion_flushes_it() {
 }
 
 #[test]
-fn raw_terminal_bytes_survive_chunk_boundaries_and_end_before_the_next_tool() {
+fn raw_terminal_bytes_survive_task_boundaries_and_end_before_the_next_tool() {
     let mut renderer = PlainRenderer::default();
     let mut out = Vec::new();
     let mut err = Vec::new();

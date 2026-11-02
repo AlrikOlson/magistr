@@ -10,7 +10,7 @@ use super::run_guard_state::RunGuardState;
 pub struct GuardContext {
     /// The project root directory.
     pub project_dir: String,
-    /// Path to the spec file (e.g., `ROADMAP.md`).
+    /// Path to the spec file (e.g., `PLAN.md`).
     pub spec_path: String,
     /// The execution-trace slice the plan guard keys on (goal, tasks,
     /// recorded checks) — what `run_status` answered when the context was

@@ -33,7 +33,7 @@ async fn last_clone_releases_a_stable_owner_lock_and_store_changes_cannot_bypass
     let clone = owner.clone();
     let lock = cfg
         .data_dir()
-        .join("roadmap/sessions/lease.project-owner.lock");
+        .join("plan/sessions/lease.project-owner.lock");
     assert!(lock.is_file());
     drop(owner);
     assert_eq!(refused(&root, &cfg).await.kind(), io::ErrorKind::WouldBlock);
@@ -222,15 +222,10 @@ async fn a_host_attaches_to_the_service_owner_and_reads_shared_state() {
         io::ErrorKind::WouldBlock
     );
     let host = EngineClient::admit_or_attach_config(cfg.clone()).expect("attached host");
-    assert!(host.reader().roadmap_chunks().unwrap().is_empty());
+    assert!(host.reader().plan_tasks().unwrap().is_empty());
     drop(host);
     assert_eq!(refused(&root, &cfg).await.kind(), io::ErrorKind::WouldBlock);
-    assert!(
-        NativeReader::open(&cfg)
-            .roadmap_chunks()
-            .unwrap()
-            .is_empty()
-    );
+    assert!(NativeReader::open(&cfg).plan_tasks().unwrap().is_empty());
     endpoint.shutdown().await.expect("bounded cleanup");
     drop(owner);
     ProjectAuthority::admit(&cfg, WriterRole::Host).expect("released project");

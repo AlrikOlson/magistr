@@ -11,7 +11,7 @@ export function workPresentation(frame, pending=false) {
     phase==="starting"?"Starting work.":"Work is running.";
   const detail=run?(phase==="ended"?run.phase.reason:
     (paused?"Continue or run one more item.":
-    "Changes to the run take effect after this item. Stop in the message box cancels the current reply.")):"Choose one item or up to ten items from the roadmap.";
+    "Changes to the run take effect after this item. Stop in the message box cancels the current reply.")):"Choose one item or up to ten items from the plan.";
   return {status,detail,active,paused,stopped,attempt:run?{current:run.iteration,limit:run.limit}:null,
     canStart:!!frame?.target&&!frame.closed&&!active&&!pending&&!frame.activity?.active&&!frame.activity?.configuration_in_progress&&!frame.activity?.cancellation_requested,
     error:frame?.work_error??frame?.work_admission?.error??null};

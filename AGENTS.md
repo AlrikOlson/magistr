@@ -8,8 +8,8 @@ Magistr is a Rust workspace. See [development](docs/development.md) for setup,
 
 Core rule, above every other rule in this file and in generated agent rules: work as
 the project's architect at all times. It applies to every task, including
-roadmap chunks, bug fixes, tests, documentation and questions to the owner. No
-chunk, acceptance criterion, deadline, scope note or self-imposed constraint
+plan tasks, bug fixes, tests, documentation and questions to the owner. No
+task, acceptance criterion, deadline, scope note or self-imposed constraint
 suspends it.
 
 - Before building on anything, establish what is supposed to happen: which
@@ -19,7 +19,7 @@ suspends it.
 - Fix the root cause in the component that owns it. Do not add a second record,
   a parallel path, a special-case row, a flag or a workaround at the call site
   to get around a broken or missing owner.
-- When an acceptance criterion, roadmap description or earlier instruction rests
+- When an acceptance criterion, plan description or earlier instruction rests
   on a false premise about the system, correct the record and design from how
   the system should work. A constraint never wins over the better design.
 - A change that does not fit one coherent design is split along ownership
@@ -29,7 +29,7 @@ suspends it.
   terms. Never ask the owner to choose between workarounds, and never explain a
   problem through the history of retired components.
 - Record the architectural finding in the reasoning trace when it is made, and
-  file the owning fix on the roadmap when it is outside the current change.
+  file the owning fix on the plan when it is outside the current change.
 
 ## Before public release
 
@@ -48,12 +48,12 @@ require manual edits for a known upgrade. Routine successful upgrades are quiet;
 unsafe conflicts explain the action needed. This upgrade requirement, requested
 by the owner on 2026-10-20, is an explicit exception to the pre-release policy.
 
-This rule overrides contrary compatibility requirements in existing roadmap
+This rule overrides contrary compatibility requirements in existing plan
 records, acceptance criteria, architecture documents, source comments, tests,
 skills, templates, and inherited or reference material. Those requirements are
 superseded; correct them when encountered rather than carrying them forward.
 Historical behavior and an existing compatibility test are not reasons to retain
-it. Version numbers, tags, release scripts, and completed roadmap items do not
+it. Version numbers, tags, release scripts, and completed plan items do not
 establish that the official public release has happened.
 
 ## User-facing language
@@ -69,13 +69,13 @@ as delivery.
 ## Verification
 
 Match verification to the changed behavior, affected dependencies, and acceptance
-criteria before committing, including during `$next`/`/next` roadmap chunks.
+criteria before committing, including during `$next`/`/next` plan tasks.
 Explicitly choose `verification: "focused"` for bounded changes, including code.
 Run formatting and the relevant crate, interface, architecture, and visual checks;
 record them through named `magistr_gate` calls or server-executed `check_step`.
 Use `verification: "full"` and `magistr_gate(gate: "all")` only for an explicit
 full-suite request or a concrete cross-cutting risk that requires every gate.
-State that reason before starting. A roadmap chunk does not by itself justify
+State that reason before starting. A plan task does not by itself justify
 workspace-wide tests, reference comparison, or release packaging checks.
 Diagnose failures and rerun affected checks; do not repeat a failing suite without
 new evidence or a relevant correction. Keep this policy in the canonical workflow
@@ -133,10 +133,10 @@ Git, development, and diagnostics may use the shell. Explain focused fallbacks.
 Do not kill a Workspace lock owner or start a competing workspace or workflow server.
 
 Read existing native state before resuming work. Keep plans in `arrange_steps` and
-roadmaps in native Magistr state. Never export or generate `ROADMAP.md` or
-`ROADMAP.json`; preserve `roadmap_exports = false` and export-tool deny settings.
-During roadmap work, announce phases with `magistr_set_phase`, record verification,
-and complete a chunk only when its acceptance criteria and checks pass.
+plans in native Magistr state. Never export or generate `PLAN.md` or
+`PLAN.json`; preserve `plan_exports = false` and export-tool deny settings.
+During plan work, announce phases with `magistr_set_phase`, record verification,
+and complete a task only when its acceptance criteria and checks pass.
 The coordinating session owns shared workflow state; delegate separate files.
 
 ## Agent setup
@@ -146,8 +146,8 @@ Generated agent setup (`.claude/`, `.agents/`, `.codex/`, `.cursor/` and
 Git. Create it with `magistr init --agent <claude|codex|cursor|copilot>` in
 this checkout and refresh it with `magistr repair`; never commit it.
 Launch Codex with `./.codex/run`. See [Codex setup](docs/reference/codex.md). Prefer this repository's skills when
-names overlap. `$next` implements one ready chunk; `$next-loop` respects the
-requested limit. Reviews and setup do not authorize roadmap implementation.
+names overlap. `$next` implements one ready task; `$next-loop` respects the
+requested limit. Reviews and setup do not authorize plan implementation.
 Run required gates explicitly; client hooks are supplementary.
 <!-- magistr:codex -->
 ## Magistr in Codex
@@ -156,9 +156,9 @@ Launch with `magistr codex-launch --project-root . --` or `./.codex/run`. The na
 
 Use the configured `magistr` MCP server for workflow and workspace tools. Start with `context`; use `discover` to inspect advanced operation schemas and `execute` with `magistr.call(name, args)` to call them. Use direct search/read/edit/write for source. Composed changes stop on failure; inspect receipts before recovery. Do not start a second workflow or workspace server; follow .agents/skills/workspace-routing/SKILL.md. A held Workspace lock belongs to its existing connection: do not kill the owner or launch a competing probe.
 
-Use the nine project skills: $next, $next-loop, $validate, $roadmap, $roadmap-refresh, $signals, $craft, $init and $workspace-routing. $next runs one chunk in this Codex session. $next-loop is a bounded fresh-session handoff: finish one chunk, write the handoff, stop, and resume the bound only in a new Codex session. Read .magistr/project.json for commands and required custom gates and .magistr/conventions.md for shared project conventions. Claude hooks are additional enforcement only; Codex must explicitly run and record required gates.
+Use the nine project skills: $next, $next-loop, $validate, $plan, $roadmap-refresh, $signals, $craft, $init and $workspace-routing. $next runs one task in this Codex session. $next-loop is a bounded fresh-session handoff: finish one task, write the handoff, stop, and resume the bound only in a new Codex session. Read .magistr/project.json for commands and required custom gates and .magistr/conventions.md for shared project conventions. Claude hooks are additional enforcement only; Codex must explicitly run and record required gates.
 
-This project stores its roadmap only in native Magistr state. Never create or regenerate ROADMAP.md or ROADMAP.json, invoke roadmap_export, or redirect an export into the checkout. Preserve roadmap_exports=false and the project export-tool deny settings.
+This project stores its plan only in native Magistr state. Never create or regenerate PLAN.md or PLAN.json, invoke plan_export, or redirect an export into the checkout. Preserve plan_exports=false and the project export-tool deny settings.
 
-Preserve existing goals and worktree changes. Follow the requested scope; setup, review and planning do not authorize starting a roadmap chunk. $next implements one ready chunk; $next-loop is bounded. Recovery, acceptance, recorded checks and an atomic commit are required before completing work.
+Preserve existing goals and worktree changes. Follow the requested scope; setup, review and planning do not authorize starting a plan task. $next implements one ready task; $next-loop is bounded. Recovery, acceptance, recorded checks and an atomic commit are required before completing work.
 <!-- /magistr:codex -->

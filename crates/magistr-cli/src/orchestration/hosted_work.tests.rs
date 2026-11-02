@@ -23,13 +23,13 @@ fn project() -> tempfile::TempDir {
         },
         "quality_gate": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "true", "extensions": ["rs"]},
-        "spec": {"file": "ROADMAP.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
+        "spec": {"file": "PLAN.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [],
         "state_prefix": "fixture"
     });
     std::fs::write(magistr.join("project.json"), config.to_string()).expect("project.json");
-    std::fs::write(dir.path().join("ROADMAP.md"), "- [ ] make it work\n").expect("spec");
+    std::fs::write(dir.path().join("PLAN.md"), "- [ ] make it work\n").expect("spec");
     dir
 }
 

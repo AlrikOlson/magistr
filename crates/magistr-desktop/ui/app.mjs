@@ -524,7 +524,7 @@ async function closeAddress(address) {
 $("close-session").onclick=()=>selected&&closeAddress(selected);
 
 function renderConfiguration(frame) {
-  $("view-title").textContent=frame.conversation?.name??(frame.conversation?.purpose==="roadmap"?"Planning":"Conversation");
+  $("view-title").textContent=frame.conversation?.name??(frame.conversation?.purpose==="plan"?"Planning":"Conversation");
   $("view-title").title=$("view-title").textContent;
   conversationName.render(frame);
   $("agent-provider").textContent=frame.conversation?.provider_label??"Agent information is unavailable.";

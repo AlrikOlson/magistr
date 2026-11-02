@@ -95,7 +95,7 @@ impl Inbox {
                 let error =
                     "This conversation is no longer selected. Select it and try again.".to_owned();
                 match *inner {
-                    Cmd::Prompt(input) | Cmd::RoadmapPrompt(input) => {
+                    Cmd::Prompt(input) | Cmd::PlanPrompt(input) => {
                         inbox.send(Msg::Agent(AgentEvent::PromptRejected { input, error }));
                     }
                     cmd => {

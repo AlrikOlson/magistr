@@ -44,7 +44,7 @@ fn config_check_valid_project_json_passes() {
                 "extensions": ["rs"]
             },
             "spec": {
-                "file": "ROADMAP.md",
+                "file": "PLAN.md",
                 "unchecked_pattern": "- [ ]"
             },
             "testing": {

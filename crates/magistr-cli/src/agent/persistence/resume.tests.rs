@@ -209,7 +209,7 @@ fn saved_planning_restores_exact_identity_model_provider_and_purpose() {
     let conn = super::super::storage::open_db(&path).unwrap();
     let mut record = sample_session();
     record.workspace = root.display().to_string();
-    record.purpose = SessionPurpose::Roadmap;
+    record.purpose = SessionPurpose::Plan;
     record.model = Some("saved-model".into());
     super::super::storage::insert_session(&conn, &record).unwrap();
     drop(conn);
@@ -220,7 +220,7 @@ fn saved_planning_restores_exact_identity_model_provider_and_purpose() {
     let restored = saved_config(base, &record.session_id).unwrap();
     assert_ne!(restored.history.id(), unrelated);
     assert_eq!(restored.history.id(), record.session_id);
-    assert_eq!(restored.history.purpose(), SessionPurpose::Roadmap);
+    assert_eq!(restored.history.purpose(), SessionPurpose::Plan);
     assert_eq!(restored.resume, record.provider_session_id);
     assert_eq!(restored.model, record.model);
     assert_eq!(restored.provider.as_deref(), Some(record.provider.as_str()));
@@ -254,7 +254,7 @@ fn continue_uses_the_latest_checkpoint_in_this_working_copy_and_keeps_its_identi
     record.updated_at += chrono::Duration::hours(1);
     record.provider_session_id = Some("retained-provider-context".into());
     record.model = Some("recorded-model".into());
-    record.purpose = magistr_application::sessions::SessionPurpose::Roadmap;
+    record.purpose = magistr_application::sessions::SessionPurpose::Plan;
     super::super::storage::insert_session(&conn, &record).unwrap();
     let mut other = record.clone();
     other.session_id = "other-working-copy".into();

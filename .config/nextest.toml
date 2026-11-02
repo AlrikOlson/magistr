@@ -36,12 +36,12 @@ priority = 100
 # Real servers and cold Wasmtime workers consume the host CPUs. Reserve that
 # capacity instead of oversubscribing the machine or extending reply deadlines.
 [[profile.default.overrides]]
-filter = 'binary(mcp_project_owner) | binary(project_upgrade_integration)'
+filter = 'binary(mcp_project_owner) | binary(project_upgrade_integration) | binary(reinit_integration) | test(=init_from_preset)'
 threads-required = "num-cpus"
 priority = 80
 
 [[profile.default.overrides]]
-filter = 'binary(workspace_attachment) | test(reinit) | binary(workspace_script)'
+filter = 'binary(workspace_attachment) | binary(workspace_script)'
 priority = 60
 
 [profile.ci]

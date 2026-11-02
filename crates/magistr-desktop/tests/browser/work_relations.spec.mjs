@@ -2,7 +2,7 @@ import {test,expect} from "./fixture.mjs";
 async function open(app,title="Restore the project conversation and draft"){
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
-  await app.getByRole("tab",{name:"Roadmap",exact:true}).click();
+  await app.getByRole("tab",{name:"Plan",exact:true}).click();
   await app.getByRole("button",{name:title,exact:true}).click();
 }
 test("navigate dependencies and dependents with local Back and origin focus",async({app})=>{
@@ -22,7 +22,7 @@ test("navigate dependencies and dependents with local Back and origin focus",asy
 });
 test("missing dependencies are explicit and never interactive",async({app})=>{
   await open(app,"Build the desktop installer");
-  await expect(app.locator(".roadmap-readiness")).toHaveText("Waiting for required work.");
+  await expect(app.locator(".plan-readiness")).toHaveText("Waiting for required work.");
   const required=app.getByRole("region",{name:"Required work",exact:true});
   await expect(required).toContainText("Required item unavailable");
   await expect(required.getByRole("button")).toHaveCount(0);
@@ -31,7 +31,7 @@ test("deleted dependency restores focus to readable content",async({app})=>{
   await open(app);
   await app.getByRole("region",{name:"Required work",exact:true}).getByRole("button",{name:"Store conversations and drafts",exact:true}).focus();
   await app.evaluate(()=>{
-    const f=window.__fixture;f.workflow.roadmap.data.value.chunks=f.workflow.roadmap.data.value.chunks.filter(item=>item.id!=="foundation");
+    const f=window.__fixture;f.workflow.plan.data.value.tasks=f.workflow.plan.data.value.tasks.filter(item=>item.id!=="foundation");
     f.publish("release",{workflow_revision:1});
   });
   await expect(app.getByRole("region",{name:"Required work",exact:true})).toContainText("Required item unavailable");

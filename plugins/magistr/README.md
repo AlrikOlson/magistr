@@ -1,8 +1,8 @@
 # Magistr for Claude Code
 
-Inspect your current work, roadmap, check evidence, recorded findings and
+Inspect your current work, plan, check evidence, recorded findings and
 Magistr changes inside your coding session. Open **/magistr** and use the
-Work, Roadmap, Checks, Findings and Changes tabs. The optional progress band
+Work, Plan, Checks, Findings and Changes tabs. The optional progress band
 shows your current work, reported phase, check state and connection health.
 
 This package is a preview pending live Claude host acceptance. The implementation
@@ -42,7 +42,7 @@ an existing owner can use the normal startup path.
 
 - **Work:** inspect your goal, acceptance criteria and steps; open a step
   to see check commands, results, recorded actions and source links.
-- **Roadmap:** inspect readiness, blockers, acceptance criteria and dependencies.
+- **Plan:** inspect readiness, blockers, acceptance criteria and dependencies.
   Choose a workstream for this Claude session or mark the next ready work as started. Other sessions keep their own workstream choices.
 - **Checks:** inspect recorded evidence or run a check selected for the current
   change. Set a time limit from 1 to 1800 seconds (five minutes by default),
@@ -65,7 +65,7 @@ Useful text commands:
 
 ```text
 /magistr current
-/magistr roadmap
+/magistr plan
 /magistr checks
 /magistr findings
 /magistr changes

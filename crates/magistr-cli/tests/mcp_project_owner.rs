@@ -171,7 +171,7 @@ fn identity(root: &Path) {
     .expect("identity");
 }
 
-/// A `.magistr/project.json` selecting the native roadmap, so one-shot
+/// A `.magistr/project.json` selecting the native plan, so one-shot
 /// commands resolve the same store the owner serves.
 fn native_project(root: &Path) {
     std::fs::create_dir_all(root.join(".magistr")).expect("project directory");
@@ -184,9 +184,9 @@ fn native_project(root: &Path) {
             "testing": {"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
             "reference_repos": [],
             "state_prefix": "fixture",
-            "roadmap_exports": false,
+            "plan_exports": false,
             "quality_gate": {"check": "true", "test": "true", "lint": "true"},
-            "roadmap_backend": "native"
+            "plan_backend": "native"
         })
         .to_string(),
     )
@@ -208,10 +208,10 @@ async fn next_loop_reads_progress_beside_a_live_mcp_owner() {
     for headless in [false, true] {
         owner
             .call(
-                "roadmap_add_chunk",
+                "plan_add_task",
                 json!({
                     "id": if headless { "later-two" } else { "later-one" },
-                    "title": "Work saved for later", "status": "backlog"
+                    "title": "Work saved for later", "status": "idea"
                 }),
             )
             .await;
@@ -247,7 +247,7 @@ async fn next_loop_reads_progress_beside_a_live_mcp_owner() {
         assert_eq!(saved.spec_total, if headless { 2 } else { 1 });
         assert_eq!(
             saved.run.terminal_reason,
-            Some(magistr_engine::workflow::StopReason::NoReadyChunk)
+            Some(magistr_engine::workflow::StopReason::NoReadyTask)
         );
         assert!(
             saved.operations.records().is_empty(),
@@ -299,15 +299,15 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     owner.initialized().await;
     let added = owner
         .call(
-            "roadmap_add_chunk",
+            "plan_add_task",
             json!({
-                "id":"acknowledged", "title":"Owner mutation survives restart", "group":"Tests"
+                "id":"acknowledged", "title":"Owner mutation survives restart", "feature":"Tests"
             }),
         )
         .await;
     assert_eq!(added["value"]["id"], "acknowledged", "{added}");
-    let roadmap = data.join("roadmap/sessions/owner-test.json");
-    let acknowledged = std::fs::read(&roadmap).expect("persisted mutation");
+    let plan = data.join("plan/sessions/owner-test.json");
+    let acknowledged = std::fs::read(&plan).expect("persisted mutation");
     // A later server attaches to the owner's endpoint and speaks the
     // owner's own MCP session: the same tools, the one admitted writer.
     let mut late = Server::spawn(tmp.path(), &data, &tmp.path().join("late.sock")).await;
@@ -317,16 +317,16 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     late.initialized().await;
     let through = late
         .call(
-            "roadmap_add_chunk",
-            json!({"id":"attached", "title":"Written through the owner", "group":"Tests"}),
+            "plan_add_task",
+            json!({"id":"attached", "title":"Written through the owner", "feature":"Tests"}),
         )
         .await;
     assert_eq!(through["value"]["id"], "attached", "{through}");
     // The owner's cached engines carried it out: no reload, no second writer.
-    let seen = owner.call("roadmap_get", json!({"ids":["attached"]})).await;
+    let seen = owner.call("plan_get", json!({"ids":["attached"]})).await;
     assert_eq!(seen["records"][0]["id"], "attached", "{seen}");
     assert_ne!(
-        std::fs::read(&roadmap).expect("store"),
+        std::fs::read(&plan).expect("store"),
         acknowledged,
         "the store moved on the owner's write"
     );
@@ -336,17 +336,17 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     assert!(disconnected.response().await.is_some(), "client attached");
     disconnected.initialized().await;
     disconnected.disconnect().await;
-    let still_live = owner.call("roadmap_get", json!({"ids":["attached"]})).await;
+    let still_live = owner.call("plan_get", json!({"ids":["attached"]})).await;
     assert_eq!(still_live["records"][0]["id"], "attached");
 
     use std::os::unix::fs::MetadataExt;
-    let lock_path = data.join("roadmap/sessions/owner-test.project-owner.lock");
+    let lock_path = data.join("plan/sessions/owner-test.project-owner.lock");
     let lock_inode = std::fs::metadata(&lock_path).expect("owner lock").ino();
     owner.child.kill().await.expect("kill owner");
     owner.child.wait().await.expect("owner reaped");
     // The existing client remains connected and admits the next owner on its
     // next call. Its acknowledged mutations are read from the same store.
-    let survived = late.call("roadmap_get", json!({"ids":["attached"]})).await;
+    let survived = late.call("plan_get", json!({"ids":["attached"]})).await;
     assert_eq!(survived["records"][0]["id"], "attached", "{survived}");
     assert!(
         tmp.path().join("late.sock").exists(),
@@ -363,7 +363,7 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     );
     restarted.initialized().await;
     let fresh = restarted
-        .call("roadmap_get", json!({"ids":["acknowledged"]}))
+        .call("plan_get", json!({"ids":["acknowledged"]}))
         .await;
     assert_eq!(fresh["records"][0]["id"], "acknowledged", "{fresh}");
     let status = restarted.call("think_engine_status", json!({})).await;
@@ -375,7 +375,7 @@ async fn simultaneous_stdio_start_has_one_owner_and_kill_allows_fresh_restart() 
     // Orderly owner EOF is survived as well as a crash, with no client restart.
     late.disconnect().await;
     let after_eof = restarted
-        .call("roadmap_get", json!({"ids":["attached"]}))
+        .call("plan_get", json!({"ids":["attached"]}))
         .await;
     assert_eq!(after_eof["records"][0]["id"], "attached");
     assert!(tmp.path().join("restart.sock").exists());
@@ -484,7 +484,7 @@ async fn occupied_feed_is_preserved_and_failed_start_releases_ownership() {
         std::fs::metadata(&socket).expect("preserved socket").ino(),
         inode
     );
-    assert!(!data.join("roadmap/sessions/owner-test.json").exists());
+    assert!(!data.join("plan/sessions/owner-test.json").exists());
     drop(listener);
 
     // A stale socket left by a dead owner is safe to reclaim.
@@ -510,7 +510,7 @@ async fn different_stores_racing_for_one_feed_admit_only_one_publisher() {
     let error = rejected.rejection().await;
     assert!(error.contains("project owner"), "{error}");
     owner.initialized().await;
-    let result = owner.call("roadmap_status", json!({})).await;
+    let result = owner.call("plan_status", json!({})).await;
     assert_eq!(result["project_id"], "owner-test");
     owner.child.kill().await.expect("stop owner");
     owner.child.wait().await.expect("reap owner");
@@ -545,18 +545,18 @@ async fn a_reader_command_answers_beside_the_running_owner_without_a_lease() {
     owner.initialized().await;
     let added = owner
         .call(
-            "roadmap_add_chunk",
-            json!({"id":"visible", "title":"Seen by the reader", "group":"Tests"}),
+            "plan_add_task",
+            json!({"id":"visible", "title":"Seen by the reader", "feature":"Tests"}),
         )
         .await;
     assert_eq!(added["value"]["id"], "visible", "{added}");
 
-    let lease = data.join("roadmap/sessions/owner-test.project-owner.lock");
+    let lease = data.join("plan/sessions/owner-test.project-owner.lock");
     let before = std::fs::read(&lease).expect("the service owns the project");
-    // `magistr roadmap status` is a reader: it takes no lease, so it answers
+    // `magistr plan status` is a reader: it takes no lease, so it answers
     // while the owner holds the project, and it sees the owner's write.
     let status = Command::from(magistr_command::magistr_command())
-        .args(["--json", "roadmap", "status"])
+        .args(["--json", "plan", "status"])
         .arg(tmp.path())
         .env("MAGISTR_WORKFLOW_DATA_DIR", &data)
         .env("MAGISTR_WORKFLOW_PERSIST", "true")
@@ -568,11 +568,10 @@ async fn a_reader_command_answers_beside_the_running_owner_without_a_lease() {
         "reader refused: {}",
         String::from_utf8_lossy(&status.stderr)
     );
-    let report: Value =
-        serde_json::from_slice(&status.stdout).expect("roadmap_status JSON on stdout");
+    let report: Value = serde_json::from_slice(&status.stdout).expect("plan_status JSON on stdout");
     assert_eq!(report["status"], "ok", "{report}");
     assert_eq!(report["data"]["project_id"], "owner-test", "{report}");
-    assert_eq!(report["data"]["counts"]["pending"], 1, "{report}");
+    assert_eq!(report["data"]["counts"]["to_do"], 1, "{report}");
     assert_eq!(report["data"]["next"], "visible", "{report}");
     assert_eq!(
         std::fs::read(&lease).expect("stable owner lease"),
@@ -581,7 +580,7 @@ async fn a_reader_command_answers_beside_the_running_owner_without_a_lease() {
     );
 
     // The owner is untouched by the read.
-    let after = owner.call("roadmap_status", json!({})).await;
+    let after = owner.call("plan_status", json!({})).await;
     assert_eq!(after["project_id"], "owner-test");
     owner.child.kill().await.expect("stop owner");
     owner.child.wait().await.expect("reap owner");
@@ -660,12 +659,12 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     ready(&mut a).await;
     let mut b = Server::spawn_as(&linked, &data, &socket, "task-b", &["mcp"]).await;
     ready(&mut b).await;
-    begin_work(&mut a, "chunk:a").await;
-    begin_work(&mut b, "chunk:b").await;
+    begin_work(&mut a, "task:a").await;
+    begin_work(&mut b, "task:b").await;
     let status_a = a.call("run_status", json!({})).await;
     let status_b = b.call("run_status", json!({})).await;
-    assert_eq!(status_a["goal"]["scope"], "chunk:a");
-    assert_eq!(status_b["goal"]["scope"], "chunk:b");
+    assert_eq!(status_a["goal"]["scope"], "task:a");
+    assert_eq!(status_b["goal"]["scope"], "task:b");
     assert_eq!(status_a["execution"]["working_copy"], json!(main));
     assert_eq!(status_b["execution"]["working_copy"], json!(linked));
     assert_eq!(
@@ -802,7 +801,7 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
         .expect("reap");
     // An existing bridge re-admits on its next call, with its own context.
     let recovered_b = b.call("run_status", json!({})).await;
-    assert_eq!(recovered_b["goal"]["scope"], "chunk:b");
+    assert_eq!(recovered_b["goal"]["scope"], "task:b");
     assert_eq!(recovered_b["run_id"], status_b["run_id"]);
     assert!(
         recovered_b["execution"]["owner_generation"]
@@ -814,7 +813,7 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     ready(&mut recovered_a).await;
     assert_eq!(
         recovered_a.call("run_status", json!({})).await["goal"]["scope"],
-        "chunk:a"
+        "task:a"
     );
     source_a.disconnect().await;
     source_b.disconnect().await;

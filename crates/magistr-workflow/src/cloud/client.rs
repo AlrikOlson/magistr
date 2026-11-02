@@ -302,11 +302,11 @@ mod tests {
     fn env(tenant: &str) -> UnifiedRecordEnvelope {
         UnifiedRecordEnvelope::owner(
             tenant,
-            Family::Roadmap,
-            Kind::Chunk,
+            Family::Plan,
+            Kind::Task,
             "c1",
             "2026-06-08T00:00:00Z",
-            json!({ "id": "c1", "status": "backlog" }),
+            json!({ "id": "c1", "status": "idea" }),
             vec![],
         )
     }
@@ -413,28 +413,22 @@ mod tests {
     async fn get_returns_some_on_200_and_none_on_404() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
-            .and(path("/v1/records/roadmap/chunk/c1"))
+            .and(path("/v1/records/plan/task/c1"))
             .and(header("authorization", "Bearer tok"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({ "id": "c1" })))
             .mount(&server)
             .await;
         Mock::given(method("GET"))
-            .and(path("/v1/records/roadmap/chunk/missing"))
+            .and(path("/v1/records/plan/task/missing"))
             .respond_with(ResponseTemplate::new(404).set_body_json(json!({ "error": "not_found" })))
             .mount(&server)
             .await;
 
         let client = CloudClient::new(server.uri(), "tok");
+        assert!(client.get("plan", "task", "c1").await.unwrap().is_some());
         assert!(
             client
-                .get("roadmap", "chunk", "c1")
-                .await
-                .unwrap()
-                .is_some()
-        );
-        assert!(
-            client
-                .get("roadmap", "chunk", "missing")
+                .get("plan", "task", "missing")
                 .await
                 .unwrap()
                 .is_none()
@@ -446,7 +440,7 @@ mod tests {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/v1/records"))
-            .and(query_param("family", "roadmap"))
+            .and(query_param("family", "plan"))
             .and(header("authorization", "Bearer tok"))
             .respond_with(
                 ResponseTemplate::new(200)
@@ -456,7 +450,7 @@ mod tests {
             .await;
 
         let client = CloudClient::new(server.uri(), "tok");
-        assert_eq!(client.list(Some("roadmap"), None).await.unwrap().len(), 2);
+        assert_eq!(client.list(Some("plan"), None).await.unwrap().len(), 2);
     }
 
     #[tokio::test]

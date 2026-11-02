@@ -21,7 +21,7 @@ target, then use `$.tool.call` through Claude's normal tool/permission/hooks
 path. The adapter never approves a permission, edits source, completes work,
 submits a prompt, calls a model, starts a scheduler or opens native persistence.
 
-The existing family query contracts supply work, roadmap and findings.
+The existing family query contracts supply work, plan and findings.
 `context` adds only the admitted service's canonical root and owner epoch,
 an explicitly
 announced phase (nullable), bounded canonical step evidence, check results,

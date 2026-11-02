@@ -17,9 +17,9 @@ use magistr_cockpit::cockpit::{LoopCmd, Msg};
 #[path = "controller_harness.test_support.rs"]
 mod controller_harness;
 use controller_harness::{Actions, ControlHarness, notes, run_observed, stage_text};
-use magistr_engine::native::BlockerKind;
+use magistr_engine::native::WaitingReason;
 use magistr_engine::{
-    ChunkStatus, NativeConfig, NativeEngines, ProjectAuthority, SignalKind, WriterRole,
+    NativeConfig, NativeEngines, ProjectAuthority, SignalKind, TaskStatus, WriterRole,
 };
 
 use super::*;
@@ -48,7 +48,7 @@ async fn absent_provider_reports_every_failed_control_and_keeps_local_controls_a
         },
         Cmd::Delegate("read".into()),
         Cmd::Reconnect,
-        Cmd::CancelRoadmapPrompt,
+        Cmd::CancelPlanPrompt,
         Cmd::Loop(magistr_cockpit::cockpit::RunCommand {
             run_id: magistr_domain::identity::RunId::new(
                 magistr_domain::identity::ProjectId::new("fixture").unwrap(),
@@ -130,16 +130,16 @@ impl Judge for Scripted {
     }
 }
 
-/// The loop's admitted host writer on a temp store with one pending chunk
+/// The loop's admitted host writer on a temp store with one pending task
 /// `work`, and the same engines by a second handle for the assertions.
 fn engines_with_work(dir: &Path) -> NativeEngines {
     let engines = host(&work_config(dir), "loop-goal");
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             "work".to_owned(),
-            "Chunk work".to_owned(),
+            "Task work".to_owned(),
             "work".to_owned(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             100,
             String::new(),
             vec!["it works".to_owned(), "it is tested".to_owned()],
@@ -147,7 +147,7 @@ fn engines_with_work(dir: &Path) -> NativeEngines {
             None,
             None,
         )
-        .expect("add chunk");
+        .expect("add task");
     engines
 }
 
@@ -161,13 +161,13 @@ fn work_config(dir: &Path) -> NativeConfig {
 
 /// Prepare unfinished full-verification work for the loop's actual gates.
 fn agent_starts_work(agent_side: &NativeEngines) {
-    agent_side.roadmap_start_chunk("work").expect("start");
+    agent_side.plan_start_task("work").expect("start");
     agent_side
         .run_open_with_verification(
             "do the work".into(),
             vec![],
             vec![],
-            "chunk:work".into(),
+            "task:work".into(),
             magistr_engine::native::VerificationMode::Full,
         )
         .expect("goal");
@@ -203,8 +203,8 @@ fn agent_completes_work(agent_side: &NativeEngines, root: &Path, gates: [(&str, 
         .expect("settled");
     }
     agent_side
-        .roadmap_complete_chunk("work", Some("step:verify"))
-        .expect("the agent completes its own chunk on its check_results");
+        .plan_complete_task("work", Some("step:verify"))
+        .expect("the agent completes its own task on its check_results");
 }
 
 /// The loop's own writer role on `config`.
@@ -270,16 +270,16 @@ async fn next_matching(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
+async fn a_finished_loop_keeps_delivering_plan_and_conversation_requests() {
     let dir = project("true", "true", "true");
     repository(dir.path());
     let engines = host(&work_config(dir.path()), "finished-followup");
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             "later".into(),
             "Future work".into(),
             "Future work".into(),
-            ChunkStatus::Backlog,
+            TaskStatus::Idea,
             100,
             String::new(),
             vec![],
@@ -297,7 +297,7 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
     .unwrap();
     let iteration = IterationLoop::open(
         dir.path(),
-        dir.path().join("ROADMAP.md"),
+        dir.path().join("PLAN.md"),
         2,
         Some(engines.reader()),
     )
@@ -347,9 +347,9 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
         "post-loop local controls share the loop's existing checkpoint history: {restored:?}"
     );
     for text in ["Add more ready work", "Include accessibility"] {
-        commands.send(Cmd::RoadmapPrompt(text.into())).unwrap();
+        commands.send(Cmd::PlanPrompt(text.into())).unwrap();
         next_matching(&mut events, |event| {
-            matches!(event, Msg::RoadmapRequestStarted)
+            matches!(event, Msg::PlanRequestStarted)
         })
         .await;
         next_matching(&mut events, |event| {
@@ -368,7 +368,7 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
     );
     for command in [
         Cmd::Prompt("Explain the last result".into()),
-        Cmd::RoadmapPrompt("Keep the earlier testing request".into()),
+        Cmd::PlanPrompt("Keep the earlier testing request".into()),
         Cmd::Prompt("Continue your explanation".into()),
     ] {
         commands.send(command).unwrap();
@@ -388,7 +388,7 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
         0,
         "messages never start another work iteration"
     );
-    assert_eq!(report.end(), &LoopEnd::NoReadyChunk);
+    assert_eq!(report.end(), &LoopEnd::NoReadyTask);
     let observed = seen.lock().unwrap();
     assert_eq!(
         observed.len(),
@@ -410,7 +410,7 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
     let configs = captured.lock().unwrap();
     assert_eq!(
         configs[0].history.purpose(),
-        magistr_application::sessions::SessionPurpose::Roadmap
+        magistr_application::sessions::SessionPurpose::Plan
     );
     assert_eq!(
         configs[1].history.purpose(),
@@ -421,7 +421,7 @@ async fn a_finished_loop_keeps_delivering_roadmap_and_conversation_requests() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn conversation_messages_during_checks_are_rejected_with_the_original_draft() {
     let dir = project("sleep 0.2", "true", "true");
-    let iteration = IterationLoop::with_max(dir.path(), dir.path().join("ROADMAP.md"), 1).unwrap();
+    let iteration = IterationLoop::with_max(dir.path(), dir.path().join("PLAN.md"), 1).unwrap();
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
     let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("Done."));
@@ -467,11 +467,10 @@ async fn conversation_messages_during_checks_are_rejected_with_the_original_draf
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn roadmap_requests_wait_for_work_verification_and_can_be_cancelled_while_queued() {
+async fn plan_requests_wait_for_work_verification_and_can_be_cancelled_while_queued() {
     for cancel in [false, true] {
         let dir = project("sleep 0.05", "true", "true");
-        let iteration =
-            IterationLoop::with_max(dir.path(), dir.path().join("ROADMAP.md"), 1).unwrap();
+        let iteration = IterationLoop::with_max(dir.path(), dir.path().join("PLAN.md"), 1).unwrap();
         let (inbox, mut events) = Inbox::channel();
         let (commands, receiver) = Commands::channel();
         let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("Done."));
@@ -487,17 +486,14 @@ async fn roadmap_requests_wait_for_work_verification_and_can_be_cancelled_while_
         .persisting(false)
         .auto_pause(false);
         commands
-            .send(Cmd::RoadmapPrompt("Add testing work".into()))
+            .send(Cmd::PlanPrompt("Add testing work".into()))
             .unwrap();
         let step = driver.spawn();
-        next_matching(&mut events, |event| {
-            matches!(event, Msg::RoadmapRequestQueued)
-        })
-        .await;
+        next_matching(&mut events, |event| matches!(event, Msg::PlanRequestQueued)).await;
         if cancel {
-            commands.send(Cmd::CancelRoadmapPrompt).unwrap();
+            commands.send(Cmd::CancelPlanPrompt).unwrap();
             next_matching(&mut events, |event| {
-                matches!(event, Msg::RoadmapRequestCancelled)
+                matches!(event, Msg::PlanRequestCancelled)
             })
             .await;
         } else {
@@ -506,7 +502,7 @@ async fn roadmap_requests_wait_for_work_verification_and_can_be_cancelled_while_
             })
             .await;
             next_matching(&mut events, |event| {
-                matches!(event, Msg::RoadmapRequestStarted)
+                matches!(event, Msg::PlanRequestStarted)
             })
             .await;
         }
@@ -524,7 +520,7 @@ async fn roadmap_requests_wait_for_work_verification_and_can_be_cancelled_while_
 }
 
 #[tokio::test]
-async fn interactive_roadmap_startup_failure_preserves_request_and_does_not_claim_started() {
+async fn interactive_plan_startup_failure_preserves_request_and_does_not_claim_started() {
     let dir = tempfile::tempdir().unwrap();
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
@@ -536,12 +532,12 @@ async fn interactive_roadmap_startup_failure_preserves_request_and_does_not_clai
     )
     .spawn(receiver);
     commands
-        .send(Cmd::RoadmapPrompt("Add more work".into()))
+        .send(Cmd::PlanPrompt("Add more work".into()))
         .unwrap();
     let event = next_matching(&mut events, |event| {
         matches!(
             event,
-            Msg::RoadmapRequestStarted | Msg::Agent(AgentEvent::PromptRejected { .. })
+            Msg::PlanRequestStarted | Msg::Agent(AgentEvent::PromptRejected { .. })
         )
     })
     .await;
@@ -554,7 +550,7 @@ async fn interactive_roadmap_startup_failure_preserves_request_and_does_not_clai
 }
 
 #[tokio::test]
-async fn active_roadmap_request_stop_reaches_the_provider_without_a_work_iteration() {
+async fn active_plan_request_stop_reaches_the_provider_without_a_work_iteration() {
     let dir = tempfile::tempdir().unwrap();
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
@@ -567,13 +563,13 @@ async fn active_roadmap_request_stop_reaches_the_provider_without_a_work_iterati
     )
     .spawn(receiver);
     commands
-        .send(Cmd::RoadmapPrompt("Review the plan".into()))
+        .send(Cmd::PlanPrompt("Review the plan".into()))
         .unwrap();
     next_matching(&mut events, |event| {
-        matches!(event, Msg::RoadmapRequestStarted)
+        matches!(event, Msg::PlanRequestStarted)
     })
     .await;
-    commands.send(Cmd::CancelRoadmapPrompt).unwrap();
+    commands.send(Cmd::CancelPlanPrompt).unwrap();
     next_matching(&mut events, |event| {
         matches!(event, Msg::Agent(AgentEvent::TurnEnded(TurnEnd::Cancelled)))
     })
@@ -584,7 +580,7 @@ async fn active_roadmap_request_stop_reaches_the_provider_without_a_work_iterati
 }
 
 #[tokio::test]
-async fn roadmap_connection_can_be_cancelled_or_closed_before_handshake_finishes() {
+async fn plan_connection_can_be_cancelled_or_closed_before_handshake_finishes() {
     for quit in [false, true] {
         let dir = tempfile::tempdir().unwrap();
         let (inbox, mut events) = Inbox::channel();
@@ -613,14 +609,14 @@ async fn roadmap_connection_can_be_cancelled_or_closed_before_handshake_finishes
                 .unwrap(),
             ],
         };
-        commands.send(Cmd::RoadmapPrompt(input.clone())).unwrap();
+        commands.send(Cmd::PlanPrompt(input.clone())).unwrap();
         tokio::time::timeout(Duration::from_secs(1), started.notified())
             .await
             .unwrap();
         if quit {
             drop(commands);
         } else {
-            commands.send(Cmd::CancelRoadmapPrompt).unwrap();
+            commands.send(Cmd::CancelPlanPrompt).unwrap();
             let event = tokio::time::timeout(Duration::from_secs(1), events.recv())
                 .await
                 .unwrap()
@@ -633,7 +629,7 @@ async fn roadmap_connection_can_be_cancelled_or_closed_before_handshake_finishes
                 .await
                 .unwrap()
                 .unwrap();
-            assert!(matches!(event, Msg::RoadmapRequestCancelled));
+            assert!(matches!(event, Msg::PlanRequestCancelled));
             drop(commands);
         }
         tokio::time::timeout(Duration::from_secs(1), session)
@@ -661,13 +657,13 @@ async fn local_project_controls_work_before_any_agent_is_connected() {
     .spawn(receiver);
     commands
         .send(Cmd::Engine(
-            magistr_cockpit::cockpit::EngineCmd::StartChunk { id: "work".into() },
+            magistr_cockpit::cockpit::EngineCmd::StartTask { id: "work".into() },
         ))
         .unwrap();
     next_matching(&mut events, |event| matches!(event, Msg::Engine(_))).await;
     assert_eq!(
-        engines.roadmap_chunks().unwrap()[0].status,
-        ChunkStatus::InProgress
+        engines.plan_tasks().unwrap()[0].status,
+        TaskStatus::InProgress
     );
     drop(commands);
     session.await.unwrap().unwrap();
@@ -688,14 +684,14 @@ fn project(check: &str, test: &str, lint: &str) -> tempfile::TempDir {
         },
         "quality_gate": {"check": check, "test": test, "lint": lint},
         "format": {"command": "true", "extensions": ["rs"]},
-        "spec": {"file": "ROADMAP.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
+        "spec": {"file": "PLAN.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [],
         "state_prefix": "fixture",
-        "roadmap_backend": "yaml"
+        "plan_backend": "yaml"
     });
     std::fs::write(magistr.join("project.json"), config.to_string()).expect("project.json");
-    std::fs::write(dir.path().join("ROADMAP.md"), "- [ ] make it work\n").expect("spec");
+    std::fs::write(dir.path().join("PLAN.md"), "- [ ] make it work\n").expect("spec");
     // The loop's own writings are not source: the evidence capability
     // hashes the tree under the fixture's ignore file, as it would in a
     // real repository, and reads project.json as a config input regardless.
@@ -813,7 +809,7 @@ async fn run_delegated(
 ) -> (Vec<Msg>, LoopReport, Vec<Arc<AcpObserved>>) {
     let wf = WorkflowConfig::load(dir).expect("the fixture loads");
     let port = ledger(dir, &native);
-    let iter_loop = IterationLoop::open(dir, dir.join("ROADMAP.md"), max, Some(native.reader()))
+    let iter_loop = IterationLoop::open(dir, dir.join("PLAN.md"), max, Some(native.reader()))
         .expect("the loop opens");
     let (connector, seen) = fake_connector(agent);
     let mut runtime = ControlHarness::new(script);
@@ -871,7 +867,7 @@ async fn run_over(
     let port = native.as_ref().map(|engines| ledger(dir, engines));
     let iter_loop = IterationLoop::open(
         dir,
-        dir.join("ROADMAP.md"),
+        dir.join("PLAN.md"),
         max,
         native.as_ref().map(NativeEngines::reader),
     )
@@ -956,7 +952,7 @@ async fn a_policy_change_during_connection_only_applies_to_the_next_session() {
 #[tokio::test]
 async fn closing_sessions_drains_priced_usage_before_the_next_cost_baseline() {
     let dir = project("true", "true", "true");
-    let spec = dir.path().join("ROADMAP.md");
+    let spec = dir.path().join("PLAN.md");
     let wf = WorkflowConfig::load(dir.path()).unwrap();
     let mut iter_loop = IterationLoop::with_max(dir.path(), &spec, 5).unwrap();
     iter_loop.set_budget_limit(Some(2.0)).unwrap();
@@ -1025,8 +1021,7 @@ async fn cancelled_and_incomplete_turns_cannot_start_verification() {
     ] {
         let dir = project("true", "true", "true");
         let wf = WorkflowConfig::load(dir.path()).unwrap();
-        let iter_loop =
-            IterationLoop::with_max(dir.path(), dir.path().join("ROADMAP.md"), 5).unwrap();
+        let iter_loop = IterationLoop::with_max(dir.path(), dir.path().join("PLAN.md"), 5).unwrap();
         let mut runtime = ControlHarness::new(Actions::new());
         let (connector, _) = fake_connector(FakeAcpAgent::new());
         let mut driver = LoopDriver::new(
@@ -1101,7 +1096,7 @@ async fn one_iteration_runs_the_prompt_the_turn_and_the_gates_then_ends_on_the_b
         Some("Work stopped: Reached the limit of 1 attempt.")
     );
 
-    let mut restored = IterationLoop::recover(dir.path(), dir.path().join("ROADMAP.md"))
+    let mut restored = IterationLoop::recover(dir.path(), dir.path().join("PLAN.md"))
         .expect("the terminal state stays recoverable");
     assert_eq!(restored.iteration(), 1);
     assert_eq!(
@@ -1391,11 +1386,11 @@ async fn a_native_iteration_requests_a_coordinated_workflow_read() {
         .with_data_dir(dir.path().join("workflow-data"));
     let engines = host(&config, "loop-signal");
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             "work".to_owned(),
-            "Chunk work".to_owned(),
+            "Task work".to_owned(),
             "work".to_owned(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             100,
             String::new(),
             vec![],
@@ -1403,7 +1398,7 @@ async fn a_native_iteration_requests_a_coordinated_workflow_read() {
             None,
             None,
         )
-        .expect("add chunk");
+        .expect("add task");
 
     // The agent's `magistr mcp` captures a signal after the loop's
     // engines were opened, with no broadcast feed attached — so only the
@@ -1492,12 +1487,12 @@ async fn a_not_yet_verdict_continues_the_loop_with_its_reason_on_the_stage() {
     assert_eq!(report.end(), &LoopEnd::MaxIterations(2));
     assert_eq!(prompts.len(), 2);
 
-    // What the judge was asked: the chunk, its whole acceptance list,
+    // What the judge was asked: the task, its whole acceptance list,
     // the real gates, the agent's words.
     let asked = judge.asked();
     assert_eq!(asked.len(), 2);
-    assert_eq!(asked[0].chunk, "work");
-    assert_eq!(asked[0].title, "Chunk work");
+    assert_eq!(asked[0].task, "work");
+    assert_eq!(asked[0].title, "Task work");
     assert_eq!(asked[0].acceptance, ["it works", "it is tested"]);
     assert_eq!(asked[0].iteration, (1, 2));
     assert_eq!(asked[1].iteration, (2, 2));
@@ -1530,12 +1525,12 @@ async fn a_not_yet_verdict_continues_the_loop_with_its_reason_on_the_stage() {
     );
 }
 
-/// The agent finds its chunk blocked on something outside the repo and
+/// The agent finds its task blocked on something outside the repo and
 /// records it through its own `magistr mcp` — a second handle on
 /// the store, written once the driver has picked the target and is
-/// connecting for the turn. The judge is not asked about a chunk nobody
+/// connecting for the turn. The judge is not asked about a task nobody
 /// could have worked, and the stage does not promise it again: the next
-/// iteration's target is `roadmap_next`'s answer, which skips it.
+/// iteration's target is `plan_next`'s answer, which skips it.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_target_the_agent_blocked_is_not_sent_to_the_judge() {
     let dir = project("true", "true", "true");
@@ -1547,13 +1542,13 @@ async fn a_target_the_agent_blocked_is_not_sent_to_the_judge() {
     let inner = Arc::new(inner);
     let connector = Connector::new(move |config| {
         agent_side
-            .roadmap_set_blocked_by(
+            .plan_set_waiting_on(
                 "work",
-                BlockerKind::External,
+                WaitingReason::Outside,
                 "the framework repo does not exist yet".to_owned(),
                 None,
             )
-            .expect("the agent blocks its chunk");
+            .expect("the agent blocks its task");
         let inner = Arc::clone(&inner);
         async move { inner.connect(config).await }
     });
@@ -1574,18 +1569,18 @@ async fn a_target_the_agent_blocked_is_not_sent_to_the_judge() {
     assert_eq!(prompts.len(), 1, "the turn ran");
     assert!(
         judge.asked().is_empty(),
-        "a blocked chunk is not a question for the judge: {:?}",
+        "a blocked task is not a question for the judge: {:?}",
         judge.asked()
     );
-    let chunk = engines.roadmap_chunk("work").unwrap().expect("the chunk");
+    let task = engines.plan_task("work").unwrap().expect("the task");
     assert!(
-        chunk.blocked_by.is_some(),
-        "the driver re-read the store the agent wrote: {chunk:?}"
+        task.waiting_on.is_some(),
+        "the driver re-read the store the agent wrote: {task:?}"
     );
     assert_eq!(
-        chunk.status,
-        ChunkStatus::Pending,
-        "a blocker leaves the status where it was — which is why the driver reads blocked_by"
+        task.status,
+        TaskStatus::ToDo,
+        "a blocker leaves the status where it was — which is why the driver reads waiting_on"
     );
     let stage = stage_text(&model);
     assert!(
@@ -1596,7 +1591,7 @@ async fn a_target_the_agent_blocked_is_not_sent_to_the_judge() {
     );
     assert!(
         !stage.contains("takes work again"),
-        "nothing promises a blocked chunk again: {stage}"
+        "nothing promises a blocked task again: {stage}"
     );
     assert!(
         report.metrics()[0].judge.is_none(),
@@ -1606,9 +1601,9 @@ async fn a_target_the_agent_blocked_is_not_sent_to_the_judge() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines() {
+async fn an_ok_verdict_over_green_gates_completes_the_task_through_the_engines() {
     let dir = project("true", "true", "true");
-    // The goal and its step are the agent's to set; the chunk itself
+    // The goal and its step are the agent's to set; the task itself
     // is never started by anyone but the driver.
     let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
@@ -1630,13 +1625,9 @@ async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines(
         report.metrics()[0]
     );
     assert_eq!(
-        engines
-            .roadmap_chunk("work")
-            .unwrap()
-            .expect("the chunk")
-            .status,
-        ChunkStatus::Done,
-        "the chunk the agent never even started is started and completed"
+        engines.plan_task("work").unwrap().expect("the task").status,
+        TaskStatus::Done,
+        "the task the agent never even started is started and completed"
     );
     let notes = notes(&model);
     assert!(
@@ -1650,16 +1641,12 @@ async fn an_ok_verdict_over_green_gates_completes_the_chunk_through_the_engines(
         "{notes:?}"
     );
 
-    // The completion frame reached the cockpit's roadmap view.
+    // The completion frame reached the cockpit's plan view.
 
     // A completion always names the step its evidence sits on: the one
     // the loop's gates were recorded on.
     assert_eq!(
-        engines
-            .roadmap_chunk("work")
-            .unwrap()
-            .expect("the chunk")
-            .cross_refs,
+        engines.plan_task("work").unwrap().expect("the task").refs,
         vec!["step:impl".to_owned()]
     );
 }
@@ -1697,9 +1684,9 @@ async fn a_judged_completion_names_the_step_its_gates_were_recorded_on() {
             .is_some_and(|t| t.checks.len() == 3),
         "every gate landed on the named step"
     );
-    let done = engines.roadmap_chunk("work").unwrap().expect("the chunk");
-    assert_eq!(done.status, ChunkStatus::Done);
-    assert_eq!(done.cross_refs, vec!["step:impl".to_owned()]);
+    let done = engines.plan_task("work").unwrap().expect("the task");
+    assert_eq!(done.status, TaskStatus::Done);
+    assert_eq!(done.refs, vec!["step:impl".to_owned()]);
 }
 
 /// On a polyglot project the loop runs the set completion verifies: one
@@ -1746,13 +1733,13 @@ async fn a_two_archetype_project_completes_through_the_loops_own_check_results()
         "the archetype's command carries its directory, as the contract spells it"
     );
 
-    let done = engines.roadmap_chunk("work").unwrap().expect("the chunk");
+    let done = engines.plan_task("work").unwrap().expect("the task");
     assert_eq!(
         done.status,
-        ChunkStatus::Done,
+        TaskStatus::Done,
         "completion accepted the loop's check_results as its contracts"
     );
-    assert_eq!(done.cross_refs, vec!["step:impl".to_owned()]);
+    assert_eq!(done.refs, vec!["step:impl".to_owned()]);
     assert!(
         !notes(&model).iter().any(|n| n.contains("not recorded")),
         "nothing said it could not record"
@@ -1760,7 +1747,7 @@ async fn a_two_archetype_project_completes_through_the_loops_own_check_results()
 }
 
 /// A required custom gate is part of the loop's set: red, it is a
-/// disagreement with the judge and the chunk stays where it is.
+/// disagreement with the judge and the task stays where it is.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_red_required_custom_gate_refuses_the_judged_completion() {
     let dir = polyglot_project("test -f web.marker", "exit 3");
@@ -1779,17 +1766,13 @@ async fn a_red_required_custom_gate_refuses_the_judged_completion() {
     .await;
 
     assert_ne!(
-        engines
-            .roadmap_chunk("work")
-            .unwrap()
-            .expect("the chunk")
-            .status,
-        ChunkStatus::Done,
+        engines.plan_task("work").unwrap().expect("the task").status,
+        TaskStatus::Done,
         "a red required custom gate cannot be judged green"
     );
     let stage = stage_text(&model);
     assert!(
-        stage.contains("but the gates disagree: smoke failed — the chunk stays in progress"),
+        stage.contains("but the gates disagree: smoke failed — the task stays in progress"),
         "{stage}"
     );
 
@@ -1877,7 +1860,7 @@ async fn a_required_archetype_gate_cannot_disappear_behind_a_green_top_level_com
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_ok_verdict_over_a_red_gate_is_a_disagreement_and_the_chunk_stays() {
+async fn an_ok_verdict_over_a_red_gate_is_a_disagreement_and_the_task_stays() {
     let dir = project("true", "true", "false");
     let engines = engines_with_work(dir.path());
     let judge = Scripted::new([Verdict::met("looks done to me")]);
@@ -1894,25 +1877,21 @@ async fn an_ok_verdict_over_a_red_gate_is_a_disagreement_and_the_chunk_stays() {
     .await;
     assert_eq!(report.end(), &LoopEnd::MaxIterations(1), "the loop goes on");
     assert_ne!(
-        engines
-            .roadmap_chunk("work")
-            .unwrap()
-            .expect("the chunk")
-            .status,
-        ChunkStatus::Done,
+        engines.plan_task("work").unwrap().expect("the task").status,
+        TaskStatus::Done,
         "a red gate cannot be judged green"
     );
     let stage = stage_text(&model);
     assert!(
         stage.contains(
-            "error: the judge says work is met (looks done to me) but the gates disagree: lint failed — the chunk stays in progress"
+            "error: the judge says work is met (looks done to me) but the gates disagree: lint failed — the task stays in progress"
         ),
         "{stage}"
     );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_impossible_verdict_blocks_the_chunk_on_a_human_and_ends_the_loop() {
+async fn an_impossible_verdict_blocks_the_task_on_a_human_and_ends_the_loop() {
     let dir = project("true", "true", "true");
     let engines = engines_with_work(dir.path());
     let judge = Scripted::new([Verdict::impossible(
@@ -1938,9 +1917,9 @@ async fn an_impossible_verdict_blocks_the_chunk_on_a_human_and_ends_the_loop() {
         report.to_string().lines().next(),
         Some("loop: 1 iteration · Your input is needed: the two criteria contradict each other")
     );
-    let chunk = engines.roadmap_chunk("work").unwrap().expect("the chunk");
-    let blocker = chunk.blocked_by.expect("blocked on a human");
-    assert_eq!(blocker.kind, BlockerKind::AwaitingHuman);
+    let task = engines.plan_task("work").unwrap().expect("the task");
+    let blocker = task.waiting_on.expect("blocked on a human");
+    assert_eq!(blocker.kind, WaitingReason::Person);
     assert!(
         blocker.reason.contains("contradict each other"),
         "{}",
@@ -2007,7 +1986,7 @@ async fn extension_mode_sets_the_goal_through_the_advertised_method_and_skips_th
     assert_eq!(goals[0].0, "set");
     let goal = goals[0].1.as_deref().expect("a goal");
     assert!(
-        goal.starts_with("Done means: roadmap chunk `work` is complete (Chunk work)"),
+        goal.starts_with("Done means: plan task `work` is complete (Task work)"),
         "{goal}"
     );
     assert!(goal.contains("print its verdict line"), "{goal}");
@@ -2067,7 +2046,7 @@ async fn command_mode_composes_the_discovered_turn_and_is_confirmed_by_the_echo(
         stage_text(&model)
     );
     assert!(
-        prompts[0].starts_with("/goal Done means: roadmap chunk `work` is complete"),
+        prompts[0].starts_with("/goal Done means: plan task `work` is complete"),
         "the turn is the discovered name plus the goal: {}",
         prompts[0]
     );
@@ -2153,7 +2132,7 @@ async fn a_mute_agent_is_reported_cleared_and_the_native_judge_takes_over() {
         [
             (
                 "set".to_owned(),
-                Some(AgentGoal::compile_objective(Some(("work", "Chunk work"))))
+                Some(AgentGoal::compile_objective(Some(("work", "Task work"))))
             ),
             ("clear".to_owned(), None),
         ],
@@ -2171,7 +2150,7 @@ async fn a_mute_agent_is_reported_cleared_and_the_native_judge_takes_over() {
     );
     let asked = judge.asked();
     assert_eq!(asked.len(), 1, "the native judge decided the iteration");
-    assert_eq!(asked[0].chunk, "work");
+    assert_eq!(asked[0].task, "work");
     let stage = stage_text(&model);
     assert!(
         stage.contains(
@@ -2313,7 +2292,7 @@ fn engines_with_active_step(dir: &Path) -> NativeEngines {
             "do the work".into(),
             vec![],
             vec![],
-            "chunk:work".into(),
+            "task:work".into(),
             magistr_engine::native::VerificationMode::Full,
         )
         .expect("goal");
@@ -2519,7 +2498,7 @@ async fn a_store_with_no_active_step_says_why_the_gates_were_not_recorded() {
 
 /// A failed required check leaves unfinished work in progress.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_red_gate_keeps_the_chunk_in_progress() {
+async fn a_red_gate_keeps_the_task_in_progress() {
     let dir = project("true", "true", "exit 3");
     let engines = engines_with_work(dir.path());
     let agent_side = agent_side(&engines);
@@ -2544,13 +2523,9 @@ async fn a_red_gate_keeps_the_chunk_in_progress() {
     .await;
 
     assert_eq!(
-        engines
-            .roadmap_chunk("work")
-            .unwrap()
-            .expect("the chunk")
-            .status,
-        ChunkStatus::InProgress,
-        "a failed required check cannot complete the chunk"
+        engines.plan_task("work").unwrap().expect("the task").status,
+        TaskStatus::InProgress,
+        "a failed required check cannot complete the task"
     );
     let notes = notes(&model);
     assert!(
@@ -2563,9 +2538,9 @@ async fn a_red_gate_keeps_the_chunk_in_progress() {
     );
 }
 
-/// Green gates leave a self-completed chunk exactly as the agent left it.
+/// Green gates leave a self-completed task exactly as the agent left it.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn green_gates_leave_a_self_completed_chunk_done() {
+async fn green_gates_leave_a_self_completed_task_done() {
     let dir = project("true", "true", "true");
     let engines = engines_with_work(dir.path());
     let agent_side = agent_side(&engines);
@@ -2595,12 +2570,8 @@ async fn green_gates_leave_a_self_completed_chunk_done() {
     .await;
 
     assert_eq!(
-        engines
-            .roadmap_chunk("work")
-            .unwrap()
-            .expect("the chunk")
-            .status,
-        ChunkStatus::Done
+        engines.plan_task("work").unwrap().expect("the task").status,
+        TaskStatus::Done
     );
     assert!(
         !notes(&model).iter().any(|n| n.contains("reopened")),
@@ -2641,16 +2612,16 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
         let (inner, seen) = fake_connector(FakeAcpAgent::new().reply("Work finished."));
         let root = dir.path().to_path_buf();
         let connector = Connector::new(move |config| {
-            agent_side.roadmap_start_chunk("work").unwrap();
+            agent_side.plan_start_task("work").unwrap();
             agent_side
                 .run_open_with_verification(
                     "do the work".into(),
                     vec![],
                     vec![],
                     if case == "foreign" {
-                        "chunk:other"
+                        "task:other"
                     } else {
-                        "chunk:work"
+                        "task:work"
                     }
                     .into(),
                     if full {
@@ -2695,7 +2666,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                 agent_side.run_finish(vec![], None).unwrap();
                 if valid {
                     agent_side
-                        .roadmap_complete_chunk("work", Some("step:verify"))
+                        .plan_complete_task("work", Some("step:verify"))
                         .unwrap();
                 }
             }
@@ -2746,8 +2717,8 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                 "{case}: {stage}"
             );
             assert_eq!(
-                engines.roadmap_chunk("work").unwrap().unwrap().status,
-                ChunkStatus::Done,
+                engines.plan_task("work").unwrap().unwrap().status,
+                TaskStatus::Done,
                 "{case}"
             );
             let expected_checks = if full { 3 } else { 1 };
@@ -2779,8 +2750,8 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                 "{case}: missing evidence never reaches the judge"
             );
             assert_ne!(
-                engines.roadmap_chunk("work").unwrap().unwrap().status,
-                ChunkStatus::Done,
+                engines.plan_task("work").unwrap().unwrap().status,
+                TaskStatus::Done,
                 "{case}"
             );
             assert!(
@@ -2821,11 +2792,11 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
     let root = dir.path().to_path_buf();
     let connector = Connector::new(move |config| {
         agent_side
-            .roadmap_add_chunk(
+            .plan_add_task(
                 "work-part".to_owned(),
                 "The first part of the work".to_owned(),
                 "work part".to_owned(),
-                ChunkStatus::Pending,
+                TaskStatus::ToDo,
                 90,
                 String::new(),
                 vec!["the part works".to_owned()],
@@ -2834,13 +2805,13 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
                 None,
             )
             .unwrap();
-        agent_side.roadmap_start_chunk("work-part").unwrap();
+        agent_side.plan_start_task("work-part").unwrap();
         agent_side
             .run_open_with_verification(
                 "do the first part".into(),
                 vec![],
                 vec![],
-                "chunk:work-part".into(),
+                "task:work-part".into(),
                 VerificationMode::Focused,
             )
             .unwrap();
@@ -2866,7 +2837,7 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
         agent_side.finish_step("verify", vec![]).unwrap();
         agent_side.run_finish(vec![], None).unwrap();
         agent_side
-            .roadmap_complete_chunk("work-part", Some("step:verify"))
+            .plan_complete_task("work-part", Some("step:verify"))
             .unwrap();
         let inner = inner.clone();
         async move { inner.connect(config).await }
@@ -2897,12 +2868,12 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
     assert!(!dir.path().join("unexpected-gate").exists());
 
     assert_eq!(
-        engines.roadmap_chunk("work-part").unwrap().unwrap().status,
-        ChunkStatus::Done
+        engines.plan_task("work-part").unwrap().unwrap().status,
+        TaskStatus::Done
     );
     assert_ne!(
-        engines.roadmap_chunk("work").unwrap().unwrap().status,
-        ChunkStatus::Done,
+        engines.plan_task("work").unwrap().unwrap().status,
+        TaskStatus::Done,
         "the rest of the item is still to do"
     );
     assert!(
@@ -2912,9 +2883,9 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
     assert!(stage.contains("work-part"), "{stage}");
 }
 
-/// A completed chunk is accepted on its recorded evidence; no rerun reopens it.
+/// A completed task is accepted on its recorded evidence; no rerun reopens it.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn completed_evidence_is_not_rerun_to_reopen_a_chunk() {
+async fn completed_evidence_is_not_rerun_to_reopen_a_task() {
     let flake = "if [ -e flake.marker ]; then exit 0; else touch flake.marker; exit 9; fi";
     let dir = project("true", flake, "true");
     let engines = engines_with_work(dir.path());
@@ -2952,12 +2923,8 @@ async fn completed_evidence_is_not_rerun_to_reopen_a_chunk() {
     .await;
 
     assert_eq!(
-        engines
-            .roadmap_chunk("work")
-            .unwrap()
-            .expect("the chunk")
-            .status,
-        ChunkStatus::Done,
+        engines.plan_task("work").unwrap().expect("the task").status,
+        TaskStatus::Done,
         "completed work stays completed: {report}; {:?}",
         notes(&model)
     );
@@ -3064,7 +3031,7 @@ async fn a_red_gate_overrules_the_judges_completion_claim() {
     assert_eq!(
         judge.asked().len(),
         1,
-        "the judge is asked about the unfinished chunk"
+        "the judge is asked about the unfinished task"
     );
     let notes = notes(&model);
     assert!(
@@ -3073,13 +3040,9 @@ async fn a_red_gate_overrules_the_judges_completion_claim() {
     );
 
     assert_eq!(
-        engines
-            .roadmap_chunk("work")
-            .unwrap()
-            .expect("the chunk")
-            .status,
-        ChunkStatus::InProgress,
-        "and the chunk stays in progress"
+        engines.plan_task("work").unwrap().expect("the task").status,
+        TaskStatus::InProgress,
+        "and the task stays in progress"
     );
 }
 
@@ -3129,10 +3092,10 @@ async fn a_judged_iteration_leaves_every_operation_settled_in_the_checkpoint() {
         (OperationKind::CheckResult, "gate:check@step:impl"),
         (OperationKind::CheckResult, "gate:lint@step:impl"),
         (OperationKind::CheckResult, "gate:test@step:impl"),
-        (OperationKind::NativeMutation, "complete_chunk:work"),
-        (OperationKind::NativeMutation, "start_chunk:work"),
+        (OperationKind::NativeMutation, "complete_task:work"),
+        (OperationKind::NativeMutation, "start_task:work"),
         (OperationKind::ProviderDispatch, "dispatch"),
-        (OperationKind::Publication, "frame:chunk_completed:work"),
+        (OperationKind::Publication, "frame:task_completed:work"),
         (OperationKind::Reservation, "attempt:0"),
     ];
     assert_eq!(
@@ -3182,7 +3145,7 @@ async fn a_judged_iteration_leaves_every_operation_settled_in_the_checkpoint() {
 async fn failures_before_the_first_iteration_are_reported_without_connecting_an_agent() {
     for fail_persistence in [false, true] {
         let dir = project("true", "true", "true");
-        let spec = dir.path().join("ROADMAP.md");
+        let spec = dir.path().join("PLAN.md");
         let wf = WorkflowConfig::load(dir.path()).unwrap();
         let iteration = IterationLoop::open(dir.path(), &spec, 1, None).unwrap();
         if fail_persistence {
@@ -3226,7 +3189,7 @@ async fn failures_before_the_first_iteration_are_reported_without_connecting_an_
 async fn oversized_opening_message_ends_the_loop_with_a_visible_failure() {
     let dir = project("true", "true", "true");
     let item = "x".repeat(magistr_application::sessions::MAX_PROMPT_BYTES + 1);
-    std::fs::write(dir.path().join("ROADMAP.md"), format!("- [ ] {item}\n")).unwrap();
+    std::fs::write(dir.path().join("PLAN.md"), format!("- [ ] {item}\n")).unwrap();
     let (model, report, prompts) = tokio::time::timeout(
         Duration::from_secs(5),
         run(
@@ -3277,7 +3240,7 @@ async fn oversized_opening_message_ends_the_loop_with_a_visible_failure() {
 async fn opening_message_keeps_at_paths_as_literal_text() {
     let dir = project("true", "true", "true");
     std::fs::write(
-        dir.path().join("ROADMAP.md"),
+        dir.path().join("PLAN.md"),
         "- [ ] Read @missing-loop-startup.txt before continuing\n",
     )
     .unwrap();
@@ -3324,7 +3287,7 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
     for add_pending in [false, true] {
         let dir = project("true", "true", "true");
         let engines = engines_with_work(dir.path());
-        let spec = dir.path().join("ROADMAP.md");
+        let spec = dir.path().join("PLAN.md");
         let previous =
             IterationLoop::start_or_recover(dir.path(), &spec, 3, Some(engines.reader())).unwrap();
         let previous_run = previous.state().run_id.clone();
@@ -3333,7 +3296,7 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
         let inner = Arc::new(inner);
         let writer = engines.clone();
         let connector = Connector::new(move |config| {
-            writer.roadmap_start_chunk("work").unwrap();
+            writer.plan_start_task("work").unwrap();
             let inner = Arc::clone(&inner);
             async move { inner.connect(config).await }
         });
@@ -3375,7 +3338,7 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
         let stopped = checkpoint(dir.path());
         assert_eq!(stopped.run.terminal_reason, Some(StopReason::Cancelled));
         assert_eq!(stopped.operations.unsettled().count(), 0);
-        assert_eq!(stopped.native_chunk_id.as_deref(), Some("work"));
+        assert_eq!(stopped.native_task_id.as_deref(), Some("work"));
         assert!(
             stopped
                 .operations
@@ -3387,16 +3350,16 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
                 )
         );
         assert_eq!(
-            engines.roadmap_chunk("work").unwrap().unwrap().status,
-            ChunkStatus::InProgress
+            engines.plan_task("work").unwrap().unwrap().status,
+            TaskStatus::InProgress
         );
         if add_pending {
             engines
-                .roadmap_add_chunk(
+                .plan_add_task(
                     "new-work".into(),
                     "A different ready item".into(),
                     "other".into(),
-                    ChunkStatus::Pending,
+                    TaskStatus::ToDo,
                     1,
                     String::new(),
                     vec!["new acceptance".into()],
@@ -3405,10 +3368,10 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
                     None,
                 )
                 .unwrap();
-            assert_eq!(engines.roadmap_next().unwrap().unwrap().id, "new-work");
+            assert_eq!(engines.plan_next().unwrap().unwrap().id, "new-work");
         } else {
             assert!(
-                engines.roadmap_next().unwrap().is_none(),
+                engines.plan_next().unwrap().is_none(),
                 "ready-only selection cannot resume work"
             );
         }
@@ -3440,7 +3403,7 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
         let advanced = checkpoint(dir.path());
         assert_eq!(advanced.run.completed_attempts, 1);
         assert_eq!(
-            advanced.native_chunk_id.as_deref(),
+            advanced.native_task_id.as_deref(),
             Some("work"),
             "advancing an attempt keeps its unfinished item for the next request"
         );
@@ -3451,24 +3414,24 @@ async fn quitting_native_work_and_restarting_resumes_it_before_any_pending_item(
             .flat_map(|agent| agent.prompts())
             .collect();
         assert_eq!(prompts.len(), 1);
-        assert!(prompts[0].contains("Chunk work"), "{}", prompts[0]);
+        assert!(prompts[0].contains("Task work"), "{}", prompts[0]);
         assert!(!prompts[0].contains("A different ready item"));
         assert_eq!(judge.asked().len(), 1);
-        assert_eq!(judge.asked()[0].chunk, "work");
+        assert_eq!(judge.asked()[0].task, "work");
         assert!(
             notes(&model)
                 .iter()
-                .any(|line| line == "Resuming Chunk work")
+                .any(|line| line == "Resuming Task work")
         );
 
         assert_eq!(
-            engines.roadmap_chunk("work").unwrap().unwrap().status,
-            ChunkStatus::InProgress
+            engines.plan_task("work").unwrap().unwrap().status,
+            TaskStatus::InProgress
         );
         if add_pending {
             assert_eq!(
-                engines.roadmap_chunk("new-work").unwrap().unwrap().status,
-                ChunkStatus::Pending
+                engines.plan_task("new-work").unwrap().unwrap().status,
+                TaskStatus::ToDo
             );
         }
     }
@@ -3479,11 +3442,11 @@ async fn the_selected_judge_target_is_not_replaced_by_another_in_progress_item()
     let dir = project("true", "true", "true");
     let engines = engines_with_work(dir.path());
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             "other".into(),
             "Other work".into(),
             "other".into(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             1,
             String::new(),
             vec!["done".into()],
@@ -3492,10 +3455,10 @@ async fn the_selected_judge_target_is_not_replaced_by_another_in_progress_item()
             None,
         )
         .unwrap();
-    engines.roadmap_start_chunk("other").unwrap();
+    engines.plan_start_task("other").unwrap();
     let iter_loop = IterationLoop::open(
         dir.path(),
-        dir.path().join("ROADMAP.md"),
+        dir.path().join("PLAN.md"),
         1,
         Some(engines.reader()),
     )
@@ -3513,31 +3476,31 @@ async fn the_selected_judge_target_is_not_replaced_by_another_in_progress_item()
         connector,
     );
     driver.target = Some("work".into());
-    assert_eq!(driver.target_chunk(&engines).unwrap().unwrap().id, "work");
+    assert_eq!(driver.target_task(&engines).unwrap().unwrap().id, "work");
     driver.target = Some("missing".into());
     assert!(
-        driver.target_chunk(&engines).unwrap().is_none(),
+        driver.target_task(&engines).unwrap().is_none(),
         "a removed selection cannot redirect work"
     );
 
     use magistr_workflow::infra::{Domain, Persistence};
-    let path = Persistence::new(&engines.config().persistence_config(), Domain::Roadmap)
+    let path = Persistence::new(&engines.config().persistence_config(), Domain::Plan)
         .path_for(engines.project_id());
     let original = std::fs::read(&path).unwrap();
     driver.target = Some("work".into());
-    std::fs::write(&path, "{invalid roadmap").unwrap();
+    std::fs::write(&path, "{invalid plan").unwrap();
     assert!(
-        driver.target_chunk(&engines).is_err(),
+        driver.target_task(&engines).is_err(),
         "unreadable work cannot be judged from a cached selection"
     );
     std::fs::write(&path, original).unwrap();
-    assert_eq!(driver.target_chunk(&engines).unwrap().unwrap().id, "work");
+    assert_eq!(driver.target_task(&engines).unwrap().unwrap().id, "work");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_new_loop_request_after_cancellation_sends_the_opening_prompt() {
     let dir = project("true", "true", "true");
-    let spec = dir.path().join("ROADMAP.md");
+    let spec = dir.path().join("PLAN.md");
     let mut previous = IterationLoop::open(dir.path(), &spec, 3, None).unwrap();
     previous.pre_iteration_check().unwrap();
     let dispatch = previous
@@ -3589,7 +3552,7 @@ async fn a_new_loop_request_after_cancellation_sends_the_opening_prompt() {
 async fn an_accepted_dispatch_retries_at_two_with_a_durable_marker_before_connect() {
     use magistr_core::workflow::iteration::DispatchPhase;
     let dir = project("true", "true", "true");
-    let spec = dir.path().join("ROADMAP.md");
+    let spec = dir.path().join("PLAN.md");
     let mut previous = IterationLoop::open(dir.path(), &spec, 1, None).unwrap();
     previous.pre_iteration_check().unwrap();
     let first = previous
@@ -3632,7 +3595,7 @@ async fn an_accepted_dispatch_retries_at_two_with_a_durable_marker_before_connec
 #[tokio::test]
 async fn a_failed_dispatch_checkpoint_never_calls_the_connector() {
     let dir = project("true", "true", "true");
-    let il = IterationLoop::open(dir.path(), dir.path().join("ROADMAP.md"), 1, None).unwrap();
+    let il = IterationLoop::open(dir.path(), dir.path().join("PLAN.md"), 1, None).unwrap();
     std::fs::create_dir(dir.path().join(".magistr/loop-state.json")).unwrap();
     let (connector, seen) = fake_connector(FakeAcpAgent::new());
     let mut runtime = ControlHarness::new(Actions::new());
@@ -3666,7 +3629,7 @@ async fn an_unreconciled_dispatch_ends_the_loop_without_a_launch_or_a_terminal_r
         .spawn()
         .expect("a stand-in provider runtime");
     {
-        let mut il = IterationLoop::open(dir.path(), dir.path().join("ROADMAP.md"), 3, None)
+        let mut il = IterationLoop::open(dir.path(), dir.path().join("PLAN.md"), 3, None)
             .expect("the loop opens");
         assert_eq!(il.pre_iteration_check().unwrap(), PreCheckResult::Continue);
         let dispatch = il
@@ -3677,9 +3640,8 @@ async fn an_unreconciled_dispatch_ends_the_loop_without_a_launch_or_a_terminal_r
             .unwrap();
         il.persist().unwrap();
     }
-    let recovered =
-        IterationLoop::open_or_recover(dir.path(), dir.path().join("ROADMAP.md"), 3, None)
-            .expect("recovery");
+    let recovered = IterationLoop::open_or_recover(dir.path(), dir.path().join("PLAN.md"), 3, None)
+        .expect("recovery");
     assert_eq!(recovered.reconciliation().open.len(), 1);
     let wf = WorkflowConfig::load(dir.path()).expect("the fixture loads");
     let (connector, seen) = fake_connector(FakeAcpAgent::new().reply("never asked"));
@@ -3721,7 +3683,7 @@ async fn an_unreconciled_dispatch_ends_the_loop_without_a_launch_or_a_terminal_r
     runtime.kill().unwrap();
     runtime.wait().unwrap();
     // The runtime gone and no commit past the baseline: failed, retryable.
-    let again = IterationLoop::open_or_recover(dir.path(), dir.path().join("ROADMAP.md"), 3, None)
+    let again = IterationLoop::open_or_recover(dir.path(), dir.path().join("PLAN.md"), 3, None)
         .expect("recovery");
     assert_eq!(
         again.reconciliation().settled[0].outcome,
@@ -3733,7 +3695,7 @@ async fn an_unreconciled_dispatch_ends_the_loop_without_a_launch_or_a_terminal_r
 
 /// A start taken inside a live hosted session — the desktop's and
 /// `magistr start`'s host — runs on this same driver: the judged iteration
-/// completes the chunk with every operation settled in the checkpoint, the
+/// completes the task with every operation settled in the checkpoint, the
 /// session takes conversation again when the run ends, and a further start
 /// is answered on its own terms.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -3747,7 +3709,7 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
     let path = dir.path().join(".magistr/project.json");
     let mut declared: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).expect("project.json")).expect("json");
-    declared["roadmap_backend"] = serde_json::json!("native");
+    declared["plan_backend"] = serde_json::json!("native");
     std::fs::write(&path, declared.to_string()).expect("project.json");
     let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
@@ -3853,12 +3815,8 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
     );
 
     assert_eq!(
-        engines
-            .roadmap_chunk("work")
-            .unwrap()
-            .expect("the chunk")
-            .status,
-        ChunkStatus::Done
+        engines.plan_task("work").unwrap().expect("the task").status,
+        TaskStatus::Done
     );
     let state = checkpoint(dir.path());
     assert_eq!(
@@ -3871,7 +3829,7 @@ async fn a_start_in_a_hosted_session_runs_a_judged_iteration_and_returns_to_conv
             .operations
             .records()
             .iter()
-            .any(|record| record.target == "complete_chunk:work"),
+            .any(|record| record.target == "complete_task:work"),
         "the judged completion went through the operation ledger"
     );
     assert_eq!(state.operations.unsettled().count(), 0);
@@ -3974,11 +3932,11 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
     let dir = project("true", "true", "true");
     let engines = engines_with_work(dir.path());
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             "selected".into(),
             "Selected".into(),
             "Selected work".into(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             1,
             String::new(),
             vec![],
@@ -3988,11 +3946,11 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
         )
         .unwrap();
     engines
-        .roadmap_set_group("selected", Some("Chosen track".into()))
+        .plan_set_feature("selected", Some("Chosen track".into()))
         .unwrap();
     let iteration = IterationLoop::open(
         dir.path(),
-        dir.path().join("ROADMAP.md"),
+        dir.path().join("PLAN.md"),
         1,
         Some(engines.reader()),
     )
@@ -4028,7 +3986,7 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
     .await;
     assert!(seen.lock().unwrap().is_empty());
     assert!(checkpoint(dir.path()).operations.records().is_empty());
-    assert_eq!(checkpoint(dir.path()).native_chunk_id, None);
+    assert_eq!(checkpoint(dir.path()).native_task_id, None);
 
     commands
         .send(Cmd::Launch(LaunchAction::Loop(LoopScope::Track(
@@ -4043,14 +4001,13 @@ async fn track_choice_waits_inside_the_cockpit_before_preflight_and_provider_wor
     assert_eq!(seen.lock().unwrap().len(), 1);
     let state = checkpoint(dir.path());
     assert_eq!(state.native_track.as_deref(), Some("Chosen track"));
-    assert_eq!(state.native_chunk_id.as_deref(), Some("selected"));
+    assert_eq!(state.native_task_id.as_deref(), Some("selected"));
 }
 
 #[tokio::test]
 async fn closing_the_track_picker_session_starts_no_work() {
     let dir = project("true", "true", "true");
-    let iteration =
-        IterationLoop::open(dir.path(), dir.path().join("ROADMAP.md"), 1, None).unwrap();
+    let iteration = IterationLoop::open(dir.path(), dir.path().join("PLAN.md"), 1, None).unwrap();
     let (inbox, mut events) = Inbox::channel();
     let (commands, receiver) = Commands::channel();
     let step = LoopDriver::new(

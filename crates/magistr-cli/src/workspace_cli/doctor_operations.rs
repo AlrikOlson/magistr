@@ -112,7 +112,7 @@ pub(crate) fn operations_section(root: &Path, workspace_generation: Option<u64>)
                     "lastSettledAttempt": state.run.last_settled_attempt,
                     "attemptStarted": state.attempt_started,
                     "lastCommitSha": state.last_commit_sha,
-                    "nativeChunk": state.native_chunk_id,
+                    "nativeTask": state.native_task_id,
                 },
                 "identities": {
                     "project": "the loop key's project, above",
@@ -225,7 +225,7 @@ fn classify(
     }
     let authority = match record.kind {
         OperationKind::Reservation => "the checkpoint that carries it (completed)",
-        OperationKind::NativeMutation => "the chunk as the native store holds it now",
+        OperationKind::NativeMutation => "the task as the native store holds it now",
         OperationKind::CheckResult => {
             "the durable receipt the record names, never a same-named check"
         }

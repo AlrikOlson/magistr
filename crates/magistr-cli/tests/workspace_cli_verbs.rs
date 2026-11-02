@@ -1,4 +1,4 @@
-//! The operational workspace verbs as the real binary (chunk arch-14c10b):
+//! The operational workspace verbs as the real binary (task arch-14c10b):
 //! `magistr workspace doctor [bundle|config]`, `journal`, `key rotate`,
 //! `init` and `snapshot` with the retained renderings and process exit codes — 0 healthy,
 //! 1 findings, 64 usage, 65 durable data this binary cannot read, 66
@@ -498,7 +498,7 @@ fn doctor_explains_stalled_then_recoverable_operations_and_a_legacy_marker() {
         })
     };
     let checkpoint = serde_json::json!({
-        "run": { "mode": "chunk_loop", "completed_attempts": 0, "max_iterations": 5,
+        "run": { "mode": "task_loop", "completed_attempts": 0, "max_iterations": 5,
                  "consecutive_no_commits": 0, "budget_total_usd": 0.0, "budget_limit_usd": null,
                  "terminal_reason": null, "last_settled_attempt": null },
         "run_id": { "project": "proj", "local": run_key },
@@ -506,7 +506,7 @@ fn doctor_explains_stalled_then_recoverable_operations_and_a_legacy_marker() {
             record("0/attempt", "reservation", "attempt:0", "completed", Value::Null),
             record("0/dispatch", "provider_dispatch", "dispatch", "running", serde_json::json!(handle.to_string())),
         ] },
-        "attempt_started": 0, "native_chunk_id": "chunk-a", "last_commit_sha": null,
+        "attempt_started": 0, "native_task_id": "chunk-a", "last_commit_sha": null,
         "native_track": null, "session_selection": null,
         "last_status": "none", "spec_checked": 0, "spec_total": 1,
     });

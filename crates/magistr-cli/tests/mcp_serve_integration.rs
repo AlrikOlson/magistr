@@ -45,7 +45,7 @@ fn write_fixture(root: &Path) {
             "required": false
         }],
         "format": {"command": "true", "extensions": ["rs"]},
-        "spec": {"file": "ROADMAP.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
+        "spec": {"file": "PLAN.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [],
         "state_prefix": "fixture"
@@ -190,19 +190,19 @@ async fn native_run_check_cannot_land_on_a_reused_task_in_a_later_run() {
 }
 
 #[tokio::test]
-async fn roadmap_export_writes_live_state_in_the_project_and_returns_only_a_receipt() {
+async fn plan_export_writes_live_state_in_the_project_and_returns_only_a_receipt() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("project");
     std::fs::create_dir_all(&root).expect("root");
     write_fixture(&root);
-    let path = root.join("ROADMAP.md");
+    let path = root.join("PLAN.md");
     std::fs::write(&path, "stale projection").expect("old export");
     let (client, server) = pair(&root, &tmp.path().join("data")).await;
     call(
         &client,
-        "roadmap_add_chunk",
+        "plan_add_task",
         json!({
-            "id": "export-test", "title": "Write the generated roadmap", "group": "Exports",
+            "id": "export-test", "title": "Write the generated plan", "feature": "Exports",
             "description": "large body ".repeat(2000)
         }),
     )
@@ -212,14 +212,14 @@ async fn roadmap_export_writes_live_state_in_the_project_and_returns_only_a_rece
     let tool = tools
         .tools
         .iter()
-        .find(|t| t.name == "roadmap_export")
+        .find(|t| t.name == "plan_export")
         .expect("export tool");
     assert_eq!(tool.input_schema["properties"]["output"]["default"], "file");
     assert_eq!(
         tool.annotations.as_ref().and_then(|a| a.read_only_hint),
         Some(false)
     );
-    let response = call(&client, "roadmap_export", json!({})).await;
+    let response = call(&client, "plan_export", json!({})).await;
     let receipt = text_json(&response);
     assert_eq!(receipt["written"], true, "{receipt}");
     assert_eq!(
@@ -229,25 +229,22 @@ async fn roadmap_export_writes_live_state_in_the_project_and_returns_only_a_rece
             .to_string_lossy()
             .as_ref()
     );
-    assert!(
-        receipt.get("roadmap").is_none(),
-        "no document in the receipt"
-    );
+    assert!(receipt.get("plan").is_none(), "no document in the receipt");
     assert!(serde_json::to_vec(&response).expect("json").len() < 1024);
-    let contents = std::fs::read_to_string(&path).expect("exported roadmap");
-    assert!(contents.contains("Write the generated roadmap"));
+    let contents = std::fs::read_to_string(&path).expect("exported plan");
+    assert!(contents.contains("Write the generated plan"));
     assert!(contents.len() > 20_000);
     assert_eq!(receipt["bytes"], contents.len());
 
     call(
         &client,
-        "roadmap_update_chunk",
+        "plan_update_task",
         json!({
             "id": "export-test", "title": "Export the latest in-process state"
         }),
     )
     .await;
-    call(&client, "roadmap_export", json!({})).await;
+    call(&client, "plan_export", json!({})).await;
     assert!(
         std::fs::read_to_string(&path)
             .expect("new export")
@@ -258,26 +255,26 @@ async fn roadmap_export_writes_live_state_in_the_project_and_returns_only_a_rece
 }
 
 #[tokio::test]
-async fn roadmap_export_inline_is_explicit_and_json_writes_its_own_file() {
+async fn plan_export_inline_is_explicit_and_json_writes_its_own_file() {
     let tmp = tempfile::tempdir().expect("tempdir");
     write_fixture(tmp.path());
     let (client, server) = pair(tmp.path(), &tmp.path().join("data")).await;
-    let inline = text_json(&call(&client, "roadmap_export", json!({"output": "inline"})).await);
-    assert!(inline["roadmap"].is_string(), "{inline}");
-    assert!(!tmp.path().join("ROADMAP.md").exists());
-    let receipt = text_json(&call(&client, "roadmap_export", json!({"format": "json"})).await);
+    let inline = text_json(&call(&client, "plan_export", json!({"output": "inline"})).await);
+    assert!(inline["plan"].is_string(), "{inline}");
+    assert!(!tmp.path().join("PLAN.md").exists());
+    let receipt = text_json(&call(&client, "plan_export", json!({"format": "json"})).await);
     assert_eq!(receipt["written"], true, "{receipt}");
     assert_eq!(receipt["format"], "json");
-    let json = std::fs::read_to_string(tmp.path().join("ROADMAP.json")).expect("json export");
+    let json = std::fs::read_to_string(tmp.path().join("PLAN.json")).expect("json export");
     serde_json::from_str::<Value>(&json).expect("valid JSON");
     assert_eq!(receipt["bytes"], json.len());
-    assert!(!tmp.path().join("ROADMAP.md").exists());
+    assert!(!tmp.path().join("PLAN.md").exists());
     client.cancel().await.expect("cancel");
     server.await.expect("server");
 }
 
 #[tokio::test]
-async fn roadmap_export_policy_updates_apply_to_running_server_without_blocking_native_reads() {
+async fn plan_export_policy_updates_apply_to_running_server_without_blocking_native_reads() {
     let tmp = tempfile::tempdir().expect("project");
     write_fixture(tmp.path());
     let (client, server) = pair(tmp.path(), &tmp.path().join("data")).await;
@@ -285,37 +282,37 @@ async fn roadmap_export_policy_updates_apply_to_running_server_without_blocking_
     let mut config: Value =
         serde_json::from_str(&std::fs::read_to_string(&config_path).expect("config"))
             .expect("json");
-    config["roadmap_exports"] = json!(false);
+    config["plan_exports"] = json!(false);
     std::fs::write(&config_path, config.to_string()).expect("disable exports after startup");
     for args in [
         json!({}),
         json!({"format":"markdown","output":"file"}),
         json!({"format":"json"}),
     ] {
-        let result = text_json(&call(&client, "roadmap_export", args).await);
+        let result = text_json(&call(&client, "plan_export", args).await);
         assert_eq!(result["ok"], false, "{result}");
         assert_eq!(result["error_kind"], "export_disabled", "{result}");
         assert!(
-            result.get("roadmap").is_none(),
+            result.get("plan").is_none(),
             "no document payload: {result}"
         );
-        assert!(!tmp.path().join("ROADMAP.md").exists());
-        assert!(!tmp.path().join("ROADMAP.json").exists());
+        assert!(!tmp.path().join("PLAN.md").exists());
+        assert!(!tmp.path().join("PLAN.json").exists());
     }
-    let result = text_json(&call(&client, "roadmap_export", json!({"output":"inline"})).await);
-    assert!(result["roadmap"].is_string(), "{result}");
-    assert!(!tmp.path().join("ROADMAP.md").exists());
-    let result = text_json(&call(&client, "roadmap_status", json!({})).await);
+    let result = text_json(&call(&client, "plan_export", json!({"output":"inline"})).await);
+    assert!(result["plan"].is_string(), "{result}");
+    assert!(!tmp.path().join("PLAN.md").exists());
+    let result = text_json(&call(&client, "plan_status", json!({})).await);
     assert_ne!(result["ok"], false, "{result}");
     client.cancel().await.expect("cancel");
     server.await.expect("server");
 }
 
 #[tokio::test]
-async fn roadmap_export_refuses_bad_arguments_and_non_file_targets_without_partial_writes() {
+async fn plan_export_refuses_bad_arguments_and_non_file_targets_without_partial_writes() {
     let tmp = tempfile::tempdir().expect("tempdir");
     write_fixture(tmp.path());
-    let target = tmp.path().join("ROADMAP.md");
+    let target = tmp.path().join("PLAN.md");
     std::fs::create_dir(&target).expect("directory target");
     let (client, server) = pair(tmp.path(), &tmp.path().join("data")).await;
     for args in [
@@ -324,11 +321,11 @@ async fn roadmap_export_refuses_bad_arguments_and_non_file_targets_without_parti
         json!({"format": 42}),
         json!({"output": null}),
     ] {
-        let error = text_json(&call(&client, "roadmap_export", args).await);
+        let error = text_json(&call(&client, "plan_export", args).await);
         assert_eq!(error["ok"], false, "{error}");
         assert_eq!(error["error_kind"], "invalid_args", "{error}");
     }
-    let error = text_json(&call(&client, "roadmap_export", json!({})).await);
+    let error = text_json(&call(&client, "plan_export", json!({})).await);
     assert_eq!(error["error_kind"], "export_failed", "{error}");
     assert!(target.is_dir());
     assert!(
@@ -346,22 +343,22 @@ async fn roadmap_export_refuses_bad_arguments_and_non_file_targets_without_parti
 
 #[cfg(unix)]
 #[tokio::test]
-async fn roadmap_export_never_follows_a_destination_symlink() {
+async fn plan_export_never_follows_a_destination_symlink() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("project");
     std::fs::create_dir(&root).expect("root");
     write_fixture(&root);
     let outside = tmp.path().join("outside.md");
     std::fs::write(&outside, "keep me").expect("outside");
-    std::os::unix::fs::symlink(&outside, root.join("ROADMAP.md")).expect("symlink");
+    std::os::unix::fs::symlink(&outside, root.join("PLAN.md")).expect("symlink");
     let (client, server) = pair(&root, &tmp.path().join("data")).await;
-    let error = text_json(&call(&client, "roadmap_export", json!({})).await);
+    let error = text_json(&call(&client, "plan_export", json!({})).await);
     assert_eq!(error["error_kind"], "export_failed", "{error}");
     assert_eq!(
         std::fs::read_to_string(outside).expect("outside"),
         "keep me"
     );
-    assert!(root.join("ROADMAP.md").is_symlink());
+    assert!(root.join("PLAN.md").is_symlink());
     client.cancel().await.expect("cancel");
     server.await.expect("server");
 }
@@ -384,8 +381,8 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_run() {
         "magistr_format",
         "think_record_step",
         "check_step",
-        "roadmap_next",
-        "roadmap_status",
+        "plan_next",
+        "plan_status",
         "signal_capture",
         "tracker_status",
     ] {
@@ -396,7 +393,7 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_run() {
     }
 
     // A magistr tool answers through the same server.
-    let status = call(&client, "roadmap_status", json!({})).await;
+    let status = call(&client, "plan_status", json!({})).await;
     assert_ne!(status.is_error, Some(true));
     assert_eq!(text_json(&status)["project_id"], "mcp-serve-fixture");
 
@@ -607,7 +604,7 @@ async fn a_modern_client_is_negotiated_down_and_tools_list_carries_no_result_typ
         .iter()
         .filter_map(|t| t["name"].as_str())
         .collect();
-    for expected in ["magistr_gate", "roadmap_next", "check_step"] {
+    for expected in ["magistr_gate", "plan_next", "check_step"] {
         assert!(names.contains(&expected), "{expected} in {names:?}");
     }
 
@@ -711,7 +708,7 @@ async fn a_client_that_discovers_before_initialize_still_lists_tools() {
         .iter()
         .filter_map(|t| t["name"].as_str())
         .collect();
-    for expected in ["magistr_gate", "roadmap_next", "check_step"] {
+    for expected in ["magistr_gate", "plan_next", "check_step"] {
         assert!(names.contains(&expected), "{expected} in {names:?}");
     }
     assert!(
@@ -1035,9 +1032,9 @@ async fn a_direct_gate_streams_its_bytes_on_the_feed_socket() {
             let frame: Value = serde_json::from_str(&line).expect("a json line");
             if frame["family"] == "magistr" && frame["type"] == "gate_output" {
                 assert_eq!(frame["gate"], "diag", "{frame}");
-                let chunk: Vec<u8> =
+                let task: Vec<u8> =
                     serde_json::from_value(frame["bytes"].clone()).expect("a byte array");
-                bytes.extend(chunk);
+                bytes.extend(task);
             }
         }
     }

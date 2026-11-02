@@ -221,7 +221,7 @@ admits the next turn.
 
 The shared runtime's
 [InteractiveSession](../../crates/magistr-cockpit-runtime/src/interactive_session.rs)
-owns conversation/planning context switching, one queued roadmap request,
+owns conversation/planning context switching, one queued plan request,
 connection retry and the lifetime of its local and provider relays. Hosts supply
 an asynchronous connector for the requested `SessionPurpose`, returning an
 application `SessionHandle`, plus admitted workspace, workflow and checkpoint

@@ -28,8 +28,8 @@ pub const SCAFFOLD_MANIFEST: &str = "scaffold-manifest.json";
 pub const INTERVIEW_TRACE: &str = "interview-trace.log";
 pub const PLUGINS_DIR_NAME: &str = "plugins";
 
-/// Roadmap YAML filename (lives at repo root, not inside `.magistr/`).
-pub const ROADMAP_YAML: &str = ".magistr-roadmap.yml";
+/// Plan YAML filename (lives at repo root, not inside `.magistr/`).
+pub const PLAN_YAML: &str = ".magistr-plan.yml";
 
 // ── Claude-owned subdirectories ─────────────────────────────────────────────
 
@@ -81,9 +81,9 @@ pub fn plugins_dir(project_dir: &Path) -> PathBuf {
     magistr_dir(project_dir).join(PLUGINS_DIR_NAME)
 }
 
-/// `.magistr-roadmap.yml` — canonical roadmap YAML at repo root.
-pub fn roadmap_yaml(project_dir: &Path) -> PathBuf {
-    project_dir.join(ROADMAP_YAML)
+/// `.magistr-plan.yml` — canonical plan YAML at repo root.
+pub fn plan_yaml(project_dir: &Path) -> PathBuf {
+    project_dir.join(PLAN_YAML)
 }
 
 // ── Path constructors (Claude Code native → .claude/) ───────────────────────
@@ -174,10 +174,10 @@ impl ProjectPaths {
         plugins_dir(&self.root)
     }
 
-    /// `.magistr-roadmap.yml` — canonical roadmap YAML at repo root.
+    /// `.magistr-plan.yml` — canonical plan YAML at repo root.
     #[must_use]
-    pub fn roadmap_yaml(&self) -> PathBuf {
-        roadmap_yaml(&self.root)
+    pub fn plan_yaml(&self) -> PathBuf {
+        plan_yaml(&self.root)
     }
 
     /// `.claude/` directory.

@@ -1,7 +1,7 @@
 /* Interactive project instruments. Canvas owns geometry; native elements own meaning. */
 :root{--surface-grid:#30323c;--surface-wire:#79798c}
 :root[data-theme=light]{--surface-grid:#d4d0c8;--surface-wire:#77727f}
-.roadmap-spatial,.reasoning-spatial{display:flex;flex-direction:column;height:100%;min-height:0;max-width:none;margin:0}
+.plan-spatial,.reasoning-spatial{display:flex;flex-direction:column;height:100%;min-height:0;max-width:none;margin:0}
 .surface-heading{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 20px;border-bottom:1px solid var(--separator)}
 .surface-heading h3{font:650 17px/1.3 var(--font-ui);margin:0}.surface-heading p{margin:4px 0 0;font-size:12px;color:var(--muted)}
 .surface-readiness{display:flex;gap:16px;font-size:11px;white-space:nowrap}.surface-readiness span:first-child{color:var(--success)}
@@ -35,12 +35,12 @@
 .surface-arrange{position:absolute;right:16px;bottom:16px;display:flex;gap:3px;align-items:center;background:var(--panel);border:1px solid var(--accent);border-radius:6px;padding:6px;font-size:11px;z-index:3}.surface-arrange button{min-width:28px;min-height:28px;padding:3px 8px;font-size:11px}
 #work-browser-body{display:flex;flex:1;min-height:0;min-width:0}
 #work-browser-content{min-width:0}
-#work-browser-content:has(.roadmap-spatial),#work-browser-content:has(.reasoning-spatial){padding:0;overflow:hidden;scrollbar-gutter:auto}
+#work-browser-content:has(.plan-spatial),#work-browser-content:has(.reasoning-spatial){padding:0;overflow:hidden;scrollbar-gutter:auto}
 #work-browser-inspector{width:390px;max-width:46%;overflow:auto;flex-shrink:0;border-left:1px solid var(--separator);padding:16px;background:var(--panel);min-height:0}
-#work-browser-inspector .roadmap-relations{grid-template-columns:1fr}
-#work-browser-inspector .roadmap-relation-current{display:none}
+#work-browser-inspector .plan-relations{grid-template-columns:1fr}
+#work-browser-inspector .plan-relation-current{display:none}
 #work-browser-inspector .work-record{max-width:none}
-#work-browser-inspector .roadmap-item-heading h3{font-size:16px}
+#work-browser-inspector .plan-item-heading h3{font-size:16px}
 #work-browser-inspector .work-section-jump{position:static;margin-block:10px}
 @media(max-width:900px){
  .surface-heading{padding:12px 16px;align-items:start}.surface-heading p{max-width:220px}.surface-readiness{gap:8px;font-size:10px;flex-wrap:wrap;justify-content:end}
@@ -85,7 +85,7 @@
 #workspace-main>.work-header h1{font-size:16px;line-height:1.35;max-width:none;text-wrap:pretty;display:block;overflow:visible}
 #conversation-toolbar{margin:0;padding:0;border:0;min-height:0;flex:0 0 auto;width:auto}
 #conversation-toolbar .context-actions{border:0;padding:0}
-#work-browser-inspector .roadmap-relations>section{grid-column:auto;grid-row:auto}
+#work-browser-inspector .plan-relations>section{grid-column:auto;grid-row:auto}
 .project-work-links{justify-content:start}.project-work-links button{font-size:11px;min-height:28px}
 @media(max-width:900px){
  .project-context-heading{height:34px;padding-inline:16px}.project-context .work-browser-tabs{padding-inline:8px}
@@ -121,7 +121,7 @@
 .work-piece[data-next=true]::after{content:"Next";position:absolute;right:10px;top:-10px;padding:1px 6px;border-radius:3px;background:var(--accent);color:var(--base);font:600 11px/1.4 var(--font-ui)}
 .work-surface[data-overview=true] .work-piece[data-next=true]::after{font-size:calc(11px / var(--view-scale))}
 .work-surface[data-overview=true] .surface-connection{opacity:0}.work-surface[data-overview=true] .surface-connection:focus-visible,.work-surface[data-overview=true] .surface-connection:hover{opacity:1}
-.roadmap-spatial>.work-pages{flex-shrink:0;margin:0;padding:6px 16px;border-bottom:1px solid var(--separator)}.roadmap-spatial>.work-pages[data-paged=false]{display:none}
+.plan-spatial>.work-pages{flex-shrink:0;margin:0;padding:6px 16px;border-bottom:1px solid var(--separator)}.plan-spatial>.work-pages[data-paged=false]{display:none}
 .dependency-bundle{display:flex;align-items:center;gap:12px;padding:12px;background:var(--panel);color:var(--muted);border:1px dashed var(--surface-wire);border-radius:6px;box-shadow:0 -3px var(--panel),0 -4px var(--surface-wire);text-align:left}.dependency-bundle strong{font-size:20px;color:var(--text)}.dependency-bundle span{font-size:12px}.dependency-bundle-detail{display:flex;flex-direction:column;gap:5px}.dependency-bundle-detail small{font-size:11px;color:var(--muted)}
 .work-piece-state{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.work-piece-tally{flex-shrink:0}
 .surface-node>button:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
@@ -160,10 +160,10 @@
 #work-track-selection .work-filter{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}
 #work-track-selection .work-filter>label{position:static;clip-path:none;width:auto;height:auto;overflow:visible;font-size:11px}
 #work-track-selection .work-filter:last-child{flex:0 1 210px}
-#work-roadmap-search{flex:1 1 230px}
-#work-roadmap-search .work-filter{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}
-#work-roadmap-search .work-filter>label{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
-#work-roadmap-search .work-search-field{grid-column:1/-1}
+#work-plan-search{flex:1 1 230px}
+#work-plan-search .work-filter{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}
+#work-plan-search .work-filter>label{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}
+#work-plan-search .work-search-field{grid-column:1/-1}
 #work-reasoning-selection{flex:1 1 460px}
 #work-reasoning-selection .work-filter{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}
 #work-reasoning-selection .work-filter>label{position:static;clip-path:none;width:auto;height:auto;overflow:visible;font-size:11px}

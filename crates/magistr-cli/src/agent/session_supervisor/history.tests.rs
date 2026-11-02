@@ -26,8 +26,7 @@ async fn start(prompt: &str, inputs: &ProjectInputs, history: &SessionHistory) -
 async fn actual_completion_reopens_with_usage_summary_and_one_identity_across_reconnect() {
     let directory = tempfile::tempdir().unwrap();
     let inputs = inputs(&directory);
-    let history =
-        SessionHistory::for_purpose(magistr_application::sessions::SessionPurpose::Roadmap);
+    let history = SessionHistory::for_purpose(magistr_application::sessions::SessionPurpose::Plan);
     let mut first = start("priced", &inputs, &history).await;
     first.next_terminal().await.unwrap();
     first.supervisor.send_followup(&"second".into()).unwrap();
@@ -41,7 +40,7 @@ async fn actual_completion_reopens_with_usage_summary_and_one_identity_across_re
         .remove(0);
     assert_eq!(
         before.purpose,
-        magistr_application::sessions::SessionPurpose::Roadmap
+        magistr_application::sessions::SessionPurpose::Plan
     );
     assert_eq!(before.outcome, Some(SessionOutcome::Completed));
     assert_eq!(before.turns, Some(2));
@@ -229,7 +228,7 @@ async fn saved_planning_reopens_under_yolo_and_refuses_implementation_on_the_wir
     let mut config = AgentConfig::new("", directory.path())
         .with_inputs(&inputs)
         .permission_profile(PermissionProfile::Yolo);
-    config.history = SessionHistory::for_purpose(SessionPurpose::Roadmap);
+    config.history = SessionHistory::for_purpose(SessionPurpose::Plan);
     let id = config.history.id();
 
     for (attempt, prompt, expected) in [
@@ -245,7 +244,7 @@ async fn saved_planning_reopens_under_yolo_and_refuses_implementation_on_the_wir
             )
             .unwrap();
             assert_eq!(config.history.id(), id);
-            assert_eq!(config.history.purpose(), SessionPurpose::Roadmap);
+            assert_eq!(config.history.purpose(), SessionPurpose::Plan);
             assert_eq!(config.resume.as_deref(), Some("parity-session"));
         }
         let spec = ResolvedSessionSpec::resolve_with_runtime(
@@ -301,7 +300,7 @@ async fn saved_planning_reopens_under_yolo_and_refuses_implementation_on_the_wir
         let conn = storage::open_readonly_db(&storage::sessions_db_path(&inputs).unwrap()).unwrap();
         assert_eq!(storage::count_sessions(&conn).unwrap(), 1);
         let saved = storage::get_session(&conn, &id).unwrap().unwrap();
-        assert_eq!(saved.purpose, SessionPurpose::Roadmap);
+        assert_eq!(saved.purpose, SessionPurpose::Plan);
         assert!(saved.can_resume());
         assert_eq!(saved.provider_session_id.as_deref(), Some("parity-session"));
         assert_eq!(saved.turns, Some(attempt + 1));

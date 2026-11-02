@@ -17,25 +17,25 @@ projection values. It has no store, process, provider, workspace-client or async
 runtime dependency. Filesystem reads, broadcasters, report-file parsing and
 owner-generation allocation remain with their effectful owners.
 
-Roadmap readiness is a pure policy over one complete set of chunks. Only a
+Plan readiness is a pure policy over one complete set of tasks. Only a
 completed dependency satisfies a requirement. Workflow queries, workstream
 reports and new-work admission use that policy. Lower numeric priorities come
 first, with ties retaining canonical insertion order. A saved view grants no
 authority: the writer checks current records when it admits a start.
 
 `WorkstreamCatalog` separates unfinished groups from completed and obsolete
-history counts, retaining a distinct ungrouped bucket. Historical chunk IDs
+history counts, retaining a distinct ungrouped bucket. Historical task IDs
 are returned only by explicit history inspection. Each current group reports
 lifecycle counts, readiness counts and its next candidate.
-`WorkstreamFrontier` assesses each item against the complete roadmap, including
+`WorkstreamFrontier` assesses each item against the complete plan, including
 dependencies outside its group. These values are derived, never stored; closing
 or moving the last unfinished item does not delete or relocate history.
 
 Saved focus names are exact identities. A read reports `current`, `closed`,
 `missing` or `unset` without changing focus. Explicit selection accepts an
 unambiguous current-name fragment; an exact closed name remains closed,
-including a case-insensitive exact match. `roadmap_focus_get` defaults to
-`view: "current"`; `view: "history"` returns completed and obsolete chunk IDs
+including a case-insensitive exact match. `plan_focus_get` defaults to
+`view: "current"`; `view: "history"` returns completed and obsolete task IDs
 for the named or saved group, including a group that also has current work.
 The full-record read remains available for those IDs.
 
@@ -45,7 +45,7 @@ The full-record read remains available for those IDs.
 
 | Family | Value | Persistence owner |
 | --- | --- | --- |
-| Roadmap | `RoadmapData`: chunks and progress from the same read | `RoadmapEngine` |
+| Plan | `PlanData`: tasks and progress from the same read | `PlanEngine` |
 | Execution | `RunData`: selected and retained runs from the same read | `RunEngine` |
 | Signals | `Vec<Signal>` | `SignalEngine` |
 | Reasoning | `ThinkData`: complete saved sessions, steps and branches | `ReasoningServer` |
@@ -91,7 +91,7 @@ ordinary goal selection does not.
 
 `magistr runs` reads current and retained runs through that same reader, including
 their full task details in machine output. `next --continue` requires selected
-unfinished work and leaves completion to the workflow owner. Overall roadmap
+unfinished work and leaves completion to the workflow owner. Overall plan
 counts cannot complete a goal. File-plan archives and their cleanup are
 not part of the execution lifecycle.
 
@@ -116,7 +116,7 @@ to a transient, clone-shared snapshot. Its retained successful value advances
 only after that family's successful read. One family can be current while
 another is stale or unavailable; there is no global file revision or
 cross-family transaction. Derived workstream
-views preserve the roadmap's read state and source.
+views preserve the plan's read state and source.
 
 Attaching a native reader does not itself read workflow files. Shared session
 resolution reads current work before provider startup using the workflow inputs
@@ -131,8 +131,8 @@ has no compaction callback that refreshes instructions automatically.
 
 Direct decision readers require a current successful read and return errors otherwise. Work selection, status decisions and
 checkpoint capture cannot interpret retained stale records as current or
-failures as an empty roadmap.
-Checkpoint progress and roadmap identity come from the same validated
+failures as an empty plan.
+Checkpoint progress and plan identity come from the same validated
 observation. Receipt-ledger reconciliation reads its own ledger independently
 of whether the execution aggregate can be read.
 
@@ -153,7 +153,7 @@ consumers preserve that source rather than pair a value with a later read.
 uncertain result after replacement. The first two report `effect: none`;
 uncertainty reports `effect: unknown` and requires reading saved records before
 retry. `WorkflowMutationError` preserves this distinction across owner IPC.
-A partial signal promotion carries the committed roadmap identity and source;
+A partial signal promotion carries the committed plan identity and source;
 retry resumes the same reciprocal link instead of creating another work item.
 
 Reasoning stores all project histories in one schema-2 document. That owner
@@ -238,7 +238,7 @@ execution-specific changes and deletion, unchanged-metadata retries, feed
 ordering, gaps, duplicates, reconnects and reads while attached. Checkpoint and
 selection tests require current reads. Retention tests verify that workflow
 snapshots preserve conversation records and identity. The isolated native MCP
-fixture corrupts persisted roadmap and execution files while connected, requires
+fixture corrupts persisted plan and execution files while connected, requires
 repeated read refusals, restores the exact bytes and verifies recovery with
 unchanged authored records.
 

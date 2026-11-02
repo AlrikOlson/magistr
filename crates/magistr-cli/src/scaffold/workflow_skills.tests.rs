@@ -121,7 +121,7 @@ fn workflow_semantics_are_identical_across_hosts() {
 }
 
 #[test]
-fn next_loop_requires_a_fresh_host_session_between_chunks() {
+fn next_loop_requires_a_fresh_host_session_between_tasks() {
     for file in WorkflowSkills::codex_files()
         .into_iter()
         .chain(WorkflowSkills::claude_files())
@@ -131,7 +131,7 @@ fn next_loop_requires_a_fresh_host_session_between_chunks() {
         }
         assert!(
             file.content.contains("one agent session completes one"),
-            "{} must define one chunk per session",
+            "{} must define one task per session",
             file.path
         );
         assert!(

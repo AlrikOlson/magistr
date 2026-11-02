@@ -1,4 +1,4 @@
-//! The pure decision behind `magistr guard`: given the run/roadmap state, the
+//! The pure decision behind `magistr guard`: given the run/plan state, the
 //! working tree and the hook's own input, does this hook event block — and why.
 //!
 //! Kept free of I/O so the rules the `/next` skill promises are tested as
@@ -21,7 +21,7 @@ pub(crate) struct FrozenTree {
     /// Project-relative root of the frozen tree, e.g. `crates/magistr-gui`.
     pub(crate) path: String,
     /// Words any one of which, in the active goal's scope, unlocks it
-    /// (`legacy-gui` for a hotfix, `delete` for a deletion chunk).
+    /// (`legacy-gui` for a hotfix, `delete` for a deletion task).
     pub(crate) unlock: Vec<String>,
     /// Where work that was refused belongs instead, as the declaration words
     /// it. Appended to the block message; `None` leaves the message silent
@@ -54,8 +54,8 @@ pub(crate) struct GuardInput {
     pub(crate) steps_total: usize,
     /// Every recorded check on the goal.
     pub(crate) checks: Vec<CheckSummary>,
-    /// The chunk named by this goal's scope is still `in_progress`.
-    pub(crate) chunk_in_progress: bool,
+    /// The task named by this goal's scope is still `in_progress`.
+    pub(crate) task_in_progress: bool,
     /// Claude Code already continued once because of a Stop hook.
     pub(crate) stop_hook_active: bool,
     /// `tool_input.command` of a PreToolUse(Bash) hook.
@@ -135,13 +135,13 @@ fn evaluate_write(input: &GuardInput) -> GuardVerdict {
         "{path} is under the frozen tree {tree} — a frozen tree only shrinks (see \
          {tree}/README.md). Only a defined/active run goal whose scope contains \
          one of {unlock:?} may write here: run_open(scope: \"{hotfix}: \
-         <what broke>\") for a hotfix, or a roadmap deletion chunk.{elsewhere}",
+         <what broke>\") for a hotfix, or a plan deletion task.{elsewhere}",
         tree = frozen.path,
         unlock = frozen.unlock,
     ))
 }
 
-/// Stop checks only the goal's own unfinished roadmap chunk. A dirty
+/// Stop checks only the goal's own unfinished plan task. A dirty
 /// checkout cannot identify this run's work: it may contain pre-existing or
 /// concurrent changes, so it must never trigger staging or export instructions.
 fn evaluate_stop(input: &GuardInput) -> GuardVerdict {
@@ -150,10 +150,10 @@ fn evaluate_stop(input: &GuardInput) -> GuardVerdict {
             "stop hook already active for this turn; not blocking twice".to_owned(),
         ));
     }
-    if input.goal_status.as_deref() == Some("finished") && input.chunk_in_progress {
+    if input.goal_status.as_deref() == Some("finished") && input.task_in_progress {
         return GuardVerdict::Block(
-            "This work is finished, but its roadmap item is still open. Complete that item \
-             with roadmap_complete_chunk using its recorded verification step, or record \
+            "This work is finished, but its plan item is still open. Complete that item \
+             with plan_complete_task using its recorded verification step, or record \
              the work that remains. Preserve unrelated changes."
                 .to_owned(),
         );

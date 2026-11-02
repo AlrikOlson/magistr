@@ -26,14 +26,14 @@ execution inputs once.
 
 Every supported native mutation runs the first-party workflow application use
 case for its family. `ProjectAuthority::open` composes `ThinkUseCases`,
-`RunUseCases`, `RoadmapUseCases`, and `SignalUseCases` once, including the
-reciprocal roadmap/signal capabilities. NativeEngines calls their synchronous,
+`RunUseCases`, `PlanUseCases`, and `SignalUseCases` once, including the
+reciprocal plan/signal capabilities. NativeEngines calls their synchronous,
 typed methods directly. `ProjectAuthority::serve` wraps those same capabilities
 in thin MCP adapters; an attached local client reaches them through the
 versioned owner command adapter.
 
 Validation and cross-family sequencing live below transports. Promoting a
-signal creates and cross-links its roadmap chunk; empty bodies, blank research
+signal creates and cross-links its plan task; empty bodies, blank research
 summaries, illegal transitions, and unknown identities receive the same native
 refusals. JSON serialization belongs only to transport presentation. The old
 `handler_call` bridge, internal MCP argument/result decoding, and one-poll
@@ -41,7 +41,7 @@ noop-waker invocation are deleted.
 
 Actual effects are explicit async operations. Run checks admit a target before
 running a command, execute outside the workflow lock, then settle against that
-admission. Tracker setup probes its provider without holding the roadmap lock,
+admission. Tracker setup probes its provider without holding the plan lock,
 then applies the shared native setup policy. Approval waits similarly use the
 application capability. CLI and MCP presentation retain their external names
 and ordinary success/error envelopes.
@@ -210,15 +210,15 @@ ordinary session checks; they are not copied into the evidence ledger.
 
 ### Completion is governed by receipts
 
-`roadmap_complete_chunk` is the one route to `done`, and every adapter lands
+`plan_complete_task` is the one route to `done`, and every adapter lands
 on it — the MCP tool, the owner command, the loop judge and the cockpit's
-Complete action. The run family is the roadmap's completion authority by
-construction: `RoadmapUseCases::new` takes the `RunUseCases` it completes
-against, `FamilyServices` composes every writer's roadmap over its run
+Complete action. The run family is the plan's completion authority by
+construction: `PlanUseCases::new` takes the `RunUseCases` it completes
+against, `FamilyServices` composes every writer's plan over its run
 family, and there is no permissive branch to compose instead
 (`audit-260912-05`). Completion asks `RunUseCases::verify_completion`
 first: the current goal must be
-scoped `chunk:<id>`; the verification task is the caller's `task:` reference
+scoped `task:<id>`; the verification task is the caller's `task:` reference
 (a task of the current run) or, absent one, the instance the run's latest
 receipt landed on, and the completion is stored with that reference so it
 always names its task. For every gate contract the project requires, and for
@@ -233,8 +233,8 @@ bytes is not a change
 `outstanding` with its reason, and the refusal lists every outstanding gate
 and what re-running it would satisfy; earlier failures a later pass
 superseded are reported as `recovered`. A self-reported pass neither
-certifies a configured gate nor blocks. `roadmap_set_status(done)` and
-accepting a `done` status proposal are refused toward `roadmap_complete_chunk`.
+certifies a configured gate nor blocks. `plan_set_status(done)` and
+accepting a `done` status proposal are refused toward `plan_complete_task`.
 `run_finish`'s report separates `recovered_failures` from
 `outstanding_failures`, and its failed-required warning names only the
 outstanding ones.
@@ -245,11 +245,11 @@ checks yet); a `Changed` freshness names paths only when the admitting
 process settles the check, otherwise the source digests are compared
 (`Diverged`) and a configuration drift is `Reconfigured` with no layer
 named; receipt pruning follows the explicit retention policy above. Engines opened without the
-capability (tests that never complete a chunk) record source-less checks
+capability (tests that never complete a task) record source-less checks
 and are refused every completion with `NoEvidenceCapability`; the
 `native-write-path` gate's rule 8 is supplementary — it keeps a production
 writer from being admitted into that refusal rather than being the only
-thing that prevents a permissive completion. A chunk born `done` (an import,
+thing that prevents a permissive completion. A task born `done` (an import,
 a tracker pull, a historical record) is a record, not a completion, and is
 preserved.
 
@@ -257,7 +257,7 @@ preserved.
 ## Roles
 
 `Host` and `Service` describe how the owner was launched. Both contend on
-`<data_dir>/roadmap/sessions/<project_id>.project-owner.lock`, or the
+`<data_dir>/plan/sessions/<project_id>.project-owner.lock`, or the
 authority directory's `.magistr/project-owner.lock` when persistence is off.
 An additional stable `.magistr/workflow-owner.lock` in the authority directory
 prevents switching data directories from admitting two owners for one project.
@@ -284,7 +284,7 @@ identical contexts reuse their engine handles, idle entries are pruned, and
 admission refuses more than 128 live contexts. Every contextual view retains
 an active working-copy lease.
 
-Roadmap, reasoning and signals belong to the shared project. Run's selected
+Plan, reasoning and signals belong to the shared project. Run's selected
 scope, goals, plans and receipts belong to the execution context, under
 `run/executions/<context-key>/sessions` and its receipt partition. Selecting
 another context never replaces the first context's selected scope. Reopening
@@ -366,7 +366,7 @@ start it after opening its engines; publication binds all existing execution
 views before the host serves clients. Run
 events and Magistr phase/gate-output events also carry `execution_key`.
 The CLI feed delivers those events only to the matching context while
-advancing the cursor for every decoded frame. Shared roadmap, reasoning and
+advancing the cursor for every decoded frame. Shared plan, reasoning and
 signal events reach every context. Snapshot readers use the same contextual
 run persistence partition. Long and short feed paths resolve through the
 authority directory in every linked copy.

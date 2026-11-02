@@ -80,27 +80,27 @@ test('wire decoding accepts canonical MCP and normal tool replies and rejects in
 })
 test('focus replies preserve closed and missing choices without claiming current work', () => {
   const f = fixture()
-  const base = answer(f, 'magistr', 'roadmap_focus_get', { lane: 'caller' })
-  const focus = { group: 'Finished search', mode: 'build' }
+  const base = answer(f, 'magistr', 'plan_focus_get', { lane: 'caller' })
+  const focus = { feature: 'Finished search', mode: 'build' }
   assert.doesNotThrow(() => validate('focus', { structuredContent: base }))
   for (const [state, wording] of [
     ['closed', /Finished search has no unfinished work/],
-    ['missing', /Finished search is no longer on the roadmap/],
+    ['missing', /Finished search is no longer on the plan/],
   ]) {
-    const value = { ...base, focus, focus_state: { state, group: focus.group } }
+    const value = { ...base, focus, focus_state: { state, feature: focus.feature } }
     if (state === 'closed') {
-      const history = { done: 1, obsoleted: 0 }
+      const history = { done: 1, retired: 0 }
       value.workstreams = {
         ...base.workstreams,
-        history: { [focus.group]: history },
+        history: { [focus.feature]: history },
       }
-      value.frontier = { state, group: focus.group, history }
-    } else value.frontier = { state, query: focus.group }
+      value.frontier = { state, feature: focus.feature, history }
+    } else value.frontier = { state, query: focus.feature }
     const m = initial()
     m.slots.run = { value: f.run }
-    m.slots.roadmap = { value: f.roadmap }
+    m.slots.plan = { value: f.plan }
     m.slots.focus = { value: validate('focus', { structuredContent: value }) }
-    for (const tab of ['current', 'roadmap']) {
+    for (const tab of ['current', 'plan']) {
       m.tab = tab
       const rendered = textOf(pane(elements, m, 40, {}))
       assert.match(rendered, wording)
@@ -110,9 +110,9 @@ test('focus replies preserve closed and missing choices without claiming current
   }
   for (const bad of [
     { ...base, focus_state: undefined },
-    { ...base, focus_state: { state: 'current', group: 'Search' } },
+    { ...base, focus_state: { state: 'current', feature: 'Search' } },
     { ...base, focus, focus_state: { state: 'unset' } },
-    { ...base, focus, focus_state: { state: 'current', group: 'Search' } },
+    { ...base, focus, focus_state: { state: 'current', feature: 'Search' } },
   ])
     assert.throws(() => validate('focus', { structuredContent: bad }))
 })
@@ -204,13 +204,13 @@ test('runtime effects stay in the entry module and exclude models, files, proces
   )
   assert.doesNotMatch(
     source,
-    /\$\.(model|process|fs|prompt|permission)|fetch\(|node:|finish_step|run_finish|roadmap_complete|next-loop/,
+    /\$\.(model|process|fs|prompt|permission)|fetch\(|node:|finish_step|run_finish|plan_complete|next-loop/,
   )
   const reads = source.slice(
     source.indexOf('const READS'),
     source.indexOf('function redraw'),
   )
-  assert.doesNotMatch(reads, /start_step|magistr_gate|focus_set|start_chunk/)
+  assert.doesNotMatch(reads, /start_step|magistr_gate|focus_set|start_task/)
   assert.match(source, /consent:/)
   assert.match(source, /reads\.size >= 2/)
   assert.match(source, /actionInFlight/)
@@ -233,7 +233,7 @@ test('wire validation covers every rendered collection and preserves Windows and
       },
     ],
     ['work', { records: [{ ...f.work, acceptance: 'bad' }] }],
-    ['roadmap', { ...f.roadmap, recent_done: [null] }],
+    ['plan', { ...f.plan, recent_done: [null] }],
     ['finding', { ...f.finding, dependencies: [null] }],
     ['findings', { ...f.findings, pinned: [null] }],
     ['source', { v: 1, ok: true, results: [null] }],

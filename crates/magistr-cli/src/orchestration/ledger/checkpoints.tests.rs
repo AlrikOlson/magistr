@@ -357,7 +357,7 @@ fn failed_workflow_read_refuses_checkpoint_without_appending_to_spine() {
     let config = NativeConfig::from_lookup(temp.path().to_owned(), |_| None)
         .with_data_dir(temp.path().join("data"));
     let path =
-        Persistence::new(&config.persistence_config(), Domain::Roadmap).path_for("checkpoint-read");
+        Persistence::new(&config.persistence_config(), Domain::Plan).path_for("checkpoint-read");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, "invalid").unwrap();
     let engine = engine().with_native(NativeReader::open_for_project(

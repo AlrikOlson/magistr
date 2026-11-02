@@ -21,7 +21,7 @@ pub fn cmd_reset(dir: &std::path::Path) -> eyre::Result<()> {
         "{}",
         fmt::yellow("This will remove unchanged, recorded agent scaffold files.")
     );
-    eprintln!("Customized and unrecorded files, CLAUDE.md, and ROADMAP.md will be preserved.");
+    eprintln!("Customized and unrecorded files, CLAUDE.md, and PLAN.md will be preserved.");
     eprintln!(
         "The .magistr/ and legacy .jig/ directories, including local state, will be deleted."
     );

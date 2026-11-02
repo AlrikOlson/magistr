@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::run::domain::check::CheckType;
 
-/// One gate the project requires before a chunk may complete: its name, the
+/// One gate the project requires before a task may complete: its name, the
 /// exact command a server must have run for it, and the kind of check it
 /// records as. Supplied by the host's evidence capability from the project's
 /// own gate configuration, never derived inside the workflow.

@@ -27,16 +27,16 @@ fn schema_example_shape_deserializes() {
     // The signal example in the canonical schema, record.content verbatim.
     let wire = serde_json::json!({
         "version": 1,
-        "summary": "Exporting the roadmap loses nested acceptance notes under their chunks.",
+        "summary": "Exporting the plan loses nested acceptance notes under their tasks.",
         "facts": [
             { "label": "kind", "value": "bug" },
-            { "label": "surface", "value": "roadmap export" }
+            { "label": "surface", "value": "plan export" }
         ],
         "sections": [
             { "heading": "What happens", "prose": "Running an export…" },
             { "heading": "How to reproduce", "list": [
-                { "text": "Add a chunk with a two-level acceptance list" },
-                { "text": "Export the roadmap and compare", "done": false }
+                { "text": "Add a task with a two-level acceptance list" },
+                { "text": "Export the plan and compare", "done": false }
             ] }
         ]
     });

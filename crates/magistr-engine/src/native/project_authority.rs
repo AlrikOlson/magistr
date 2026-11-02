@@ -87,7 +87,7 @@ impl ProjectAuthority {
         super::ProjectLocation::require_open(config.project_root())?;
         let mut lease = OwnerLease::acquire(config, &project_id, role)?;
         super::WorkflowUpgrade::apply(config, &project_id, &mut lease)?;
-        super::RunWordsUpgrade::apply(config, &project_id)?;
+        super::StoreWordsUpgrade::apply(config, &project_id)?;
         Ok(Self {
             project_id,
             config: config.clone(),
@@ -177,13 +177,13 @@ impl ProjectAuthority {
     pub fn open(self) -> NativeEngines {
         let mut config = self.config.clone();
         config.owner_generation = self.generation().get();
-        let (think, run, roadmap, signal) =
+        let (think, run, plan, signal) =
             open_engines(&config, self.project_id.clone(), self.feed().cloned());
         let services =
-            FamilyServices::compose(think, run, roadmap, signal, self.config.evidence.clone());
-        let (think, run, roadmap, signal) = services.engines();
+            FamilyServices::compose(think, run, plan, signal, self.config.evidence.clone());
+        let (think, run, plan, signal) = services.engines();
         let reader =
-            NativeReader::from_shared(self.project_id.clone(), config, think, run, roadmap, signal);
+            NativeReader::from_shared(self.project_id.clone(), config, think, run, plan, signal);
         NativeEngines::admitted(reader, Arc::new(self), services)
     }
 

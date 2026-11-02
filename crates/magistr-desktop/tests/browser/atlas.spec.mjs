@@ -42,6 +42,6 @@ test("project membership stays readable and opens resident work without admissio
     }
   }
   await surface.getByRole("button",{name:"Open workspace for Magistr from map",exact:true}).click();
-  await expect(app.getByRole("tab",{name:"Roadmap",exact:true})).toHaveAttribute("aria-selected","true");
+  await expect(app.getByRole("tab",{name:"Plan",exact:true})).toHaveAttribute("aria-selected","true");
   expect(await app.evaluate(()=>window.__fixture.calls.filter(c=>["open_session","session_action"].includes(c.command)).length)).toBe(0);
 });

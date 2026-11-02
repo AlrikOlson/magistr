@@ -1,12 +1,12 @@
-//! The tracker port — how a roadmap chunk reaches an external issue tracker.
+//! The tracker port — how a plan task reaches an external issue tracker.
 //!
 //! # What this module is for
 //!
 //! A provider-agnostic PORT with one adapter per destination, reached from the
-//! `tracker_*` namespace of the `roadmap_*` tool family. It is not a family of
+//! `tracker_*` namespace of the `plan_*` tool family. It is not a family of
 //! its own and its tools are not a fifth prefix bolted on: the state it moves —
-//! which chunks are opted in, and what each one is bound to upstream — is
-//! roadmap state, so the family that owns the plan claims the namespace that
+//! which tasks are opted in, and what each one is bound to upstream — is
+//! plan state, so the family that owns the plan claims the namespace that
 //! mirrors it. See [`crate::mcp::unified::Family::prefixes`].
 //!
 //! The adapters actually registered are `github` (Issues), `github_projects`
@@ -17,9 +17,9 @@
 //! that table rather than trusting the sentence.
 //!
 //! Linear, Jira and GitHub Projects are where most teams' work actually lives.
-//! This module is the boundary through which a roadmap chunk is *projected* into
+//! This module is the boundary through which a plan task is *projected* into
 //! one of them and reconciled back — carrying the thing that makes this system
-//! different from a generic sync tool: a chunk's acceptance criteria, its
+//! different from a generic sync tool: a task's acceptance criteria, its
 //! dependencies, and its cross-references into the `think_*` reasoning and
 //! `run_*` proof that produced it.
 //!
@@ -46,19 +46,19 @@
 //! ```
 //!
 //! The dependency direction is one-way FOR THE PROVIDER-FACING LAYER: `domain`,
-//! `port` and every adapter know nothing about `roadmap`, so an adapter depends
+//! `port` and every adapter know nothing about `plan`, so an adapter depends
 //! on the port alone and never on the plan it happens to be serving — which is
 //! what keeps "add a provider" from meaning "edit the core". The reciprocal
-//! binding, [`TrackerLink`], lives with the roadmap because it is roadmap state:
-//! a chunk's record of its twin.
+//! binding, [`TrackerLink`], lives with the plan because it is plan state:
+//! a task's record of its twin.
 //!
 //! The BRIDGE layer is deliberately not one-way, and this comment used to claim
-//! otherwise. `project`, `sweep` and `echo` read roadmap state, and `concern`
+//! otherwise. `project`, `sweep` and `echo` read plan state, and `concern`
 //! additionally writes signals — that is their job, and pretending the whole
 //! module is provider-only made the rule sound stronger than it is. The rule
 //! that actually holds: nothing an adapter can see knows about the plan.
 //!
-//! [`TrackerLink`]: crate::roadmap::domain::TrackerLink
+//! [`TrackerLink`]: crate::plan::domain::TrackerLink
 
 pub mod adf;
 pub mod budget;
@@ -87,7 +87,7 @@ pub use concern::{emit_divergence_concerns, propose_status_from_sweep, propose_t
 pub use config::{CompanionLane, TrackerConfig, companion_lane, inherited_opt_in, should_project};
 pub use credential::{Credential, CredentialPort, CredentialStore, Resolver};
 pub use domain::{
-    ExternalRef, GroupState, TrackerCapabilities, WorkGroup, WorkItem, WorkItemState,
+    ExternalRef, FeatureState, TrackerCapabilities, WorkFeature, WorkItem, WorkItemState,
 };
 pub use echo::{Verdict, classify};
 pub use fake::FakeTracker;

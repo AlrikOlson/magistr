@@ -62,7 +62,7 @@ impl Edit<'_> {
             created: now,
             status: SignalStatus::New,
             enrichment: Vec::new(),
-            cross_refs: Vec::new(),
+            refs: Vec::new(),
             surfaced_at: None,
             snooze_until: None,
             // Stamp origin at the record, so a later prune can prove ownership
@@ -134,8 +134,8 @@ impl Edit<'_> {
         // Cross-ref the motivating think step (deduped, validated wire form).
         if let Some(n) = think_step {
             let wire = crate::infra::CrossRef::ThinkStep(n).to_wire();
-            if !self.signals.signals[idx].cross_refs.contains(&wire) {
-                self.signals.signals[idx].cross_refs.push(wire);
+            if !self.signals.signals[idx].refs.contains(&wire) {
+                self.signals.signals[idx].refs.push(wire);
             }
         }
         let snapshot = self.signals.signals[idx].clone();
@@ -148,8 +148,8 @@ impl Edit<'_> {
             .map(|r| r.to_wire())
             .map_err(|e| format!("invalid cross-ref '{cross_ref}': {e}"))?;
         let idx = self.index_of(id)?;
-        if !self.signals.signals[idx].cross_refs.contains(&normalized) {
-            self.signals.signals[idx].cross_refs.push(normalized);
+        if !self.signals.signals[idx].refs.contains(&normalized) {
+            self.signals.signals[idx].refs.push(normalized);
             let snapshot = self.signals.signals[idx].clone();
             self.record_event(SignalFrame::SignalChanged { signal: snapshot });
         }

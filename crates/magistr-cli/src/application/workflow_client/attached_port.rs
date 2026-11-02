@@ -3,9 +3,9 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use magistr_engine::Observed;
-use magistr_engine::native::{Chunk, Signal, SignalPromotion, WorkflowMutationError};
+use magistr_engine::native::{Signal, SignalPromotion, Task, WorkflowMutationError};
 use magistr_engine::{
-    OwnerClient, OwnerCommand, OwnerGeneration, OwnerReply, RoadmapCommand, SignalCommand,
+    OwnerClient, OwnerCommand, OwnerGeneration, OwnerReply, PlanCommand, SignalCommand,
     ThinkCommand,
 };
 
@@ -74,9 +74,9 @@ impl AttachedEnginePort {
         })
     }
 
-    fn chunk(&mut self, command: RoadmapCommand) -> Result<Observed<Chunk>, WorkflowMutationError> {
-        match self.run(OwnerCommand::Roadmap(command))? {
-            OwnerReply::Chunk(chunk) => Ok(*chunk),
+    fn task(&mut self, command: PlanCommand) -> Result<Observed<Task>, WorkflowMutationError> {
+        match self.run(OwnerCommand::Plan(command))? {
+            OwnerReply::Task(task) => Ok(*task),
             other => Err(WorkflowMutationError::uncertain(format!(
                 "The result could not be confirmed: {other:?}"
             ))),
@@ -123,12 +123,12 @@ impl EnginePort for AttachedEnginePort {
         }
     }
 
-    fn start_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
-        self.chunk(RoadmapCommand::StartChunk { id: id.to_owned() })
+    fn start_task(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError> {
+        self.task(PlanCommand::StartTask { id: id.to_owned() })
     }
 
-    fn complete_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
-        self.chunk(RoadmapCommand::CompleteChunk {
+    fn complete_task(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError> {
+        self.task(PlanCommand::CompleteTask {
             id: id.to_owned(),
             step_ref: None,
         })
@@ -139,17 +139,17 @@ impl EnginePort for AttachedEnginePort {
         id: &str,
         kind: ProposalKind,
         accept: bool,
-    ) -> Result<Observed<Chunk>, WorkflowMutationError> {
+    ) -> Result<Observed<Task>, WorkflowMutationError> {
         let id = id.to_owned();
-        self.chunk(match kind {
-            ProposalKind::Title => RoadmapCommand::ResolveTitleProposal { id, accept },
-            ProposalKind::Status => RoadmapCommand::ResolveStatusProposal { id, accept },
-            ProposalKind::Reprioritize => RoadmapCommand::ResolveReprioritize { id, accept },
+        self.task(match kind {
+            ProposalKind::Title => PlanCommand::ResolveTitleProposal { id, accept },
+            ProposalKind::Status => PlanCommand::ResolveStatusProposal { id, accept },
+            ProposalKind::Reprioritize => PlanCommand::ResolveReprioritize { id, accept },
         })
     }
 
-    fn clear_blocker(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
-        self.chunk(RoadmapCommand::ClearBlockedBy { id: id.to_owned() })
+    fn clear_blocker(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError> {
+        self.task(PlanCommand::ClearWaitingOn { id: id.to_owned() })
     }
 
     fn promote_signal(&mut self, id: &str) -> Result<SignalPromotion, WorkflowMutationError> {

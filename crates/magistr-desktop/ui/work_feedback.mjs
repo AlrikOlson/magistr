@@ -3,13 +3,13 @@ import {pageControls} from "./work_search.mjs";
 import {filterFeedback} from "./work_feedback_search.mjs";
 import {feedbackResearch} from "./work_feedback_research.mjs";
 import {prose} from "./work_prose.mjs";
-export const feedbackStatus={new:"New",triaged:"Reviewed",researched:"Researched",surfaced:"Raised for review",promoted:"Added to roadmap",dismissed:"Dismissed"};
+export const feedbackStatus={new:"New",triaged:"Reviewed",researched:"Researched",surfaced:"Raised for review",promoted:"Added to plan",dismissed:"Dismissed"};
 export const feedbackKind={question:"Question",idea:"Idea",concern:"Concern",bug:"Bug",feedback:"Feedback"};
 export const feedbackTitle=record=>record.content?.summary||(record.body.length>180?record.body.slice(0,180)+"…":record.body);
 export function feedbackDetail(record,actions){
   const {copy}=actions;
   const heading=feedbackTitle(record),bodyIsTitle=heading===record.body;
-  const article=element("article","","work-record feedback-detail"),header=element("header","","feedback-detail-heading"),title=element("h3",heading,"roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="feedback-title";header.append(title);article.append(header);
+  const article=element("article","","work-record feedback-detail"),header=element("header","","feedback-detail-heading"),title=element("h3",heading,"plan-track-title");title.tabIndex=-1;title.dataset.focusKey="feedback-title";header.append(title);article.append(header);
   if(bodyIsTitle){title.dataset.reading=record.id+":body";const button=element("button","Copy");button.setAttribute("aria-label","Copy feedback");button.onclick=()=>copy(record.body);header.append(button);}
   article.append(element("p",feedbackKind[record.kind]+" · "+feedbackStatus[record.status],"work-record-status"));
   const metadata=[["From",record.from]];
@@ -17,13 +17,13 @@ export function feedbackDetail(record,actions){
   article.append(inlineFacts(metadata));
   if(!bodyIsTitle)article.append(prose("Feedback",record.body,record.id+":body",copy));
   if(record.content){
-    const facts=element("dl","","roadmap-content-facts");for(const fact of record.content.facts??[]){const pair=element("div");pair.append(element("dt",fact.label),element("dd",fact.value));facts.append(pair);}if(facts.children.length)article.append(facts);
+    const facts=element("dl","","plan-content-facts");for(const fact of record.content.facts??[]){const pair=element("div");pair.append(element("dt",fact.label),element("dd",fact.value));facts.append(pair);}if(facts.children.length)article.append(facts);
     for(const [index,section] of (record.content.sections??[]).entries()){
       if(section.prose)article.append(prose(section.heading,section.prose,record.id+":section:"+index,copy));else article.append(element("h4",section.heading));
       if(section.list?.length)article.append(checklist(section.list));
     }
   }
-  const references=actions.references(record.cross_refs);if(references)article.append(references);
+  const references=actions.references(record.refs);if(references)article.append(references);
   article.append(feedbackResearch(record,actions));return article;
 }
 export class FeedbackBrowser{
@@ -39,12 +39,12 @@ export class FeedbackBrowser{
     }
     article.classList.add("feedback-list");
     records=filterFeedback(records,this);
-    article.append(element("h3","Feedback","roadmap-track-title"));
+    article.append(element("h3","Feedback","plan-track-title"));
     const pages=pageControls(records.length,this.page,page=>{this.page=page;this.changed();this.root.scrollTop=0;});article.append(pages.nav);
-    const list=element("ol","","roadmap-items");
+    const list=element("ol","","plan-items");
     for(const record of records.slice(pages.start,pages.end)){
-      const row=element("li","","feedback-row"),button=element("button",feedbackTitle(record),"roadmap-item-open");button.dataset.feedbackId=record.id;button.dataset.focusKey="feedback:"+record.id;button.onclick=()=>this.open(record.id);
-      const body=element("div");body.append(button,element("span",record.from,"roadmap-item-state"));
+      const row=element("li","","feedback-row"),button=element("button",feedbackTitle(record),"plan-item-open");button.dataset.feedbackId=record.id;button.dataset.focusKey="feedback:"+record.id;button.onclick=()=>this.open(record.id);
+      const body=element("div");body.append(button,element("span",record.from,"plan-item-state"));
       row.append(element("span",feedbackKind[record.kind],"feedback-kind"),body,element("span",feedbackStatus[record.status],"work-record-status"));list.append(row);
     }
     article.append(records.length?list:element("p",this.query.trim()||this.kind!=="all"||this.status!=="all"?"No feedback matches these filters.":"No feedback has been saved."));return article;

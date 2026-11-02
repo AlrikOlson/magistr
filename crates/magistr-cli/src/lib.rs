@@ -15,7 +15,7 @@ pub mod orchestration;
 
 pub use self::core::{config, env, error, paths, types};
 pub use self::detection::{detect, lint, validate};
-pub use self::orchestration::{commands, roadmap, workflow};
+pub use self::orchestration::{commands, plan, workflow};
 
 // ── Agent domain (consolidated: agent, engine, models, session) ─────────────
 

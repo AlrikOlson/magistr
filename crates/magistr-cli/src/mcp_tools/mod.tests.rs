@@ -66,7 +66,7 @@ fn setup_gate_project() -> (TempDir, PathBuf) {
                 "extensions": ["rs"],
                 "command": "echo formatted"
             },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test"
@@ -153,7 +153,7 @@ async fn gate_failing_command() {
                 "lint": "echo lint-ok"
             },
             "format": { "extensions": ["rs"], "command": "echo fmt" },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test"
@@ -206,7 +206,7 @@ async fn gate_timeout_expires() {
                 "lint": ""
             },
             "format": { "extensions": ["rs"], "command": "" },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test"
@@ -257,7 +257,7 @@ fn setup_custom_gate_project() -> (TempDir, PathBuf) {
                 { "name": "audit", "command": "echo audit-ok", "required": false }
             ],
             "format": { "extensions": ["rs"], "command": "echo formatted" },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test"
@@ -331,7 +331,7 @@ async fn gate_all_does_not_pay_for_a_gate_it_would_have_to_ignore() {
                 { "name": "optional-check", "command": "exit 1", "required": false }
             ],
             "format": { "extensions": ["rs"], "command": "echo fmt" },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test"
@@ -469,7 +469,7 @@ async fn format_no_command_configured() {
             },
             "quality_gate": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": [], "command": "" },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test"
@@ -516,7 +516,7 @@ async fn format_shell_escapes_file_paths() {
             },
             "quality_gate": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": ["rs"], "command": "echo" },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test"
@@ -665,7 +665,7 @@ async fn gate_all_runs_concurrently() {
             },
             "verification": {"max_parallel":3,"gates":{"check":{"resources":[]},"test":{"resources":[]},"lint":{"resources":[]}}},
             "format": { "extensions": ["rs"], "command": "echo formatted" },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test"
@@ -817,7 +817,7 @@ async fn format_without_files_expands_a_placeholder_command_over_the_tree() {
                 "command": "cp {file} {file}.formatted",
                 "exclusions": ["target"]
             },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test"
@@ -875,7 +875,7 @@ async fn format_with_files_substitutes_the_placeholder_per_file() {
             },
             "quality_gate": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": ["txt"], "command": "cp {file} {file}.formatted" },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test"
@@ -944,7 +944,7 @@ async fn a_project_command_copied_onto_every_archetype_runs_once_at_the_root() {
             },
             "quality_gate": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": ["rs"], "command": command },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test",
@@ -997,7 +997,7 @@ async fn a_failed_archetype_format_names_the_directory_it_ran_in() {
             },
             "quality_gate": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": ["rs"], "command": "true" },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test",
@@ -1052,7 +1052,7 @@ async fn targeting_one_archetype_runs_where_the_whole_project_run_would() {
             },
             "quality_gate": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": ["rs"], "command": command },
-            "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+            "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "test",

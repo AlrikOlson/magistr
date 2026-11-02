@@ -1,13 +1,13 @@
 ---
 name: next
-description: Resume an interrupted Magistr roadmap chunk or implement exactly one ready chunk with native research, planning, execution, recorded verification, and an atomic commit. Use for {{invoke}}next or a request to implement the next roadmap chunk.
+description: Resume an interrupted Magistr plan task or implement exactly one ready task with native research, planning, execution, recorded verification, and an atomic commit. Use for {{invoke}}next or a request to implement the next plan task.
 ---
 
 # One Magistr iteration
 
 Apply [craft](../craft/SKILL.md) and its runtime contract, including the host
 adapter. Perform this workflow in the current session. One invocation completes
-one chunk and stops; it does not launch another coding-agent runtime.
+one task and stops; it does not launch another coding-agent runtime.
 
 ## Choose the agent
 
@@ -32,22 +32,22 @@ steps below create only missing planning records.
    Research relevant current primary API documentation, prior art, and pitfalls
    with the host's web tools. Tie findings to the acceptance criteria.
 2. Announce `magistr_set_phase(phase: "plan")`. Select the authorized
-   `chunk:<id>` scope through the recovery contract above, then read
+   `task:<id>` scope through the recovery contract above, then read
    `run_status` and retain any restored goal, verification and plan.
-   For a new scope, use the chunk description and acceptance criteria with
+   For a new scope, use the task description and acceptance criteria with
    `verification: "focused"` for bounded changes, including code; choose
    `full` only for an explicit full-suite request or concrete cross-cutting
    risk. Do not call `run_open` again on a matching unfinished scope.
    Record the selected checks and their reason in the plan. Keep existing
    steps and add only missing work with `arrange_steps(action: "add", ...)`,
-   using IDs prefixed by the chunk. Include a final `review`
+   using IDs prefixed by the task. Include a final `review`
    or `test` verification step. Valid types are `research`, `implement`,
    `test`, `review`, `config`, and `docs`.
 3. Record a new or materially changed plan with `think_record_step`, omitting
-   `step_number`, and link the returned step to the chunk with `roadmap_link`.
+   `step_number`, and link the returned step to the task with `plan_link`.
    Include implementation order, dependencies, file scope, tests, and acceptance
    evidence. If too large for a coherent change, record a dependency-aware
-   roadmap split first.
+   plan split first.
 
 Do not edit source before the goal and plan exist. Recover native records
 instead of replacing the execution plan with Markdown.
@@ -77,7 +77,7 @@ for delegation; the coordinating session owns shared run state and file scope.
    criteria. New goals explicitly use `verification: "focused"` for
    bounded changes, including code; resuming does not recreate the goal.
    Run formatting and the relevant crate, interface, and visual checks through
-   server-executed `check_step` or named `magistr_gate` calls. A roadmap chunk
+   server-executed `check_step` or named `magistr_gate` calls. A plan task
    alone does not require every project gate. Use `verification: "full"` and
    `magistr_gate(gate: "all")` only for an explicit full-suite request or when
    a concrete cross-cutting risk requires it; state that reason before running.
@@ -89,23 +89,23 @@ for delegation; the coordinating session owns shared run state and file scope.
    context was missing, recover the existing verification step and rerun the
    affected checks once to retry recording. If recording still fails, preserve
    the checkpoint and report the blocker; never repeatedly rerun green checks
-   without recording or close the chunk anyway.
-3. Complete verification with artifact and check references. Complete the chunk
-   using `roadmap_complete_chunk` with its real `step:<verification-id>` run
-   reference. Record discoveries as `backlog` unless the user authorized another
+   without recording or close the task anyway.
+3. Complete verification with artifact and check references. Complete the task
+   using `plan_complete_task` with its real `step:<verification-id>` run
+   reference. Record discoveries as `idea` unless the user authorized another
    status. Update descriptions if the delivered scope changed.
 4. Record the final synthesis with `think_record_step`, linking the findings
    and checks used and stating any remaining uncertainty. Finalize with
    `run_finish`. Inspect both responses; any refusal leaves the iteration incomplete.
    Recover supported lifecycle context before treating a refusal as a blocker.
-   Honor the runtime contract's native roadmap/export policy.
-5. Append `.magistr/iteration-log.md` with chunk, outcome, verification, and
+   Honor the runtime contract's native plan/export policy.
+5. Append `.magistr/iteration-log.md` with task, outcome, verification, and
    limitations. Include it in the commit only if already tracked; never
    force-add ignored local state. Inspect the diff and stage only this
    iteration's changes. Commit with a conventional message, preserving
    unrelated user changes.
 6. Confirm the commit and announce `magistr_set_phase(phase: "done")`. Report
-   chunk, acceptance/gate results, commit, limitations, and next candidate.
+   task, acceptance/gate results, commit, limitations, and next candidate.
    **Stop.** Only an explicitly invoked `{{invoke}}next-loop` owns further chaining.
 
 If progress truly requires user input or external state, exceeds authorized

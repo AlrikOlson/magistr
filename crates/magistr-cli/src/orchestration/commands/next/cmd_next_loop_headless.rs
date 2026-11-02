@@ -37,7 +37,7 @@ pub async fn cmd_next_loop_headless(
         &dir,
         &wf.spec_path,
         request.max_iterations,
-        crate::roadmap::open_native_reader(&dir)?,
+        crate::plan::open_native_reader(&dir)?,
     )
     .suggest()?;
     super::select_loop_feature(&mut iter_loop, request.feature, false)?;
@@ -83,8 +83,8 @@ pub async fn cmd_next_loop_headless(
                 emit_loop_stop(&format, "max_iterations", &mut stdout)?;
                 break;
             }
-            PreCheckResult::NoReadyChunk => {
-                emit_loop_stop(&format, "no_ready_chunk", &mut stdout)?;
+            PreCheckResult::NoReadyTask => {
+                emit_loop_stop(&format, "no_ready_task", &mut stdout)?;
                 break;
             }
             PreCheckResult::Unreconciled(open) => {

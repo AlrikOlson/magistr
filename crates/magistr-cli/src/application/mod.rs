@@ -1,5 +1,5 @@
 //! The one Magistr composition boundary over the native workflow use cases
-//! and the workspace's source evidence (chunks arch-14f,
+//! and the workspace's source evidence (tasks arch-14f,
 //! arch-14-verification-receipts and arch-14f2).
 //!
 //! Every real consumer of both capabilities lives in this crate — the
@@ -28,12 +28,12 @@
 //! session's authorized source writes take (journaled intents and truthful
 //! receipts, the same pipeline every workspace client writes through), or
 //! a typed refusal under which those writes are refused rather than
-//! written directly (chunk audit-260912-04). A workspace generation, a
+//! written directly (task audit-260912-04). A workspace generation, a
 //! source revision and a mutation receipt's revision remain three distinct
 //! facts.
 //!
 //! Durability and completion policy live in the workflow: the receipt is
-//! the workflow's record, and `roadmap_complete_chunk` refuses without a
+//! the workflow's record, and `plan_complete_task` refuses without a
 //! current receipt for every required gate. Nothing here observes the tree
 //! itself; the boundary is the consumer's typed shape over what the
 //! workflow admitted. Serialization stays in the MCP and CLI adapters.

@@ -76,7 +76,7 @@ impl RunService {
         }
     }
 
-    /// Hand out a clone of the shared engine handle, as `RoadmapService::engine`
+    /// Hand out a clone of the shared engine handle, as `PlanService::engine`
     /// does, so a host that mounts this family beside its own tools can record
     /// on the same trace the wire writes to — a quality gate the host ran
     /// itself (on its own pty, streamed live) recorded through

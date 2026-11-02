@@ -246,7 +246,7 @@ async fn unreadable_work_records_are_reported_without_preventing_chat_startup() 
     use magistr_workflow::infra::{Domain, Persistence};
 
     let (_dir, config, native, resources) = fixture().await;
-    let path = Persistence::new(&native.persistence_config(), Domain::Roadmap)
+    let path = Persistence::new(&native.persistence_config(), Domain::Plan)
         .path_for(resources.engines.reader().project_id());
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, b"not valid records").unwrap();
@@ -279,9 +279,9 @@ async fn unreadable_work_records_are_reported_without_preventing_chat_startup() 
     )
     .await
     .unwrap();
-    assert!(matches!(seed.snapshot.roadmap, ReadState::Unavailable(_)));
+    assert!(matches!(seed.snapshot.plan, ReadState::Unavailable(_)));
     assert_eq!(
-        seed.snapshot.roadmap.current().unwrap_err().kind,
+        seed.snapshot.plan.current().unwrap_err().kind,
         ReadErrorKind::Decode
     );
     assert!(seed.snapshot.run.current().is_ok());
@@ -376,7 +376,7 @@ async fn later_sessions_use_the_model_accepted_by_the_opening_provider() {
     .unwrap();
 
     sender
-        .send(Cmd::RoadmapPrompt("Plan the next step".into()))
+        .send(Cmd::PlanPrompt("Plan the next step".into()))
         .unwrap();
     let selected = tokio::time::timeout(Duration::from_secs(5), choices.recv())
         .await
@@ -444,7 +444,7 @@ async fn a_failed_host_closes_its_observation_and_keeps_the_draft() {
     .await
     .unwrap();
     sender
-        .send(Cmd::RoadmapPrompt("Open planning".into()))
+        .send(Cmd::PlanPrompt("Open planning".into()))
         .unwrap();
     tokio::time::timeout(Duration::from_secs(5), observation.closed())
         .await
@@ -547,13 +547,13 @@ async fn same_copy_sessions_share_source_owner_and_keep_separate_workflow_execut
     let first = writer.for_working_copy(&config.cwd, "first").unwrap();
     let second = writer.for_working_copy(&config.cwd, "second").unwrap();
     first
-        .run_open("First".into(), vec![], vec![], "chunk:first".into())
+        .run_open("First".into(), vec![], vec![], "task:first".into())
         .unwrap();
     second
-        .run_open("Second".into(), vec![], vec![], "chunk:second".into())
+        .run_open("Second".into(), vec![], vec![], "task:second".into())
         .unwrap();
-    assert_eq!(first.run_goal().unwrap().unwrap().scope, "chunk:first");
-    assert_eq!(second.run_goal().unwrap().unwrap().scope, "chunk:second");
+    assert_eq!(first.run_goal().unwrap().unwrap().scope, "task:first");
+    assert_eq!(second.run_goal().unwrap().unwrap().scope, "task:second");
     let first_resources = resources.fork(EngineClient::attach(first));
     let second_resources = resources.fork(EngineClient::attach(second));
     assert!(Arc::ptr_eq(

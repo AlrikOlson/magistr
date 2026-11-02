@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Record the native workspace perf runs (chunk arch-14c10b): the retained
+# Record the native workspace perf runs (task arch-14c10b): the retained
 # tier-0 / tier-1 / references-p95 / worker round-trip gates measured over
 # generated scratch corpora against the release worker binary, written as
 # workspace-bench/1 JSON under subsystems/workspace/bench/results/. Every

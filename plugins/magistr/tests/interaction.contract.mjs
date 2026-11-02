@@ -26,7 +26,7 @@ test('checks and workstream choices read back their acknowledged results', async
     decodeRequest('execute', mutations(h).at(-1).mutation).tool,
     'magistr_gate',
   )
-  await h.press('tab-roadmap')
+  await h.press('tab-plan')
   await h.press('work-search')
   await h.press('focus-work')
   assert.equal(
@@ -100,7 +100,7 @@ test('entry command, all navigation, evidence and source inspection use read-onl
   assert.match(textOf(await h.render()), /Finish the search feature/)
   await h.press('step-review')
   assert.match(textOf(await h.render()), /No checks recorded for this step/)
-  await h.press('tab-roadmap')
+  await h.press('tab-plan')
   await h.press('work-search')
   assert.match(textOf(await h.render()), /Matching pages appear/)
   await h.press('tab-findings')
@@ -122,7 +122,7 @@ test('text fallback works without a drawing surface or when pane admission is de
     const h = await host(options)
     await h.start()
     assert.match((await h.command('')).text, /Finish the search feature/)
-    assert.match((await h.command('roadmap')).text, /Find matching pages/)
+    assert.match((await h.command('plan')).text, /Find matching pages/)
     assert.equal(mutations(h).length, 0)
     await h.end()
   }

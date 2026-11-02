@@ -10,10 +10,15 @@ use crate::{
 
 pub(crate) struct ProjectUpgrade;
 
+/// The YAML plan's file before the plan words, and its current name.
+const OLDER_YAML_PLAN: &str = ".magistr-roadmap.yml";
+const YAML_PLAN: &str = ".magistr-plan.yml";
+
 impl ProjectUpgrade {
     pub(crate) fn content(path: &str, before: &str) -> Result<Option<String>> {
         match path {
             ".magistr/project.json" => ProjectSettingsUpgrade::prepare(before),
+            OLDER_YAML_PLAN => Ok(Some(Self::yaml_plan(before))),
             ".mcp.json" => {
                 let mut doc: serde_json::Value = serde_json::from_str(before)?;
                 let changed = doc
@@ -55,6 +60,31 @@ impl ProjectUpgrade {
             }
             _ => Ok(None),
         }
+    }
+
+    /// The YAML plan in the plan words: phase statuses `pending` and
+    /// `blocked` become `to_do` and `waiting`. A line rewrite keeps the
+    /// author's comments, order and formatting.
+    fn yaml_plan(before: &str) -> String {
+        before
+            .split_inclusive('\n')
+            .map(|line| {
+                let body = line.trim_end_matches(['\n', '\r']);
+                let ending = &line[body.len()..];
+                let Some((key, value)) = body.split_once(':') else {
+                    return line.to_owned();
+                };
+                if key.trim() != "status" {
+                    return line.to_owned();
+                }
+                let renamed = match value.trim() {
+                    "pending" => "to_do",
+                    "blocked" => "waiting",
+                    _ => return line.to_owned(),
+                };
+                format!("{key}: {renamed}{ending}")
+            })
+            .collect()
     }
 
     pub(crate) fn connection(entry: &mut serde_json::Value) -> bool {
@@ -124,8 +154,39 @@ impl ProjectUpgrade {
                 ));
             }
         }
+        Self::include_yaml_plan(root, &mut plan)?;
         super::project_identity_upgrade::ProjectIdentityUpgrade::include(root, &mut plan)?;
         Ok(plan)
+    }
+
+    /// Move a YAML plan saved before the plan words to its current file. The
+    /// administrative writer keeps the original under the upgrade backups
+    /// before removing it; a current file already in place is never replaced.
+    fn include_yaml_plan(root: &Path, plan: &mut ChangePlan) -> Result<()> {
+        let read = |path: &str| {
+            super::read_target(root, path).map_err(|e| MagistrError::Config(format!("{path}: {e}")))
+        };
+        let Some(before) = read(OLDER_YAML_PLAN)? else {
+            return Ok(());
+        };
+        let after = Self::yaml_plan(&before);
+        match read(YAML_PLAN)? {
+            Some(current) if current != after => {
+                return Err(MagistrError::Config(format!(
+                    "Both {OLDER_YAML_PLAN} and {YAML_PLAN} exist. Keep the plan you want in {YAML_PLAN}, remove the other, and retry; neither was changed."
+                )));
+            }
+            Some(_) => {}
+            None => plan
+                .files
+                .push(PlannedChange::merged(YAML_PLAN, None, after)),
+        }
+        plan.files.push(PlannedChange::removal(
+            OLDER_YAML_PLAN,
+            before,
+            super::Ownership::User,
+        ));
+        Ok(())
     }
 
     /// Fold known conversions into the full setup preview without replacing the

@@ -124,13 +124,13 @@ try{
    assert.equal(await page.evaluate(()=>scrollY),scrollBefore,"Closing the dialog preserves page position");
    assert(await page.locator("[data-open-action]").evaluate(e=>e===document.activeElement));
 
-   await seek(page,recording.events.findLastIndex(e=>e.operation==="roadmap_add_chunk"));await openView(page,"roadmap");
+   await seek(page,recording.events.findLastIndex(e=>e.operation==="plan_add_task"));await openView(page,"plan");
    assert(await page.locator(".xterm").isVisible(),"Project visuals never replace the terminal");
-   await capture(page,"roadmap-"+suffix,"Roadmap remains attached to the terminal at the selected action",{region:"#build-details"});
-   await page.locator("[data-record-view]").getByRole("button",{name:recording.events.find(e=>e.chunk).chunk.title,exact:width>1000}).click();
+   await capture(page,"plan-"+suffix,"Plan remains attached to the terminal at the selected action",{region:"#build-details"});
+   await page.locator("[data-record-view]").getByRole("button",{name:recording.events.find(e=>e.task).task.title,exact:width>1000}).click();
    assert((await page.locator(".record-reader").textContent()).includes("Done when"));
    await page.keyboard.press("Escape");assert(await page.locator("#build-details").isHidden());
-   assert(await page.locator('[data-view="roadmap"]').evaluate(e=>e===document.activeElement));
+   assert(await page.locator('[data-view="plan"]').evaluate(e=>e===document.activeElement));
 
    await seek(page,recording.events.findIndex(e=>e.branch?.status==="merged"));await openView(page,"reasoning");
    await capture(page,"reasoning-"+suffix,"Recorded opponent investigation and its conclusion",{region:"#build-details"});

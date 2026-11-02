@@ -1,4 +1,4 @@
-//! Retained source identity and full revisions travel together. Stream chunks and
+//! Retained source identity and full revisions travel together. Stream tasks and
 //! tool updates amend their original record, so reseeding never reassembles a
 //! conversation from an arbitrary suffix of transport deltas.
 use magistr_application::sessions::AgentEvent;
@@ -35,7 +35,7 @@ impl RetainedObservation {
             | Msg::CommandFailed {
                 cmd:
                     magistr_cockpit::cockpit::Cmd::Prompt(_)
-                    | magistr_cockpit::cockpit::Cmd::RoadmapPrompt(_),
+                    | magistr_cockpit::cockpit::Cmd::PlanPrompt(_),
                 error,
             } => Msg::Agent(AgentEvent::Notice(error)),
             Msg::Agent(AgentEvent::ToolCall {

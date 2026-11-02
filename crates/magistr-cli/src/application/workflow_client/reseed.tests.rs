@@ -4,7 +4,7 @@ use magistr_cockpit::{cockpit::Msg, engine::EngineEvent};
 #[cfg(unix)]
 use magistr_engine::ReadState;
 use magistr_engine::{
-    ChunkStatus, NativeConfig, NativeEngines, NativeSnapshot, ProjectAuthority, SignalKind,
+    NativeConfig, NativeEngines, NativeSnapshot, ProjectAuthority, SignalKind, TaskStatus,
     WriterRole,
 };
 #[cfg(unix)]
@@ -27,13 +27,13 @@ fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
         .open()
 }
 
-fn add_chunk(engines: &NativeEngines, id: &str) {
+fn add_task(engines: &NativeEngines, id: &str) {
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             id.into(),
-            format!("Chunk {id}"),
+            format!("Task {id}"),
             id.into(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             100,
             String::new(),
             vec![],
@@ -62,22 +62,22 @@ async fn next_seed(rx: &mut UnboundedReceiver<Msg>, within: Duration) -> Option<
 async fn changes_are_published_and_validated_unchanged_timer_reads_stay_quiet() {
     let tmp = tempfile::tempdir().unwrap();
     let engines = engines(&tmp);
-    add_chunk(&engines, "base");
+    add_task(&engines, "base");
     let reads = seeded(&engines).await;
     let (inbox, mut rx) = Inbox::channel();
     let task = spawn_reseed(reads, FeedLink::new(), inbox, TICK);
 
     assert!(next_seed(&mut rx, TICK * 4).await.is_none());
-    add_chunk(&engines, "next");
+    add_task(&engines, "next");
     let seed = next_seed(&mut rx, Duration::from_secs(5)).await.unwrap();
     let ids: Vec<_> = seed
-        .roadmap
+        .plan
         .current()
         .unwrap()
         .value
-        .chunks
+        .tasks
         .iter()
-        .map(|chunk| chunk.id.as_str())
+        .map(|task| task.id.as_str())
         .collect();
     assert_eq!(ids, ["base", "next"]);
     assert!(next_seed(&mut rx, TICK * 4).await.is_none());
@@ -92,7 +92,7 @@ async fn timer_retries_failure_and_unchanged_stamp_repair_while_feed_stays_attac
 
     let tmp = tempfile::tempdir().unwrap();
     let engines = engines(&tmp);
-    add_chunk(&engines, "retained");
+    add_task(&engines, "retained");
     let reads = seeded(&engines).await;
     let link = FeedLink::new();
     let socket = tmp.path().join("events.sock");
@@ -112,15 +112,15 @@ async fn timer_retries_failure_and_unchanged_stamp_repair_while_feed_stays_attac
     let task = spawn_reseed(reads, link, inbox, TICK);
     next_seed(&mut rx, Duration::from_secs(5)).await.unwrap();
 
-    let path = Persistence::new(&engines.config().persistence_config(), Domain::Roadmap)
-        .path_for("reseeded");
+    let path =
+        Persistence::new(&engines.config().persistence_config(), Domain::Plan).path_for("reseeded");
     let original = std::fs::read(&path).unwrap();
     std::fs::write(&path, vec![b'!'; original.len()]).unwrap();
     let failed_stamp = std::fs::metadata(&path).unwrap().modified().unwrap();
     let failed = next_seed(&mut rx, Duration::from_secs(5)).await.unwrap();
-    assert!(matches!(failed.roadmap, ReadState::Stale { .. }));
+    assert!(matches!(failed.plan, ReadState::Stale { .. }));
     assert_eq!(
-        failed.roadmap.last_successful().unwrap().value.chunks[0].id,
+        failed.plan.last_successful().unwrap().value.tasks[0].id,
         "retained"
     );
     assert!(failed.run.current().is_ok());
@@ -135,7 +135,7 @@ async fn timer_retries_failure_and_unchanged_stamp_repair_while_feed_stays_attac
         .unwrap();
     let recovered = next_seed(&mut rx, Duration::from_secs(5)).await.unwrap();
     assert_eq!(
-        recovered.roadmap.current().unwrap().value.chunks[0].id,
+        recovered.plan.current().unwrap().value.tasks[0].id,
         "retained"
     );
     assert!(
@@ -161,7 +161,7 @@ async fn scoped_run_only_and_signal_changes_reach_the_snapshot() {
             "Only this execution".into(),
             vec![],
             vec![],
-            "chunk:work".into(),
+            "task:work".into(),
         )
         .unwrap();
     let run = next_seed(&mut rx, Duration::from_secs(5)).await.unwrap();
@@ -191,7 +191,7 @@ async fn scoped_run_only_and_signal_changes_reach_the_snapshot() {
 async fn requests_always_validate_and_publish_including_unchanged_records() {
     let tmp = tempfile::tempdir().unwrap();
     let engines = engines(&tmp);
-    add_chunk(&engines, "base");
+    add_task(&engines, "base");
     let reads = seeded(&engines).await;
     let expected = engines.snapshot();
     let (inbox, mut rx) = Inbox::channel();
@@ -214,13 +214,13 @@ async fn requests_always_validate_and_publish_including_unchanged_records() {
 async fn a_write_between_initial_seed_and_worker_start_is_not_missed() {
     let tmp = tempfile::tempdir().unwrap();
     let engines = engines(&tmp);
-    add_chunk(&engines, "base");
+    add_task(&engines, "base");
     let reads = seeded(&engines).await;
-    add_chunk(&engines, "between");
+    add_task(&engines, "between");
     let (inbox, mut rx) = Inbox::channel();
     let task = spawn_reseed(reads, FeedLink::new(), inbox, TICK);
     let seed = next_seed(&mut rx, Duration::from_secs(5)).await.unwrap();
-    assert_eq!(seed.roadmap.current().unwrap().value.chunks.len(), 2);
+    assert_eq!(seed.plan.current().unwrap().value.tasks.len(), 2);
     task.abort();
 }
 

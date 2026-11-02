@@ -66,7 +66,7 @@ fn judge(
 
 fn input() -> JudgeInput {
     JudgeInput {
-        chunk: "auth-refresh".to_owned(),
+        task: "auth-refresh".to_owned(),
         title: "Refresh tokens rotate before expiry".to_owned(),
         acceptance: vec!["A token within 60s of expiry is refreshed".to_owned()],
         gates: Vec::new(),

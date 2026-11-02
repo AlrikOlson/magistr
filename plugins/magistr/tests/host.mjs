@@ -118,12 +118,12 @@ export async function host(options = {}) {
           f.context.phase_step = f.step.id
           return { result: { id: f.step.id, status: 'active' } }
         }
-        if (operation.tool === 'roadmap_start_chunk') {
+        if (operation.tool === 'plan_start_task') {
           f.work.status = 'in_progress'
           return reply({ result: { id: f.work.id, status: f.work.status } })
         }
-        if (operation.tool === 'roadmap_focus_set') {
-          f.focus = { group: operation.args.group, mode: operation.args.mode }
+        if (operation.tool === 'plan_focus_set') {
+          f.focus = { feature: operation.args.feature, mode: operation.args.mode }
           return reply({
             result: { lane: operation.args.lane, focus: f.focus },
           })

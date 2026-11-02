@@ -62,7 +62,7 @@ fn linked_commands_and_setup_use_current_shared_settings_and_refuse_invalid_valu
         "quality_gate": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "", "extensions": []},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
-        "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+        "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false
     });
     config["project"]["name"] = "shared-project".into();
     config["quality_gate"]["check"] = "echo shared-check".into();
@@ -76,11 +76,7 @@ fn linked_commands_and_setup_use_current_shared_settings_and_refuse_invalid_valu
         "{invalid local settings",
     )
     .unwrap();
-    std::fs::write(
-        linked.join(".magistr-roadmap.yml"),
-        "invalid unrelated YAML",
-    )
-    .unwrap();
+    std::fs::write(linked.join(".magistr-plan.yml"), "invalid unrelated YAML").unwrap();
     std::fs::write(
         linked.join("Cargo.toml"),
         "[package]\nname = \"detected\"\nversion = \"0.1.0\"\n",
@@ -102,19 +98,19 @@ fn linked_commands_and_setup_use_current_shared_settings_and_refuse_invalid_valu
         .assert()
         .success();
     magistr(&data)
-        .args(["roadmap", "status", linked_path, "--json"])
+        .args(["plan", "status", linked_path, "--json"])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"counts\""));
     assert_eq!(std::fs::read_to_string(&shared).unwrap(), original);
 
-    config["roadmap_backend"] = "invalid".into();
+    config["plan_backend"] = "invalid".into();
     let invalid = config.to_string();
     std::fs::write(&shared, &invalid).unwrap();
     for args in [
         vec!["config", "show", linked_path],
         vec!["config", "check", linked_path],
-        vec!["roadmap", "status", linked_path],
+        vec!["plan", "status", linked_path],
         vec!["init", linked_path, "--force"],
         vec!["repair", linked_path, "--dry-run"],
     ] {

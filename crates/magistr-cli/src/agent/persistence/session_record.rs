@@ -98,14 +98,14 @@ impl fmt::Display for SessionRecord {
 pub(super) fn purpose_name(purpose: SessionPurpose) -> &'static str {
     match purpose {
         SessionPurpose::Conversation => "conversation",
-        SessionPurpose::Roadmap => "roadmap",
+        SessionPurpose::Plan => "plan",
     }
 }
 
 pub(super) fn purpose_from_name(value: &str) -> Result<SessionPurpose, String> {
     match value {
         "conversation" => Ok(SessionPurpose::Conversation),
-        "roadmap" => Ok(SessionPurpose::Roadmap),
+        "plan" => Ok(SessionPurpose::Plan),
         _ => Err(format!("Unknown saved conversation purpose: {value}")),
     }
 }

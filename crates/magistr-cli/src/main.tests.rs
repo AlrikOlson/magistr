@@ -358,7 +358,7 @@ fn remove_scaffold_preserves_custom_servers_and_unowned_files() {
     let custom_servers = r#"{"mcpServers":{"magistr":{"command":"custom-server"},"external-search":{"command":"external-search"}}}"#;
     std::fs::write(dir.join(".mcp.json"), custom_servers).unwrap();
     std::fs::write(dir.join("CLAUDE.md"), "# My project").unwrap();
-    std::fs::write(dir.join("ROADMAP.md"), "# Roadmap").unwrap();
+    std::fs::write(dir.join("PLAN.md"), "# Plan").unwrap();
 
     scaffold::remove_scaffold(dir).unwrap();
 
@@ -378,8 +378,8 @@ fn remove_scaffold_preserves_custom_servers_and_unowned_files() {
         "# My project"
     );
     assert_eq!(
-        std::fs::read_to_string(dir.join("ROADMAP.md")).unwrap(),
-        "# Roadmap"
+        std::fs::read_to_string(dir.join("PLAN.md")).unwrap(),
+        "# Plan"
     );
 }
 
@@ -1259,23 +1259,23 @@ fn cli_parses_guard_stop_and_commit() {
     assert!(parse_cli(["magistr", "guard", "push"]).is_err());
 }
 
-// ── roadmap subcommands (ts4a) ──────────────────────────────────────
+// ── plan subcommands (ts4a) ──────────────────────────────────────
 
 #[test]
-fn cli_parses_roadmap_next_status_and_export() {
+fn cli_parses_plan_next_status_and_export() {
     for (args, expect) in [
-        (["magistr", "roadmap", "next"], "Next"),
-        (["magistr", "roadmap", "status"], "Status"),
-        (["magistr", "roadmap", "export"], "Export"),
+        (["magistr", "plan", "next"], "Next"),
+        (["magistr", "plan", "status"], "Status"),
+        (["magistr", "plan", "export"], "Export"),
     ] {
         let parsed = parse_cli(args).unwrap();
-        let Some(cli::Command::Roadmap { action }) = parsed.command else {
-            panic!("expected a roadmap command for {args:?}");
+        let Some(cli::Command::Plan { action }) = parsed.command else {
+            panic!("expected a plan command for {args:?}");
         };
         let name = match action {
-            Some(cli::RoadmapAction::Next { .. }) => "Next",
-            Some(cli::RoadmapAction::Status { .. }) => "Status",
-            Some(cli::RoadmapAction::Export { .. }) => "Export",
+            Some(cli::PlanAction::Next { .. }) => "Next",
+            Some(cli::PlanAction::Status { .. }) => "Status",
+            Some(cli::PlanAction::Export { .. }) => "Export",
             other => panic!("unexpected action {other:?}"),
         };
         assert_eq!(name, expect);
@@ -1283,9 +1283,9 @@ fn cli_parses_roadmap_next_status_and_export() {
 }
 
 #[test]
-fn removed_roadmap_commands_are_rejected() {
+fn removed_plan_commands_are_rejected() {
     for command in ["sync", "reset"] {
-        assert!(parse_cli(["magistr", "roadmap", command]).is_err());
+        assert!(parse_cli(["magistr", "plan", command]).is_err());
     }
 }
 

@@ -21,7 +21,7 @@ pub enum LoopStage {
     Agent,
     /// The gates run as jobs after the turn.
     Gates,
-    /// The judge is asked about the iteration's chunk.
+    /// The judge is asked about the iteration's task.
     Judge,
 }
 

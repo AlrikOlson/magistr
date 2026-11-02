@@ -1,7 +1,7 @@
-use magistr_engine::native::BlockerKind;
+use magistr_engine::native::WaitingReason;
 use magistr_engine::{
-    ChunkStatus, Delivery, NativeConfig, NativeEngines, NativeEvent, ProjectAuthority,
-    RoadmapFrame, WriterRole,
+    Delivery, NativeConfig, NativeEngines, NativeEvent, PlanFrame, ProjectAuthority, TaskStatus,
+    WriterRole,
 };
 
 use super::*;
@@ -9,7 +9,7 @@ use magistr_cockpit::cockpit::EngineCmd;
 use magistr_cockpit::engine::{EngineEvent, apply};
 
 /// In-memory engines on a throwaway project directory, with one pending
-/// chunk the dock could raise a card for.
+/// task the dock could raise a card for.
 fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
@@ -21,11 +21,11 @@ fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
             .expect("host admitted")
             .open();
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             "auth".to_owned(),
             "Authenticate users".to_owned(),
             String::new(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             200,
             String::new(),
             vec![],
@@ -33,7 +33,7 @@ fn engines(tmp: &tempfile::TempDir) -> NativeEngines {
             None,
             None,
         )
-        .expect("the chunk");
+        .expect("the task");
     engines
 }
 
@@ -50,11 +50,11 @@ fn frame_of(port: &mut NativeEnginePort, cmd: &EngineCmd) -> NativeEvent {
 }
 
 #[test]
-fn an_accepted_reprioritize_moves_the_chunk_and_the_frame_takes_the_card() {
+fn an_accepted_reprioritize_moves_the_task_and_the_frame_takes_the_card() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let engines = engines(&tmp);
     engines
-        .roadmap_reprioritize("auth", 100, "blocking the release".to_owned())
+        .plan_reprioritize("auth", 100, "blocking the release".to_owned())
         .expect("the proposal");
 
     // The proposal is a card on the dock, the way the feed's frame puts
@@ -64,20 +64,20 @@ fn an_accepted_reprioritize_moves_the_chunk_and_the_frame_takes_the_card() {
     let frame = frame_of(
         &mut port,
         &EngineCmd::ResolveProposal {
-            chunk: "auth".to_owned(),
+            task: "auth".to_owned(),
             kind: ProposalKind::Reprioritize,
             accept: true,
         },
     );
 
     // The store moved…
-    let after = engines.roadmap_chunk("auth").unwrap().expect("the chunk");
+    let after = engines.plan_task("auth").unwrap().expect("the task");
     assert_eq!(after.priority, 100, "the suggestion was applied");
     assert!(after.reprioritize.is_none(), "and the proposal is disposed");
     // …and the event the answer came back as is what takes the card.
     assert!(matches!(
         &frame,
-        NativeEvent::Roadmap(RoadmapFrame::ChunkChanged { chunk }) if chunk.id == "auth"
+        NativeEvent::Plan(PlanFrame::TaskChanged { task }) if task.id == "auth"
     ));
 }
 
@@ -86,35 +86,35 @@ fn a_rejected_reprioritize_disposes_the_proposal_and_leaves_the_priority() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let engines = engines(&tmp);
     engines
-        .roadmap_reprioritize("auth", 100, "blocking the release".to_owned())
+        .plan_reprioritize("auth", 100, "blocking the release".to_owned())
         .expect("the proposal");
 
     let mut port = NativeEnginePort::new(engines.clone());
     let frame = frame_of(
         &mut port,
         &EngineCmd::ResolveProposal {
-            chunk: "auth".to_owned(),
+            task: "auth".to_owned(),
             kind: ProposalKind::Reprioritize,
             accept: false,
         },
     );
-    let after = engines.roadmap_chunk("auth").unwrap().expect("the chunk");
+    let after = engines.plan_task("auth").unwrap().expect("the task");
     assert_eq!(after.priority, 200, "a rejection applies nothing");
     assert!(after.reprioritize.is_none(), "and clears the proposal");
     assert!(matches!(
         frame,
-        NativeEvent::Roadmap(RoadmapFrame::ChunkChanged { chunk }) if chunk.reprioritize.is_none()
+        NativeEvent::Plan(PlanFrame::TaskChanged { task }) if task.reprioritize.is_none()
     ));
 }
 
 #[test]
-fn a_cleared_blocker_lifts_blocked_by_and_the_frame_takes_the_card() {
+fn a_cleared_blocker_lifts_waiting_on_and_the_frame_takes_the_card() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let engines = engines(&tmp);
     engines
-        .roadmap_set_blocked_by(
+        .plan_set_waiting_on(
             "auth",
-            BlockerKind::AwaitingHuman,
+            WaitingReason::Person,
             "needs a person to pick the scheme".to_owned(),
             None,
         )
@@ -124,21 +124,21 @@ fn a_cleared_blocker_lifts_blocked_by_and_the_frame_takes_the_card() {
     let frame = frame_of(
         &mut port,
         &EngineCmd::ClearBlocker {
-            chunk: "auth".to_owned(),
+            task: "auth".to_owned(),
         },
     );
     assert!(
         engines
-            .roadmap_chunk("auth")
+            .plan_task("auth")
             .unwrap()
-            .expect("the chunk")
-            .blocked_by
+            .expect("the task")
+            .waiting_on
             .is_none(),
         "the blocker is lifted in the store"
     );
 
     assert!(
-        matches!(frame, NativeEvent::Roadmap(RoadmapFrame::ChunkChanged {chunk}) if chunk.blocked_by.is_none())
+        matches!(frame, NativeEvent::Plan(PlanFrame::TaskChanged {task}) if task.waiting_on.is_none())
     );
     // The engines refuse a second clear rather than answer a no-op, and
     // the cockpit hears it as words for the stage.
@@ -146,17 +146,17 @@ fn a_cleared_blocker_lifts_blocked_by_and_the_frame_takes_the_card() {
         apply(
             &mut port,
             &EngineCmd::ClearBlocker {
-                chunk: "auth".to_owned(),
+                task: "auth".to_owned(),
             }
         ),
         EngineEvent::PortFailed {
-            cmd: EngineCmd::ClearBlocker { chunk },
+            cmd: EngineCmd::ClearBlocker { task },
             ..
-        } if chunk == "auth"
+        } if task == "auth"
     ));
 }
 
-/// The event the external server announces for a changed chunk — what
+/// The event the external server announces for a changed task — what
 /// the dock folds when the feed, rather than the port, reports.
 
 #[test]
@@ -167,7 +167,7 @@ fn a_missing_decision_is_refused_with_its_original_command() {
     for kind in ProposalKind::ALL {
         for accept in [true, false] {
             let cmd = EngineCmd::ResolveProposal {
-                chunk: "missing".into(),
+                task: "missing".into(),
                 kind,
                 accept,
             };
@@ -177,7 +177,7 @@ fn a_missing_decision_is_refused_with_its_original_command() {
         }
     }
     let cmd = EngineCmd::ClearBlocker {
-        chunk: "missing".into(),
+        task: "missing".into(),
     };
     assert!(
         matches!(apply(&mut port,&cmd),EngineEvent::PortFailed {cmd:ref original,error,..} if original==&cmd && !error.is_empty())

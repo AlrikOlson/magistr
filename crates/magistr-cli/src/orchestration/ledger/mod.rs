@@ -2,7 +2,7 @@
 //!
 //! A checkpoint is two things joined — the engine's own
 //! [`SessionSnapshot`] (status, phase, iteration, cost, the
-//! roadmap cursor, the message log) and the [`RepoState`] the tree was
+//! plan cursor, the message log) and the [`RepoState`] the tree was
 //! in when it was taken. Neither half is enough on its own: the
 //! snapshot restores the *workflow* and says nothing about which commit
 //! it was reading, and a sha restores the *tree* and says nothing about

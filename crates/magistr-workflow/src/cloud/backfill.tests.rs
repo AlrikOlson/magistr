@@ -1,13 +1,13 @@
 use super::*;
 use crate::cloud::envelope::Kind;
-use crate::roadmap::domain::{Chunk, ChunkStatus};
+use crate::plan::domain::{Task, TaskStatus};
 
-/// A roadmap with the supplied chunks and no tracker state.
-fn roadmap_of(chunks: Vec<Chunk>) -> Roadmap {
-    Roadmap {
+/// A plan with the supplied tasks and no tracker state.
+fn plan_of(tasks: Vec<Task>) -> Plan {
+    Plan {
         project_id: "t".into(),
-        chunks,
-        ..Roadmap::default()
+        tasks,
+        ..Plan::default()
     }
 }
 use crate::run::domain::goal::{GoalStatus, VerificationMode};
@@ -42,7 +42,7 @@ fn progress(id: u32, step: &str) -> Progress {
 
 fn run_cycle(progress: Vec<Progress>) -> (Goal, Vec<Step>) {
     let goal = Goal {
-        description: "test goal chunk:test-chunk".into(),
+        description: "test goal task:test-chunk".into(),
         acceptance_criteria: vec![],
         constraints: vec![],
         scope: String::new(),
@@ -69,27 +69,27 @@ fn run_cycle(progress: Vec<Progress>) -> (Goal, Vec<Step>) {
     (goal, vec![step])
 }
 
-fn chunk(id: &str) -> Chunk {
-    Chunk {
+fn task(id: &str) -> Task {
+    Task {
         tier: None,
         id: id.into(),
         title: id.into(),
-        name: crate::roadmap::name::derive(id),
-        status: ChunkStatus::Backlog,
+        name: crate::plan::name::derive(id),
+        status: TaskStatus::Idea,
         priority: 100,
         description: String::new(),
         content: None,
-        group: None,
+        feature: None,
         notes: String::new(),
         acceptance: vec![],
         deps: vec![],
-        cross_refs: vec![],
+        refs: vec![],
         shared: false,
         reprioritize: None,
         status_proposal: None,
         title_proposal: None,
-        obsoleted_reason: None,
-        blocked_by: None,
+        retired_reason: None,
+        waiting_on: None,
         project_id: None,
         created_at: "2026-06-09T00:00:00Z".into(),
         updated_at: "2026-06-09T00:00:00Z".into(),
@@ -106,7 +106,7 @@ fn signal(id: &str) -> Signal {
         created: "2026-06-09T00:00:00Z".into(),
         status: SignalStatus::New,
         enrichment: vec![],
-        cross_refs: vec![],
+        refs: vec![],
         surfaced_at: None,
         snooze_until: None,
         project_id: None,
@@ -117,21 +117,21 @@ fn signal(id: &str) -> Signal {
 fn collects_one_envelope_per_record_in_family_order() {
     let steps = [step(1), step(2)];
     let (goal, run_steps) = run_cycle(vec![progress(1, "t1")]);
-    let chunks = [chunk("c1"), chunk("c2"), chunk("c3")];
+    let tasks = [task("c1"), task("c2"), task("c3")];
     let signals = [signal("s1")];
 
     let envelopes = collect_envelopes(
         "tenant-x",
         steps.iter(),
         Some((&goal, run_steps.as_slice())),
-        &roadmap_of(chunks.to_vec()),
+        &plan_of(tasks.to_vec()),
         &signals,
     )
     .unwrap();
 
     // One envelope per record: 2 think + (1 goal + 1 step + 1 progress) + 3 + 1.
     assert_eq!(envelopes.len(), 9);
-    // Stable family order: think, run, roadmap, signal.
+    // Stable family order: think, run, plan, signal.
     let families: Vec<Family> = envelopes.iter().map(|e| e.family).collect();
     assert_eq!(
         families,
@@ -141,9 +141,9 @@ fn collects_one_envelope_per_record_in_family_order() {
             Family::Run,
             Family::Run,
             Family::Run,
-            Family::Roadmap,
-            Family::Roadmap,
-            Family::Roadmap,
+            Family::Plan,
+            Family::Plan,
+            Family::Plan,
             Family::Signal,
         ]
     );
@@ -155,7 +155,7 @@ fn collects_one_envelope_per_record_in_family_order() {
     assert_eq!(envelopes[3].id, "obj-2026-06-09T00:00:00-00:00.t1");
     assert_eq!(envelopes[4].kind, Kind::Progress);
     assert_eq!(envelopes[4].id, "obj-2026-06-09T00:00:00-00:00.progress-1");
-    assert_eq!(envelopes[5].kind, Kind::Chunk);
+    assert_eq!(envelopes[5].kind, Kind::Task);
     assert_eq!(envelopes[8].kind, Kind::Signal);
     assert!(envelopes.iter().all(|e| e.tenant_id == "tenant-x"));
 }
@@ -163,17 +163,11 @@ fn collects_one_envelope_per_record_in_family_order() {
 #[test]
 fn counts_match_the_collected_envelopes() {
     let steps = [step(1)];
-    let chunks = [chunk("c1"), chunk("c2")];
+    let tasks = [task("c1"), task("c2")];
     let signals = [signal("s1"), signal("s2"), signal("s3")];
 
-    let envelopes = collect_envelopes(
-        "t",
-        steps.iter(),
-        None,
-        &roadmap_of(chunks.to_vec()),
-        &signals,
-    )
-    .unwrap();
+    let envelopes =
+        collect_envelopes("t", steps.iter(), None, &plan_of(tasks.to_vec()), &signals).unwrap();
     let counts = BackfillCounts::from_envelopes(&envelopes);
 
     assert_eq!(
@@ -181,7 +175,7 @@ fn counts_match_the_collected_envelopes() {
         BackfillCounts {
             think: 1,
             run: 0,
-            roadmap: 2,
+            plan: 2,
             signal: 3,
         }
     );
@@ -191,15 +185,9 @@ fn counts_match_the_collected_envelopes() {
 
 #[test]
 fn an_empty_identity_refuses_the_collection() {
-    let chunks = [chunk("c1"), chunk(""), chunk("c2")];
-    let error = collect_envelopes(
-        "t",
-        std::iter::empty(),
-        None,
-        &roadmap_of(chunks.to_vec()),
-        &[],
-    )
-    .unwrap_err();
+    let tasks = [task("c1"), task(""), task("c2")];
+    let error = collect_envelopes("t", std::iter::empty(), None, &plan_of(tasks.to_vec()), &[])
+        .unwrap_err();
     assert_eq!(
         error.kind,
         magistr_workflow_contracts::ReadErrorKind::Identity
@@ -209,7 +197,7 @@ fn an_empty_identity_refuses_the_collection() {
 #[test]
 fn empty_corpus_collects_nothing() {
     let envelopes =
-        collect_envelopes("t", std::iter::empty(), None, &roadmap_of(vec![]), &[]).unwrap();
+        collect_envelopes("t", std::iter::empty(), None, &plan_of(vec![]), &[]).unwrap();
     assert!(envelopes.is_empty());
     assert_eq!(BackfillCounts::from_envelopes(&envelopes).total(), 0);
 }

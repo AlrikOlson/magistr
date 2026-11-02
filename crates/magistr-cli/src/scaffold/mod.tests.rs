@@ -270,7 +270,7 @@ fn mcp_json_has_project_root() {
 }
 
 #[test]
-fn generate_preserves_existing_claude_md_and_roadmap() {
+fn generate_preserves_existing_claude_md_and_plan() {
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
 
@@ -356,9 +356,9 @@ fn generated_override_replaces_static_template_content() {
 }
 
 #[test]
-fn roadmap_not_scaffolded() {
-    // Roadmap creation is handled by `magistr roadmap generate` (MCP tools),
-    // NOT by scaffolding. Verify that scaffold does not create any roadmap file.
+fn plan_not_scaffolded() {
+    // Plan creation is handled by `magistr plan generate` (MCP tools),
+    // NOT by scaffolding. Verify that scaffold does not create any plan file.
     let tmp = tempfile::TempDir::new().unwrap();
     let dir = tmp.path();
     let tv = test_vars();
@@ -372,12 +372,12 @@ fn roadmap_not_scaffolded() {
     .unwrap();
 
     assert!(
-        !dir.join("ROADMAP.md").exists(),
-        "ROADMAP.md should not be scaffolded"
+        !dir.join("PLAN.md").exists(),
+        "PLAN.md should not be scaffolded"
     );
     assert!(
-        !dir.join(".magistr-roadmap.yml").exists(),
-        ".magistr-roadmap.yml should not be scaffolded"
+        !dir.join(".magistr-plan.yml").exists(),
+        ".magistr-plan.yml should not be scaffolded"
     );
 }
 
@@ -1125,7 +1125,7 @@ fn scaffolded_skills_have_discoverable_frontmatter() {
 // Cross-host workflow and relative-reference contracts live in workflow_skills.tests.rs.
 
 #[test]
-fn scaffolded_skills_and_rules_use_current_roadmap_tools() {
+fn scaffolded_skills_and_rules_use_current_plan_tools() {
     let files = scaffold_files(&test_vars());
     for f in files.iter().filter(|f| f.path.starts_with(".claude/")) {
         assert!(

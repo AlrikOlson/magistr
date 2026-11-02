@@ -19,7 +19,7 @@ use crate::utils::gate::run_gate;
 /// shared gate runner — the same one `magistr_gate` goes through, so the
 /// two paths cannot disagree about what a gate did — driven on the
 /// runtime's handle from the blocking thread. The gate runs on a pty, and
-/// every chunk it writes goes to `inbox` while it runs as a
+/// every task it writes goes to `inbox` while it runs as a
 /// [`GateOutput`] event keyed by `name` — the same event `magistr
 /// mcp`'s socket carries for the agent's own gates, folded into the
 /// cockpit's terminal store either way. The whole run goes to the driver on `report`: the stripped

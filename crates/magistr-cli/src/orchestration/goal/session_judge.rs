@@ -131,8 +131,8 @@ async fn answer(
         match message {
             Ok(AgentMessage::Assistant { message, .. }) => {
                 for block in message.content {
-                    if let ContentBlock::Text { text: chunk } = block {
-                        text.push_str(&chunk);
+                    if let ContentBlock::Text { text: task } = block {
+                        text.push_str(&task);
                     }
                 }
             }
@@ -176,7 +176,7 @@ impl Judge for SessionJudge {
                 elapsed = ?asked.elapsed(),
                 ok = verdict.ok,
                 impossible = verdict.impossible,
-                chunk = %input.chunk,
+                task = %input.task,
                 "judge answered"
             );
             verdict

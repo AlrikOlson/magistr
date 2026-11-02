@@ -10,7 +10,7 @@ use crate::session_id::SessionId;
 /// A single message from the agent stream.
 ///
 /// The ACP backend emits this type, so downstream code (TUI handler,
-/// no-TUI loop, roadmap generator) never imports a backend-specific SDK crate.
+/// no-TUI loop, plan generator) never imports a backend-specific SDK crate.
 #[derive(Debug, Clone)]
 pub enum AgentMessage {
     /// The user sent a message (echoed back for context).

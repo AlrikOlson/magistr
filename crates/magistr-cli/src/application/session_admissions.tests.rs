@@ -42,7 +42,7 @@ async fn empty_registry_configures_each_path_only_when_opened() {
  "quality_gate": {"check": "", "test": "", "lint": ""},
  "format": {"command": "", "extensions": []},
  "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
- "reference_repos": [], "state_prefix": "fixture", "roadmap_exports": false
+ "reference_repos": [], "state_prefix": "fixture", "plan_exports": false
 }).to_string(),
     )
     .unwrap();

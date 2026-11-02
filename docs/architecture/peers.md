@@ -57,7 +57,7 @@ Restoring a bare revision with `PlanAgreement::from_revision` starts without vot
 
 `Reconciliation` collects one proposal from each fixed session against the
 current reference and the same context. Context includes ordered constraints
-and roadmap, code, and routing-history references. The proposal accessor exposes
+and plan, code, and routing-history references. The proposal accessor exposes
 the pair only after both submit. Identical resubmissions are idempotent;
 contradictory submissions by one peer in the same round fail.
 
@@ -98,7 +98,7 @@ usage must still reach it through `Observe` or the next cumulative reading.
 ## Shared briefing
 
 Use `TaskAuthority::with_briefing` for runs that require common evidence.
-`PeerEvidence` contains the actual roadmap, code evidence, and routing history;
+`PeerEvidence` contains the actual plan, code evidence, and routing history;
 a revision or URL alone does not provide that content. Sections must be nonblank.
 An explicit statement can represent empty routing history.
 

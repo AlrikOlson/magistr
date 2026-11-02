@@ -34,7 +34,7 @@
 use std::sync::{Arc, Mutex};
 
 use magistr_workflow::mcp::UnifiedService;
-use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
+use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
@@ -83,11 +83,11 @@ fn build_unified(project: &str) -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
     let run = RunService::new(RunEngine::new(project.into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), run.use_cases());
+    let plan = PlanService::new(PlanEngine::new(project.into()), run.use_cases());
     UnifiedService::new(
         ThinkService::new(ReasoningServer::new(cfg)),
         run,
-        roadmap,
+        plan,
         SignalService::new(SignalEngine::new(project.into())),
     )
 }
@@ -184,12 +184,12 @@ async fn landed_distinguishes_success_and_failure_over_the_wire() {
         .await
         .expect("client.serve");
 
-    // A SUCCESS envelope, from a real roadmap tool over the real wire.
+    // A SUCCESS envelope, from a real plan tool over the real wire.
     let ok = client
         .peer()
-        .call_tool(CallToolRequestParams::new("roadmap_status"))
+        .call_tool(CallToolRequestParams::new("plan_status"))
         .await
-        .expect("roadmap_status");
+        .expect("plan_status");
     let ok_sc = ok.structured_content.expect("structured");
     assert_ne!(
         ok_sc.get("ok"),
@@ -199,18 +199,14 @@ async fn landed_distinguishes_success_and_failure_over_the_wire() {
     assert_eq!(ok.is_error, Some(false));
 
     // A FAILURE envelope, from the same family over the same wire.
-    let mut bad = CallToolRequestParams::new("roadmap_set_status");
+    let mut bad = CallToolRequestParams::new("plan_set_status");
     bad.arguments = Some(
         json!({ "id": "no-such-chunk-anywhere", "status": "done" })
             .as_object()
             .unwrap()
             .clone(),
     );
-    let err = client
-        .peer()
-        .call_tool(bad)
-        .await
-        .expect("roadmap_set_status");
+    let err = client.peer().call_tool(bad).await.expect("plan_set_status");
     let err_sc = err.structured_content.expect("structured");
     assert_eq!(
         err_sc.get("ok"),

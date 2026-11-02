@@ -15,7 +15,7 @@ use crate::claude::tool_kind::tool_kind;
 /// The CLI asks after it has announced the `tool_use` block, so the ask
 /// names a tool call the client already holds; the ACP request is a
 /// `ToolCallUpdate` on that id whose title is the tool's **raw name**
-/// (`Bash`, `Write`, `mcp__magistr__roadmap_status`) and whose kind is the
+/// (`Bash`, `Write`, `mcp__magistr__plan_status`) and whose kind is the
 /// name's ACP kind — a client's permission policy keys on exactly those
 /// (allowed-tool sets, auto-allow rules, risk classification, auto-approval
 /// by kind), and a display name in their place turns every known tool into

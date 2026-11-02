@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::cost::{BudgetConfig, CostGovernor};
 use crate::error::EngineError;
-use crate::roadmap::RoadmapProgress;
+use crate::plan::PlanProgress;
 use crate::workflow::{IterationState, RunMode, RunState, StopReason};
 
 use super::engine_session::EngineSession;
@@ -18,7 +18,7 @@ use super::session_status::SessionStatus;
 ///
 /// A session that only lives in one process cannot survive that process
 /// draining, restarting, or being taken out for maintenance. This is the
-/// document that lets it: status, phase, iteration, cost and the roadmap
+/// document that lets it: status, phase, iteration, cost and the plan
 /// cursor are values, and a value crosses a machine for free. What does
 /// not cross is declared in [`residencies`] — see [`SessionResidency`]
 /// for why that is a list rather than an omission.
@@ -76,12 +76,12 @@ pub struct SessionSnapshot {
     pub cost_governor: CostGovernor,
     /// Accumulated cost and token usage.
     pub cost: SessionCost,
-    /// Roadmap progress as of the capture.
+    /// Plan progress as of the capture.
     #[serde(default)]
-    pub roadmap: RoadmapProgress,
-    /// The chunk the session was working on, when it named one.
+    pub plan: PlanProgress,
+    /// The task the session was working on, when it named one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub roadmap_cursor: Option<String>,
+    pub plan_cursor: Option<String>,
     /// When the session was created.
     pub created_at: DateTime<Utc>,
     /// When this snapshot was taken.
@@ -122,7 +122,7 @@ impl SessionSnapshot {
         iteration: IterationState,
         captured_at: DateTime<Utc>,
     ) -> Self {
-        let mut run = RunState::new(RunMode::ChunkLoop, iteration.max_iterations, None);
+        let mut run = RunState::new(RunMode::TaskLoop, iteration.max_iterations, None);
         run.completed_attempts = iteration.iteration;
         run.observe_budget(session.cost().total_usd);
         match session.status() {
@@ -130,10 +130,10 @@ impl SessionSnapshot {
             SessionStatus::Failed => run.stop(StopReason::Failed),
             _ => {}
         }
-        let roadmap = RoadmapProgress {
+        let plan = PlanProgress {
             checked_tasks: iteration.spec_checked,
             total_tasks: iteration.spec_total,
-            ..RoadmapProgress::default()
+            ..PlanProgress::default()
         };
         Self {
             version: Self::VERSION,
@@ -146,8 +146,8 @@ impl SessionSnapshot {
             cost_governor: CostGovernor::new(BudgetConfig::none())
                 .with_cost(session.cost().clone()),
             cost: session.cost().clone(),
-            roadmap,
-            roadmap_cursor: None,
+            plan,
+            plan_cursor: None,
             created_at: session.created_at(),
             captured_at,
             messages: session.messages().to_vec(),
@@ -194,13 +194,13 @@ impl SessionSnapshot {
         self
     }
 
-    /// Record roadmap progress and the chunk being worked on.
+    /// Record plan progress and the task being worked on.
     #[must_use]
-    pub fn with_roadmap(mut self, roadmap: RoadmapProgress, cursor: Option<String>) -> Self {
-        self.iteration.spec_checked = roadmap.checked_tasks;
-        self.iteration.spec_total = roadmap.total_tasks;
-        self.roadmap = roadmap;
-        self.roadmap_cursor = cursor;
+    pub fn with_plan(mut self, plan: PlanProgress, cursor: Option<String>) -> Self {
+        self.iteration.spec_checked = plan.checked_tasks;
+        self.iteration.spec_total = plan.total_tasks;
+        self.plan = plan;
+        self.plan_cursor = cursor;
         self
     }
 
@@ -257,8 +257,8 @@ impl SessionSnapshot {
         if self.run.completed_attempts != self.iteration.iteration
             || self.run.max_iterations != self.iteration.max_iterations
             || self.run.consecutive_no_commits != self.consecutive_no_commits
-            || self.iteration.spec_checked != self.roadmap.checked_tasks
-            || self.iteration.spec_total != self.roadmap.total_tasks
+            || self.iteration.spec_checked != self.plan.checked_tasks
+            || self.iteration.spec_total != self.plan.total_tasks
             || self.run.budget_total_usd != self.cost.total_usd
             || self.run.budget_limit_usd != self.cost_governor.budget().limit
             || self.cost_governor.cost() != &self.cost
@@ -310,8 +310,8 @@ impl SessionSnapshot {
             consecutive_no_commits: self.consecutive_no_commits,
             run: self.run.clone(),
             cost_governor: self.cost_governor.clone(),
-            roadmap: self.roadmap.clone(),
-            roadmap_cursor: self.roadmap_cursor.clone(),
+            plan: self.plan.clone(),
+            plan_cursor: self.plan_cursor.clone(),
             severed: self.residencies.clone(),
             resumed_from,
         })

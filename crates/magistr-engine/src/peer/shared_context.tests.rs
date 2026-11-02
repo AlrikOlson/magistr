@@ -17,7 +17,7 @@ fn observation() -> ReconciliationObservation {
 
 fn evidence() -> PeerEvidence {
     PeerEvidence {
-        roadmap: "roadmap revision 42: build then review".into(),
+        plan: "plan revision 42: build then review".into(),
         code: "git abc: code evidence".into(),
         routing_history: "history 0: no prior workers".into(),
     }

@@ -14,7 +14,7 @@ export class ReasoningBranches{
   }
 }
 export function branchSummary(branch,reference=number=>"Step "+number){
-  const section=element("section","","roadmap-relations reasoning-investigation"),header=element("header");
+  const section=element("section","","plan-relations reasoning-investigation"),header=element("header");
   header.append(element("h4",branch.name),element("p",labels[branch.status]??"Status unavailable","work-record-status"));section.append(header);
   const facts=[["Started from",reference(branch.from_step,"Step ","origin")]];
   if(branch.merged_into!=null)facts.push(["Conclusions",reference(branch.merged_into,"Step ","conclusion")]);

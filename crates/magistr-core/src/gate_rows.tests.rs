@@ -127,8 +127,8 @@ fn libtest_failures_pair_the_failed_line_with_its_stdout_block() {
         vec![row(
             GateRowSeverity::TestFailure,
             None,
-            "workflow::iteration::tests::native_prompt_names_the_next_chunk: \
-             assertion failed: prompt.contains(\"guards — Chunk guards\")",
+            "workflow::iteration::tests::native_prompt_names_the_next_task: \
+             assertion failed: prompt.contains(\"guards — Task guards\")",
             Some("crates/magistr-core/src/workflow/iteration.tests.rs"),
             Some(427),
             Some(5),
@@ -182,7 +182,7 @@ fn generic_lines_cover_eslint_tsc_pytest_and_mypy() {
                 GateRowSeverity::Error,
                 None,
                 "'snapshot' is never reassigned. Use 'const' instead. (prefer-const)",
-                Some("src/lib/stores/chunks.svelte.ts"),
+                Some("src/lib/stores/tasks.svelte.ts"),
                 Some(42),
                 Some(7),
             ),

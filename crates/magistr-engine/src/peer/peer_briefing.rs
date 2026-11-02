@@ -31,7 +31,7 @@ impl PeerBriefing {
         evidence: PeerEvidence,
     ) -> Result<Self, AgreementError> {
         for (name, text) in [
-            ("roadmap evidence", &evidence.roadmap),
+            ("plan evidence", &evidence.plan),
             ("code evidence", &evidence.code),
             ("routing history", &evidence.routing_history),
         ] {

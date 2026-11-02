@@ -16,7 +16,11 @@ other MCP servers, environment settings and agent preferences are preserved.
 
 | Existing data | Current location |
 | --- | --- |
-| `roadmap_backend: "think-and-ship"` | `"native"` in the existing project configuration |
+| `roadmap_backend` and `roadmap_exports` in `.magistr/project.json` | `plan_backend` and `plan_exports`; a `"think-and-ship"` backend becomes `"native"` |
+| `.magistr-roadmap.yml` (the YAML plan) | `.magistr-plan.yml`, with phase statuses `pending` and `blocked` written as `to_do` and `waiting`; comments and order are kept |
+| The run store `ship/` in the workflow data directory | `run/`, with check results under `check_results/` and records in the run words |
+| The plan store `roadmap/` in the workflow data directory | `plan/`, with records in the plan words: tasks, features, waiting reasons and retired tasks |
+| Stored references `task:`, `action:` and `chunk:` in plan, decision, signal and run records | `step:`, `progress:` and `task:`, chosen from each record's saved version |
 | Saved `magistr mcp-launch magistr …` registration | `magistr mcp --dir …`, preserving the directory and extra connection settings |
 | An older declared project identity, when the current settings do not declare one | `project.id` in `.magistr/project.json` |
 | Recognized workflow documents for that identity in the default older workflow directory | The corresponding project records under `magistr/workflow` in the user data directory |
@@ -30,7 +34,12 @@ current history.
 
 ## Recovery copies
 
-Original settings are saved under `.magistr/upgrades/configuration/`.
+Original settings and the original YAML plan are saved under
+`.magistr/upgrades/configuration/`. The original `ship/` and `roadmap/`
+stores are kept under the workflow data directory's `backups/`, and each
+project's converted plan, decision, signal and run documents keep their
+originals under `backups/before-plan-words/`. An interrupted store move
+resumes where it stopped; readers wait until it has finished.
 The retired workspace configuration is archived under
 `.magistr/upgrades/workspace-config/`. The original `.workbench` journal and
 older workflow records remain available as recovery copies. The old workspace

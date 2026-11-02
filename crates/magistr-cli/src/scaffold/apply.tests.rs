@@ -405,7 +405,7 @@ fn codex_apply_rejects_revoked_ownership_before_any_selected_write() {
         let project_path = dir.join(".magistr/project.json");
         let mut project: serde_json::Value =
             serde_json::from_slice(&std::fs::read(&project_path).unwrap()).unwrap();
-        project["roadmap_exports"] = false.into();
+        project["plan_exports"] = false.into();
         std::fs::write(&project_path, serde_json::to_vec(&project).unwrap()).unwrap();
         let mut vars = pipeline.template_vars(tmp.path());
         vars.insert("project_root".into(), "upgraded-root".into());
@@ -477,7 +477,7 @@ fn codex_apply_rejects_changed_project_policy_with_unchanged_target_bytes() {
         let project_path = dir.join(".magistr/project.json");
         let mut project: serde_json::Value =
             serde_json::from_slice(&std::fs::read(&project_path).unwrap()).unwrap();
-        project["roadmap_exports"] = false.into();
+        project["plan_exports"] = false.into();
         let project_before = serde_json::to_vec(&project).unwrap();
         std::fs::write(&project_path, &project_before).unwrap();
         let first = make_preview("no-write/first.md", FileAction::Create, "first");

@@ -11,9 +11,9 @@ fn fixture() -> (Control, tokio::sync::mpsc::UnboundedReceiver<Msg>) {
             inbox,
             state: Arc::new(Mutex::new(WorkRun {
                 id: RunId::new(ProjectId::new("project").unwrap(), "one").unwrap(),
-                mode: RunMode::ChunkLoop,
+                mode: RunMode::TaskLoop,
                 track: None,
-                chunk: Some("first".into()),
+                task: Some("first".into()),
                 iteration: 1,
                 limit: 10,
                 phase: WorkPhase::Running,

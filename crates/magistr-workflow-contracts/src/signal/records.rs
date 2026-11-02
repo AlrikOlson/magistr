@@ -7,7 +7,7 @@
 //!
 //! This module is pure: no IO, no persistence, no MCP. The engine
 //! (`signal::engine`) mediates mutations; the wire adapter (`signal::mcp`)
-//! exposes them. Mirrors the `roadmap::domain` shape (DIP — the engine depends
+//! exposes them. Mirrors the `plan::domain` shape (DIP — the engine depends
 //! on this, never the reverse).
 
 use schemars::JsonSchema;
@@ -29,7 +29,7 @@ pub enum SignalKind {
 /// `new → triaged → researched → surfaced → promoted`; any non-terminal state
 /// may also be `dismissed`. Backward transitions (e.g. `researched → new`) are
 /// rejected by [`SignalStatus::allows`], mirroring the contract's documented
-/// lifecycle and the roadmap `ChunkStatus` transition-table pattern.
+/// lifecycle and the plan `TaskStatus` transition-table pattern.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SignalStatus {
@@ -86,8 +86,8 @@ impl SignalStatus {
     /// Progress rank for the merge-on-save conflict rule: because the
     /// lifecycle is forward-only, a higher rank IS the more recent state —
     /// no timestamp needed. `Promoted` outranks `Dismissed` deliberately:
-    /// a promotion already spawned a roadmap chunk, and losing that marker
-    /// while the chunk exists is worse than losing a concurrent dismissal.
+    /// a promotion already spawned a plan task, and losing that marker
+    /// while the task exists is worse than losing a concurrent dismissal.
     fn merge_rank(self) -> u8 {
         use SignalStatus::*;
         match self {
@@ -144,10 +144,10 @@ pub struct Signal {
     /// Append-only agent enrichment trail.
     #[serde(default)]
     pub enrichment: Vec<Enrichment>,
-    /// Typed cross-refs into the think/run/roadmap graph in `prefix:value`
+    /// Typed cross-refs into the think/run/plan graph in `prefix:value`
     /// wire form (the `signal:` variant is written by the promotion path).
     #[serde(default)]
-    pub cross_refs: Vec<String>,
+    pub refs: Vec<String>,
     /// LOCAL-only surfacing state: when the signal was last raised
     /// to the human (RFC 3339). Set by `signal_surface`; excludes the signal
     /// from `signal_pending` so it isn't re-raised. Not part of the cloud
@@ -171,12 +171,30 @@ pub struct Signal {
 
 /// The persisted per-project signal store — a CACHE of the cloud
 /// system-of-record. Serialized whole to
-/// `signal/sessions/<project_id>.json`, mirroring `roadmap::domain::Roadmap`.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// `signal/sessions/<project_id>.json`, mirroring `plan::domain::Plan`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Signals {
+    /// The saved format. A document written before the plan words has none
+    /// and reads as 0, which readers refuse until its owner has upgraded it.
+    #[serde(default)]
+    pub schema_version: u32,
     pub project_id: String,
     #[serde(default)]
     pub signals: Vec<Signal>,
+}
+
+/// The saved signal format: version 2 spells references and their field
+/// (`refs`) in the plan words.
+pub const SIGNALS_SCHEMA_VERSION: u32 = 2;
+
+impl Default for Signals {
+    fn default() -> Self {
+        Self {
+            schema_version: SIGNALS_SCHEMA_VERSION,
+            project_id: String::new(),
+            signals: Vec::new(),
+        }
+    }
 }
 
 /// Union `disk` into a copy of `memory` for the locked merge-on-save

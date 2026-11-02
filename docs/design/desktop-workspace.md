@@ -10,13 +10,13 @@ Returning to a project, the owner wants to choose what should happen next and un
 
 ## Product objects and authority
 
-- **Work piece:** an actual roadmap item, with its short name, full title, state, recorded requirements and checklist. Dependency ports expose prerequisites and work it enables. Readiness and the next ready item come from the Rust workflow projection; geometry never determines eligibility or priority.
+- **Work piece:** an actual plan item, with its short name, full title, state, recorded requirements and checklist. Dependency ports expose prerequisites and work it enables. Readiness and the next ready item come from the Rust workflow projection; geometry never determines eligibility or priority.
 - **Dependency connection:** an authored `deps` relationship. Direction means prerequisite to dependent. Selecting it highlights both ends; unavailable records remain explicit. Cycles do not invent an execution order.
 - **Investigation thread:** a recorded branch with its origin and conclusion. Its steps retain recorded order and identity. Thread grouping is distinct from supporting/refuting/revision relationships.
 - **Decision:** the purpose and outcome of an actual reasoning step, with full context, rationale and original reasoning in an inspector. No inferred confidence, generated evidence or invented causal edges.
 - **Work run:** the current or retained execution, with its actual tasks, check attempts and produced items. Starting work continues to use the application command owner; selecting or arranging a piece does not start or reprioritize it.
 
-Native writers remain in SessionRegistry and workflow resources. `read_workflow` and `read_roadmap_item` project those observations into the desktop. Camera, selection and arrangement belong to the desktop only. There is no second workflow store.
+Native writers remain in SessionRegistry and workflow resources. `read_workflow` and `read_plan_item` project those observations into the desktop. Camera, selection and arrangement belong to the desktop only. There is no second workflow store.
 
 ## Spatial interaction
 
@@ -36,7 +36,7 @@ Work pieces and investigation threads have distinct forms. Work pieces expose in
 
 Replaced by the shell in [desktop identity](desktop-identity.md#shell): a sidebar of places, a titled page with a tab row, and a task sheet. The text below is kept as history.
 
-The project is the stable context. Conversation, Roadmap, Reasoning, Work and Feedback are destinations rather than repeated buttons in unrelated headers. Global project selection is separate from contextual actions. The project map uses the same camera and routing owner for readable project/conversation pieces, with undirected membership lines. Execution, request handling, settings, project admission and saved conversations use the same density, focus and disclosure language. Full content stays available and copyable. Compact reply outlines open on demand, and the canvas control footer remains outside the drawing area.
+The project is the stable context. Conversation, Plan, Reasoning, Work and Feedback are destinations rather than repeated buttons in unrelated headers. Global project selection is separate from contextual actions. The project map uses the same camera and routing owner for readable project/conversation pieces, with undirected membership lines. Execution, request handling, settings, project admission and saved conversations use the same density, focus and disclosure language. Full content stays available and copyable. Compact reply outlines open on demand, and the canvas control footer remains outside the drawing area.
 
 ## Verification
 

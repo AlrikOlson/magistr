@@ -5,12 +5,12 @@
 
 use super::*;
 use crate::workflow::iteration::tests::{
-    add_native_chunk, complete_native_chunk, native_engines, setup_project,
+    add_native_task, complete_native_task, native_engines, setup_project,
 };
 use crate::workflow::iteration::{IterationLoop, PreCheckResult};
 use magistr_engine::NativeEngines;
-use magistr_engine::native::ChunkStatus;
 use magistr_engine::native::StepType;
+use magistr_engine::native::TaskStatus;
 use std::path::Path;
 
 fn recover(dir: &Path, spec: &Path, native: Option<NativeEngines>) -> IterationLoop {
@@ -133,14 +133,14 @@ fn an_attempt_is_reserved_by_the_checkpoint_that_carries_it() {
 fn a_native_mutation_is_reconciled_against_the_store() {
     let (dir, spec) = setup_project("- [ ] item\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "c1", 100, &[]);
-    add_native_chunk(&engines, "c2", 200, &[]);
+    add_native_task(&engines, "c1", 100, &[]);
+    add_native_task(&engines, "c2", 200, &[]);
     let mut il = native_loop(dir.path(), &spec, &engines);
     let applied = il
         .begin_operation(
             OperationKind::NativeMutation,
             "complete:c1",
-            "complete_chunk:c1",
+            "complete_task:c1",
         )
         .unwrap()
         .unwrap();
@@ -148,14 +148,14 @@ fn a_native_mutation_is_reconciled_against_the_store() {
         .begin_operation(
             OperationKind::NativeMutation,
             "complete:c2",
-            "complete_chunk:c2",
+            "complete_task:c2",
         )
         .unwrap()
         .unwrap();
     il.persist().unwrap();
     // The effect lands for c1 and the process dies before settling either.
-    engines.roadmap_start_chunk("c1").unwrap();
-    complete_native_chunk(&engines, "c1");
+    engines.plan_start_task("c1").unwrap();
+    complete_native_task(&engines, "c1");
     drop(il);
 
     let mut recovered = recover(dir.path(), &spec, Some(engines.clone()));
@@ -177,7 +177,7 @@ fn a_native_mutation_is_reconciled_against_the_store() {
             .begin_operation(
                 OperationKind::NativeMutation,
                 "complete:c1",
-                "complete_chunk:c1",
+                "complete_task:c1",
             )
             .unwrap(),
         None
@@ -186,24 +186,24 @@ fn a_native_mutation_is_reconciled_against_the_store() {
         .begin_operation(
             OperationKind::NativeMutation,
             "complete:c2",
-            "complete_chunk:c2",
+            "complete_task:c2",
         )
         .unwrap()
         .unwrap();
     assert_eq!(retry.command(), lost.command());
     assert_eq!(retry.number().get(), 2);
     assert_eq!(
-        engines.roadmap_chunk("c2").unwrap().unwrap().status,
-        ChunkStatus::Pending
+        engines.plan_task("c2").unwrap().unwrap().status,
+        TaskStatus::ToDo
     );
 }
 
 #[test]
-fn every_native_mutation_verb_is_read_back_from_the_chunk() {
+fn every_native_mutation_verb_is_read_back_from_the_task() {
     let (dir, spec) = setup_project("- [ ] item\n");
     let engines = native_engines(&dir);
     for id in ["started", "blocked", "reopened", "untouched"] {
-        add_native_chunk(&engines, id, 100, &[]);
+        add_native_task(&engines, id, 100, &[]);
     }
     let mut il = native_loop(dir.path(), &spec, &engines);
     let mut begin = |key: &str, target: &str| {
@@ -211,22 +211,22 @@ fn every_native_mutation_verb_is_read_back_from_the_chunk() {
             .unwrap()
             .unwrap()
     };
-    let started = begin("start", "start_chunk:started");
-    let blocked = begin("block", "set_blocked_by:blocked");
+    let started = begin("start", "start_task:started");
+    let blocked = begin("block", "set_waiting_on:blocked");
     let reopened = begin("reopen", "set_status:reopened:in_progress");
-    let untouched = begin("untouched", "start_chunk:untouched");
-    let unknown = begin("unknown", "rename_chunk:untouched");
+    let untouched = begin("untouched", "start_task:untouched");
+    let unknown = begin("unknown", "rename_task:untouched");
     il.persist().unwrap();
-    engines.roadmap_start_chunk("started").unwrap();
+    engines.plan_start_task("started").unwrap();
     engines
-        .roadmap_set_blocked_by(
+        .plan_set_waiting_on(
             "blocked",
-            magistr_engine::native::BlockerKind::AwaitingHuman,
+            magistr_engine::native::WaitingReason::Person,
             "why".into(),
             None,
         )
         .unwrap();
-    engines.roadmap_start_chunk("reopened").unwrap();
+    engines.plan_start_task("reopened").unwrap();
     drop(il);
 
     let recovered = recover(dir.path(), &spec, Some(engines));
@@ -255,9 +255,9 @@ fn every_native_mutation_verb_is_read_back_from_the_chunk() {
 /// loop's gates are recorded into.
 fn engines_with_verify_step(dir: &tempfile::TempDir) -> NativeEngines {
     let engines = native_engines(dir);
-    add_native_chunk(&engines, "c1", 100, &[]);
+    add_native_task(&engines, "c1", 100, &[]);
     engines
-        .run_open("obj".into(), vec![], vec![], "chunk:c1".into())
+        .run_open("obj".into(), vec![], vec![], "task:c1".into())
         .unwrap();
     engines
         .add_step("verify".into(), "verify".into(), StepType::Review, None)
@@ -439,7 +439,7 @@ fn a_check_result_settled_stale_or_never_admitted_is_failed_and_a_foreign_one_st
     // settlement is kept stale, never applied to the new run's step.
     engines.run_finish(vec![], None).unwrap();
     engines
-        .run_open("next".into(), vec![], vec![], "chunk:c1".into())
+        .run_open("next".into(), vec![], vec![], "task:c1".into())
         .unwrap();
     let settled = engines
         .run_settle_gate(
@@ -477,7 +477,7 @@ fn a_native_mutation_or_check_result_without_engines_stays_open() {
         .begin_operation(
             OperationKind::NativeMutation,
             "complete:c1",
-            "complete_chunk:c1",
+            "complete_task:c1",
         )
         .unwrap()
         .unwrap();
@@ -496,7 +496,7 @@ fn a_native_mutation_or_check_result_without_engines_stays_open() {
         .begin_operation(
             OperationKind::NativeMutation,
             "complete:c1",
-            "complete_chunk:c1",
+            "complete_task:c1",
         )
         .unwrap_err();
     assert!(refused.to_string().contains("reconcile"), "{refused}");
@@ -510,8 +510,8 @@ fn a_publication_is_cancelled_because_surfaces_reseed() {
     let frame = il
         .begin_operation(
             OperationKind::Publication,
-            "frame:chunk_completed:c1",
-            "frame:chunk_completed:c1",
+            "frame:task_completed:c1",
+            "frame:task_completed:c1",
         )
         .unwrap()
         .unwrap();
@@ -768,7 +768,7 @@ fn settled_records_stop_counters_and_budget_survive_the_atomic_checkpoint() {
 fn a_native_run_is_named_after_the_native_project() {
     let (dir, spec) = setup_project("- [ ] item\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "c1", 100, &[]);
+    add_native_task(&engines, "c1", 100, &[]);
     let il = native_loop(dir.path(), &spec, &engines);
     assert_eq!(il.state().run_id.project().as_str(), engines.project_id());
     assert!(il.state().run_id.local().starts_with("run-"));
@@ -778,24 +778,24 @@ fn a_native_run_is_named_after_the_native_project() {
 fn unreadable_native_outcomes_remain_indeterminate_until_the_store_recovers() {
     let (dir, spec) = setup_project("- [ ] item\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "work", 1, &[]);
+    add_native_task(&engines, "work", 1, &[]);
     let mut run = native_loop(dir.path(), &spec, &engines);
     let attempt = run
         .begin_operation(
             OperationKind::NativeMutation,
             "start:work",
-            "start_chunk:work",
+            "start_task:work",
         )
         .unwrap()
         .unwrap();
     run.start_operation(&attempt, None).unwrap();
     run.persist().unwrap();
-    engines.roadmap_start_chunk("work").unwrap();
+    engines.plan_start_task("work").unwrap();
     let path = dir
         .path()
-        .join("workflow-state/roadmap/sessions/iteration-native.json");
+        .join("workflow-state/plan/sessions/iteration-native.json");
     let valid = std::fs::read(&path).unwrap();
-    std::fs::write(&path, b"{ unreadable roadmap").unwrap();
+    std::fs::write(&path, b"{ unreadable plan").unwrap();
     drop(run);
     for _ in 0..2 {
         let mut recovered = recover(dir.path(), &spec, Some(engines.clone()));

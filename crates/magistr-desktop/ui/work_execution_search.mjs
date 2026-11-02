@@ -10,9 +10,9 @@ function searchable(run){return [
 ].join("\n");}
 export function searchExecutions(data,query,page,change,open){
   const records=executionRecords(data).filter(run=>matchesText(searchable(run),query)),article=element("article","","work-record"),pages=pageControls(records.length,page,change);
-  article.append(element("h3","Work search results","roadmap-track-title"),pages.nav);const list=element("ol","","roadmap-items");
+  article.append(element("h3","Work search results","plan-track-title"),pages.nav);const list=element("ol","","plan-items");
   for(const run of records.slice(pages.start,pages.end)){
-    const row=element("li"),button=element("button",run.goal.description,"roadmap-item-open");button.dataset.runId=run.run_id;button.dataset.focusKey="run:"+run.run_id;button.onclick=()=>open(run.run_id);
+    const row=element("li"),button=element("button",run.goal.description,"plan-item-open");button.dataset.runId=run.run_id;button.dataset.focusKey="run:"+run.run_id;button.onclick=()=>open(run.run_id);
     row.append(button,inlineFacts([["Status",statusLabel(run.goal.status)],["Steps",run.steps.length]]));list.append(row);
   }
   article.append(records.length?list:element("p","No saved work matches this search."));return article;

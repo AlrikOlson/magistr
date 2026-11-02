@@ -19,7 +19,7 @@ test("capture verified Storybook states",async({page,request})=>{
     for(const file of await readdir(resolve(root,"crates/magistr-desktop",folder)))
       extraSources.push(resolve(root,"crates/magistr-desktop",folder,file));
   }
-  for(const file of ["observations.mjs","work_fixture.mjs","roadmap_fixture.mjs","reasoning_fixture.mjs","feedback_fixture.mjs"])
+  for(const file of ["observations.mjs","work_fixture.mjs","plan_fixture.mjs","reasoning_fixture.mjs","feedback_fixture.mjs"])
     extraSources.push(resolve(root,"crates/magistr-desktop/tests/browser",file));
   for(const entry of entries){
     for(const [size,viewport] of [["desktop",{width:1280,height:820}],["compact",{width:760,height:550}]]){

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PlanContext {
-    pub roadmap_revision: String,
+    pub plan_revision: String,
     pub code_revision: String,
     pub constraints: Vec<String>,
     pub routing_history_revision: String,

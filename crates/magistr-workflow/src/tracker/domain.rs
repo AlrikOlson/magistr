@@ -3,7 +3,7 @@
 //! # Why this model is deliberately small
 //!
 //! [`WorkItem`] is a canonical model scoped to ONE bounded context: projecting a
-//! roadmap chunk onto an external tracker and reconciling it back. It is *not*
+//! plan task onto an external tracker and reconciling it back. It is *not*
 //! an attempt to describe everything Jira, Linear and GitHub can express, and it
 //! must not grow into one — an enterprise-wide canonical model is the classic
 //! integration failure Fowler named in `MultipleCanonicalModels`, where the
@@ -11,7 +11,7 @@
 //! any field.
 //!
 //! The rule for this file: a field earns its place only if the projector needs
-//! it to keep a chunk and its tracker twin in agreement. Everything else — story
+//! it to keep a task and its tracker twin in agreement. Everything else — story
 //! points, sprints, custom fields, watchers, comment threads — stays on the
 //! provider side of its Anti-Corruption Layer, reachable through
 //! [`TrackerCapabilities`] rather than modelled here.
@@ -55,8 +55,8 @@ impl WorkItemState {
     }
 }
 
-/// One work item as this system understands it: the canonical form a roadmap
-/// chunk is projected into and a tracker payload is translated back out of.
+/// One work item as this system understands it: the canonical form a plan
+/// task is projected into and a tracker payload is translated back out of.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorkItem {
     /// The tracker's own id. `None` means "not yet created there" — an item the
@@ -81,15 +81,15 @@ pub struct WorkItem {
     /// The container this item belongs in — a Linear *project*, and whatever
     /// each other provider calls the same idea.
     ///
-    /// Carries the group's NAME, not its upstream id, because the projector
-    /// works from the roadmap and the roadmap knows names. Resolving a name to
+    /// Carries the feature's NAME, not its upstream id, because the projector
+    /// works from the plan and the plan knows names. Resolving a name to
     /// a provider id is the adapter's job, behind its own boundary, exactly as
     /// it already resolves label names and workflow states.
     ///
     /// `None` means unfiled, which stays the honest default: an item with no
     /// container behaves exactly as every item did before containers existed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub group: Option<String>,
+    pub feature: Option<String>,
 }
 
 /// A container of work items — a Linear *project*, a GitHub milestone, whatever
@@ -97,16 +97,16 @@ pub struct WorkItem {
 ///
 /// Deliberately thin, and thinner than the providers allow. A Linear project
 /// carries a lead, a target date, health and a description; none of them appear
-/// here because the roadmap has no basis for any of them. It has priorities,
+/// here because the plan has no basis for any of them. It has priorities,
 /// not deadlines. Putting a `target_date` on this struct would invite the
 /// projector to invent one, and a date nobody chose is worse than no date.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WorkGroup {
+pub struct WorkFeature {
     /// Human-readable name. The identity the projector works in — until the
     /// container has been pushed once and `external_id` takes over.
     pub name: String,
-    /// Derived from the member chunks — see [`GroupState`].
-    pub state: GroupState,
+    /// Derived from the member tasks — see [`FeatureState`].
+    pub state: FeatureState,
     /// The provider id remembered from an earlier push, when the caller has
     /// one. An adapter MUST prefer this over the name: the name is the one
     /// thing a human is likely to edit upstream, and resolving by it after a
@@ -114,15 +114,15 @@ pub struct WorkGroup {
     pub external_id: Option<String>,
 }
 
-/// How far along a container is, derived from the chunks inside it.
+/// How far along a container is, derived from the tasks inside it.
 ///
 /// Three states rather than the provider's five: we can honestly distinguish
 /// "nothing started", "something is moving" and "everything is finished" from
-/// the chunks. Paused and cancelled are human judgements about intent that the
-/// roadmap does not record, so they are absent here and an adapter must leave
+/// the tasks. Paused and cancelled are human judgements about intent that the
+/// plan does not record, so they are absent here and an adapter must leave
 /// them alone rather than map something onto them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GroupState {
+pub enum FeatureState {
     NotStarted,
     Active,
     Complete,
@@ -140,12 +140,12 @@ impl WorkItem {
             labels: Vec::new(),
             assignee: None,
             version: None,
-            group: None,
+            feature: None,
         }
     }
 
     /// A stable digest of the AUTHORED content — title, body, state, labels,
-    /// assignee, group.
+    /// assignee, feature.
     ///
     /// Identity (`external_id`) and the provider's concurrency token
     /// (`version`) are excluded on purpose. The question this hash answers is
@@ -174,10 +174,10 @@ impl WorkItem {
             feed(&mut h, l);
         }
         feed(&mut h, self.assignee.as_deref().unwrap_or(""));
-        // The group is authored content: regrouping a chunk must dirty the item,
+        // The feature is authored content: regrouping a task must dirty the item,
         // or the cheap skip in the projector eats the projectId attach and the
         // container stays empty for every already-mirrored issue.
-        feed(&mut h, self.group.as_deref().unwrap_or(""));
+        feed(&mut h, self.feature.as_deref().unwrap_or(""));
         hex::encode(h.finalize())
     }
 }
@@ -193,7 +193,7 @@ impl WorkItem {
 /// mismatch as an unreadable 400 at submit time.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TrackerCapabilities {
-    /// Native blocking/dependency links between items. When false, a chunk's
+    /// Native blocking/dependency links between items. When false, a task's
     /// `deps` project as prose instead.
     pub blocking_links: bool,
     pub labels: bool,

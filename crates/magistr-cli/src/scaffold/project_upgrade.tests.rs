@@ -14,6 +14,10 @@ fn old_settings(root: &Path) -> String {
     let path = root.join(".magistr/project.json");
     let mut doc: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    // Settings saved before the plan words name the plan after the roadmap.
+    let settings = doc.as_object_mut().unwrap();
+    settings.remove("plan_backend");
+    settings.remove("plan_exports");
     doc["roadmap_backend"] = "think-and-ship".into();
     doc["quality_gate"]["check"] = "my-custom-check".into();
     doc["my_extension"] = serde_json::json!({"keep": [1,2,3]});
@@ -56,7 +60,8 @@ fn repair_previews_known_upgrades_then_preserves_custom_values_and_originals() {
     let doc: serde_json::Value =
         serde_json::from_slice(&std::fs::read(root.join(".magistr/project.json")).unwrap())
             .unwrap();
-    assert_eq!(doc["roadmap_backend"], "native");
+    assert_eq!(doc["plan_backend"], "native");
+    assert!(doc.get("roadmap_backend").is_none());
     assert_eq!(doc["quality_gate"]["check"], "my-custom-check");
     assert_eq!(doc["my_extension"], serde_json::json!({"keep":[1,2,3]}));
     let after: serde_json::Value =
@@ -216,4 +221,46 @@ fn an_older_declared_identity_is_pinned_with_its_upgrade_request_before_settings
     assert_eq!(request["project_id"], "older-project");
     assert_eq!(request["complete"], false);
     assert!(ProjectUpgrade::plan(root).unwrap().files.is_empty());
+}
+
+#[test]
+fn a_yaml_plan_saved_before_the_plan_words_moves_to_its_current_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    let before = "title: Saved\n# keep this note\nphases:\n  - id: one\n    name: One\n    status: pending\n  - id: two\n    name: Two\n    status: blocked\n  - id: three\n    name: Three\n    status: done\n";
+    std::fs::write(root.join(".magistr-roadmap.yml"), before).unwrap();
+    ProjectUpgrade::apply(root).unwrap();
+    assert!(!root.join(".magistr-roadmap.yml").exists());
+    let after = std::fs::read_to_string(root.join(".magistr-plan.yml")).unwrap();
+    assert_eq!(
+        after,
+        "title: Saved\n# keep this note\nphases:\n  - id: one\n    name: One\n    status: to_do\n  - id: two\n    name: Two\n    status: waiting\n  - id: three\n    name: Three\n    status: done\n"
+    );
+    let store = magistr_core::plan::yaml_store::YamlStore::load(root.join(".magistr-plan.yml"))
+        .expect("the current reader accepts the converted plan");
+    assert_eq!(store.index().plan().phases.len(), 3);
+    let hash = crate::scaffold::manifest::content_hash(before);
+    assert_eq!(
+        std::fs::read_to_string(root.join(format!(
+            ".magistr/upgrades/configuration/{hash}/.magistr-roadmap.yml"
+        )))
+        .unwrap(),
+        before,
+        "the original is kept"
+    );
+    assert!(ProjectUpgrade::plan(root).unwrap().files.is_empty());
+}
+
+#[test]
+fn a_yaml_plan_in_both_files_is_left_for_the_owner() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    std::fs::write(
+        root.join(".magistr-roadmap.yml"),
+        "title: Old\nphases: []\n",
+    )
+    .unwrap();
+    std::fs::write(root.join(".magistr-plan.yml"), "title: New\nphases: []\n").unwrap();
+    assert!(ProjectUpgrade::plan(root).is_err());
+    assert!(root.join(".magistr-roadmap.yml").exists());
 }

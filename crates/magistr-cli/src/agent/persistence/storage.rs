@@ -127,7 +127,7 @@ fn initialize(conn: &Connection) -> Result<()> {
                 project TEXT NOT NULL,
                 workspace TEXT NOT NULL,
                 provider TEXT NOT NULL,
-                purpose TEXT NOT NULL CHECK(purpose IN ('conversation','roadmap')),
+                purpose TEXT NOT NULL CHECK(purpose IN ('conversation','plan')),
                 provider_session_id TEXT,
                 resume_supported INTEGER NOT NULL,
                 started_at TEXT NOT NULL,

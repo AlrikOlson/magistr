@@ -38,7 +38,7 @@ pub struct Recommendations {
     /// Reference repositories the AI found relevant.
     #[serde(default)]
     pub reference_repos: Vec<String>,
-    /// AI-generated file contents (e.g. CLAUDE.md, ROADMAP.md, conventions.md).
+    /// AI-generated file contents (e.g. CLAUDE.md, PLAN.md, conventions.md).
     /// When present, these override the static templates during scaffolding.
     #[serde(default)]
     pub generated_files: Vec<GeneratedFile>,

@@ -217,7 +217,7 @@ async fn queued_cockpit_turns_reach_the_provider_in_fifo_order_with_ordered_tran
     // Adjacent text deltas may reach the cockpit coalesced when it was a
     // step behind the owner (the bounded observation channel merges them),
     // so the transcript is compared as the text each turn said, not as
-    // the chunks it arrived in.
+    // the tasks it arrived in.
     let mut transcript: Vec<String> = Vec::new();
     for event in &fixture.events {
         match event {

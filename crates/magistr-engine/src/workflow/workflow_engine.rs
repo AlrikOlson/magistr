@@ -29,7 +29,7 @@ pub struct WorkflowEngine {
 impl WorkflowEngine {
     /// Create a new workflow engine.
     pub fn new(config: WorkflowConfig) -> Self {
-        Self::with_run_mode(config, RunMode::ChunkLoop)
+        Self::with_run_mode(config, RunMode::TaskLoop)
     }
 
     /// Construct an explicitly selected execution mode.

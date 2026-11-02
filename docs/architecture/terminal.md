@@ -14,7 +14,7 @@ commands drain one turn; the loop owns continuation, while interactive `start`
 alone asks for follow-up input.
 
 `next-loop` holds the loop lease for its checkpoint and uses `NativeReader`
-for roadmap progress and recovery. It can run beside Codex's background MCP
+for plan progress and recovery. It can run beside Codex's background MCP
 service without taking workflow ownership. The agent's MCP tools attach to the
 project owner or admit one when needed; the loop publishes no workflow endpoint.
 

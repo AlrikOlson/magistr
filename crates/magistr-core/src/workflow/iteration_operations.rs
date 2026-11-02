@@ -100,7 +100,7 @@ impl IterationLoop {
     /// flight, by asking the authority on each effect rather than the record:
     ///
     /// - a reservation is established by the checkpoint that carries it;
-    /// - a native mutation by the chunk's state in the native store;
+    /// - a native mutation by the task's state in the native store;
     /// - a check_result by its own durable check_result, read by the id the record
     ///   carries: applied → `Completed`; unsettled, stale or never
     ///   published → `Failed`. No check of the same name stands in for it;
@@ -173,29 +173,28 @@ impl IterationLoop {
     }
 }
 
-/// `verb:chunk[:argument]` against the chunk as the store holds it now.
+/// `verb:task[:argument]` against the task as the store holds it now.
 fn native_mutation_outcome(engines: &NativeReader, target: &str) -> Option<OperationOutcome> {
-    use magistr_engine::native::ChunkStatus;
+    use magistr_engine::native::TaskStatus;
     let (verb, rest) = target.split_once(':')?;
     let (id, argument) = match rest.split_once(':') {
         Some((id, argument)) => (id, Some(argument)),
         None => (rest, None),
     };
-    let chunk = match engines.roadmap_chunk(id) {
-        Ok(chunk) => chunk,
+    let task = match engines.plan_task(id) {
+        Ok(task) => task,
         Err(error) => {
             tracing::warn!(%error, "native mutation outcome could not be observed");
             return None;
         }
     };
     let applied = match verb {
-        "start_chunk" => chunk.is_some_and(|chunk| {
-            matches!(chunk.status, ChunkStatus::InProgress | ChunkStatus::Done)
-        }),
-        "complete_chunk" => chunk.is_some_and(|chunk| chunk.status == ChunkStatus::Done),
-        "set_blocked_by" => chunk.is_some_and(|chunk| chunk.blocked_by.is_some()),
-        "set_status" => chunk.is_some_and(|chunk| {
-            serde_json::to_value(chunk.status)
+        "start_task" => task
+            .is_some_and(|task| matches!(task.status, TaskStatus::InProgress | TaskStatus::Done)),
+        "complete_task" => task.is_some_and(|task| task.status == TaskStatus::Done),
+        "set_waiting_on" => task.is_some_and(|task| task.waiting_on.is_some()),
+        "set_status" => task.is_some_and(|task| {
+            serde_json::to_value(task.status)
                 .ok()
                 .and_then(|value| value.as_str().map(str::to_owned))
                 .as_deref()

@@ -70,7 +70,7 @@ fn the_order_the_rows_are_written_in_cannot_change_the_answer() {
     );
 }
 
-/// Ci is declared after Viewer but runs sessions and edits the roadmap,
+/// Ci is declared after Viewer but runs sessions and edits the plan,
 /// so declaration order is not the ranking.
 #[test]
 fn ci_outranks_viewer_though_it_is_declared_after_it() {

@@ -1,14 +1,14 @@
 import {test,expect,root} from "./fixture.mjs";
 import {captureIteration} from "./iteration_evidence.mjs";
-async function open(app,area="Roadmap"){
+async function open(app,area="Plan"){
   await app.getByRole("button",{name:"Review the release plan",exact:true}).click();
   await app.getByRole("tab",{name:area,exact:true}).click();
 }
 async function capture(app,name){await captureIteration(app,{root,name,scenario:test.info().file});}
 test("work canvas keeps dependency context while inspecting and supports zoom, pan and arrangement",async({app})=>{
-  await open(app);const surface=app.getByRole("region",{name:"Roadmap canvas",exact:true}),piece=surface.getByRole("button",{name:"Restore the project conversation and draft",exact:true});
+  await open(app);const surface=app.getByRole("region",{name:"Plan canvas",exact:true}),piece=surface.getByRole("button",{name:"Restore the project conversation and draft",exact:true});
   await expect(piece).toBeVisible();await expect(surface.locator(".surface-connection")).toHaveCount(2);
-  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"01-roadmap-"+theme);}
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"01-plan-"+theme);}
   const before=Number(await app.locator("#work-browser .work-surface").getAttribute("data-zoom"));
   await app.getByRole("button",{name:"Zoom in",exact:true}).click();expect(Number(await app.locator("#work-browser .work-surface").getAttribute("data-zoom"))).toBeGreaterThan(before);
   await app.getByRole("button",{name:"Fit all",exact:true}).click();await piece.click();
@@ -25,7 +25,7 @@ test("work canvas keeps dependency context while inspecting and supports zoom, p
   await app.getByRole("button",{name:"Done arranging",exact:true}).click();
   await app.evaluate(()=>window.__fixture.publish("release",{workflow_revision:1}));await expect(node).toHaveCSS("left",(left+48)+"px");
   await app.setViewportSize({width:760,height:550});await app.getByRole("button",{name:"Fit all",exact:true}).click();
-  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"01-roadmap-compact-"+theme);}
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"01-plan-compact-"+theme);}
   await piece.click();await expect(inspector).toBeVisible();await capture(app,"01-inspector-compact");await inspector.getByRole("button",{name:"Back to track",exact:true}).click();await expect(piece).toBeFocused();
   expect(await app.evaluate(()=>window.__fixture.calls.filter(c=>["session_action","control_work","open_session"].includes(c.command)).length)).toBe(0);
 });
@@ -58,21 +58,21 @@ test("reasoning pagination never connects a partial investigation to its conclus
 });
 test("project destinations keep the draft and camera in place across the shell",async({app})=>{
   await app.locator(".directory-project").first().getByRole("button",{name:"Open workspace",exact:true}).click();
-  const roadmap=app.getByRole("tab",{name:"Roadmap",exact:true});await expect(roadmap).toHaveAttribute("aria-selected","true");
-  const canvas=app.getByRole("region",{name:"Roadmap canvas",exact:true});await expect(canvas).toBeVisible();
+  const plan=app.getByRole("tab",{name:"Plan",exact:true});await expect(plan).toHaveAttribute("aria-selected","true");
+  const canvas=app.getByRole("region",{name:"Plan canvas",exact:true});await expect(canvas).toBeVisible();
   await app.getByRole("button",{name:"Actual size",exact:true}).click();const camera=await canvas.locator(".surface-world").evaluate(n=>n.style.transform);
-  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"03-shell-roadmap-"+theme);}
+  for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"03-shell-plan-"+theme);}
   await app.getByRole("tab",{name:"Conversation",exact:true}).click();await expect(app.locator("#draft")).toHaveValue("Keep the project list visible, and let me return to the same paragraph.");
-  await expect(app.locator("#project-name")).toBeVisible();await expect(app.locator("#project-name")).toHaveText("Magistr");await capture(app,"03-shell-conversation");await roadmap.click();expect(await canvas.locator(".surface-world").evaluate(n=>n.style.transform)).toBe(camera);
+  await expect(app.locator("#project-name")).toBeVisible();await expect(app.locator("#project-name")).toHaveText("Magistr");await capture(app,"03-shell-conversation");await plan.click();expect(await canvas.locator(".surface-world").evaluate(n=>n.style.transform)).toBe(camera);
   await app.setViewportSize({width:760,height:550});await app.getByRole("button",{name:"Fit all",exact:true}).click();
-  expect((await app.getByRole("region",{name:"Roadmap",exact:true}).boundingBox()).height).toBeGreaterThan(300);
+  expect((await app.getByRole("region",{name:"Plan",exact:true}).boundingBox()).height).toBeGreaterThan(300);
   expect((await canvas.boundingBox()).height).toBeGreaterThan(240);
   for(const theme of ["dark","light"]){await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);await capture(app,"03-shell-compact-"+theme);}
   await app.getByRole("tab",{name:"Reasoning",exact:true}).click();await capture(app,"03-reasoning-compact");
   await app.getByRole("tab",{name:"Conversation",exact:true}).click();await expect(app.locator("#draft")).toHaveValue("Keep the project list visible, and let me return to the same paragraph.");
   expect(await app.evaluate(()=>window.__fixture.calls.filter(c=>["open_session","session_action"].includes(c.command)).length)).toBe(0);
 });
-for(const area of ["Roadmap","Reasoning","Projects"])test(area+" keyboard focus reveals a lower item without counting the footer twice",async({app})=>{
+for(const area of ["Plan","Reasoning","Projects"])test(area+" keyboard focus reveals a lower item without counting the footer twice",async({app})=>{
   if(area==="Projects")await app.getByRole("button",{name:"Map",exact:true}).click();else await open(app,area);
   await app.setViewportSize({width:760,height:550});
   const surface=app.getByRole("region",{name:area+" canvas",exact:true}),piece=surface.locator(".work-piece:enabled,.decision-piece:enabled,.atlas-piece:enabled").last();

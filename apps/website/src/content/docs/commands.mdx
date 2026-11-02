@@ -65,7 +65,7 @@ quality gate without implementing work.
 | Command or option | Effect |
 | --- | --- |
 | `magistr start "YOUR REQUEST"` | Start an agent turn with the quoted request. |
-| `magistr next` | Run one roadmap iteration. |
+| `magistr next` | Run one plan iteration. |
 | `magistr next --continue` | Continue the selected unfinished goal and task plan. |
 | `magistr next --gate-only` | Run quality gates without an AI implementation iteration. |
 | `magistr next-loop --max-iterations 3` | Bound a run to three iterations, with fresh agent sessions. |
@@ -81,18 +81,18 @@ Use [Configuration](/docs/configuration) for preference precedence and
 ## Read plans and sessions
 
 ```sh
-magistr roadmap status
-magistr roadmap next
+magistr plan status
+magistr plan next
 magistr runs . --status active
 magistr sessions --limit 10
 ```
 
 | Command | Purpose and effect |
 | --- | --- |
-| `magistr roadmap show` | Display roadmap progress. |
-| `magistr roadmap status` | Display a status snapshot; `--json` requests machine-readable output. |
-| `magistr roadmap next` | Report a ready chunk without implementing it. |
-| `magistr roadmap generate --help` | Inspect options for agent-assisted roadmap generation before requesting changes. |
+| `magistr plan show` | Display plan progress. |
+| `magistr plan status` | Display a status snapshot; `--json` requests machine-readable output. |
+| `magistr plan next` | Report a ready task without implementing it. |
+| `magistr plan generate --help` | Inspect options for agent-assisted plan generation before requesting changes. |
 | `magistr runs .` | List the current run and retained runs; filter with `--status open`, `active`, `finished` or `abandoned`. |
 | `magistr sessions` | List saved Magistr conversations; `--project` filters names and `--since-days` filters age. |
 | `magistr start --resume SESSION_ID "YOUR REQUEST"` | Resume a supported saved conversation and send a new request. |
@@ -133,7 +133,7 @@ The installed CLI also exposes these specialized commands. Inspect
 | `import`, `export` | Import setup presets or export project configuration as a shareable preset. These are not backups of workflow records. |
 | `completions`, `man-pages` | Generate shell completion scripts or manual pages. |
 | `guard` | Run the Claude Code hook integration; normally called by configured hooks. |
-| `roadmap export` | Produce a roadmap view only when the project's export policy permits it. |
+| `plan export` | Produce a plan view only when the project's export policy permits it. |
 
 For everyday setup and work, follow the focused guides instead of invoking
 administrative commands merely because they appear in help.

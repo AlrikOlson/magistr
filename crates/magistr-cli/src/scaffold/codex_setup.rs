@@ -91,10 +91,7 @@ impl CodexSetup {
             Err(e) => return Err(MagistrError::io(&path, e)),
         };
         let doc: serde_json::Value = serde_json::from_str(&content)?;
-        Ok(doc
-            .get("roadmap_exports")
-            .and_then(serde_json::Value::as_bool)
-            == Some(false))
+        Ok(doc.get("plan_exports").and_then(serde_json::Value::as_bool) == Some(false))
     }
 
     pub(super) fn record(manifest: &mut ScaffoldManifest, f: &PlannedChange) -> Result<()> {
@@ -297,12 +294,12 @@ fn block_span(doc: &str) -> Result<Option<Range<usize>>> {
 
 fn instructions(native_only: bool) -> String {
     let policy = if native_only {
-        "This project stores its roadmap only in native Magistr state. Never create or regenerate ROADMAP.md or ROADMAP.json, invoke roadmap_export, or redirect an export into the checkout. Preserve roadmap_exports=false and the project export-tool deny settings."
+        "This project stores its plan only in native Magistr state. Never create or regenerate PLAN.md or PLAN.json, invoke plan_export, or redirect an export into the checkout. Preserve plan_exports=false and the project export-tool deny settings."
     } else {
-        "The native roadmap is authoritative. Read .magistr/project.json before exporting a view: roadmap_exports=false forbids ROADMAP.md/ROADMAP.json and all file exports. Otherwise export only when the project requests a view."
+        "The native plan is authoritative. Read .magistr/project.json before exporting a view: plan_exports=false forbids PLAN.md/PLAN.json and all file exports. Otherwise export only when the project requests a view."
     };
     format!(
-        "{START}\n## Magistr in Codex\n\nLaunch with `magistr codex-launch --project-root . --` or `./.codex/run`. The native launcher resolves dependencies and applies the documented Codex skill-discovery behavior. Use `magistr codex-launch --project-root . --diagnose` for read-only diagnostics.\n\nUse the configured `magistr` MCP server for workflow and workspace tools. Start with `context`; use `discover` to inspect advanced operation schemas and `execute` with `magistr.call(name, args)` to call them. Use direct search/read/edit/write for source. Composed changes stop on failure; inspect receipts before recovery. Do not start a second workflow or workspace server; follow .agents/skills/workspace-routing/SKILL.md. A held Workspace lock belongs to its existing connection: do not kill the owner or launch a competing probe.\n\nUse the nine project skills: $next, $next-loop, $validate, $roadmap, $roadmap-refresh, $signals, $craft, $init and $workspace-routing. $next runs one chunk in this Codex session. $next-loop is a bounded fresh-session handoff: finish one chunk, write the handoff, stop, and resume the bound only in a new Codex session. Read .magistr/project.json for commands and required custom gates and .magistr/conventions.md for shared project conventions. Claude hooks are additional enforcement only; Codex must explicitly run and record required gates.\n\n{policy}\n\nPreserve existing goals and worktree changes. Follow the requested scope; setup, review and planning do not authorize starting a roadmap chunk. $next implements one ready chunk; $next-loop is bounded. Recovery, acceptance, recorded checks and an atomic commit are required before completing work.\n{END}"
+        "{START}\n## Magistr in Codex\n\nLaunch with `magistr codex-launch --project-root . --` or `./.codex/run`. The native launcher resolves dependencies and applies the documented Codex skill-discovery behavior. Use `magistr codex-launch --project-root . --diagnose` for read-only diagnostics.\n\nUse the configured `magistr` MCP server for workflow and workspace tools. Start with `context`; use `discover` to inspect advanced operation schemas and `execute` with `magistr.call(name, args)` to call them. Use direct search/read/edit/write for source. Composed changes stop on failure; inspect receipts before recovery. Do not start a second workflow or workspace server; follow .agents/skills/workspace-routing/SKILL.md. A held Workspace lock belongs to its existing connection: do not kill the owner or launch a competing probe.\n\nUse the nine project skills: $next, $next-loop, $validate, $plan, $roadmap-refresh, $signals, $craft, $init and $workspace-routing. $next runs one task in this Codex session. $next-loop is a bounded fresh-session handoff: finish one task, write the handoff, stop, and resume the bound only in a new Codex session. Read .magistr/project.json for commands and required custom gates and .magistr/conventions.md for shared project conventions. Claude hooks are additional enforcement only; Codex must explicitly run and record required gates.\n\n{policy}\n\nPreserve existing goals and worktree changes. Follow the requested scope; setup, review and planning do not authorize starting a plan task. $next implements one ready task; $next-loop is bounded. Recovery, acceptance, recorded checks and an atomic commit are required before completing work.\n{END}"
     )
 }
 

@@ -17,10 +17,12 @@ pub mod session;
 pub mod source_gate;
 mod store_read;
 pub(crate) mod store_stamp;
+mod stored_ref_words;
 pub mod tool_failure;
 pub mod tool_input;
 pub mod tool_result;
 pub mod transaction;
+mod versioned_document;
 
 pub use broadcast::{Broadcaster, EmitError, Family};
 pub use cross_ref::{
@@ -42,3 +44,5 @@ pub use resolve_project_id_from::resolve_project_id_from;
 pub use seq_key::SEQ_KEY;
 pub use session::resolve_default_session_id;
 pub(crate) use store_read::read_json;
+pub use stored_ref_words::StoredRefWords;
+pub use versioned_document::versioned_document;

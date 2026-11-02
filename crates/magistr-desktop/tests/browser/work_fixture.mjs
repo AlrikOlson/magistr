@@ -1,9 +1,9 @@
 import { feedbackFixture,feedbackScene } from "./feedback_fixture.mjs";
 import { reasoningFixture,reasoningScene } from "./reasoning_fixture.mjs";
-import { roadmapScene } from "./roadmap_fixture.mjs";
+import { planScene } from "./plan_fixture.mjs";
 export function workSnapshot(){
   const current={run_id:"release-run",step_instances:{review:"review-instance",build:"build-instance",verify:"verify-instance"},
-    goal:{description:"Prepare the desktop release",status:"active",scope:"chunk:desktop-release",created_at:"2026-10-15T08:00:00Z",
+    goal:{description:"Prepare the desktop release",status:"active",scope:"task:desktop-release",created_at:"2026-10-15T08:00:00Z",
       acceptance_criteria:["Reopening a project restores the same conversation and unsent message.","The release can be installed on a clean machine, and the previous build remains available."],
       constraints:["Keep each change focused and verify the affected behavior."]},
     steps:[
@@ -26,7 +26,7 @@ export function workSnapshot(){
   previous.steps=previous.steps.map(step=>({...step,title:"Earlier: "+step.title,status:"done"}));
   previous.step_instances={review:"earlier-review",build:"earlier-build",verify:"earlier-verify"};
   return {run:{state:"current",data:{source:{kind:"memory"},value:{current,retained:[previous]}}},
-    roadmap:{state:"unobserved"},think:reasoningFixture(),signals:feedbackFixture()};
+    plan:{state:"unobserved"},think:reasoningFixture(),signals:feedbackFixture()};
 }
 export async function workScene(app,capture){
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
@@ -43,7 +43,7 @@ export async function workScene(app,capture){
   await app.getByLabel("Entries",{exact:true}).selectOption("all");await app.getByRole("radio",{name:"Plan and steps",exact:true}).check();await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
   await app.getByRole("tab",{name:"Record status",exact:true}).click();await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);await capture("work-record-status-dark.png");
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
-  await roadmapScene(app,capture);await reasoningScene(app,capture);await feedbackScene(app,capture);
+  await planScene(app,capture);await reasoningScene(app,capture);await feedbackScene(app,capture);
   const check=app.locator(".work-check").nth(1);await check.locator("summary").click();
   await check.evaluate(node=>node.scrollIntoView({block:"start"}));await capture("work-check-results-dark.png");
   await check.locator("summary").click();await app.locator("#work-browser-content").evaluate(node=>node.scrollTop=0);
@@ -61,11 +61,11 @@ export async function workScene(app,capture){
   await app.getByRole("button",{name:"Done",exact:true}).click();
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   await capture("work-plan-light.png");
-  await app.getByRole("tab",{name:"Roadmap",exact:true}).click();await capture("roadmap-light.png");
-  await app.setViewportSize({width:760,height:550});await capture("roadmap-minimum.png");
+  await app.getByRole("tab",{name:"Plan",exact:true}).click();await capture("plan-light.png");
+  await app.setViewportSize({width:760,height:550});await capture("plan-minimum.png");
   await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();
   await app.setViewportSize({width:760,height:550});await capture("work-plan-minimum.png");
-  await app.getByRole("tab",{name:"Roadmap",exact:true}).click();await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();await app.locator(".roadmap-item-detail").waitFor();await capture("roadmap-detail-minimum-light.png");
+  await app.getByRole("tab",{name:"Plan",exact:true}).click();await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();await app.locator(".plan-item-detail").waitFor();await capture("plan-detail-minimum-light.png");
   await app.getByRole("tab",{name:"Reasoning",exact:true}).click();await app.getByRole("button",{name:"Keep each conversation with its saved message",exact:true}).click();await app.locator(".reasoning-step").waitFor();await capture("reasoning-detail-minimum-light.png");
   await app.getByRole("tab",{name:"Feedback",exact:true}).click();await app.getByRole("button",{name:"Keep my place when reopening a project",exact:true}).click();await capture("feedback-detail-minimum-light.png");
   await app.getByRole("tab",{name:"Conversation",exact:true}).click();

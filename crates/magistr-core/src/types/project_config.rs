@@ -1,5 +1,5 @@
 use magistr_engine::guard::GuardsConfig;
-use magistr_engine::native::RoadmapBackend;
+use magistr_engine::native::PlanBackend;
 use serde::{Deserialize, Serialize};
 
 use super::archetype::{Archetype, ArchetypeRelationship};
@@ -20,9 +20,9 @@ pub struct ProjectConfig {
     pub quality_gate: QualityGate,
     /// Code formatter configuration.
     pub format: FormatConfig,
-    /// Specification file tracking (roadmap).
+    /// Specification file tracking (plan).
     ///
-    /// Absent on a magistr project: the roadmap lives in the native
+    /// Absent on a magistr project: the plan lives in the native
     /// engines and there is no YAML/markdown spec file to track.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub spec: Option<SpecConfig>,
@@ -50,14 +50,14 @@ pub struct ProjectConfig {
     /// start/end, gate pass/fail) to an MCP tool invocation.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lifecycle_hooks: Vec<magistr_engine::LifecycleHook>,
-    /// Which store backs the roadmap: `native` (the native in-process
-    /// engines, the default) or `yaml` (`.magistr-roadmap.yml`).
+    /// Which store backs the plan: `native` (the native in-process
+    /// engines, the default) or `yaml` (`.magistr-plan.yml`).
     /// An omitted field uses the native default, regardless of other files.
     #[serde(default)]
-    pub roadmap_backend: RoadmapBackend,
-    /// Whether generated roadmap files may be exported. Native reads remain available.
-    #[serde(default = "default_roadmap_exports", skip_serializing_if = "is_true")]
-    pub roadmap_exports: bool,
+    pub plan_backend: PlanBackend,
+    /// Whether generated plan files may be exported. Native reads remain available.
+    #[serde(default = "default_plan_exports", skip_serializing_if = "is_true")]
+    pub plan_exports: bool,
     /// Per-sub-project archetypes with their own commands, patterns, and conventions.
     ///
     /// When absent or empty, the project is treated as a single-archetype project
@@ -119,7 +119,7 @@ impl ProjectConfig {
 #[path = "project_config.tests.rs"]
 mod tests;
 
-fn default_roadmap_exports() -> bool {
+fn default_plan_exports() -> bool {
     true
 }
 
@@ -166,7 +166,7 @@ pub struct StackConfig {
 /// Specification file tracking configuration.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SpecConfig {
-    /// Path to the specification/roadmap file (e.g., `"ROADMAP.md"`).
+    /// Path to the specification/plan file (e.g., `"PLAN.md"`).
     pub file: String,
     /// Regex pattern matching unchecked items (e.g., `"^\\s*- \\[ \\]"`).
     pub unchecked_pattern: String,

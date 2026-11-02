@@ -2,7 +2,7 @@ use magistr_workflow_contracts::{Observed, WriteError};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::content::StructuredContent;
-use crate::roadmap::engine::RoadmapEngine;
+use crate::plan::engine::PlanEngine;
 use crate::signal::domain::{Signal, SignalKind};
 use crate::signal::engine::SignalEngine;
 
@@ -12,7 +12,7 @@ use super::{SignalError, SignalInbox};
 #[derive(Clone)]
 pub struct SignalUseCases {
     pub(super) engine: Arc<Mutex<SignalEngine>>,
-    pub(super) roadmap: Option<Arc<Mutex<RoadmapEngine>>>,
+    pub(super) plan: Option<Arc<Mutex<PlanEngine>>>,
     pub(super) promotion: Arc<Mutex<()>>,
 }
 
@@ -20,13 +20,13 @@ impl SignalUseCases {
     pub fn new(engine: Arc<Mutex<SignalEngine>>) -> Self {
         Self {
             engine,
-            roadmap: None,
+            plan: None,
             promotion: Arc::new(Mutex::new(())),
         }
     }
 
-    pub fn with_roadmap(mut self, roadmap: Arc<Mutex<RoadmapEngine>>) -> Self {
-        self.roadmap = Some(roadmap);
+    pub fn with_plan(mut self, plan: Arc<Mutex<PlanEngine>>) -> Self {
+        self.plan = Some(plan);
         self
     }
 

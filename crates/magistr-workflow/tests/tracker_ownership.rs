@@ -5,8 +5,8 @@
 //! the projector actually routes through it — a policy nothing consults is a
 //! document, not a policy.
 
-use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::roadmap::engine::RoadmapEngine;
+use magistr_workflow::plan::domain::TaskStatus;
+use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::tracker::domain::WorkItemState;
 use magistr_workflow::tracker::fake::FakeTracker;
 use magistr_workflow::tracker::ownership::{Field, Owner, Ownership};
@@ -14,27 +14,27 @@ use magistr_workflow::tracker::project::{project_all, project_all_with_policy};
 
 const PROVIDER: &str = "fake";
 
-fn engine() -> RoadmapEngine {
-    RoadmapEngine::new("proj".into())
+fn engine() -> PlanEngine {
+    PlanEngine::new("proj".into())
 }
 
-fn add(e: &mut RoadmapEngine, id: &str) {
-    e.add_chunk(
+fn add(e: &mut PlanEngine, id: &str) {
+    e.add_task(
         id.into(),
-        format!("Chunk {id}"),
-        ChunkStatus::Pending,
+        format!("Task {id}"),
+        TaskStatus::ToDo,
         10,
         format!("why {id} exists"),
         vec![format!("{id} works")],
         vec![],
         false,
     )
-    .expect("add chunk");
+    .expect("add task");
     e.set_tracker_opt_in(id, PROVIDER, true).expect("opt in");
 }
 
 /// THE promise. A person moves the ticket to a column and assigns it; the next
-/// projection must not undo that. This is the failure the whole chunk exists to
+/// projection must not undo that. This is the failure the whole task exists to
 /// prevent, and the one every naive last-write-wins sync commits.
 #[tokio::test]
 async fn a_projection_does_not_undo_the_teams_workflow() {
@@ -53,7 +53,7 @@ async fn a_projection_does_not_undo_the_teams_workflow() {
     });
 
     // Now the plan changes, so a projection is due.
-    e.update_chunk(
+    e.update_task(
         "c1",
         None,
         None,
@@ -97,7 +97,7 @@ async fn an_overwritten_edit_to_a_field_we_own_is_reported() {
         item.body = "a human rewrote the description".into();
     });
 
-    e.update_chunk(
+    e.update_task(
         "c1",
         None,
         None,
@@ -112,7 +112,7 @@ async fn an_overwritten_edit_to_a_field_we_own_is_reported() {
     let d = report
         .divergences
         .iter()
-        .find(|(chunk, d)| chunk == "c1" && d.field == Field::Body)
+        .find(|(task, d)| task == "c1" && d.field == Field::Body)
         .map(|(_, d)| d)
         .expect("the overwritten edit must be reported, not silently dropped");
     assert_eq!(d.owner, Owner::Ours);
@@ -133,7 +133,7 @@ async fn a_remote_retitle_survives_and_raises_a_concern() {
         item.title = "PM renamed this to something clearer".into();
     });
 
-    e.update_chunk(
+    e.update_task(
         "c1",
         None,
         None,
@@ -176,7 +176,7 @@ async fn a_project_can_override_the_table() {
     tracker.remote_edit(&link.external_id, |item| {
         item.title = "a retitle this project has chosen not to honour".into();
     });
-    e.update_chunk(
+    e.update_task(
         "c1",
         None,
         None,
@@ -192,7 +192,7 @@ async fn a_project_can_override_the_table() {
 
     assert_eq!(
         tracker.item(&link.external_id).expect("item").title,
-        "Chunk c1",
+        "Task c1",
         "the project took the title back and the projection should honour that"
     );
 }
@@ -207,7 +207,7 @@ async fn an_undisturbed_item_raises_nothing() {
     let tracker = FakeTracker::new(PROVIDER);
     project_all(&mut e, &tracker, None).await.expect("create");
 
-    e.update_chunk(
+    e.update_task(
         "c1",
         None,
         None,
@@ -242,7 +242,7 @@ async fn the_recorded_hash_matches_what_was_actually_written() {
     tracker.remote_edit(&link.external_id, |item| {
         item.title = "their title".into();
     });
-    e.update_chunk(
+    e.update_task(
         "c1",
         None,
         None,

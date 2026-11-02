@@ -25,15 +25,15 @@ export function fixture() {
     id: 'search',
     title: 'Find matching pages',
     name: 'Search',
-    group: 'Search',
-    status: 'pending',
+    feature: 'Search',
+    status: 'to_do',
     deps: [],
     acceptance: ['Matching pages appear'],
     description: 'Help people find their pages.',
   }
-  const roadmap = {
+  const plan = {
     project_id: 'example',
-    chunks: [work],
+    tasks: [work],
     recent_done: [],
     next: 'search',
     omitted_active: 0,
@@ -59,7 +59,7 @@ export function fixture() {
     step,
     run,
     work,
-    roadmap,
+    plan,
     context,
     finding: {
       step_number: 3,
@@ -107,7 +107,7 @@ export function compositionReply(operation, raw) {
     structuredContent: {
       ok: true,
       automaticReplay: false,
-      check_results: [
+      receipts: [
         {
           operation,
           result: raw.structuredContent ?? raw.result ?? raw,
@@ -140,47 +140,47 @@ export function answer(f, server, tool, args) {
   switch (tool) {
     case 'run_status':
       return f.run
-    case 'roadmap_status':
-      return f.roadmap
-    case 'roadmap_focus_get': {
+    case 'plan_status':
+      return f.plan
+    case 'plan_focus_get': {
       const activity = {
         counts: {
           total: 1,
-          backlog: 0,
-          pending: 1,
+          idea: 0,
+          to_do: 1,
           in_progress: 0,
-          blocked: 0,
+          waiting: 0,
         },
-        readiness: { ready: 1, waiting: 0, blocked: 0 },
+        readiness: { ready: 1, dependent: 0, waiting: 0 },
         next_ready: 'search',
       }
       return {
         lane: args.lane,
         focus: f.focus || null,
         focus_state: f.focus
-          ? { state: 'current', group: f.focus.group }
+          ? { state: 'current', feature: f.focus.feature }
           : { state: 'unset' },
         workstreams: {
           current: { Search: activity },
           history: {},
-          ungrouped: {
+          unassigned: {
             counts: {
               total: 0,
-              backlog: 0,
-              pending: 0,
+              idea: 0,
+              to_do: 0,
               in_progress: 0,
-              blocked: 0,
+              waiting: 0,
             },
-            readiness: { ready: 0, waiting: 0, blocked: 0 },
+            readiness: { ready: 0, dependent: 0, waiting: 0 },
             next_ready: null,
           },
-          ungrouped_history: { done: 0, obsoleted: 0 },
+          unassigned_history: { done: 0, retired: 0 },
         },
         frontier: f.focus
           ? {
               state: 'current',
               frontier: {
-                group: f.focus.group,
+                feature: f.focus.feature,
                 activity,
                 items: [
                   {
@@ -211,10 +211,10 @@ export function answer(f, server, tool, args) {
       }
     case 'think_engine_status':
       return f.findings
-    case 'roadmap_get':
+    case 'plan_get':
       return {
         records: args.ids
-          .map((id) => f.roadmap.chunks.find((w) => w.id === id))
+          .map((id) => f.plan.tasks.find((w) => w.id === id))
           .filter(Boolean),
         unknown: [],
         returned: 1,

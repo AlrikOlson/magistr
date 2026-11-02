@@ -1,6 +1,6 @@
 ---
 name: next-loop
-description: Resume interrupted work or run one ready Magistr roadmap chunk, then hand off to a fresh agent session. Use for {{invoke}}next-loop or an explicit request to continue the roadmap implementation loop.
+description: Resume interrupted work or run one ready Magistr plan task, then hand off to a fresh agent session. Use for {{invoke}}next-loop or an explicit request to continue the plan implementation loop.
 ---
 
 # Fresh-context Magistr loop
@@ -8,7 +8,7 @@ description: Resume interrupted work or run one ready Magistr roadmap chunk, the
 Read [next](../next/SKILL.md), including its shared runtime and host adapter.
 This skill coordinates bounded continuation, but the context boundary is part
 of the contract: one agent session completes one `{{invoke}}next` iteration,
-then stops. The next chunk starts only in a fresh agent session.
+then stops. The next task starts only in a fresh agent session.
 
 Use the user's stated iteration, time, usage, and scope limits. With no
 iteration limit supplied, use a maximum of **10 completed iterations** and
@@ -28,26 +28,26 @@ work from another feature. Choosing a new goal scope saves the unfinished
 plan; returning to its scope restores its steps and checks. Preserve those
 plans without resetting them.
 
-1. Read `roadmap_status` and `run_status` and record the initial Git revision.
-   Follow the chunk already selected by the request or iteration prompt. Resume
-   its in-progress work before selecting a pending chunk, following next's
+1. Read `plan_status` and `run_status` and record the initial Git revision.
+   Follow the task already selected by the request or iteration prompt. Resume
+   its in-progress work before selecting a pending task, following next's
    recovery contract. Keep its matching unfinished goal, plan, step
-   statuses, progress, and checks; do not start the chunk again or reset its
+   statuses, progress, and checks; do not start the task again or reset its
    goal. If another scope is selected, use `run_open` to save
-   its unfinished work and restore the chosen `chunk:<id>` scope, then read
+   its unfinished work and restore the chosen `task:<id>` scope, then read
    `run_status` again. Preserve unrelated worktree changes and report
    ambiguous work within the chosen feature.
 2. Invoke exactly one complete `{{invoke}}next` workflow. When its stop rule is
    reached, end this loop invocation; the return is not permission to select
-   another chunk in the same session. A recoverable gate or test failure stays
+   another task in the same session. A recoverable gate or test failure stays
    inside this iteration: diagnose the cause, repair it within authorized
    scope, and rerun and record the affected checks. An unfinished commit means
-   continue the current iteration, not select another chunk or stop solely
+   continue the current iteration, not select another task or stop solely
    because it is unfinished.
-3. Confirm the chunk is done, required verification was recorded, its goal
+3. Confirm the task is done, required verification was recorded, its goal
    closed, and its commit exists.
-4. Write a handoff containing the completed chunk, commit, recorded checks, the
-   remaining iteration bound, and the next roadmap candidate. Include the
+4. Write a handoff containing the completed task, commit, recorded checks, the
+   remaining iteration bound, and the next plan candidate. Include the
    agent, model, and reasoning effort reported by the host, plus any requested
    selection for the next session. Mark unavailable values as unknown. The host
    must apply that selection when opening the next session; saved Magistr
@@ -56,8 +56,8 @@ plans without resetting them.
    `{{invoke}}next-loop` again in this context, and do not use compaction as a
    substitute for a new session.
 5. The host may invoke this skill again only from a fresh agent session. That
-   new session must re-read live roadmap and run state, resuming unfinished
-   work first and selecting a pending chunk only when no resumable work remains.
+   new session must re-read live plan and run state, resuming unfinished
+   work first and selecting a pending task only when no resumable work remains.
    This invocation ends after the handoff.
 
 Stop when no authorized work can be resumed or started, an explicit
@@ -70,5 +70,5 @@ check alone is not such a blocker.
 When blocked, lead with the concrete blocker, why it cannot be resolved within
 current authorization, and the exact user action or external condition needed.
 Then report completed work, the checkpoint, and the next candidate. Never reset
-state or mark a chunk done to hide an incomplete iteration. Native records and
+state or mark a task done to hide an incomplete iteration. Native records and
 Git history are the recovery source for the next fresh session.

@@ -47,10 +47,10 @@ pub struct DomainState {
     pub agent_options: Option<SelectList>,
     /// Log messages displayed in the main area.
     pub messages: Vec<LogMessage>,
-    /// Roadmap sync status for the footer indicator.
+    /// Plan sync status for the footer indicator.
     pub sync_status: String,
-    /// Flag set when a roadmap-mutating MCP tool completes.
-    pub roadmap_stale: bool,
+    /// Flag set when a plan-mutating MCP tool completes.
+    pub plan_stale: bool,
 }
 
 #[cfg(test)]

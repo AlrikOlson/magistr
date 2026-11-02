@@ -3,9 +3,9 @@ title: Plan a project
 description: Create, prioritize, and revise deliverables your agent can finish.
 section: working
 order: 1
-related: [chunks, feedback, reasoning]
+related: [tasks, feedback, reasoning]
 ---
-A roadmap is Magistr's saved plan for a project: what to deliver, why it matters,
+A plan is Magistr's saved plan for a project: what to deliver, why it matters,
 and what must happen first. Use a [connected agent](/docs/agents) to create or
 revise it. Planning does not need to start implementation.
 
@@ -15,22 +15,22 @@ In your agent conversation, describe the intended users, the result you want,
 and constraints such as platform, budget, or delivery expectations. For an
 existing project, ask the agent to inspect the code and saved work first.
 
-> Review the existing project and propose a roadmap for the requested result.
+> Review the existing project and propose a plan for the requested result.
 > Save clear deliverables and acceptance criteria in Magistr. Explain the
 > dependencies before starting implementation.
 
-A **chunk** is one deliverable with a finish you can verify. Its record can hold
+A **task** is one deliverable with a finish you can verify. Its record can hold
 a description, acceptance criteria, priority, dependencies, notes, and a
-checklist. Avoid chunks defined only by activity, such as “work on the backend.”
+checklist. Avoid tasks defined only by activity, such as “work on the backend.”
 
-For example, in an application that imports contacts, a chunk could be “Import
+For example, in an application that imports contacts, a task could be “Import
 a CSV file and report invalid rows.” Its criteria might cover a valid file, a
 missing required column, and a row with an invalid email. The example assumes
 the application already has a contact model.
 
 ## Set dependencies and priorities
 
-A dependency means another chunk must finish first. Priority expresses which
+A dependency means another task must finish first. Priority expresses which
 eligible work matters most. Keep these separate.
 
 If a report needs imported data, the import is a prerequisite. Changing the
@@ -43,25 +43,25 @@ deliverables; it is not a task list for a single implementation.
 
 ## Read the saved plan
 
-Ask the connected agent to summarize the roadmap, explain what is ready, and
-show the requirements for a selected chunk. From a terminal in the project root:
+Ask the connected agent to summarize the plan, explain what is ready, and
+show the requirements for a selected task. From a terminal in the project root:
 
 ```sh
-magistr roadmap status
-magistr roadmap next
+magistr plan status
+magistr plan next
 ```
 
 The status command reports progress; the next command reports the next ready
-chunk without starting implementation. Confirm that the saved requirements
+task without starting implementation. Confirm that the saved requirements
 match your intent before asking the agent to build.
 
-If no chunk is ready, inspect unfinished prerequisites and scope filters.
-Do not remove a real dependency just to make a chunk startable.
+If no task is ready, inspect unfinished prerequisites and scope filters.
+Do not remove a real dependency just to make a task startable.
 
 ## Revise the plan
 
 Use `$roadmap-refresh` in Codex or `/roadmap-refresh` in Claude Code to
-research a topic and update the roadmap without implementing features.
+research a topic and update the plan without implementing features.
 Name the area to revisit and what has changed.
 
 Keep completed work as history. Mark work obsolete when it is no longer
@@ -69,15 +69,15 @@ intended. Record why priorities, criteria, or dependencies changed so a later
 session can understand the current plan.
 
 Feedback can remain a [signal](/docs/feedback) while it is being investigated.
-Promote it into a chunk when the evidence supports a concrete deliverable.
+Promote it into a task when the evidence supports a concrete deliverable.
 
 ## Begin implementation
 
-Use `$next` or `/next` when you want one ready chunk implemented. The
-`roadmap` skill also implements one chunk; its name does not mean
-“planning only.” [Working in chunks](/docs/chunks) covers execution and bounded
+Use `$next` or `/next` when you want one ready task implemented. The
+`plan` skill also implements one task; its name does not mean
+“planning only.” [Working in tasks](/docs/tasks) covers execution and bounded
 runs.
 
-Magistr's saved roadmap is authoritative. A generated Markdown view, when a
-project permits one, is only a view. Projects with `roadmap_exports: false`
-must keep the roadmap in Magistr and should not generate export files.
+Magistr's saved plan is authoritative. A generated Markdown view, when a
+project permits one, is only a view. Projects with `plan_exports: false`
+must keep the plan in Magistr and should not generate export files.

@@ -488,7 +488,7 @@ fn is_index_lock_contention(e: &std::io::Error) -> bool {
 /// Agent Trace record (which shells `git rev-parse HEAD`), the `fsync`'d append,
 /// and any commit all happen on the worker thread — never on the caller's.
 pub struct MirrorJob {
-    /// `"think" | "run" | "roadmap"`.
+    /// `"think" | "run" | "plan"`.
     pub family: &'static str,
     /// Record kind (`"step" | "goal" | "task" | "action" | "check" | …`).
     pub kind: &'static str,
@@ -652,8 +652,8 @@ mod tests {
         let worker = MirrorWorker::spawn(RepoSink::new(tmp.path()));
         for n in 0..10 {
             worker.submit(MirrorJob {
-                family: "roadmap",
-                kind: "chunk",
+                family: "plan",
+                kind: "task",
                 session_id: "s1".into(),
                 shared: false,
                 payload: json!({ "n": n }),

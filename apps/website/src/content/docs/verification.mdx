@@ -3,7 +3,7 @@ title: Verification
 description: Choose checks, read their results, and know when earlier evidence still applies.
 section: working
 order: 4
-related: [configuration, chunks, troubleshooting]
+related: [configuration, tasks, troubleshooting]
 ---
 Magistr records verification with the work it checks. A result can include the
 command, output, exit code, observed source inputs, and a receipt identifying
@@ -20,7 +20,7 @@ behavior and affected consumers. Explain why those checks establish the result.
 A documentation link fix and a persistence-format change need different checks.
 
 Use **full verification** for an explicit full-suite request or a concrete risk
-requiring every configured gate. A roadmap chunk does not by itself require
+requiring every configured gate. A plan task does not by itself require
 every test, package build, or release check.
 
 For an interface change, include interaction and visual review. For example,
@@ -81,7 +81,7 @@ magistr validate
 
 Or use `$validate` in Codex or `/validate` in Claude Code. This runs the
 configured standard checks and required custom checks. It does not implement
-a roadmap item. A required failure blocks a successful full-gate result.
+a plan item. A required failure blocks a successful full-gate result.
 
 ## Finish with evidence
 

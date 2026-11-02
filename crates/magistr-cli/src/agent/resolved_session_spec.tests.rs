@@ -475,7 +475,7 @@ fn native_work_context_is_fresh_addressed_and_failure_is_not_absence() {
             "Read the selected plan".into(),
             vec!["Keep full authored requirements".into()],
             vec!["Preserve unrelated changes".into()],
-            "chunk:context".into(),
+            "task:context".into(),
         )
         .unwrap();
     writer
@@ -607,7 +607,7 @@ fn saved_purpose_applies_startup_restrictions_without_replacing_identity_or_resu
         .model("saved-model")
         .resume("provider-planning-context")
         .permission_profile(PermissionProfile::Yolo);
-    config.history = SessionHistory::for_purpose(SessionPurpose::Roadmap);
+    config.history = SessionHistory::for_purpose(SessionPurpose::Plan);
     config.system_prompt = Some("Project context".into());
     config.workflow_permissions = true;
     config.allowed_tools.push("Bash".into());
@@ -620,7 +620,7 @@ fn saved_purpose_applies_startup_restrictions_without_replacing_identity_or_resu
     .unwrap()
     .with_source_route(SourceRoute::Admitted(std::sync::Arc::new(NoSourceWrites)));
     assert_eq!(spec.history().id(), id);
-    assert_eq!(spec.history().purpose(), SessionPurpose::Roadmap);
+    assert_eq!(spec.history().purpose(), SessionPurpose::Plan);
     assert_eq!(spec.model(), Some("saved-model"));
     assert!(
         matches!(spec.session_mode(), AcpSessionMode::Load { session_id } if session_id == "provider-planning-context")
@@ -631,7 +631,7 @@ fn saved_purpose_applies_startup_restrictions_without_replacing_identity_or_resu
     assert_eq!(spec.source.refusal(), Some(&SourceRefusal::NoAuthority));
     assert_eq!(
         spec.config.allowed_tools,
-        crate::agent::ToolPermissions::for_roadmap_request().into_strings()
+        crate::agent::ToolPermissions::for_plan_request().into_strings()
     );
     let server = spec
         .mcp_servers

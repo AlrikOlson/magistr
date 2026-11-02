@@ -31,7 +31,7 @@ fn sample_config() -> ProjectConfig {
             exclusions: vec![],
         },
         spec: Some(SpecConfig {
-            file: "ROADMAP.md".into(),
+            file: "PLAN.md".into(),
             unchecked_pattern: r"^\s*- \[ \]".into(),
         }),
         testing: TestingConfig {
@@ -44,8 +44,8 @@ fn sample_config() -> ProjectConfig {
         guards: Default::default(),
         hints: vec![],
         lifecycle_hooks: vec![],
-        roadmap_backend: Default::default(),
-        roadmap_exports: true,
+        plan_backend: Default::default(),
+        plan_exports: true,
         archetypes: vec![],
         topology: None,
         relationships: vec![],
@@ -104,7 +104,7 @@ fn format_prompt_includes_spec() {
     let config = sample_config();
     let prompt = format_prompt(&config);
 
-    assert!(prompt.contains("`ROADMAP.md`"));
+    assert!(prompt.contains("`PLAN.md`"));
 }
 
 #[test]
@@ -144,7 +144,7 @@ fn agent_context_supplies_workflow_guidance_without_rewriting_project_rules() {
     let recovery = magistr_engine::prompt::PromptConfig::NEXT_RECOVERY_GUIDANCE;
     for content in [
         None,
-        Some("Old project workflow: always select roadmap_next and create a new goal.".to_owned()),
+        Some("Old project workflow: always select plan_next and create a new goal.".to_owned()),
         Some(format!("Custom introduction.\n{guidance}\n{recovery}")),
     ] {
         if let Some(content) = &content {
@@ -158,8 +158,7 @@ fn agent_context_supplies_workflow_guidance_without_rewriting_project_rules() {
         assert_eq!(prompt.matches(recovery).count(), 1);
         if !content.as_ref().is_some_and(|text| text.contains(recovery)) {
             assert!(
-                prompt
-                    .contains("does not authorize starting roadmap work for an unrelated request")
+                prompt.contains("does not authorize starting plan work for an unrelated request")
             );
         }
         match content {

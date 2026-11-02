@@ -1,5 +1,5 @@
 use super::*;
-use crate::roadmap::domain::ChunkStatus;
+use crate::plan::domain::TaskStatus;
 use crate::signal::domain::SignalStatus;
 
 #[test]
@@ -22,14 +22,14 @@ fn parse_kind_accepts_vocabulary_and_rejects_others() {
 // ── signal_promote / signal_link (drive the async handlers, assert on the
 //    real engine state — the test that matters) ──────────────────────────
 
-use crate::roadmap::engine::RoadmapEngine;
+use crate::plan::engine::PlanEngine;
 use crate::signal::engine::SignalEngine;
 use std::sync::{Arc, Mutex};
 
-/// A SignalService over a fresh signal engine + a shared roadmap engine,
-/// with one signal already advanced to `Researched`. Returns (svc, roadmap, id).
-fn promotable() -> (SignalService, Arc<Mutex<RoadmapEngine>>, String) {
-    let roadmap = Arc::new(Mutex::new(RoadmapEngine::new("proj".into())));
+/// A SignalService over a fresh signal engine + a shared plan engine,
+/// with one signal already advanced to `Researched`. Returns (svc, plan, id).
+fn promotable() -> (SignalService, Arc<Mutex<PlanEngine>>, String) {
+    let plan = Arc::new(Mutex::new(PlanEngine::new("proj".into())));
     let mut engine = SignalEngine::new("proj".into());
     let id = engine
         .capture(SignalKind::Idea, "dana".into(), "add a dark theme".into())
@@ -40,55 +40,55 @@ fn promotable() -> (SignalService, Arc<Mutex<RoadmapEngine>>, String) {
         .clone();
     engine.set_status(&id, SignalStatus::Triaged).unwrap();
     engine.set_status(&id, SignalStatus::Researched).unwrap();
-    let svc = SignalService::new(engine).with_roadmap(Arc::clone(&roadmap));
-    (svc, roadmap, id)
+    let svc = SignalService::new(engine).with_plan(Arc::clone(&plan));
+    (svc, plan, id)
 }
 
 #[tokio::test]
-async fn promote_creates_chunk_with_bidirectional_refs() {
-    let (svc, roadmap, id) = promotable();
+async fn promote_creates_task_with_bidirectional_refs() {
+    let (svc, plan, id) = promotable();
     svc.signal_promote(Parameters(PromoteArgs { id: id.clone() }))
         .await
         .unwrap();
 
-    let chunk_id = format!("signal-{id}");
-    // The chunk exists, is backlog, and carries signal:<id>.
+    let task_id = format!("signal-{id}");
+    // The task exists, is an idea, and carries signal:<id>.
     {
-        let r = roadmap.lock().unwrap();
-        let chunk = r
-            .roadmap()
-            .chunks
+        let r = plan.lock().unwrap();
+        let task = r
+            .plan()
+            .tasks
             .iter()
-            .find(|c| c.id == chunk_id)
-            .expect("chunk created");
-        assert_eq!(chunk.status, ChunkStatus::Backlog);
-        assert!(chunk.cross_refs.contains(&format!("signal:{id}")));
+            .find(|c| c.id == task_id)
+            .expect("task created");
+        assert_eq!(task.status, TaskStatus::Idea);
+        assert!(task.refs.contains(&format!("signal:{id}")));
     }
-    // The signal is Promoted and carries chunk:<chunk_id>.
+    // The signal is Promoted and carries task:<task_id>.
     {
         let handle = svc.engine();
         let e = handle.lock().unwrap();
         let s = e.get(&id).unwrap();
         assert_eq!(s.status, SignalStatus::Promoted);
-        assert!(s.cross_refs.contains(&format!("chunk:{chunk_id}")));
+        assert!(s.refs.contains(&format!("task:{task_id}")));
     }
 }
 
 #[tokio::test]
-async fn promote_is_idempotent_no_duplicate_chunk() {
-    let (svc, roadmap, id) = promotable();
+async fn promote_is_idempotent_no_duplicate_task() {
+    let (svc, plan, id) = promotable();
     svc.signal_promote(Parameters(PromoteArgs { id: id.clone() }))
         .await
         .unwrap();
-    // Second promote must not create a second chunk.
+    // Second promote must not create a second task.
     svc.signal_promote(Parameters(PromoteArgs { id: id.clone() }))
         .await
         .unwrap();
-    let count = roadmap
+    let count = plan
         .lock()
         .unwrap()
-        .roadmap()
-        .chunks
+        .plan()
+        .tasks
         .iter()
         .filter(|c| c.id.starts_with("signal-"))
         .count();
@@ -97,7 +97,7 @@ async fn promote_is_idempotent_no_duplicate_chunk() {
 
 #[tokio::test]
 async fn promote_rejects_unresearched_signal() {
-    let roadmap = Arc::new(Mutex::new(RoadmapEngine::new("proj".into())));
+    let plan = Arc::new(Mutex::new(PlanEngine::new("proj".into())));
     let mut engine = SignalEngine::new("proj".into());
     let id = engine
         .capture(SignalKind::Bug, "x".into(), "boom".into())
@@ -106,13 +106,13 @@ async fn promote_rejects_unresearched_signal() {
         .value
         .id
         .clone(); // status New
-    let svc = SignalService::new(engine).with_roadmap(Arc::clone(&roadmap));
+    let svc = SignalService::new(engine).with_plan(Arc::clone(&plan));
 
     svc.signal_promote(Parameters(PromoteArgs { id: id.clone() }))
         .await
         .unwrap();
-    // No chunk, signal untouched.
-    assert!(roadmap.lock().unwrap().roadmap().chunks.is_empty());
+    // No task, signal untouched.
+    assert!(plan.lock().unwrap().plan().tasks.is_empty());
     assert_eq!(
         svc.engine().lock().unwrap().get(&id).unwrap().status,
         SignalStatus::New
@@ -129,7 +129,7 @@ async fn link_attaches_validated_crossref() {
         .value
         .id
         .clone();
-    let svc = SignalService::new(engine); // no roadmap needed for link
+    let svc = SignalService::new(engine); // no plan needed for link
 
     svc.signal_link(Parameters(LinkArgs {
         id: id.clone(),
@@ -143,7 +143,7 @@ async fn link_attaches_validated_crossref() {
             .unwrap()
             .get(&id)
             .unwrap()
-            .cross_refs
+            .refs
             .contains(&"think:42".to_string())
     );
 }

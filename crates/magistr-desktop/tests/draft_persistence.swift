@@ -6,15 +6,15 @@ import QuartzCore
 // Each key event owns its UTF-16 payload. Queued input never reads a later clipboard value.
 func typeDraftUnicode(_ value: String) throws {
     let source = CGEventSource(stateID: .hidSystemState)
-    var chunks: [[UniChar]] = [], chunk: [UniChar] = []
+    var tasks: [[UniChar]] = [], task: [UniChar] = []
     // Keep each native text event small without splitting a surrogate pair.
     for scalar in value.unicodeScalars {
         let units = Array(String(scalar).utf16)
-        if chunk.count + units.count > 16 { chunks.append(chunk); chunk = [] }
-        chunk.append(contentsOf: units)
+        if task.count + units.count > 16 { tasks.append(task); task = [] }
+        task.append(contentsOf: units)
     }
-    if !chunk.isEmpty { chunks.append(chunk) }
-    for units in chunks {
+    if !task.isEmpty { tasks.append(task) }
+    for units in tasks {
         for down in [true, false] {
             guard let event = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: down)
             else { throw Failure.message("A native draft text event could not be created") }

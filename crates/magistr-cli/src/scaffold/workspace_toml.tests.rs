@@ -173,7 +173,7 @@ fn project_config() -> magistr_core::types::ProjectConfig {
                          "lint": "cargo clippy -- -D warnings"},
         "custom_gates": [{"name": "structure", "command": "./scripts/lint-structure.sh", "required": true}],
         "format": {"command": "cargo fmt", "extensions": ["rs"]},
-        "spec": {"file": "ROADMAP.md", "unchecked_pattern": "^- \\\\[ \\\\]"},
+        "spec": {"file": "PLAN.md", "unchecked_pattern": "^- \\\\[ \\\\]"},
         "state_prefix": "t",
         "reference_repos": [],
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"}

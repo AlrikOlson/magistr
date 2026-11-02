@@ -34,15 +34,16 @@ export function request(operation, args = {}) {
 export function response(operation, raw) {
   if (DIRECT.has(operation)) return raw
   const value = decode(raw)
-  const check_result = value.check_results?.[0]
+  // A composition answers with one receipt per operation it ran.
+  const receipt = value.receipts?.[0]
   if (
     !value.ok ||
-    value.check_results?.length !== 1 ||
-    check_result?.operation !== operation ||
-    check_result.failed
+    value.receipts?.length !== 1 ||
+    receipt?.operation !== operation ||
+    receipt.failed
   )
     throw new Error(
       'The request did not return its completed result. Refresh and inspect the record.',
     )
-  return check_result.result
+  return receipt.result
 }

@@ -1,9 +1,9 @@
 //! Per-project projection consent — the machine-local half of "opt-in".
 //!
-//! Projection is opt-in per chunk AND per project, and the two halves live in
-//! different places on purpose. The per-chunk half
-//! ([`crate::roadmap::domain::TrackerOptIn`]) is roadmap state, because which
-//! chunks are in scope is a decision about the plan and has to travel to every
+//! Projection is opt-in per task AND per project, and the two halves live in
+//! different places on purpose. The per-task half
+//! ([`crate::plan::domain::TrackerOptIn`]) is plan state, because which
+//! tasks are in scope is a decision about the plan and has to travel to every
 //! machine. This half does not travel: it names a provider and a destination
 //! (`owner/repo`) that are specific to one checkout, and sits next to the
 //! credential-custody secret that authorizes the write.
@@ -49,7 +49,7 @@ pub enum ConfigSource {
 /// the board unusable in BOTH directions: pointed at it, a project stops
 /// mirroring to Issues, so the issue's own title, body and state stop tracking
 /// the plan while the board's Status column starts to — two half-truths where
-/// there was one whole one; and every chunk is refused anyway, because the
+/// there was one whole one; and every task is refused anyway, because the
 /// board has no link records of its own and nothing produces the first.
 ///
 /// So the board is not a destination you switch TO. It is a companion to one,
@@ -89,13 +89,13 @@ pub struct TrackerConfig {
     /// ISO-8601 moment of the explicit decision; `None` while defaulted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub decided_at: Option<String>,
-    /// The human-readable name of the ROOF the whole roadmap files under (a
+    /// The human-readable name of the ROOF the whole plan files under (a
     /// Linear *initiative*). THE NAMING DECISION, in writing: `None` — the
     /// overwhelmingly common case — falls back to the project directory's
     /// basename (`magistr`), because that is what a human would have
     /// typed; the derived project id (`magistr-676f38`) is NEVER used,
     /// because a hash suffix in a workspace sidebar is a bug report waiting to
-    /// be filed. Set this when one roadmap spans several directories or the
+    /// be filed. Set this when one plan spans several directories or the
     /// directory name is not the product's name.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub initiative: Option<String>,
@@ -241,7 +241,7 @@ fn same_key_refusal(provider: &str) -> String {
 /// primary provider, or one with no destination. That case is an ERROR rather
 /// than a silent `None` on purpose: a companion configured and then quietly
 /// ignored is a push that looks like it worked and mirrored half of what the
-/// human asked for, which is the exact failure mode this whole chunk exists to
+/// human asked for, which is the exact failure mode this whole task exists to
 /// remove.
 pub fn companion_lane(config: &TrackerConfig) -> Result<Option<&CompanionLane>, String> {
     let Some(lane) = config.companion.as_ref() else {
@@ -314,19 +314,19 @@ pub fn should_project(config: &TrackerConfig) -> bool {
         && config.target.as_ref().is_some_and(|t| !t.is_empty())
 }
 
-/// Whether a chunk born RIGHT NOW inherits this project's opt-in, and into
+/// Whether a task born RIGHT NOW inherits this project's opt-in, and into
 /// which provider. `None` — the answer for almost every project that will ever
-/// run this binary — means the chunk is born silent, exactly as before.
+/// run this binary — means the task is born silent, exactly as before.
 ///
 /// # This reverses a documented default, so here is the argument
 ///
-/// [`crate::roadmap::domain::TrackerOptIn`] says silence is the default, and the
+/// [`crate::plan::domain::TrackerOptIn`] says silence is the default, and the
 /// reason it gives is precise: *nobody's tracker fills up because they upgraded*.
 /// Held literally, that rule also means a project whose owner deliberately
 /// connected a tracker in January is still, in July, mirroring only the forty
-/// chunks that existed on the day they ran `tracker setup` — because nothing in
+/// tasks that existed on the day they ran `tracker setup` — because nothing in
 /// the workflow ever grows the set. That is what actually happened here
-/// (`tracker-optin-never-grows`): 46 of 354 chunks were in scope, and the ones
+/// (`tracker-optin-never-grows`): 46 of 354 tasks were in scope, and the ones
 /// missing were precisely the current work. A plan that mirrors only its own
 /// past is worse than one that mirrors nothing, because it looks like it works.
 ///
@@ -341,10 +341,10 @@ pub fn should_project(config: &TrackerConfig) -> bool {
 /// a person who already said yes does not have to keep saying it.
 ///
 /// The blast radius is bounded twice more, in the caller rather than here:
-/// inheritance is applied at chunk BIRTH only ([`crate::roadmap::engine`]'s
-/// `add_chunk`), so there is no code path that could retroactively sweep the
-/// chunks that already exist — the ~20 unrequested issues that would have
-/// created were the whole reason a bulk top-up verb was declined; and a chunk
+/// inheritance is applied at task BIRTH only ([`crate::plan::engine`]'s
+/// `add_task`), so there is no code path that could retroactively sweep the
+/// tasks that already exist — the ~20 unrequested issues that would have
+/// created were the whole reason a bulk top-up verb was declined; and a task
 /// explicitly opted OUT stays out, because opting out is recorded rather than
 /// deleted and birth is the only moment this fires.
 ///
@@ -442,7 +442,7 @@ mod tests {
     /// The reversal, in its intended direction: a human ran `tracker on`, so the
     /// work they add afterwards is in scope without them saying so again.
     #[test]
-    fn an_explicitly_enabled_project_lends_its_opt_in_to_new_chunks() {
+    fn an_explicitly_enabled_project_lends_its_opt_in_to_new_tasks() {
         let dir = TempDir::new().expect("tempdir");
         let cfg =
             enable(dir.path(), "proj", "linear", "THI", "2026-07-27T09:00:00Z").expect("enable");

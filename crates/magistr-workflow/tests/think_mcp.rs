@@ -273,7 +273,7 @@ async fn record_step_call_returns_structured_content() {
 
 // `engine_status_call_returns_structured_content` used to live here. It called
 // the handler directly, and the handler now takes the request's own
-// `RequestContext` so it can report the live client (roadmap chunk
+// `RequestContext` so it can report the live client (plan task
 // `mcp-stderr-observability-gap`) — which is not constructible without a wire.
 // The claim was not weakened, it MOVED: `tests/client_capability_view.rs`
 // asserts the same version/persistence/sessions_enabled fields against a real

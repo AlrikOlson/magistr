@@ -36,7 +36,8 @@ fn older_default_and_named_histories_are_consolidated_without_losing_steps() {
     let mut old: Value = serde_json::from_slice(OLD).unwrap();
     // Run references in the older history take the run words.
     assert!(crate::infra::CrossRef::upgrade_stored_refs(
-        &mut old["history"]
+        &mut old["history"],
+        crate::infra::StoredRefWords::BeforeRunWords,
     ));
     let expected: ThinkHistory = serde_json::from_value(old["history"].clone()).unwrap();
     assert_eq!(converted.histories["saved-project"], expected);

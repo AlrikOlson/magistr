@@ -3,9 +3,9 @@
 //! use), must produce a shape whose serialization contains none of them —
 //! and, stronger, no free-text input string at all.
 
-use magistr_workflow::cloud::build::{from_chunk, from_step};
+use magistr_workflow::cloud::build::{from_step, from_task};
 use magistr_workflow::cloud::envelope::UnifiedRecordEnvelope;
-use magistr_workflow::roadmap::domain::Chunk;
+use magistr_workflow::plan::domain::Task;
 use magistr_workflow::telemetry::{extract, scan};
 use magistr_workflow::think::domain::step::ThinkStep;
 
@@ -39,7 +39,7 @@ fn planted_step() -> ThinkStep {
     .expect("step deserializes via serde defaults")
 }
 
-fn planted_chunk() -> Chunk {
+fn planted_task() -> Task {
     serde_json::from_value(serde_json::json!({
         "id": "rotate-creds",
         "title": format!("Rotate {} before launch", PLANTED[0]),
@@ -49,18 +49,18 @@ fn planted_chunk() -> Chunk {
         "notes": "",
         "acceptance": [format!("no more {}", PLANTED[2])],
         "deps": [],
-        "cross_refs": ["think:7", "step:verify"],
+        "refs": ["think:7", "step:verify"],
         "shared": false,
         "created_at": "2026-06-10T00:00:00Z",
         "updated_at": "2026-06-10T02:30:00Z",
     }))
-    .expect("chunk deserializes")
+    .expect("task deserializes")
 }
 
 fn envelopes() -> Vec<UnifiedRecordEnvelope> {
     vec![
         from_step("tenant-x", &planted_step()).unwrap(),
-        from_chunk("tenant-x", &planted_chunk(), &[], &[]),
+        from_task("tenant-x", &planted_task(), &[], &[]),
     ]
 }
 
@@ -96,9 +96,9 @@ fn no_input_string_survives_serialization() {
     // Closed vocabulary legitimately shared between input and output.
     const VOCAB: &[&str] = &[
         "think",
-        "roadmap",
+        "plan",
         "step",
-        "chunk",
+        "task",
         "in_progress",
         "done",
         "supports",
@@ -183,12 +183,12 @@ fn wire_report_satisfies_the_ingest_contract() {
 #[test]
 fn structure_survives_what_text_does_not() {
     let shape = extract(&envelopes(), SALT).expect("clean shape");
-    // Two records: one think.step, one roadmap.chunk.
+    // Two records: one think.step, one plan.task.
     assert_eq!(shape.records.get("think.step"), Some(&1));
-    assert_eq!(shape.records.get("roadmap.chunk"), Some(&1));
-    // The chunk's lifecycle state survives as vocabulary.
-    assert_eq!(shape.statuses.get("roadmap.chunk.in_progress"), Some(&1));
-    // The step's dependency edge + the chunk's two cross_refs.
+    assert_eq!(shape.records.get("plan.task"), Some(&1));
+    // The task's lifecycle state survives as vocabulary.
+    assert_eq!(shape.statuses.get("plan.task.in_progress"), Some(&1));
+    // The step's dependency edge + the task's two refs.
     assert_eq!(shape.graph.nodes, 2);
     assert_eq!(shape.graph.edges, 3);
     // Tool usage: 3 uses, Bash→Edit and Edit→Bash bigrams.
@@ -201,6 +201,6 @@ fn structure_survives_what_text_does_not() {
             .sum::<usize>(),
         2
     );
-    // chunk created→updated spans 2.5h → lt1d bucket.
+    // task created→updated spans 2.5h → lt1d bucket.
     assert_eq!(shape.lifetimes.get("lt1d"), Some(&1));
 }

@@ -1,10 +1,10 @@
 //! Regression: no served tool schema carries a non-standard JSON Schema
 //! `format` (schemars' uint32/uint64/…) — MCP clients warn `unknown format
-//! ignored` for them on every connect (chunk: schema-format-warnings).
+//! ignored` for them on every connect (task: schema-format-warnings).
 
 use magistr_workflow::mcp::unified::UnifiedService;
-use magistr_workflow::roadmap::engine::RoadmapEngine;
-use magistr_workflow::roadmap::mcp::RoadmapService;
+use magistr_workflow::plan::engine::PlanEngine;
+use magistr_workflow::plan::mcp::PlanService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::run::mcp::RunService;
 use magistr_workflow::signal::engine::SignalEngine;
@@ -40,9 +40,9 @@ fn build_unified() -> UnifiedService {
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new("test-schema".into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-schema".into()), run.use_cases());
+    let plan = PlanService::new(PlanEngine::new("test-schema".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-schema".into()));
-    UnifiedService::new(think, run, roadmap, signal)
+    UnifiedService::new(think, run, plan, signal)
 }
 
 /// Collect every `format` string in a schema, with a JSON-pointer-ish path.

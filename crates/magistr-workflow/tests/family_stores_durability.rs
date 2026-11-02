@@ -1,4 +1,4 @@
-//! Durability of the run/roadmap/signal stores under concurrent server
+//! Durability of the run/plan/signal stores under concurrent server
 //! processes — the family-stores extension of `think_trace_durability.rs`.
 //!
 //! Residue of the 2026-06-09 think incident: these three engines still did
@@ -10,8 +10,8 @@
 use tempfile::TempDir;
 
 use magistr_workflow::infra::{Domain, Persistence, PersistenceConfig};
-use magistr_workflow::roadmap::RoadmapEngine;
-use magistr_workflow::roadmap::domain::ChunkStatus;
+use magistr_workflow::plan::PlanEngine;
+use magistr_workflow::plan::domain::TaskStatus;
 use magistr_workflow::run::domain::step::StepType;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::run::persistence as run_persistence;
@@ -24,9 +24,9 @@ fn infra_cfg(tmp: &TempDir) -> PersistenceConfig {
         .enabled(true)
 }
 
-fn roadmap_engine(tmp: &TempDir, project: &str) -> RoadmapEngine {
-    RoadmapEngine::new(project.into())
-        .with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Roadmap))
+fn plan_engine(tmp: &TempDir, project: &str) -> PlanEngine {
+    PlanEngine::new(project.into())
+        .with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Plan))
 }
 
 fn signal_engine(tmp: &TempDir, project: &str) -> SignalEngine {
@@ -42,11 +42,11 @@ fn run_engine(tmp: &TempDir, project: &str) -> RunEngine {
     RunEngine::new(project.into()).with_persistence(run_persistence::Persistence::new(&cfg))
 }
 
-fn add_chunk(e: &mut RoadmapEngine, id: &str) {
-    e.add_chunk(
+fn add_task(e: &mut PlanEngine, id: &str) {
+    e.add_task(
         id.into(),
-        format!("Chunk {id}"),
-        ChunkStatus::Pending,
+        format!("Task {id}"),
+        TaskStatus::ToDo,
         10,
         String::new(),
         Vec::new(),
@@ -56,67 +56,67 @@ fn add_chunk(e: &mut RoadmapEngine, id: &str) {
     .unwrap();
 }
 
-// ── roadmap ────────────────────────────────────────────────────────────────
+// ── plan ────────────────────────────────────────────────────────────────
 
-/// THE INCIDENT SHAPE, on the roadmap store: two live engines share one data
-/// dir and one project. B adds a chunk (acked + persisted). A — which loaded
-/// before B's write and knows nothing of it — then adds its own chunk. A's
-/// save must not erase B's acked chunk from disk.
+/// THE INCIDENT SHAPE, on the plan store: two live engines share one data
+/// dir and one project. B adds a task (acked + persisted). A — which loaded
+/// before B's write and knows nothing of it — then adds its own task. A's
+/// save must not erase B's acked task from disk.
 #[test]
-fn concurrent_roadmap_writer_does_not_clobber_acked_chunks() {
+fn concurrent_plan_writer_does_not_clobber_acked_tasks() {
     let tmp = TempDir::new().unwrap();
-    let mut a = roadmap_engine(&tmp, "proj");
-    let mut b = roadmap_engine(&tmp, "proj");
+    let mut a = plan_engine(&tmp, "proj");
+    let mut b = plan_engine(&tmp, "proj");
 
-    add_chunk(&mut b, "from-b");
-    add_chunk(&mut a, "from-a");
+    add_task(&mut b, "from-b");
+    add_task(&mut a, "from-a");
 
-    let reloaded = roadmap_engine(&tmp, "proj");
+    let reloaded = plan_engine(&tmp, "proj");
     let ids: Vec<&str> = reloaded
-        .roadmap()
-        .chunks
+        .plan()
+        .tasks
         .iter()
         .map(|c| c.id.as_str())
         .collect();
     assert!(
         ids.contains(&"from-b"),
-        "chunk from-b was acked to B but a stale concurrent writer erased it; survived: {ids:?}"
+        "task from-b was acked to B but a stale concurrent writer erased it; survived: {ids:?}"
     );
     assert!(
         ids.contains(&"from-a"),
-        "chunk from-a lost; survived: {ids:?}"
+        "task from-a lost; survived: {ids:?}"
     );
 }
 
-/// Per-chunk conflicts resolve by recency: a stale writer that still holds an
-/// old copy of chunk X must not roll back the status another process advanced.
+/// Per-task conflicts resolve by recency: a stale writer that still holds an
+/// old copy of task X must not roll back the status another process advanced.
 #[test]
-fn stale_roadmap_writer_does_not_roll_back_chunk_status() {
+fn stale_plan_writer_does_not_roll_back_task_status() {
     let tmp = TempDir::new().unwrap();
     {
-        let mut seed = roadmap_engine(&tmp, "proj");
-        add_chunk(&mut seed, "x");
+        let mut seed = plan_engine(&tmp, "proj");
+        add_task(&mut seed, "x");
     }
 
-    let mut a = roadmap_engine(&tmp, "proj"); // both load x@Pending
-    let mut b = roadmap_engine(&tmp, "proj");
+    let mut a = plan_engine(&tmp, "proj"); // both load x@Pending
+    let mut b = plan_engine(&tmp, "proj");
 
-    b.set_status("x", ChunkStatus::InProgress).unwrap(); // B advances x
-    add_chunk(&mut a, "y"); // A persists with a STALE x@Pending
+    b.set_status("x", TaskStatus::InProgress).unwrap(); // B advances x
+    add_task(&mut a, "y"); // A persists with a STALE x@Pending
 
-    let reloaded = roadmap_engine(&tmp, "proj");
+    let reloaded = plan_engine(&tmp, "proj");
     let x = reloaded
-        .roadmap()
-        .chunks
+        .plan()
+        .tasks
         .iter()
         .find(|c| c.id == "x")
         .expect("x must survive");
     assert_eq!(
         x.status,
-        ChunkStatus::InProgress,
+        TaskStatus::InProgress,
         "stale writer rolled back x's acked status transition"
     );
-    assert!(reloaded.roadmap().chunks.iter().any(|c| c.id == "y"));
+    assert!(reloaded.plan().tasks.iter().any(|c| c.id == "y"));
 }
 
 // ── signal ─────────────────────────────────────────────────────────────────
@@ -315,29 +315,28 @@ fn run_reset_is_not_resurrected_by_later_saves() {
 }
 
 #[test]
-fn rejected_roadmap_and_signal_writes_preserve_bytes_and_retry_after_repair() {
-    use magistr_workflow::roadmap::engine::RoadmapMutationError;
+fn rejected_plan_and_signal_writes_preserve_bytes_and_retry_after_repair() {
+    use magistr_workflow::plan::engine::PlanMutationError;
     use magistr_workflow::signal::engine::SignalMutationError;
     use magistr_workflow_contracts::{ReadErrorKind, ReadSource, WriteErrorKind};
     let tmp = TempDir::new().unwrap();
-    let mut roadmap = roadmap_engine(&tmp, "proj");
+    let mut plan = plan_engine(&tmp, "proj");
     let mut signal = signal_engine(&tmp, "proj");
-    add_chunk(&mut roadmap, "saved");
+    add_task(&mut plan, "saved");
     let captured = signal
         .capture(SignalKind::Idea, "author".into(), "saved".into())
         .unwrap();
-    let roadmap_path = Persistence::new(&infra_cfg(&tmp), Domain::Roadmap).path_for("proj");
+    let plan_path = Persistence::new(&infra_cfg(&tmp), Domain::Plan).path_for("proj");
     let signal_path = Persistence::new(&infra_cfg(&tmp), Domain::Signal).path_for("proj");
-    let roadmap_bytes = std::fs::read(&roadmap_path).unwrap();
+    let plan_bytes = std::fs::read(&plan_path).unwrap();
     let signal_bytes = std::fs::read(&signal_path).unwrap();
     for (bad, kind) in [
         (b"{".to_vec(), ReadErrorKind::Decode),
         (b"{}".to_vec(), ReadErrorKind::Decode),
     ] {
-        std::fs::write(&roadmap_path, &bad).unwrap();
+        std::fs::write(&plan_path, &bad).unwrap();
         std::fs::write(&signal_path, &bad).unwrap();
-        let RoadmapMutationError::Store(error) =
-            roadmap.link_chunk("saved", "think:1").unwrap_err()
+        let PlanMutationError::Store(error) = plan.link_task("saved", "think:1").unwrap_err()
         else {
             panic!("expected store refusal")
         };
@@ -350,19 +349,19 @@ fn rejected_roadmap_and_signal_writes_preserve_bytes_and_retry_after_repair() {
         };
         assert_eq!(error.kind, WriteErrorKind::Read(kind));
         assert_eq!(error.effect(), "none");
-        assert_eq!(std::fs::read(&roadmap_path).unwrap(), bad);
+        assert_eq!(std::fs::read(&plan_path).unwrap(), bad);
         assert_eq!(std::fs::read(&signal_path).unwrap(), bad);
-        assert!(roadmap.roadmap().chunks[0].cross_refs.is_empty());
-        assert!(signal.signals().signals[0].cross_refs.is_empty());
+        assert!(plan.plan().tasks[0].refs.is_empty());
+        assert!(signal.signals().signals[0].refs.is_empty());
     }
-    std::fs::write(&roadmap_path, roadmap_bytes).unwrap();
+    std::fs::write(&plan_path, plan_bytes).unwrap();
     std::fs::write(&signal_path, signal_bytes).unwrap();
-    let saved = roadmap.link_chunk("saved", "think:1").unwrap();
+    let saved = plan.link_task("saved", "think:1").unwrap();
     assert!(matches!(saved.source, ReadSource::File(_)));
-    assert_eq!(saved.source, roadmap.observe().unwrap().source);
+    assert_eq!(saved.source, plan.observe().unwrap().source);
     let saved = signal.link(&captured.value.id, "think:1").unwrap();
     assert_eq!(saved.source, signal.observe().unwrap().source);
-    assert_eq!(saved.value.cross_refs, ["think:1"]);
+    assert_eq!(saved.value.refs, ["think:1"]);
 }
 
 #[test]
@@ -374,10 +373,10 @@ fn simultaneous_owner_transactions_retain_every_acknowledged_record() {
             let tmp = &tmp;
             let barrier = &barrier;
             scope.spawn(move || {
-                let mut roadmap = roadmap_engine(tmp, "proj");
+                let mut plan = plan_engine(tmp, "proj");
                 let mut signals = signal_engine(tmp, "proj");
                 barrier.wait();
-                add_chunk(&mut roadmap, &format!("work-{i}"));
+                add_task(&mut plan, &format!("work-{i}"));
                 signals
                     .capture(SignalKind::Idea, "author".into(), format!("idea {i}"))
                     .unwrap();
@@ -385,11 +384,11 @@ fn simultaneous_owner_transactions_retain_every_acknowledged_record() {
         }
     });
     assert_eq!(
-        roadmap_engine(&tmp, "proj")
+        plan_engine(&tmp, "proj")
             .observe()
             .unwrap()
             .value
-            .chunks
+            .tasks
             .len(),
         8
     );

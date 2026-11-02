@@ -32,7 +32,7 @@ where
 }
 
 impl RunState {
-    /// The shared chunk-loop stopping threshold.
+    /// The shared task-loop stopping threshold.
     pub const MAX_NO_COMMITS: u32 = 2;
 
     #[must_use]
@@ -109,7 +109,7 @@ impl RunState {
     pub fn record_commit(&mut self, committed: bool) {
         if committed {
             self.consecutive_no_commits = 0;
-        } else if self.mode == RunMode::ChunkLoop
+        } else if self.mode == RunMode::TaskLoop
             && self.last_settled_attempt != Some(self.completed_attempts)
         {
             self.consecutive_no_commits = self.consecutive_no_commits.saturating_add(1);
@@ -150,12 +150,12 @@ impl RunState {
 
     #[must_use]
     pub fn is_no_progress_exhausted(&self) -> bool {
-        self.mode == RunMode::ChunkLoop && self.consecutive_no_commits >= Self::MAX_NO_COMMITS
+        self.mode == RunMode::TaskLoop && self.consecutive_no_commits >= Self::MAX_NO_COMMITS
     }
 
     #[must_use]
     pub fn is_iteration_limit_reached(&self) -> bool {
-        self.mode == RunMode::ChunkLoop && self.completed_attempts >= self.max_iterations
+        self.mode == RunMode::TaskLoop && self.completed_attempts >= self.max_iterations
     }
 
     /// Decide whether another attempt can start from the persisted observations.
@@ -171,10 +171,10 @@ impl RunState {
         {
             return Some(StopReason::BudgetExceeded);
         }
-        if self.mode == RunMode::OneChunk
+        if self.mode == RunMode::OneTask
             && (self.last_settled_attempt.is_some() || self.completed_attempts > 0)
         {
-            return Some(StopReason::OneChunkComplete);
+            return Some(StopReason::OneTaskComplete);
         }
         if self.is_no_progress_exhausted() {
             return Some(StopReason::NoProgress);

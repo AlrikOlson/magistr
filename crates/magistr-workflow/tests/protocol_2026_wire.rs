@@ -23,7 +23,7 @@ use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, DuplexStream, ReadHalf, WriteHalf};
 
 use magistr_workflow::mcp::UnifiedService;
-use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
+use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
@@ -44,11 +44,11 @@ fn build_unified() -> UnifiedService {
     let mut cfg = ThinkConfig::default();
     cfg.display.color_output = false;
     let run = RunService::new(RunEngine::new("test-wire".into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-wire".into()), run.use_cases());
+    let plan = PlanService::new(PlanEngine::new("test-wire".into()), run.use_cases());
     UnifiedService::new(
         ThinkService::new(ReasoningServer::new(cfg)),
         run,
-        roadmap,
+        plan,
         SignalService::new(SignalEngine::new("test-wire".into())),
     )
 }
@@ -206,12 +206,12 @@ async fn read_resource_carries_the_cache_metadata() {
     let (mut client, handle) = connect().await;
 
     let result = client
-        .request("resources/read", json!({"uri": "roadmap://view"}))
+        .request("resources/read", json!({"uri": "plan://view"}))
         .await;
     assert_cacheable("resources/read", &result);
 
     // Live project state must never sit in a shared cache, and it is stale as
-    // soon as any tool call moves the roadmap.
+    // soon as any tool call moves the plan.
     assert_eq!(result["cacheScope"], "private");
     assert_eq!(result["ttlMs"], 0);
 

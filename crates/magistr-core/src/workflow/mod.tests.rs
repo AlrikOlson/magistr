@@ -11,7 +11,7 @@ fn project_json(backend: &str, spec_file: &str) -> String {
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [],
         "state_prefix": "fixture",
-        "roadmap_backend": backend,
+        "plan_backend": backend,
     })
     .to_string()
 }
@@ -29,11 +29,11 @@ fn project(dir: &Path, backend: &str, spec_file: &str) {
 #[test]
 fn yaml_project_still_requires_its_spec_file() {
     let tmp = tempfile::tempdir().unwrap();
-    project(tmp.path(), "yaml", "ROADMAP.md");
+    project(tmp.path(), "yaml", "PLAN.md");
     let err = WorkflowConfig::load(tmp.path()).expect_err("no spec file");
     assert!(err.to_string().contains("Spec file not found"), "{err}");
 
-    std::fs::write(tmp.path().join("ROADMAP.md"), "- [x] one\n- [ ] two\n").unwrap();
+    std::fs::write(tmp.path().join("PLAN.md"), "- [x] one\n- [ ] two\n").unwrap();
     let wf = WorkflowConfig::load(tmp.path()).unwrap();
     assert!(!wf.is_native());
     let summary = wf.spec_summary().unwrap();
@@ -41,13 +41,13 @@ fn yaml_project_still_requires_its_spec_file() {
 }
 
 #[test]
-fn native_project_loads_without_a_spec_file_and_reads_chunks() {
-    use magistr_engine::native::ChunkStatus;
+fn native_project_loads_without_a_spec_file_and_reads_tasks() {
+    use magistr_engine::native::TaskStatus;
     use magistr_engine::{NativeConfig, ProjectAuthority, WriterRole};
 
     let tmp = tempfile::tempdir().unwrap();
-    project(tmp.path(), "native", ".magistr-roadmap.yml");
-    assert!(!tmp.path().join(".magistr-roadmap.yml").exists());
+    project(tmp.path(), "native", ".magistr-plan.yml");
+    assert!(!tmp.path().join(".magistr-plan.yml").exists());
 
     let wf = WorkflowConfig::load(tmp.path()).expect("native projects need no spec file");
     assert!(wf.is_native());
@@ -57,11 +57,11 @@ fn native_project_loads_without_a_spec_file_and_reads_chunks() {
         .expect("host admitted")
         .open();
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             "one".into(),
-            "Chunk one".into(),
+            "Task one".into(),
             String::new(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             100,
             String::new(),
             vec![],
@@ -76,18 +76,18 @@ fn native_project_loads_without_a_spec_file_and_reads_chunks() {
         (summary.total, summary.checked, summary.unchecked),
         (1, 0, 1)
     );
-    assert_eq!(summary.unchecked_items, vec!["one — Chunk one".to_string()]);
+    assert_eq!(summary.unchecked_items, vec!["one — Task one".to_string()]);
     let prompt = wf.build_prompt().unwrap();
-    assert!(prompt.contains("one — Chunk one"), "{prompt}");
+    assert!(prompt.contains("one — Task one"), "{prompt}");
 
-    engines.roadmap_start_chunk("one").unwrap();
+    engines.plan_start_task("one").unwrap();
     let resumed = wf.build_prompt().unwrap();
     assert!(
-        resumed.contains("one — Chunk one (in progress; resume this work)"),
+        resumed.contains("one — Task one (in progress; resume this work)"),
         "{resumed}"
     );
     assert_eq!(
-        engines.roadmap_chunk("one").unwrap().unwrap().status,
-        ChunkStatus::InProgress
+        engines.plan_task("one").unwrap().unwrap().status,
+        TaskStatus::InProgress
     );
 }

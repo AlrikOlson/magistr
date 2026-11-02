@@ -192,7 +192,7 @@ fn planned(cases: &RunUseCases) {
             "Current run".into(),
             vec!["it works".into()],
             vec![],
-            "chunk:c1".into(),
+            "task:c1".into(),
             VerificationMode::Full,
         )
         .unwrap();
@@ -208,7 +208,7 @@ fn planned_focused(cases: &RunUseCases) {
             "Docs-only run".into(),
             vec!["the docs are accurate".into()],
             vec![],
-            "chunk:c1".into(),
+            "task:c1".into(),
             VerificationMode::Focused,
         )
         .unwrap();
@@ -284,7 +284,7 @@ fn focused_goal_accepts_recorded_acceptance_checks_without_project_gates() {
         CheckExecution::Exited { code: 0 },
     );
 
-    let evidence = cases.verify_completion("chunk:c1", Some("verify")).unwrap();
+    let evidence = cases.verify_completion("task:c1", Some("verify")).unwrap();
     assert!(evidence.is_complete());
     assert_eq!(
         evidence
@@ -430,7 +430,7 @@ fn every_execution_outcome_is_recorded_and_none_but_exit_zero_certifies() {
     ] {
         let settled = run(&cases, "test", "cargo test", execution.clone());
         assert_eq!(settled.check_result().value.execution(), Some(&execution));
-        let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+        let refusal = cases.verify_completion("task:c1", None).unwrap_err();
         let CompletionRefusal::Outstanding(evidence) = &refusal else {
             panic!("{refusal}");
         };
@@ -462,7 +462,7 @@ fn completion_accepts_current_evidence_and_separates_recovered_from_outstanding(
         "cargo test",
         CheckExecution::Exited { code: 0 },
     );
-    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     let CompletionRefusal::Outstanding(evidence) = &refusal else {
         panic!("{refusal}");
     };
@@ -482,7 +482,7 @@ fn completion_accepts_current_evidence_and_separates_recovered_from_outstanding(
         "cargo clippy",
         CheckExecution::Exited { code: 0 },
     );
-    let evidence = cases.verify_completion("chunk:c1", Some("verify")).unwrap();
+    let evidence = cases.verify_completion("task:c1", Some("verify")).unwrap();
     assert!(evidence.is_complete());
     assert_eq!(evidence.step_id, "verify");
     assert_eq!(evidence.source_revision, "r1@Some(3)");
@@ -521,11 +521,11 @@ fn completion_refuses_evidence_taken_under_another_source_or_acceptance_or_comma
         "cargo test",
         CheckExecution::Exited { code: 0 },
     );
-    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+    assert!(cases.verify_completion("task:c1", None).is_ok());
 
     // The source moved on after the gate ran.
     world.set_revision("r2");
-    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(
         refusal
             .to_string()
@@ -533,7 +533,7 @@ fn completion_refuses_evidence_taken_under_another_source_or_acceptance_or_comma
         "{refusal}"
     );
     world.set_revision("r1");
-    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+    assert!(cases.verify_completion("task:c1", None).is_ok());
 
     // The acceptance was edited mid-flight (same run).
     cases
@@ -541,11 +541,11 @@ fn completion_refuses_evidence_taken_under_another_source_or_acceptance_or_comma
             "Current run".into(),
             vec!["it works".into(), "and it is fast".into()],
             vec![],
-            "chunk:c1".into(),
+            "task:c1".into(),
             VerificationMode::Full,
         )
         .unwrap();
-    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(
         refusal.to_string().contains("acceptance changed"),
         "{refusal}"
@@ -556,11 +556,11 @@ fn completion_refuses_evidence_taken_under_another_source_or_acceptance_or_comma
         "cargo test",
         CheckExecution::Exited { code: 0 },
     );
-    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+    assert!(cases.verify_completion("task:c1", None).is_ok());
 
     // The configured command changed.
     world.gates.lock().unwrap()[0].command = "cargo nextest run".into();
-    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(
         refusal.to_string().contains("not the configured"),
         "{refusal}"
@@ -568,12 +568,12 @@ fn completion_refuses_evidence_taken_under_another_source_or_acceptance_or_comma
 
     // A foreign scope and a step outside the run are refused by name.
     assert!(matches!(
-        cases.verify_completion("chunk:other", None).unwrap_err(),
+        cases.verify_completion("task:other", None).unwrap_err(),
         CompletionRefusal::ForeignScope { .. }
     ));
     assert!(matches!(
         cases
-            .verify_completion("chunk:c1", Some("ghost"))
+            .verify_completion("task:c1", Some("ghost"))
             .unwrap_err(),
         CompletionRefusal::StepNotCurrent { .. }
     ));
@@ -593,7 +593,7 @@ fn a_self_reported_pass_never_certifies_a_configured_gate() {
     let mut reported = outcome(execution, "cargo test");
     reported.command = None;
     cases.settle_check(admission, reported).unwrap();
-    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(refusal.to_string().contains("self-reported"), "{refusal}");
 }
 
@@ -633,7 +633,7 @@ fn late_settlement_after_rollover_stays_under_its_check_result_and_a_reused_name
     let new_run = cases.admit_step(None).unwrap().run_id;
     assert!(ledger.for_run(&new_run).unwrap().is_empty());
     assert!(matches!(
-        cases.verify_completion("chunk:c1", None).unwrap_err(),
+        cases.verify_completion("task:c1", None).unwrap_err(),
         CompletionRefusal::NoCheckResults { .. }
     ));
     let fresh = run(
@@ -643,7 +643,7 @@ fn late_settlement_after_rollover_stays_under_its_check_result_and_a_reused_name
         CheckExecution::Exited { code: 0 },
     );
     assert_eq!(fresh.check_result().value.attempt, 1);
-    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+    assert!(cases.verify_completion("task:c1", None).is_ok());
 }
 
 #[test]
@@ -666,7 +666,7 @@ fn without_an_evidence_capability_admission_still_works_and_completion_refuses()
     assert!(settled.check_result().value.source.is_none());
     assert!(settled.check_result().value.is_applied());
     assert!(matches!(
-        cases.verify_completion("chunk:c1", None).unwrap_err(),
+        cases.verify_completion("task:c1", None).unwrap_err(),
         CompletionRefusal::NoEvidenceCapability
     ));
 }
@@ -727,7 +727,7 @@ fn explicit_compaction_preserves_completion_and_late_results_across_rollover() {
         "cargo test",
         CheckExecution::Exited { code: 0 },
     );
-    let before = newer.verify_completion("chunk:c1", None).unwrap();
+    let before = newer.verify_completion("task:c1", None).unwrap();
     // The stale owner must preserve the newer persisted run, not its old cache.
     let report = old.compact_check_results().unwrap();
     assert_eq!(
@@ -759,7 +759,7 @@ fn explicit_compaction_preserves_completion_and_late_results_across_rollover() {
     assert_eq!(late.check_result().value.attempt, original.attempt);
     assert_eq!(late.check_result().value.target, original.target);
     assert_eq!(
-        serde_json::to_value(newer.verify_completion("chunk:c1", None).unwrap()).unwrap(),
+        serde_json::to_value(newer.verify_completion("task:c1", None).unwrap()).unwrap(),
         serde_json::to_value(before).unwrap()
     );
     assert_eq!(newer.compact_check_results().unwrap().removed, 1);
@@ -799,7 +799,7 @@ fn completion_never_reads_poisoned_check_results_from_an_older_run() {
     )
     .unwrap();
     let reopened = stored(temp.path(), &world);
-    assert!(reopened.verify_completion("chunk:c1", None).is_ok());
+    assert!(reopened.verify_completion("task:c1", None).is_ok());
 }
 
 #[tokio::test]
@@ -878,7 +878,7 @@ fn an_external_layer_edited_while_the_gate_ran_is_named_and_the_latest_attempt_g
             layers: vec!["org-policy".into()]
         })
     );
-    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(
         refusal
             .to_string()
@@ -904,7 +904,7 @@ fn an_external_layer_edited_while_the_gate_ran_is_named_and_the_latest_attempt_g
             .config_digest,
         "c2"
     );
-    let evidence = cases.verify_completion("chunk:c1", None).unwrap();
+    let evidence = cases.verify_completion("task:c1", None).unwrap();
     assert_eq!(evidence.config_digest, "c2");
     assert_eq!(evidence.accepted[0].attempt, 2);
 }
@@ -921,12 +921,12 @@ fn completion_names_the_identity_that_drifted_after_the_gate_and_ignores_the_own
         "cargo test",
         CheckExecution::Exited { code: 0 },
     );
-    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+    assert!(cases.verify_completion("task:c1", None).is_ok());
 
     // An external configuration layer changed after the gate, every
     // selected byte unchanged: the evidence no longer applies.
     world.set_config("c2");
-    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(
         refusal
             .to_string()
@@ -934,11 +934,11 @@ fn completion_names_the_identity_that_drifted_after_the_gate_and_ignores_the_own
         "{refusal}"
     );
     world.set_config("c1");
-    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+    assert!(cases.verify_completion("task:c1", None).is_ok());
 
     // The selection policy changed: named as such, never as a source change.
     world.set_policy("p2");
-    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(
         refusal
             .to_string()
@@ -946,12 +946,12 @@ fn completion_names_the_identity_that_drifted_after_the_gate_and_ignores_the_own
         "{refusal}"
     );
     world.set_policy("p");
-    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+    assert!(cases.verify_completion("task:c1", None).is_ok());
 
     // A new owner of the same bytes moved the workspace's revision and
     // nothing else: the evidence still applies.
     world.set_generation(4);
-    let evidence = cases.verify_completion("chunk:c1", None).unwrap();
+    let evidence = cases.verify_completion("task:c1", None).unwrap();
     assert_ne!(
         evidence.source_revision,
         evidence.accepted[0].source_revision.clone().unwrap(),
@@ -961,7 +961,7 @@ fn completion_names_the_identity_that_drifted_after_the_gate_and_ignores_the_own
 
     // The source itself moved: named as a source change.
     world.set_revision("r2");
-    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(
         refusal
             .to_string()
@@ -984,7 +984,7 @@ fn a_check_result_recorded_before_digests_were_bound_is_refused_by_name() {
         CheckExecution::Exited { code: 0 },
     );
     world.set_bound(true);
-    let refusal = cases.verify_completion("chunk:c1", None).unwrap_err();
+    let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(
         refusal
             .to_string()
@@ -997,7 +997,7 @@ fn a_check_result_recorded_before_digests_were_bound_is_refused_by_name() {
         "cargo test",
         CheckExecution::Exited { code: 0 },
     );
-    assert!(cases.verify_completion("chunk:c1", None).is_ok());
+    assert!(cases.verify_completion("task:c1", None).is_ok());
 }
 
 #[test]
@@ -1074,10 +1074,9 @@ fn check_result_compaction_keeps_the_checks_of_saved_unfinished_plans() {
         "cargo test",
         CheckExecution::Exited { code: 0 },
     );
-    let evidence =
-        serde_json::to_value(cases.verify_completion("chunk:c1", None).unwrap()).unwrap();
+    let evidence = serde_json::to_value(cases.verify_completion("task:c1", None).unwrap()).unwrap();
     cases
-        .set_goal("Other work".into(), vec![], vec![], "chunk:c2".into())
+        .set_goal("Other work".into(), vec![], vec![], "task:c2".into())
         .unwrap();
     let report = cases.compact_check_results().unwrap();
     assert_eq!(report.removed, 0);
@@ -1088,11 +1087,11 @@ fn check_result_compaction_keeps_the_checks_of_saved_unfinished_plans() {
             "Current run".into(),
             vec!["it works".into()],
             vec![],
-            "chunk:c1".into(),
+            "task:c1".into(),
         )
         .unwrap();
     assert_eq!(
-        serde_json::to_value(reopened.verify_completion("chunk:c1", None).unwrap()).unwrap(),
+        serde_json::to_value(reopened.verify_completion("task:c1", None).unwrap()).unwrap(),
         evidence
     );
     assert!(
@@ -1147,7 +1146,7 @@ fn verified_inputs_reuse_across_steps_and_reopened_runs_without_relabeling_execu
     assert_eq!(reused.exit_code, None, "no new process exit is claimed");
     reopened.settle_check(admission, reused).unwrap();
     reopened
-        .verify_completion("chunk:c1", Some("second"))
+        .verify_completion("task:c1", Some("second"))
         .unwrap();
     reopened.complete_step("second", vec![]).unwrap();
 
@@ -1292,7 +1291,7 @@ fn optional_evidence_remains_reusable_after_promotion_and_elapsed_time() {
         }
     );
     cases.settle_check(admission, reused).unwrap();
-    cases.verify_completion("chunk:c1", None).unwrap();
+    cases.verify_completion("task:c1", None).unwrap();
 }
 
 #[tokio::test]
@@ -1320,5 +1319,5 @@ async fn reuse_only_misses_settle_without_a_process_or_a_claimed_test_failure() 
         CheckExecution::ReuseUnavailable { .. }
     ));
     cases.settle_check(admission, missing).unwrap();
-    assert!(cases.verify_completion("chunk:c1", None).is_err());
+    assert!(cases.verify_completion("task:c1", None).is_err());
 }

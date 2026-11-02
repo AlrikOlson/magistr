@@ -2,8 +2,8 @@
 //! Each builder maps a family's domain object to the envelope: the object
 //! itself becomes `record`, and its links become graph `edges`.
 
-use crate::cloud::envelope::{Edge, Family, Kind, UnifiedRecordEnvelope, edges_from_cross_refs};
-use crate::roadmap::domain::{Chunk, TrackerLink, TrackerOptIn};
+use crate::cloud::envelope::{Edge, Family, Kind, UnifiedRecordEnvelope, edges_from_refs};
+use crate::plan::domain::{Task, TrackerLink, TrackerOptIn};
 use crate::run::domain::check::Check;
 use crate::run::domain::goal::Goal;
 use crate::run::domain::progress::Progress;
@@ -32,15 +32,15 @@ pub fn cycle_key(goal_created_at: &str) -> String {
     format!("obj-{sanitized}")
 }
 
-/// Extract the `chunk:<slug>` backref the /roadmap loop embeds in goal
-/// text, so the goal record carries a graph edge to its roadmap chunk.
-fn chunk_backref(text: &str) -> Option<String> {
-    let start = text.find("chunk:")?;
-    let slug: String = text[start + "chunk:".len()..]
+/// Extract the `task:<slug>` reference the /plan loop embeds in goal
+/// text, so the goal record carries a graph edge to its plan task.
+fn task_reference(text: &str) -> Option<String> {
+    let start = text.find("task:")?;
+    let slug: String = text[start + "task:".len()..]
         .chars()
         .take_while(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
         .collect();
-    (!slug.is_empty()).then(|| format!("chunk:{slug}"))
+    (!slug.is_empty()).then(|| format!("task:{slug}"))
 }
 
 /// Build the cloud envelope for a run goal. Wire id = the cycle key;
@@ -49,9 +49,11 @@ fn chunk_backref(text: &str) -> Option<String> {
 pub fn from_goal(tenant: &str, cycle: &str, goal: &Goal) -> UnifiedRecordEnvelope {
     let record = serde_json::to_value(goal).unwrap_or(serde_json::Value::Null);
     let mut edges = Vec::new();
-    if let Some(backref) = chunk_backref(&goal.description).or_else(|| chunk_backref(&goal.scope)) {
+    if let Some(reference) =
+        task_reference(&goal.description).or_else(|| task_reference(&goal.scope))
+    {
         edges.push(Edge {
-            target: backref,
+            target: reference,
             relation: Some("realizes".into()),
         });
     }
@@ -166,47 +168,47 @@ pub fn from_approval(
     )
 }
 
-/// The key the chunk's tracker state travels under inside `record`.
+/// The key the task's tracker state travels under inside `record`.
 pub const TRACKER_SIDECAR: &str = "tracker";
 
-/// Build the cloud envelope for a roadmap chunk — the chunk as `record`, its
-/// `cross_refs[]` as graph edges, and its tracker state as a sidecar.
+/// Build the cloud envelope for a plan task — the task as `record`, its
+/// `refs[]` as graph edges, and its tracker state as a sidecar.
 ///
-/// # Why the tracker state is a sidecar and not a `Chunk` field
+/// # Why the tracker state is a sidecar and not a `Task` field
 ///
-/// [`TrackerLink`] and [`TrackerOptIn`] are keyed by `(chunk_id, provider)` and
-/// live on [`Roadmap`], not on [`Chunk`] — deliberately, so `tracker` never
-/// learns that roadmaps exist. But they still have to reach the other machine:
+/// [`TrackerLink`] and [`TrackerOptIn`] are keyed by `(task_id, provider)` and
+/// live on [`Plan`], not on [`Task`] — deliberately, so `tracker` never
+/// learns that plans exist. But they still have to reach the other machine:
 /// without the link, a second machine has no binding, mints its own twin, and
-/// the chunk ends up with two tickets; without the opt-in, it does not know the
-/// chunk is in scope at all.
+/// the task ends up with two tickets; without the opt-in, it does not know the
+/// task is in scope at all.
 ///
 /// A new cloud record kind would be the tidy answer and is the wrong one: the
 /// reconcile path silently SKIPS records whose kind it does not recognize, so
 /// any client older than the change would drop tracker state without saying so.
-/// Riding the chunk envelope is additive instead — `record` is
+/// Riding the task envelope is additive instead — `record` is
 /// `additionalProperties`-open in the contract, and the read side deserializes
-/// `record` into [`Chunk`], where serde ignores unknown fields. So an old client
+/// `record` into [`Task`], where serde ignores unknown fields. So an old client
 /// reading a new envelope simply does not see the sidecar, which is the correct
 /// degradation.
 ///
-/// The cost, paid in [`RoadmapEngine::touch_chunk_for_link`]: both sides resolve
-/// chunks by strict `updated_at` recency, so a tracker write must bump the
-/// chunk's stamp or the peer declines the envelope as not-newer.
+/// The cost, paid in [`PlanEngine::touch_task_for_link`]: both sides resolve
+/// tasks by strict `updated_at` recency, so a tracker write must bump the
+/// task's stamp or the peer declines the envelope as not-newer.
 ///
-/// [`TrackerLink`]: crate::roadmap::domain::TrackerLink
-/// [`TrackerOptIn`]: crate::roadmap::domain::TrackerOptIn
-/// [`Roadmap`]: crate::roadmap::domain::Roadmap
-/// [`RoadmapEngine::touch_chunk_for_link`]: crate::roadmap::engine::RoadmapEngine
+/// [`TrackerLink`]: crate::plan::domain::TrackerLink
+/// [`TrackerOptIn`]: crate::plan::domain::TrackerOptIn
+/// [`Plan`]: crate::plan::domain::Plan
+/// [`PlanEngine::touch_task_for_link`]: crate::plan::engine::PlanEngine
 #[must_use]
-pub fn from_chunk(
+pub fn from_task(
     tenant: &str,
-    chunk: &Chunk,
+    task: &Task,
     links: &[TrackerLink],
     opt_ins: &[TrackerOptIn],
 ) -> UnifiedRecordEnvelope {
-    let mut record = serde_json::to_value(chunk).unwrap_or(serde_json::Value::Null);
-    mark_unprovable_origin(&mut record, chunk.project_id.as_ref());
+    let mut record = serde_json::to_value(task).unwrap_or(serde_json::Value::Null);
+    mark_unprovable_origin(&mut record, task.project_id.as_ref());
     if (!links.is_empty() || !opt_ins.is_empty())
         && let Some(obj) = record.as_object_mut()
     {
@@ -217,26 +219,26 @@ pub fn from_chunk(
     }
     UnifiedRecordEnvelope::owner(
         tenant,
-        Family::Roadmap,
-        Kind::Chunk,
-        chunk.id.clone(),
-        chunk.created_at.clone(),
+        Family::Plan,
+        Kind::Task,
+        task.id.clone(),
+        task.created_at.clone(),
         record,
-        edges_from_cross_refs(&chunk.cross_refs),
+        edges_from_refs(&task.refs),
     )
 }
 
 /// Send an UNPROVABLE origin across the wire as unprovable, instead of letting
 /// the pusher's identity fill the gap.
 ///
-/// `Chunk::project_id` and `Signal::project_id` are `Option`, and both carry
+/// `Task::project_id` and `Signal::project_id` are `Option`, and both carry
 /// `skip_serializing_if = "Option::is_none"`, so a record with no origin reaches
 /// [`UnifiedRecordEnvelope::owner`] with the key ABSENT — where
 /// `.entry().or_insert_with(tenant)` helpfully supplies the pushing project.
 /// That is how a record of unknown origin becomes provably ours.
 ///
-/// It is not hypothetical. On 2026-06-15 a cleanup in another project obsoleted
-/// 22 chunks that had bled in from this one. Obsoleting is a mutation, sync is
+/// It is not hypothetical. On 2026-06-15 a cleanup in another project retired
+/// 22 tasks that had bled in from this one. Obsoleting is a mutation, sync is
 /// write-through on mutation, and the push stamped every one of them with the
 /// cleaning project's id — so the act of retiring the intruders is what made
 /// them permanently the cleaner's own, self-consistent and invisible to `prune`,
@@ -260,7 +262,7 @@ fn mark_unprovable_origin(record: &mut serde_json::Value, origin: Option<&String
 }
 
 /// Build the cloud envelope for a signal — the signal as `record`, its
-/// `cross_refs[]` as graph edges. (The local-only `surfaced_at`/`snooze_until`
+/// `refs[]` as graph edges. (The local-only `surfaced_at`/`snooze_until`
 /// fields are omitted when unset and ignored by the backend.)
 #[must_use]
 pub fn from_signal(tenant: &str, signal: &Signal) -> UnifiedRecordEnvelope {
@@ -273,7 +275,7 @@ pub fn from_signal(tenant: &str, signal: &Signal) -> UnifiedRecordEnvelope {
         signal.id.clone(),
         signal.created.clone(),
         record,
-        edges_from_cross_refs(&signal.cross_refs),
+        edges_from_refs(&signal.refs),
     )
 }
 
@@ -355,29 +357,29 @@ pub fn from_step(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::roadmap::domain::{Chunk, ChunkStatus};
+    use crate::plan::domain::{Task, TaskStatus};
 
-    fn chunk() -> Chunk {
-        Chunk {
+    fn task() -> Task {
+        Task {
             tier: None,
             id: "saas-cloud-sync-roadmap".into(),
             title: "t".into(),
-            name: crate::roadmap::name::derive("saas-cloud-sync-roadmap"),
-            status: ChunkStatus::InProgress,
+            name: crate::plan::name::derive("saas-cloud-sync-roadmap"),
+            status: TaskStatus::InProgress,
             priority: 428,
             description: String::new(),
             content: None,
-            group: None,
+            feature: None,
             notes: String::new(),
             acceptance: vec![],
             deps: vec!["saas-cloud-client".into()],
-            cross_refs: vec!["think:3".into(), "signal:abc".into()],
+            refs: vec!["think:3".into(), "signal:abc".into()],
             shared: false,
             reprioritize: None,
             status_proposal: None,
             title_proposal: None,
-            obsoleted_reason: None,
-            blocked_by: None,
+            retired_reason: None,
+            waiting_on: None,
             project_id: None,
             created_at: "2026-06-08T00:00:00Z".into(),
             updated_at: "2026-06-08T00:00:00Z".into(),
@@ -404,20 +406,20 @@ mod tests {
     }
 
     #[test]
-    fn from_chunk_builds_a_schema_valid_envelope_with_edges() {
-        let envelope = from_chunk("magistr-676f38", &chunk(), &[], &[]);
+    fn from_task_builds_a_schema_valid_envelope_with_edges() {
+        let envelope = from_task("magistr-676f38", &task(), &[], &[]);
         assert_eq!(envelope.edges.len(), 2);
         assert_eq!(envelope.edges[0].target, "think:3");
         assert_eq!(envelope.id, "saas-cloud-sync-roadmap");
         assert_schema_valid(&envelope);
     }
 
-    /// A chunk with no tracker state must serialize to the EXACT bytes it did
+    /// A task with no tracker state must serialize to the EXACT bytes it did
     /// before the sidecar existed. If an empty `tracker: {}` key appeared, every
-    /// unprojected chunk in every store would look changed.
+    /// unprojected task in every store would look changed.
     #[test]
-    fn a_chunk_with_no_tracker_state_carries_no_sidecar() {
-        let envelope = from_chunk("t", &chunk(), &[], &[]);
+    fn a_task_with_no_tracker_state_carries_no_sidecar() {
+        let envelope = from_task("t", &task(), &[], &[]);
         assert!(
             envelope.record.get(TRACKER_SIDECAR).is_none(),
             "silence must be byte-identical to the pre-sidecar wire form"
@@ -429,9 +431,9 @@ mod tests {
     /// reach the wire — and the envelope has to stay contract-valid carrying it,
     /// since `record` is the one open part of the schema.
     #[test]
-    fn tracker_state_rides_the_chunk_envelope() {
+    fn tracker_state_rides_the_task_envelope() {
         let link = TrackerLink {
-            chunk_id: "saas-cloud-sync-roadmap".into(),
+            task_id: "saas-cloud-sync-roadmap".into(),
             provider: "github".into(),
             external_id: "owner/repo#12".into(),
             our_last_write_hash: "abc".into(),
@@ -442,14 +444,14 @@ mod tests {
             updated_at: "2026-07-25T09:00:00Z".into(),
         };
         let opt_in = TrackerOptIn {
-            chunk_id: "saas-cloud-sync-roadmap".into(),
+            task_id: "saas-cloud-sync-roadmap".into(),
             provider: "github".into(),
             enabled: true,
             updated_at: "2026-07-25T09:00:00Z".into(),
         };
-        let envelope = from_chunk(
+        let envelope = from_task(
             "t",
-            &chunk(),
+            &task(),
             std::slice::from_ref(&link),
             std::slice::from_ref(&opt_in),
         );
@@ -470,13 +472,13 @@ mod tests {
         assert_schema_valid(&envelope);
     }
 
-    /// An old client reading a new envelope must still get its chunk: `record`
-    /// deserializes into `Chunk`, and serde ignores the unknown sidecar key.
+    /// An old client reading a new envelope must still get its task: `record`
+    /// deserializes into `Task`, and serde ignores the unknown sidecar key.
     /// That degradation is the whole reason this is not a new record kind.
     #[test]
-    fn an_older_client_still_reads_the_chunk_through_the_sidecar() {
+    fn an_older_client_still_reads_the_task_through_the_sidecar() {
         let link = TrackerLink {
-            chunk_id: "saas-cloud-sync-roadmap".into(),
+            task_id: "saas-cloud-sync-roadmap".into(),
             provider: "github".into(),
             external_id: "owner/repo#12".into(),
             our_last_write_hash: "abc".into(),
@@ -486,9 +488,9 @@ mod tests {
             created_at: "2026-07-25T09:00:00Z".into(),
             updated_at: "2026-07-25T09:00:00Z".into(),
         };
-        let envelope = from_chunk("t", &chunk(), &[link], &[]);
-        let decoded: Chunk =
-            serde_json::from_value(envelope.record.clone()).expect("chunk still decodes");
+        let envelope = from_task("t", &task(), &[link], &[]);
+        let decoded: Task =
+            serde_json::from_value(envelope.record.clone()).expect("task still decodes");
         assert_eq!(decoded.id, "saas-cloud-sync-roadmap");
     }
 
@@ -504,14 +506,14 @@ mod tests {
             created: "2026-06-08T00:00:00Z".into(),
             status: SignalStatus::New,
             enrichment: vec![],
-            cross_refs: vec!["chunk:saas-cloud-sync-signal".into(), "think:5".into()],
+            refs: vec!["task:saas-cloud-sync-signal".into(), "think:5".into()],
             surfaced_at: None,
             snooze_until: None,
             project_id: None,
         };
         let envelope = from_signal("magistr-676f38", &signal);
         assert_eq!(envelope.edges.len(), 2);
-        assert_eq!(envelope.edges[0].target, "chunk:saas-cloud-sync-signal");
+        assert_eq!(envelope.edges[0].target, "task:saas-cloud-sync-signal");
         assert_eq!(envelope.id, signal.id);
         assert_schema_valid(&envelope);
     }
@@ -579,7 +581,7 @@ mod tests {
             created: "2026-06-08T00:00:00Z".into(),
             status: SignalStatus::New,
             enrichment: vec![],
-            cross_refs: vec![],
+            refs: vec![],
             surfaced_at: None,
             snooze_until: None,
             project_id: None,
@@ -637,9 +639,9 @@ mod tests {
         // The two families whose origin is an `Option` must SAY they are ours;
         // the push no longer supplies it for them (see `mark_unprovable_origin`),
         // so a fixture that stayed `None` would now be asserting the laundering.
-        let owned_chunk = Chunk {
+        let owned_task = Task {
             project_id: Some(US.into()),
-            ..chunk()
+            ..task()
         };
         let owned_signal = Signal {
             project_id: Some(US.into()),
@@ -647,7 +649,7 @@ mod tests {
         };
 
         let built: Vec<(&str, UnifiedRecordEnvelope)> = vec![
-            ("roadmap chunk", from_chunk(US, &owned_chunk, &[], &[])),
+            ("plan task", from_task(US, &owned_task, &[], &[])),
             ("signal", from_signal(US, &owned_signal)),
             ("think step", from_step(US, &step).unwrap()),
             ("run progress", from_progress(US, cycle, &progress)),
@@ -693,12 +695,12 @@ mod tests {
 
         // THE THIRD CASE, and the one that actually bled: a record whose origin
         // is UNPROVABLE must cross the wire as explicitly unprovable. Filling it
-        // in with the pusher is how 22 chunks became permanently another
+        // in with the pusher is how 22 tasks became permanently another
         // project's — see `mark_unprovable_origin`. `None` is not evidence of
         // ownership in either direction: the store refuses to delete on it, so
         // it must refuse to claim on it too.
         for (family, envelope) in [
-            ("roadmap chunk", from_chunk(US, &chunk(), &[], &[])),
+            ("plan task", from_task(US, &task(), &[], &[])),
             ("signal", from_signal(US, &signal)),
         ] {
             assert_eq!(
@@ -729,7 +731,7 @@ mod tests {
         use crate::run::domain::step::{Step, StepStatus, StepType};
 
         let goal = Goal {
-            description: "do the thing. chunk:sync-run-full".into(),
+            description: "do the thing. task:sync-run-full".into(),
             acceptance_criteria: vec!["it works".into()],
             constraints: vec![],
             scope: String::new(),
@@ -743,9 +745,9 @@ mod tests {
 
         let obj_env = from_goal("magistr-676f38", &cycle, &goal);
         assert_eq!(obj_env.id, cycle);
-        // The chunk: backref embedded in the description becomes a graph edge.
+        // The task: reference embedded in the description becomes a graph edge.
         assert_eq!(obj_env.edges.len(), 1);
-        assert_eq!(obj_env.edges[0].target, "chunk:sync-run-full");
+        assert_eq!(obj_env.edges[0].target, "task:sync-run-full");
         assert_eq!(obj_env.edges[0].relation.as_deref(), Some("realizes"));
         assert_schema_valid(&obj_env);
 

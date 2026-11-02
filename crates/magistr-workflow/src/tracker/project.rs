@@ -1,4 +1,4 @@
-//! The projector: a roadmap chunk becomes a work item, idempotently.
+//! The projector: a plan task becomes a work item, idempotently.
 //!
 //! # What makes this different from a sync tool
 //!
@@ -15,8 +15,8 @@
 //!
 //! A blocking relation cannot be written before its target exists — GitHub's
 //! dependency endpoint takes the database id of an already-created issue. So the
-//! projector upserts every opted-in chunk first, and only then wires relations,
-//! by which point every chunk in the run has an external id. Sorting by
+//! projector upserts every opted-in task first, and only then wires relations,
+//! by which point every task in the run has an external id. Sorting by
 //! dependency order instead would work only while the graph is acyclic and
 //! wholly inside one project, and neither is guaranteed.
 //!
@@ -24,7 +24,7 @@
 //!
 //! [`WorkItem::content_hash`] covers the content we author, and a dependency's
 //! external id is identity we resolved rather than content we wrote. Keeping
-//! relations out of the content hash is what lets an unchanged chunk skip its
+//! relations out of the content hash is what lets an unchanged task skip its
 //! write entirely; it also means a dep-only change hashes equal, so relations
 //! carry their own fence (`our_last_relations_hash`). A projection can change
 //! content without touching deps, and the reverse, and each is detected.
@@ -33,8 +33,8 @@ use std::collections::BTreeMap;
 
 use sha2::{Digest, Sha256};
 
-use crate::roadmap::domain::{Chunk, ChunkStatus, ContainerKind};
-use crate::roadmap::engine::RoadmapEngine;
+use crate::plan::domain::{ContainerKind, Task, TaskStatus};
+use crate::plan::engine::PlanEngine;
 use crate::tracker::domain::{TrackerCapabilities, WorkItem, WorkItemState};
 use crate::tracker::outbox::TrackerOutbox;
 use crate::tracker::ownership::{Ownership, Reconciled, authored_hash, reconcile_fields};
@@ -48,7 +48,7 @@ use crate::tracker::port::{TrackerError, TrackerPort};
 const FOOTER_OPEN: &str = "<!-- magistr:";
 const FOOTER_CLOSE: &str = "-->";
 
-/// What one chunk's projection did.
+/// What one task's projection did.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProjectionOutcome {
     /// The item was created upstream for the first time.
@@ -58,7 +58,7 @@ pub enum ProjectionOutcome {
     /// Content was byte-identical to our last write — no call was made.
     Skipped { external_id: String },
     /// The provider refused this item (a capability it cannot express). Not a
-    /// failure: the run continues and the chunk is reported.
+    /// failure: the run continues and the task is reported.
     Refused { reason: String },
     /// A retryable failure (transport or 5xx) put this projection on the outbox
     /// for replay. Nothing is lost.
@@ -91,30 +91,30 @@ impl ProjectionOutcome {
 /// The result of a whole projection run.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProjectionReport {
-    /// `(chunk_id, outcome)` in roadmap order.
+    /// `(task_id, outcome)` in plan order.
     pub outcomes: Vec<(String, ProjectionOutcome)>,
-    /// Chunks whose relations were converged this run.
+    /// Tasks whose relations were converged this run.
     pub relations_written: Vec<String>,
-    /// Chunks whose deps were rendered as prose because the provider cannot
+    /// Tasks whose deps were rendered as prose because the provider cannot
     /// express blocking links.
     pub relations_degraded: Vec<String>,
-    /// `(chunk_id, divergence)` — fields where the two sides disagreed and the
+    /// `(task_id, divergence)` — fields where the two sides disagreed and the
     /// disagreement mattered. Reported rather than resolved silently; the
     /// concern module turns these into concern signals.
     pub divergences: Vec<(String, crate::tracker::ownership::Divergence)>,
     /// Containers ensured this run, in name order.
-    pub groups_ensured: Vec<String>,
-    /// `(group, why)` — a container that could not be ensured. Recorded rather
+    pub features_ensured: Vec<String>,
+    /// `(feature, why)` — a container that could not be ensured. Recorded rather
     /// than fatal: a container problem must not cost the issues.
-    pub group_failures: Vec<(String, String)>,
+    pub feature_failures: Vec<(String, String)>,
     /// The provider has no container concept, so grouping degraded to filing
     /// items flat. Not a failure — the same shape `relations_degraded` reports.
-    pub groups_unsupported: bool,
+    pub features_unsupported: bool,
     /// The roof ensured this run, when the caller named one and the provider
     /// could raise it.
     pub initiative_ensured: Option<String>,
     /// Why the roof could not be ensured. Recorded rather than fatal, exactly
-    /// like `group_failures`: a roof problem must not cost the projects or the
+    /// like `feature_failures`: a roof problem must not cost the projects or the
     /// issues. `Unsupported` never lands here — that is a provider without the
     /// concept, not a failure.
     pub initiative_failure: Option<String>,
@@ -145,7 +145,7 @@ impl ProjectionReport {
     }
 }
 
-/// Render a chunk as a work item for `tracker`.
+/// Render a task as a work item for `tracker`.
 ///
 /// Pure: it reads engine state and returns a value, so the body — the part that
 /// carries the product's actual differentiator — is testable without a provider.
@@ -157,22 +157,22 @@ impl ProjectionReport {
 /// than being silently cut or rejected at submit time.
 #[must_use]
 pub fn to_work_item(
-    engine: &RoadmapEngine,
-    chunk: &Chunk,
+    engine: &PlanEngine,
+    task: &Task,
     provider: &str,
     capabilities: &TrackerCapabilities,
 ) -> WorkItem {
-    let link = engine.tracker_link(&chunk.id, provider);
+    let link = engine.tracker_link(&task.id, provider);
 
     let mut body = String::new();
-    if !chunk.description.is_empty() {
-        body.push_str(&chunk.description);
+    if !task.description.is_empty() {
+        body.push_str(&task.description);
         body.push_str("\n\n");
     }
 
-    if !chunk.acceptance.is_empty() {
+    if !task.acceptance.is_empty() {
         body.push_str("## Acceptance\n\n");
-        for a in &chunk.acceptance {
+        for a in &task.acceptance {
             body.push_str(&format!("- [ ] {a}\n"));
         }
         body.push('\n');
@@ -181,12 +181,12 @@ pub fn to_work_item(
     // Prose deps are the documented fallback, not a supplement: a provider that
     // supports blocking links gets them in phase two, and duplicating them here
     // would leave two sources of truth that drift the moment one is edited.
-    if !capabilities.blocking_links && !chunk.deps.is_empty() {
+    if !capabilities.blocking_links && !task.deps.is_empty() {
         body.push_str("## Blocked by\n\n");
-        for dep in &chunk.deps {
+        for dep in &task.deps {
             let title = engine
-                .roadmap()
-                .chunks
+                .plan()
+                .tasks
                 .iter()
                 .find(|c| &c.id == dep)
                 .map(|c| c.title.as_str());
@@ -200,13 +200,13 @@ pub fn to_work_item(
         );
     }
 
-    body.push_str(&provenance_footer(chunk, engine.project_id()));
+    body.push_str(&provenance_footer(task, engine.project_id()));
 
     // Trailing whitespace is normalized away HERE, at the point the body is
     // authored, because providers do it for us and then disagree with our hash.
     // Linear strips the trailing newline from a description on save; we sent
     // one, read it back without, and `content_hash` differed by that single
-    // byte on every projected chunk — enough to make the echo fence misjudge
+    // byte on every projected task — enough to make the echo fence misjudge
     // every inbound event. A canonical body has no trailing whitespace, which
     // is a rule every provider already agrees with, so normalizing once here
     // beats teaching each adapter to trim.
@@ -221,27 +221,27 @@ pub fn to_work_item(
         // absent means create. Never the title — a human renaming the ticket
         // would otherwise mint a duplicate.
         external_id: link.map(|l| l.external_id.clone()),
-        title: chunk.title.clone(),
+        title: task.title.clone(),
         body,
-        state: state_of(chunk.status),
+        state: state_of(task.status),
         labels: if capabilities.labels {
-            vec![format!("roadmap:{}", band_of(chunk.priority))]
+            vec![format!("plan:{}", band_of(task.priority))]
         } else {
             Vec::new()
         },
         assignee: None,
         version: link.and_then(|l| l.last_seen_version.clone()),
-        // The chunk's workstream, carried by NAME. The adapter resolves it to a
+        // The task's workstream, carried by NAME. The adapter resolves it to a
         // container id; the projector never learns one.
-        group: chunk.group.clone(),
+        feature: task.feature.clone(),
     }
 }
 
-/// What a projection would do to one chunk, decided WITHOUT touching the
+/// What a projection would do to one task, decided WITHOUT touching the
 /// network.
 ///
 /// Five answers rather than three, because three was a lie. The old preview
-/// had only "created", "updated" and "unchanged", so every chunk it could not
+/// had only "created", "updated" and "unchanged", so every task it could not
 /// prove unchanged was announced as a pending update — and 7 of 46 items in a
 /// live workspace were announced that way for days while the real push
 /// correctly skipped all 46.
@@ -286,7 +286,7 @@ impl PreviewVerdict {
     /// Whether this verdict promises a write.
     ///
     /// The invariant the agreement test asserts: when the projector SKIPS a
-    /// chunk, this must be false. A preview that promises writes the projector
+    /// task, this must be false. A preview that promises writes the projector
     /// will not perform is the defect this whole type exists to prevent.
     #[must_use]
     pub fn promises_a_write(self) -> bool {
@@ -297,7 +297,7 @@ impl PreviewVerdict {
     }
 }
 
-/// Predict what [`project_all_with_policy`] would do to one chunk, using only
+/// Predict what [`project_all_with_policy`] would do to one task, using only
 /// local state.
 ///
 /// # Why this is a function and not four lines in the CLI
@@ -306,7 +306,7 @@ impl PreviewVerdict {
 /// FIRST skip gate only. The projector has two: the cheap one on the raw item,
 /// and — after `fetch_one` plus [`reconcile_fields`] — one on the reconciled
 /// item, which is also the hash it stores. Those two gates disagree on every
-/// chunk whose `state`, `labels` or `assignee` diverged from the plan, because
+/// task whose `state`, `labels` or `assignee` diverged from the plan, because
 /// the table gives those to the team while `content_hash` still covers them.
 /// One copy that both paths are tested against is the only shape in which the
 /// preview cannot silently drift from the write again.
@@ -320,7 +320,7 @@ impl PreviewVerdict {
 /// instead of guessing.
 #[must_use]
 pub fn preview_verdict(
-    link: Option<&crate::roadmap::domain::TrackerLink>,
+    link: Option<&crate::plan::domain::TrackerLink>,
     item: &WorkItem,
     policy: &Ownership,
 ) -> PreviewVerdict {
@@ -343,13 +343,13 @@ pub fn preview_verdict(
 /// The machine-readable provenance block — the thing no field-sync tool can
 /// emit, because it never had the reasoning to begin with.
 ///
-/// Keys are emitted in a stable order so the same chunk always produces the same
+/// Keys are emitted in a stable order so the same task always produces the same
 /// bytes; an unstable footer would change `content_hash` on every run and defeat
 /// the no-op skip.
-fn provenance_footer(chunk: &Chunk, project_id: &str) -> String {
+fn provenance_footer(task: &Task, project_id: &str) -> String {
     let mut think: Vec<&str> = Vec::new();
     let mut run: Vec<&str> = Vec::new();
-    for r in &chunk.cross_refs {
+    for r in &task.refs {
         if r.starts_with("think:") {
             think.push(r);
         } else if r.starts_with("step:") || r.starts_with("progress:") || r.starts_with("check:") {
@@ -357,15 +357,15 @@ fn provenance_footer(chunk: &Chunk, project_id: &str) -> String {
         }
     }
     let payload = serde_json::json!({
-        "chunk": chunk.id,
+        "task": task.id,
         "project": project_id,
         // The node label rides here rather than in the item's title: upstream,
         // a human reads the sentence, and replacing it with a 24-character
         // label would lose the claim the ticket exists to state. In the footer
         // it survives the round-trip without changing what anyone reads.
-        "name": chunk.name,
-        "status": chunk.status,
-        "deps": chunk.deps,
+        "name": task.name,
+        "status": task.status,
+        "deps": task.deps,
         "think": think,
         "run": run,
     });
@@ -390,21 +390,21 @@ fn truncate_body(body: String, max: usize) -> String {
     out
 }
 
-/// Roadmap status to the canonical work-item state. Backlog, Pending and Blocked
+/// Plan status to the canonical work-item state. Idea, ToDo and Waiting
 /// all read as "not started" upstream: no tracker has a state that means "we
 /// have not decided to start this yet" and inventing one per provider would put
 /// provider vocabulary back in the core.
-fn state_of(status: ChunkStatus) -> WorkItemState {
+fn state_of(status: TaskStatus) -> WorkItemState {
     match status {
-        ChunkStatus::InProgress => WorkItemState::InProgress,
-        ChunkStatus::Done => WorkItemState::Done,
-        ChunkStatus::Obsoleted => WorkItemState::Cancelled,
-        ChunkStatus::Backlog | ChunkStatus::Pending | ChunkStatus::Blocked => WorkItemState::Todo,
+        TaskStatus::InProgress => WorkItemState::InProgress,
+        TaskStatus::Done => WorkItemState::Done,
+        TaskStatus::Retired => WorkItemState::Cancelled,
+        TaskStatus::Idea | TaskStatus::ToDo | TaskStatus::Waiting => WorkItemState::Todo,
     }
 }
 
-/// The priority band, matching the roadmap's own named bands so a label reads
-/// the same in the tracker as it does in `roadmap status`.
+/// The priority band, matching the plan's own named bands so a label reads
+/// the same in the tracker as it does in `plan status`.
 fn band_of(priority: u32) -> &'static str {
     match priority {
         0..=99 => "critical",
@@ -428,14 +428,14 @@ fn relations_hash(external_ids: &[String]) -> String {
     hex::encode(h.finalize())
 }
 
-/// Project every opted-in chunk into `tracker`.
+/// Project every opted-in task into `tracker`.
 ///
 /// # Failure handling
 ///
 /// With an `outbox`, this follows the delivery contract the cloud sync already
 /// uses: a retryable failure (transport or 5xx) queues for replay, a contract
 /// rejection (4xx) is logged loudly and never queued, and either way the run
-/// continues to the next chunk — one chunk's failure is not a reason to abandon
+/// continues to the next task — one task's failure is not a reason to abandon
 /// the others. Without an outbox there is nowhere durable to put a retryable
 /// failure, so it propagates as `Err` rather than being quietly dropped.
 ///
@@ -444,9 +444,9 @@ fn relations_hash(external_ids: &[String]) -> String {
 ///
 /// The caller is responsible for the per-project consent gate
 /// ([`crate::tracker::config::should_project`]); this function honours the
-/// per-chunk gate itself by projecting only [`RoadmapEngine::chunks_opted_in`].
+/// per-task gate itself by projecting only [`PlanEngine::tasks_opted_in`].
 pub async fn project_all(
-    engine: &mut RoadmapEngine,
+    engine: &mut PlanEngine,
     tracker: &dyn TrackerPort,
     outbox: Option<&TrackerOutbox>,
 ) -> Result<ProjectionReport, TrackerError> {
@@ -457,37 +457,39 @@ pub async fn project_all(
 /// "something is moving", "all finished" — and nothing richer, because anything
 /// richer would be the projector inventing an opinion.
 ///
-/// Obsoleted chunks are IGNORED rather than counted as finished — a workstream
-/// whose every chunk was abandoned has not been completed, and calling it so
+/// Retired tasks are IGNORED rather than counted as finished — a workstream
+/// whose every task was abandoned has not been completed, and calling it so
 /// upstream would be a lie a human then has to notice and undo.
 fn derived_state<'a>(
-    chunks: impl Iterator<Item = &'a Chunk>,
-) -> crate::tracker::domain::GroupState {
-    use crate::roadmap::domain::ChunkStatus;
-    use crate::tracker::domain::GroupState;
+    tasks: impl Iterator<Item = &'a Task>,
+) -> crate::tracker::domain::FeatureState {
+    use crate::plan::domain::TaskStatus;
+    use crate::tracker::domain::FeatureState;
 
-    let mine: Vec<&Chunk> = chunks
-        .filter(|c| c.status != ChunkStatus::Obsoleted)
-        .collect();
+    let mine: Vec<&Task> = tasks.filter(|c| c.status != TaskStatus::Retired).collect();
     if mine.is_empty() {
-        return GroupState::NotStarted;
+        return FeatureState::NotStarted;
     }
-    if mine.iter().all(|c| c.status == ChunkStatus::Done) {
-        return GroupState::Complete;
+    if mine.iter().all(|c| c.status == TaskStatus::Done) {
+        return FeatureState::Complete;
     }
     if mine
         .iter()
-        .any(|c| matches!(c.status, ChunkStatus::InProgress | ChunkStatus::Done))
+        .any(|c| matches!(c.status, TaskStatus::InProgress | TaskStatus::Done))
     {
-        return GroupState::Active;
+        return FeatureState::Active;
     }
-    GroupState::NotStarted
+    FeatureState::NotStarted
 }
 
-/// A container's state, derived from the chunks inside it — see
-/// [`derived_state`] for the vocabulary and the obsoleted rule.
-fn group_state_of(planned: &[Chunk], name: &str) -> crate::tracker::domain::GroupState {
-    derived_state(planned.iter().filter(|c| c.group.as_deref() == Some(name)))
+/// A container's state, derived from the tasks inside it — see
+/// [`derived_state`] for the vocabulary and the retired rule.
+fn feature_state_of(planned: &[Task], name: &str) -> crate::tracker::domain::FeatureState {
+    derived_state(
+        planned
+            .iter()
+            .filter(|c| c.feature.as_deref() == Some(name)),
+    )
 }
 
 /// Project under an explicit ownership policy.
@@ -501,7 +503,7 @@ fn group_state_of(planned: &[Chunk], name: &str) -> crate::tracker::domain::Grou
 /// one. `None` means no roof is attempted at all — which is also the documented
 /// default, because only a caller with config in hand can name one honestly.
 pub async fn project_all_with_policy(
-    engine: &mut RoadmapEngine,
+    engine: &mut PlanEngine,
     tracker: &dyn TrackerPort,
     outbox: Option<&TrackerOutbox>,
     policy: &Ownership,
@@ -512,9 +514,9 @@ pub async fn project_all_with_policy(
     let mut report = ProjectionReport::default();
 
     // Stage 1 — upsert. Snapshot first: the borrow ends before any mutation, and
-    // the set of chunks in the run must not shift underneath stage two.
-    let planned: Vec<Chunk> = engine
-        .chunks_opted_in(&provider)
+    // the set of tasks in the run must not shift underneath stage two.
+    let planned: Vec<Task> = engine
+        .tasks_opted_in(&provider)
         .into_iter()
         .cloned()
         .collect();
@@ -527,7 +529,7 @@ pub async fn project_all_with_policy(
     // `external_id` so a renamed roof still resolves, and the outcome's id is
     // recorded back so the NEXT push remembers it.
     //
-    // Failure DEGRADES: a roadmap whose roof could not be raised still gets its
+    // Failure DEGRADES: a plan whose roof could not be raised still gets its
     // projects and its issues, and the report says why. `Unsupported` is a
     // provider without the concept — the flat-filing treatment, not a failure.
     if let Some(name) = initiative {
@@ -536,7 +538,7 @@ pub async fn project_all_with_policy(
             .container_link(ContainerKind::Initiative, name, &provider)
             .map(|l| l.external_id.clone());
         match tracker
-            .upsert_initiative(&crate::tracker::domain::WorkGroup {
+            .upsert_initiative(&crate::tracker::domain::WorkFeature {
                 name: name.to_string(),
                 state,
                 external_id: remembered,
@@ -559,23 +561,23 @@ pub async fn project_all_with_policy(
     }
 
     // Stage 0 — CONTAINERS FIRST. An item can only join a container that already
-    // exists, so every group in this run is ensured before any item is written.
+    // exists, so every feature in this run is ensured before any item is written.
     // Ordering, not preference.
     //
     // `Unsupported` is the documented "this provider has no containers" answer
     // and degrades to filing items flat, the same treatment `relate_items` gets.
     // Any other failure is recorded and the run CONTINUES, because a container
     // problem must not cost the issues.
-    let mut groups: Vec<String> = planned.iter().filter_map(|c| c.group.clone()).collect();
-    groups.sort();
-    groups.dedup();
-    for name in &groups {
-        let state = group_state_of(&planned, name);
+    let mut features: Vec<String> = planned.iter().filter_map(|c| c.feature.clone()).collect();
+    features.sort();
+    features.dedup();
+    for name in &features {
+        let state = feature_state_of(&planned, name);
         let remembered = engine
-            .container_link(ContainerKind::Group, name, &provider)
+            .container_link(ContainerKind::Feature, name, &provider)
             .map(|l| l.external_id.clone());
         match tracker
-            .upsert_group(&crate::tracker::domain::WorkGroup {
+            .upsert_feature(&crate::tracker::domain::WorkFeature {
                 name: name.clone(),
                 state,
                 external_id: remembered,
@@ -584,33 +586,33 @@ pub async fn project_all_with_policy(
         {
             Ok(outcome) => {
                 let _ = engine.record_container_link(
-                    ContainerKind::Group,
+                    ContainerKind::Feature,
                     name,
                     &provider,
                     &outcome.external_id,
                     outcome.created,
                 );
-                report.groups_ensured.push(name.clone());
+                report.features_ensured.push(name.clone());
             }
             Err(TrackerError::Unsupported(_)) => {
-                report.groups_unsupported = true;
+                report.features_unsupported = true;
                 break;
             }
-            Err(e) => report.group_failures.push((name.clone(), e.to_string())),
+            Err(e) => report.feature_failures.push((name.clone(), e.to_string())),
         }
     }
 
-    for chunk in &planned {
-        let item = to_work_item(engine, chunk, &provider, &capabilities);
+    for task in &planned {
+        let item = to_work_item(engine, task, &provider, &capabilities);
 
         if let Err(reason) = capabilities.admits(&item) {
             tracing::warn!(
                 target: "magistr_workflow::tracker",
-                "chunk '{}' not projected: {reason}", chunk.id
+                "task '{}' not projected: {reason}", task.id
             );
             report
                 .outcomes
-                .push((chunk.id.clone(), ProjectionOutcome::Refused { reason }));
+                .push((task.id.clone(), ProjectionOutcome::Refused { reason }));
             continue;
         }
 
@@ -627,11 +629,11 @@ pub async fn project_all_with_policy(
         // reconcile — re-running a projection must not touch anyone's tracker,
         // and a read is touching it. A remote change is the sweep's job to
         // notice, not this path's.
-        if let Some(link) = engine.tracker_link(&chunk.id, &provider)
+        if let Some(link) = engine.tracker_link(&task.id, &provider)
             && link.our_last_write_hash == item.content_hash()
         {
             report.outcomes.push((
-                chunk.id.clone(),
+                task.id.clone(),
                 ProjectionOutcome::Skipped {
                     external_id: link.external_id.clone(),
                 },
@@ -639,7 +641,7 @@ pub async fn project_all_with_policy(
             continue;
         }
 
-        let (existing, remote_moved) = match engine.tracker_link(&chunk.id, &provider) {
+        let (existing, remote_moved) = match engine.tracker_link(&task.id, &provider) {
             Some(link) => {
                 let remote = tracker.fetch_one(&link.external_id).await.unwrap_or(None);
                 // THE FENCE — and it gates REPORTING, not merging.
@@ -663,11 +665,11 @@ pub async fn project_all_with_policy(
             }
             None => (None, false),
         };
-        // THE CONCESSION, read back in from the chunk. An open title proposal
+        // THE CONCESSION, read back in from the task. An open title proposal
         // is the durable record that a contested retitle was already deferred
         // to — without it the merge would re-assert the plan's title on the
         // round after the concession, because the remote is then unmoved.
-        let concession = chunk
+        let concession = task
             .title_proposal
             .as_ref()
             .map(|p| p.suggested_title.as_str());
@@ -680,11 +682,11 @@ pub async fn project_all_with_policy(
         // that — and writing it again would be a no-op push that looks like
         // activity to everyone watching the tracker.
         let hash = reconciled.item().content_hash();
-        if let Some(link) = engine.tracker_link(&chunk.id, &provider)
+        if let Some(link) = engine.tracker_link(&task.id, &provider)
             && link.our_last_write_hash == hash
         {
             report.outcomes.push((
-                chunk.id.clone(),
+                task.id.clone(),
                 ProjectionOutcome::Skipped {
                     external_id: link.external_id.clone(),
                 },
@@ -695,7 +697,7 @@ pub async fn project_all_with_policy(
         for d in reconciled.divergences() {
             tracing::warn!(
                 target: "magistr_workflow::tracker",
-                "chunk '{}' diverged on {}: {}", chunk.id, d.field.as_str(), d.summary()
+                "task '{}' diverged on {}: {}", task.id, d.field.as_str(), d.summary()
             );
         }
         report.divergences.extend(
@@ -703,11 +705,11 @@ pub async fn project_all_with_policy(
                 .divergences()
                 .iter()
                 .cloned()
-                .map(|d| (chunk.id.clone(), d)),
+                .map(|d| (task.id.clone(), d)),
         );
 
         // A contested title we just deferred to becomes a PROPOSAL on the
-        // chunk — the durable memory the next round's `concession` reads.
+        // task — the durable memory the next round's `concession` reads.
         // Written here rather than left to a caller because durability is the
         // reconciliation's own invariant: a caller that forgot this call would
         // silently reintroduce the one-round concession. Idempotent in the
@@ -719,7 +721,7 @@ pub async fn project_all_with_policy(
                 && d.owner == crate::tracker::ownership::Owner::Contested
             {
                 let source = engine
-                    .tracker_link(&chunk.id, &provider)
+                    .tracker_link(&task.id, &provider)
                     .map(|l| format!("ext:{provider}/{}", l.external_id))
                     .unwrap_or_else(|| format!("ext:{provider}"));
                 let reason = format!(
@@ -727,10 +729,10 @@ pub async fn project_all_with_policy(
                      into the plan, reject to push the plan's title back.",
                     d.theirs, d.ours
                 );
-                if let Err(e) = engine.propose_title(&chunk.id, d.theirs.clone(), reason, source) {
+                if let Err(e) = engine.propose_title(&task.id, d.theirs.clone(), reason, source) {
                     tracing::warn!(
                         target: "magistr_workflow::tracker",
-                        "could not record the title concession for '{}': {e}", chunk.id
+                        "could not record the title concession for '{}': {e}", task.id
                     );
                 }
             }
@@ -742,13 +744,13 @@ pub async fn project_all_with_policy(
                 let queued = crate::tracker::outbox::handle_failure(
                     outbox,
                     &provider,
-                    &chunk.id,
+                    &task.id,
                     reconciled.item(),
                     &e,
                 );
                 if queued {
                     report.outcomes.push((
-                        chunk.id.clone(),
+                        task.id.clone(),
                         ProjectionOutcome::Queued {
                             reason: e.to_string(),
                         },
@@ -762,7 +764,7 @@ pub async fn project_all_with_policy(
                     return Err(e);
                 }
                 report.outcomes.push((
-                    chunk.id.clone(),
+                    task.id.clone(),
                     ProjectionOutcome::Rejected {
                         reason: e.to_string(),
                     },
@@ -776,7 +778,7 @@ pub async fn project_all_with_policy(
         let written = hash.clone();
         engine
             .record_tracker_link(
-                &chunk.id,
+                &task.id,
                 &provider,
                 &outcome.external_id,
                 &written,
@@ -791,14 +793,14 @@ pub async fn project_all_with_policy(
         // forgot it would silently return the preview to guessing.
         engine
             .record_tracker_authored(
-                &chunk.id,
+                &task.id,
                 &provider,
                 &crate::tracker::ownership::authored_hash(policy, reconciled.item()),
             )
             .map_err(local_projection_failure)?;
 
         report.outcomes.push((
-            chunk.id.clone(),
+            task.id.clone(),
             if outcome.created {
                 ProjectionOutcome::Created {
                     external_id: outcome.external_id,
@@ -811,7 +813,7 @@ pub async fn project_all_with_policy(
         ));
     }
 
-    // Stage 2 — relate. Every chunk in the run now has a binding, so a dep can
+    // Stage 2 — relate. Every task in the run now has a binding, so a dep can
     // finally be named by the id the provider understands.
     if !capabilities.blocking_links {
         report.relations_degraded = planned
@@ -822,7 +824,7 @@ pub async fn project_all_with_policy(
         return Ok(report);
     }
 
-    // Resolve every chunk id in the run to its external id once.
+    // Resolve every task id in the run to its external id once.
     let resolved: BTreeMap<String, String> = planned
         .iter()
         .filter_map(|c| {
@@ -832,19 +834,19 @@ pub async fn project_all_with_policy(
         })
         .collect();
 
-    for chunk in &planned {
-        if chunk.deps.is_empty() {
+    for task in &planned {
+        if task.deps.is_empty() {
             continue;
         }
-        let Some(from) = resolved.get(&chunk.id) else {
+        let Some(from) = resolved.get(&task.id) else {
             continue; // refused in phase one; nothing to relate.
         };
 
-        let mut blocked_by = Vec::new();
+        let mut waiting_on = Vec::new();
         let mut unresolved = Vec::new();
-        for dep in &chunk.deps {
+        for dep in &task.deps {
             match resolved.get(dep) {
-                Some(id) => blocked_by.push(id.clone()),
+                Some(id) => waiting_on.push(id.clone()),
                 None => unresolved.push(dep.as_str()),
             }
         }
@@ -853,38 +855,38 @@ pub async fn project_all_with_policy(
         if !unresolved.is_empty() {
             tracing::warn!(
                 target: "magistr_workflow::tracker",
-                "chunk '{}' has dependencies that are not projected, so they cannot be linked: {}",
-                chunk.id,
+                "task '{}' has dependencies that are not projected, so they cannot be linked: {}",
+                task.id,
                 unresolved.join(", ")
             );
-            report.relations_degraded.push(chunk.id.clone());
+            report.relations_degraded.push(task.id.clone());
         }
-        if blocked_by.is_empty() {
+        if waiting_on.is_empty() {
             continue;
         }
 
-        let hash = relations_hash(&blocked_by);
-        if let Some(link) = engine.tracker_link(&chunk.id, &provider)
+        let hash = relations_hash(&waiting_on);
+        if let Some(link) = engine.tracker_link(&task.id, &provider)
             && link.our_last_relations_hash.as_deref() == Some(hash.as_str())
         {
             continue;
         }
 
-        match tracker.relate_items(from, &blocked_by).await {
+        match tracker.relate_items(from, &waiting_on).await {
             Ok(()) => {
                 engine
-                    .record_tracker_relations(&chunk.id, &provider, &hash)
+                    .record_tracker_relations(&task.id, &provider, &hash)
                     .map_err(local_projection_failure)?;
-                report.relations_written.push(chunk.id.clone());
+                report.relations_written.push(task.id.clone());
             }
             // The provider said it could and then refused this particular set.
             // A degradation, not a run-ending failure.
             Err(TrackerError::Unsupported(reason)) => {
                 tracing::warn!(
                     target: "magistr_workflow::tracker",
-                    "chunk '{}' relations not written: {reason}", chunk.id
+                    "task '{}' relations not written: {reason}", task.id
                 );
-                report.relations_degraded.push(chunk.id.clone());
+                report.relations_degraded.push(task.id.clone());
             }
             Err(e) => return Err(e),
         }
@@ -893,12 +895,12 @@ pub async fn project_all_with_policy(
     Ok(report)
 }
 
-fn local_projection_failure(error: crate::roadmap::engine::RoadmapMutationError) -> TrackerError {
+fn local_projection_failure(error: crate::plan::engine::PlanMutationError) -> TrackerError {
     let message =
         format!("The tracker was updated, but its saved link could not be confirmed: {error}");
     let store = match error {
-        crate::roadmap::engine::RoadmapMutationError::Store(error) => Some(error),
-        crate::roadmap::engine::RoadmapMutationError::Rejected(_) => None,
+        crate::plan::engine::PlanMutationError::Store(error) => Some(error),
+        crate::plan::engine::PlanMutationError::Rejected(_) => None,
     };
     TrackerError::Local { message, store }
 }
@@ -909,25 +911,25 @@ mod tests {
     use crate::tracker::fake::FakeTracker;
     use crate::tracker::outbox::TrackerOutbox;
 
-    fn engine() -> RoadmapEngine {
-        RoadmapEngine::new("proj".into())
+    fn engine() -> PlanEngine {
+        PlanEngine::new("proj".into())
     }
 
-    fn add(e: &mut RoadmapEngine, id: &str, deps: Vec<String>) {
-        e.add_chunk(
+    fn add(e: &mut PlanEngine, id: &str, deps: Vec<String>) {
+        e.add_task(
             id.into(),
-            format!("Chunk {id}"),
-            ChunkStatus::Pending,
+            format!("Task {id}"),
+            TaskStatus::ToDo,
             10,
             format!("why {id} exists"),
             vec![format!("{id} works")],
             deps,
             false,
         )
-        .expect("add chunk");
+        .expect("add task");
     }
 
-    fn opted(e: &mut RoadmapEngine, id: &str) {
+    fn opted(e: &mut PlanEngine, id: &str) {
         e.set_tracker_opt_in(id, "fake", true).expect("opt in");
     }
 
@@ -935,13 +937,13 @@ mod tests {
     fn the_body_carries_acceptance_and_provenance() {
         let mut e = engine();
         add(&mut e, "c1", vec![]);
-        e.link_chunk("c1", "think:46").expect("link think");
-        e.link_chunk("c1", "step:projector").expect("link task");
+        e.link_task("c1", "think:46").expect("link think");
+        e.link_task("c1", "step:projector").expect("link task");
 
-        let chunk = e.roadmap().chunks[0].clone();
-        let item = to_work_item(&e, &chunk, "fake", &TrackerCapabilities::full());
+        let task = e.plan().tasks[0].clone();
+        let item = to_work_item(&e, &task, "fake", &TrackerCapabilities::full());
 
-        assert_eq!(item.title, "Chunk c1");
+        assert_eq!(item.title, "Task c1");
         assert!(item.body.contains("why c1 exists"));
         assert!(item.body.contains("- [ ] c1 works"), "acceptance checklist");
 
@@ -954,7 +956,7 @@ mod tests {
             .trim_end_matches(FOOTER_CLOSE)
             .trim();
         let parsed: serde_json::Value = serde_json::from_str(footer).expect("footer is JSON");
-        assert_eq!(parsed["chunk"], "c1");
+        assert_eq!(parsed["task"], "c1");
         assert_eq!(parsed["project"], "proj");
         assert_eq!(parsed["think"][0], "think:46");
         assert_eq!(parsed["run"][0], "step:projector");
@@ -966,12 +968,12 @@ mod tests {
     fn the_footer_is_stable_across_renders() {
         let mut e = engine();
         add(&mut e, "c1", vec![]);
-        e.link_chunk("c1", "think:1").expect("ref");
-        e.link_chunk("c1", "think:2").expect("ref");
-        let chunk = e.roadmap().chunks[0].clone();
+        e.link_task("c1", "think:1").expect("ref");
+        e.link_task("c1", "think:2").expect("ref");
+        let task = e.plan().tasks[0].clone();
         let caps = TrackerCapabilities::full();
-        let a = to_work_item(&e, &chunk, "fake", &caps);
-        let b = to_work_item(&e, &chunk, "fake", &caps);
+        let a = to_work_item(&e, &task, "fake", &caps);
+        let b = to_work_item(&e, &task, "fake", &caps);
         assert_eq!(a.content_hash(), b.content_hash());
     }
 
@@ -982,14 +984,14 @@ mod tests {
         let mut e = engine();
         add(&mut e, "base", vec![]);
         add(&mut e, "c1", vec!["base".into()]);
-        let chunk = e.roadmap().chunks[1].clone();
+        let task = e.plan().tasks[1].clone();
 
-        let capable = to_work_item(&e, &chunk, "fake", &TrackerCapabilities::full());
+        let capable = to_work_item(&e, &task, "fake", &TrackerCapabilities::full());
         assert!(!capable.body.contains("## Blocked by"));
 
         let degraded = to_work_item(
             &e,
-            &chunk,
+            &task,
             "fake",
             &TrackerCapabilities {
                 blocking_links: false,
@@ -997,17 +999,17 @@ mod tests {
             },
         );
         assert!(degraded.body.contains("## Blocked by"));
-        assert!(degraded.body.contains("`base` — Chunk base"));
+        assert!(degraded.body.contains("`base` — Task base"));
     }
 
     #[test]
     fn an_over_long_body_is_truncated_visibly() {
         let mut e = engine();
         add(&mut e, "c1", vec![]);
-        let chunk = e.roadmap().chunks[0].clone();
+        let task = e.plan().tasks[0].clone();
         let item = to_work_item(
             &e,
-            &chunk,
+            &task,
             "fake",
             &TrackerCapabilities {
                 max_body_len: Some(120),
@@ -1018,7 +1020,7 @@ mod tests {
         assert!(item.body.contains("truncated"));
     }
 
-    /// Nothing is projected without an explicit per-chunk opt-in. The chunk's
+    /// Nothing is projected without an explicit per-task opt-in. The task's
     /// central promise: upgrading cannot fill anyone's tracker.
     #[tokio::test]
     async fn nothing_projects_without_an_opt_in() {
@@ -1032,7 +1034,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn an_unchanged_chunk_costs_no_write() {
+    async fn an_unchanged_task_costs_no_write() {
         let mut e = engine();
         add(&mut e, "c1", vec![]);
         opted(&mut e, "c1");
@@ -1043,7 +1045,7 @@ mod tests {
         assert_eq!(tracker.writes(), 1);
 
         let second = project_all(&mut e, &tracker, None).await.expect("second");
-        assert_eq!(second.writes(), 0, "an unchanged chunk must not be written");
+        assert_eq!(second.writes(), 0, "an unchanged task must not be written");
         assert_eq!(tracker.writes(), 1, "no call reached the provider at all");
         assert!(matches!(
             second.outcomes[0].1,
@@ -1052,14 +1054,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_changed_chunk_patches_the_same_item() {
+    async fn a_changed_task_patches_the_same_item() {
         let mut e = engine();
         add(&mut e, "c1", vec![]);
         opted(&mut e, "c1");
         let tracker = FakeTracker::new("fake");
         project_all(&mut e, &tracker, None).await.expect("first");
 
-        e.update_chunk("c1", Some("Renamed".into()), None, None, None, None, None)
+        e.update_task("c1", Some("Renamed".into()), None, None, None, None, None)
             .expect("rename");
 
         let report = project_all(&mut e, &tracker, None).await.expect("second");
@@ -1093,7 +1095,7 @@ mod tests {
             ProjectionOutcome::Created { external_id } => external_id.clone(),
             other => panic!("expected c1 created, got {other:?}"),
         };
-        assert_eq!(tracker.blocked_by(&c1_id), Some(vec![base_id]));
+        assert_eq!(tracker.waiting_on(&c1_id), Some(vec![base_id]));
     }
 
     /// Relations are fenced separately, so an unchanged dep set costs nothing
@@ -1136,12 +1138,12 @@ mod tests {
         let c1 = tracker
             .items()
             .into_iter()
-            .find(|i| i.title == "Chunk c1")
+            .find(|i| i.title == "Task c1")
             .expect("c1 projected");
         assert!(c1.body.contains("## Blocked by"));
     }
 
-    /// One chunk the provider cannot express must not abandon the others.
+    /// One task the provider cannot express must not abandon the others.
     #[tokio::test]
     async fn a_capability_refusal_is_reported_and_the_run_continues() {
         let mut e = engine();
@@ -1157,7 +1159,7 @@ mod tests {
         });
 
         let report = project_all(&mut e, &tracker, None).await.expect("run");
-        assert_eq!(report.outcomes.len(), 2, "both chunks were reported");
+        assert_eq!(report.outcomes.len(), 2, "both tasks were reported");
         assert_eq!(tracker.writes(), 0);
         assert!(
             report
@@ -1196,7 +1198,7 @@ mod tests {
     }
 
     /// The outbox contract, first half: transport and 5xx queue for replay, and
-    /// the run continues to the next chunk rather than abandoning it.
+    /// the run continues to the next task rather than abandoning it.
     #[tokio::test]
     async fn a_retryable_failure_queues_and_the_run_continues() {
         let mut e = engine();
@@ -1219,10 +1221,10 @@ mod tests {
             report.outcomes[0].1,
             ProjectionOutcome::Queued { .. }
         ));
-        assert_eq!(outbox.queued_chunks("fake"), vec!["c1".to_string()]);
+        assert_eq!(outbox.queued_tasks("fake"), vec!["c1".to_string()]);
         assert!(
             matches!(report.outcomes[1].1, ProjectionOutcome::Created { .. }),
-            "one chunk's outage must not abandon the next"
+            "one task's outage must not abandon the next"
         );
         assert!(
             e.tracker_link("c1", "fake").is_none(),

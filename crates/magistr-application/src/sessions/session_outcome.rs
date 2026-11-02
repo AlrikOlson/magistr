@@ -5,7 +5,7 @@ use magistr_domain::identity::{ProviderSessionBinding, SessionId, TurnId};
 pub enum SessionOutcome {
     /// Creation or restoration completed; the provider conversation is explicitly bound.
     SessionReady { binding: ProviderSessionBinding },
-    /// The provider accepted a prompt. No successful turn or chunk is certified.
+    /// The provider accepted a prompt. No successful turn or task is certified.
     TurnAccepted { turn: TurnId },
     /// Cancellation was requested. A terminal observation is still required before reuse.
     CancellationRequested { turn: TurnId },

@@ -44,9 +44,9 @@ __pycache__/
 *.py[cod]
 # Browser inspection output
 /.playwright-mcp/
-# Generated roadmap views
-/ROADMAP.md
-/ROADMAP.json
+# Generated plan views
+/PLAN.md
+/PLAN.json
 .mcp.json
 .codescope.toml
 vendor/
@@ -65,7 +65,7 @@ vendor/
 .magistr/desktop-native/
 .magistr/desktop-storybook/
 .magistr/desktop-native-driver
-.magistr-roadmap.yml.lock
+.magistr-plan.yml.lock
 
 *.bin
 *.cache
@@ -73,8 +73,8 @@ vendor/
 .magistr/workspace/
 
 /.magistr/traces/
-/.magistr/roadmap.yaml
-**/.magistr-roadmap.yml
+/.magistr/plan.yaml
+**/.magistr-plan.yml
 **/.magistr/iteration-log.md
 *.tsbuildinfo
 .env

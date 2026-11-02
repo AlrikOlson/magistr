@@ -146,7 +146,7 @@ fn parse(content: &str) -> Result<TestResults, String> {
             }
             // Some emitters put the failure message in the element body
             // rather than the `message` attribute; take the first text/CDATA
-            // chunk there when the attribute was absent.
+            // task there when the attribute was absent.
             Event::Text(ref t) if in_failure_body => {
                 if let Some(case) = current.as_mut()
                     && case.message.is_none()

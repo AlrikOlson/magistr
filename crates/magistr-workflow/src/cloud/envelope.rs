@@ -24,7 +24,7 @@ const SEP: char = '\u{241f}';
 pub enum Family {
     Think,
     Run,
-    Roadmap,
+    Plan,
     Signal,
 }
 
@@ -35,7 +35,7 @@ impl Family {
         match self {
             Self::Think => "think",
             Self::Run => "run",
-            Self::Roadmap => "roadmap",
+            Self::Plan => "plan",
             Self::Signal => "signal",
         }
     }
@@ -53,7 +53,7 @@ pub enum Kind {
     Progress,
     Check,
     Approval,
-    Chunk,
+    Task,
     Signal,
 }
 
@@ -68,7 +68,7 @@ impl Kind {
             Self::Progress => "progress",
             Self::Check => "check",
             Self::Approval => "approval",
-            Self::Chunk => "chunk",
+            Self::Task => "task",
             Self::Signal => "signal",
         }
     }
@@ -95,11 +95,11 @@ impl Edge {
     }
 }
 
-/// Build edges from a record's `cross_refs[]` (already `prefix:value` strings,
-/// as roadmap chunks and signals store them).
+/// Build edges from a record's `refs[]` (already `prefix:value` strings,
+/// as plan tasks and signals store them).
 #[must_use]
-pub fn edges_from_cross_refs(cross_refs: &[String]) -> Vec<Edge> {
-    cross_refs.iter().map(|r| Edge::to(r.clone())).collect()
+pub fn edges_from_refs(refs: &[String]) -> Vec<Edge> {
+    refs.iter().map(|r| Edge::to(r.clone())).collect()
 }
 
 pub(crate) fn sha256_hex(input: &str) -> String {
@@ -109,7 +109,7 @@ pub(crate) fn sha256_hex(input: &str) -> String {
         .collect()
 }
 
-/// The idempotency key for an owner-authored record (think/run/roadmap):
+/// The idempotency key for an owner-authored record (think/run/plan):
 /// `sha256(tenant ␟ family ␟ kind ␟ id)`. Re-syncing the same record yields the
 /// same key — its own identity is stable.
 #[must_use]
@@ -166,7 +166,7 @@ pub struct UnifiedRecordEnvelope {
 }
 
 impl UnifiedRecordEnvelope {
-    /// Build an owner-authored envelope (think/run/roadmap), computing the
+    /// Build an owner-authored envelope (think/run/plan), computing the
     /// identity-based idempotency key. `record` is the verbatim local object.
     #[must_use]
     pub fn owner(
@@ -242,11 +242,11 @@ mod tests {
     fn lenses_are_optional_and_absent_means_legacy_wire_bytes() {
         let legacy = UnifiedRecordEnvelope::owner(
             "magistr-676f38",
-            Family::Roadmap,
-            Kind::Chunk,
+            Family::Plan,
+            Kind::Task,
             "c1",
             "2026-06-08T00:00:00Z",
-            json!({ "id": "c1", "status": "backlog" }),
+            json!({ "id": "c1", "status": "idea" }),
             vec![],
         );
         assert_valid(&legacy);
@@ -264,15 +264,15 @@ mod tests {
     }
 
     #[test]
-    fn roadmap_chunk_envelope_validates() {
+    fn plan_task_envelope_validates() {
         let env = UnifiedRecordEnvelope::owner(
             "magistr-676f38",
-            Family::Roadmap,
-            Kind::Chunk,
+            Family::Plan,
+            Kind::Task,
             "saas-cloud-envelope",
             "2026-06-08T00:00:00Z",
             json!({ "id": "saas-cloud-envelope", "status": "in_progress" }),
-            edges_from_cross_refs(&["think:9".into(), "signal:abc".into()]),
+            edges_from_refs(&["think:9".into(), "signal:abc".into()]),
         );
         assert_valid(&env);
     }
@@ -350,15 +350,15 @@ mod tests {
             "sig-1",
             "2026-06-08T00:00:00Z",
             json!({ "id": "sig-1", "kind": "bug", "from": "dana", "body": "x", "status": "new" }),
-            edges_from_cross_refs(&["chunk:saas-cloud-envelope".into()]),
+            edges_from_refs(&["task:saas-cloud-envelope".into()]),
         );
         assert_valid(&env);
     }
 
     #[test]
     fn owner_idempotency_is_deterministic_lowercase_hex() {
-        let a = owner_idempotency_key("t", Family::Roadmap, Kind::Chunk, "c1");
-        let b = owner_idempotency_key("t", Family::Roadmap, Kind::Chunk, "c1");
+        let a = owner_idempotency_key("t", Family::Plan, Kind::Task, "c1");
+        let b = owner_idempotency_key("t", Family::Plan, Kind::Task, "c1");
         assert_eq!(a, b);
         assert_eq!(a.len(), 64);
         assert!(
@@ -368,19 +368,19 @@ mod tests {
         // A different id yields a different key.
         assert_ne!(
             a,
-            owner_idempotency_key("t", Family::Roadmap, Kind::Chunk, "c2")
+            owner_idempotency_key("t", Family::Plan, Kind::Task, "c2")
         );
     }
 
     #[test]
     fn owner_idempotency_matches_the_documented_separator_rule() {
-        // sha256("t␟roadmap␟chunk␟c1") — must equal the TS computation.
+        // sha256("t␟plan␟task␟c1") — must equal the TS computation.
         let expected: String = {
-            let input = format!("t{SEP}roadmap{SEP}chunk{SEP}c1");
+            let input = format!("t{SEP}plan{SEP}task{SEP}c1");
             super::sha256_hex(&input)
         };
         assert_eq!(
-            owner_idempotency_key("t", Family::Roadmap, Kind::Chunk, "c1"),
+            owner_idempotency_key("t", Family::Plan, Kind::Task, "c1"),
             expected
         );
     }
@@ -395,28 +395,28 @@ mod tests {
     }
 
     /// A real regression, made permanent. `record_tracker_link` pushes an
-    /// `ext:<provider>/<external_id>` cross-ref onto the chunk, and
-    /// `edges_from_cross_refs` maps EVERY cross-ref into `edges[]` unfiltered.
+    /// `ext:<provider>/<external_id>` cross-ref onto the task, and
+    /// `edges_from_refs` maps EVERY cross-ref into `edges[]` unfiltered.
     /// While the contract's `CrossRef` pattern omitted `ext`, that envelope was
     /// a 422 — and a 422 is terminal, so `CloudClient::push` DROPPED it instead
-    /// of queueing it. Binding a chunk to a tracker silently killed that
-    /// chunk's cloud sync forever, at WARN level only. It went unseen because
+    /// of queueing it. Binding a task to a tracker silently killed that
+    /// task's cloud sync forever, at WARN level only. It went unseen because
     /// `tests/tracker_seam.rs` never wires a cloud client; this test is what
     /// makes it impossible to reintroduce.
     #[test]
     fn an_ext_tracker_cross_ref_validates_against_the_contract() {
-        let cross_refs = vec![
+        let refs = vec![
             "think:44".to_string(),
             "ext:github/owner/repo#12".to_string(),
         ];
         let env = UnifiedRecordEnvelope::owner(
             "t",
-            Family::Roadmap,
-            Kind::Chunk,
+            Family::Plan,
+            Kind::Task,
             "c1",
             "2026-06-08T00:00:00Z",
-            json!({ "id": "c1", "status": "backlog" }),
-            edges_from_cross_refs(&cross_refs),
+            json!({ "id": "c1", "status": "idea" }),
+            edges_from_refs(&refs),
         );
         // The ext: ref survives as a real edge — it is provenance, not noise.
         assert!(

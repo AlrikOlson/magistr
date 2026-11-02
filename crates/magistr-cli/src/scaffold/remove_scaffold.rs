@@ -13,7 +13,7 @@ use super::{
 ///
 /// A known filename is not ownership evidence: customized and unrecorded files
 /// survive, as do non-regular entries and paths traversing symlinks. Only empty
-/// parents of removed files are pruned. CLAUDE.md and ROADMAP.md remain user-owned.
+/// parents of removed files are pruned. CLAUDE.md and PLAN.md remain user-owned.
 ///
 /// Explicit reset removes the .magistr namespace and generated MCP/gitignore
 /// entries. Initialization never calls it.

@@ -56,7 +56,7 @@ fn paths_for_a_standalone_project_stay_in_its_directory() {
         scaffold_manifest(dir),
         interview_trace(dir),
         plugins_dir(dir),
-        roadmap_yaml(dir),
+        plan_yaml(dir),
         claude_dir(dir),
         rules_dir(dir),
         settings_json(dir),

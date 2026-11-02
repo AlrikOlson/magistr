@@ -95,7 +95,7 @@ pub fn scan(serialized: &str) -> Vec<ScrubFinding> {
         // High-entropy runs (random keys/base64 blobs). Our own pseudonyms
         // are exempt by exact shape, and the check only applies to tokens
         // carrying digits or uppercase — real key material virtually always
-        // does, while our composite vocabulary (`roadmap.chunk.in_progress`)
+        // does, while our composite vocabulary (`plan.task.in_progress`)
         // never does and would otherwise false-positive on letter diversity.
         let mixed_charset = token
             .bytes()

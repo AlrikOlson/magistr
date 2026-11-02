@@ -29,10 +29,10 @@ def violations(tree, check_dependencies=True):
 
     for name, text in sources.items():
         if not name.startswith((NATIVE, WORKFLOW)):
-            refuse(name, text, r"\b(RoadmapEngine|RunEngine|SignalEngine|ReasoningServer|ThinkService|RunService|RoadmapService|SignalService|ThinkUseCases|RunUseCases|RoadmapUseCases|SignalUseCases)\b|UnifiedService::new|open_engines\(",
+            refuse(name, text, r"\b(PlanEngine|RunEngine|SignalEngine|ReasoningServer|ThinkService|RunService|PlanService|SignalService|ThinkUseCases|RunUseCases|PlanUseCases|SignalUseCases)\b|UnifiedService::new|open_engines\(",
                    "composes or names a workflow engine or service outside magistr-engine/src/native")
         if name.startswith(NATIVE) and name != NATIVE + "native_reader.rs":
-            refuse(name, text, r"roadmap_engine\(\)|run_engine\(\)|think_engine\(\)|signal_engine\(\)|lock\(&self\.(roadmap|run|think|signal)\)",
+            refuse(name, text, r"plan_engine\(\)|run_engine\(\)|think_engine\(\)|signal_engine\(\)|lock\(&self\.(plan|run|think|signal)\)",
                    "takes an engine lock outside the native reader", comments=True)
         if name == NATIVE + "native_engines.rs":
             refuse(name, text, r"Parameters|CallToolResult|::mcp::|serde_json::from_|Waker::noop|handler_call|\.record_check_full\(",

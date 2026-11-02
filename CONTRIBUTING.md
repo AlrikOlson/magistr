@@ -11,14 +11,14 @@ require repository access. For using Magistr on another project, read the
 2. Generate your own agent setup with `magistr init --agent <claude|codex|cursor|copilot>`.
    The generated `.claude/`, `.agents/`, `.codex/`, `.cursor/` and
    `.github/copilot-instructions.md` are ignored by Git; never commit them.
-3. Inspect existing code and native roadmap records before proposing work.
+3. Inspect existing code and native plan records before proposing work.
 4. Identify which component owns the behavior and fix the problem there.
 5. Keep the change coherent, preserve unrelated work, and describe the observable
    result and acceptance criteria.
 
-The repository keeps roadmaps and work plans in Magistr. Do not generate
-`ROADMAP.md` or `ROADMAP.json`. Planning and reviews do not authorize
-implementation of unrelated roadmap items.
+The repository keeps plans and work plans in Magistr. Do not generate
+`PLAN.md` or `PLAN.json`. Planning and reviews do not authorize
+implementation of unrelated plan items.
 
 ## Verification
 

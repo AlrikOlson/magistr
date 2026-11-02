@@ -66,7 +66,7 @@ fn a_new_goal_after_shipping_starts_a_clean_cycle() {
     serde_json::to_value(e.finalize(vec![], Some("done".into())).unwrap().value).unwrap(); // goal → Completed
     assert_eq!(e.goal.as_ref().unwrap().status, GoalStatus::Finished);
 
-    // The next chunk's goal must NOT inherit the finished cycle's steps —
+    // The next task's goal must NOT inherit the finished cycle's steps —
     // the bleed that let a real session pile explore/implement/verify onto a
     // completed goal and then collide on reused ids.
     let cleared = e

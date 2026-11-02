@@ -50,14 +50,14 @@ try {
   assert(selection.includes("codex"));
   // Exercise a recognized older setting and preservation of its original.
   const older = JSON.parse(readFileSync(configPath, "utf8"));
-  older.roadmap_backend = "think-and-ship";
+  older.plan_backend = "think-and-ship";
   writeFileSync(configPath, JSON.stringify(older, null, 2));
   const before = readFileSync(configPath, "utf8");
   run(["repair", ".", "--dry-run", "--json"]);
   assert.equal(readFileSync(configPath, "utf8"), before, "Repair preview preserves configuration");
   run(["repair", ".", "--yes"]);
   assert.equal(JSON.parse(readFileSync(configPath, "utf8")).project.id, id, "Repair retains project identity");
-  assert.equal(JSON.parse(readFileSync(configPath, "utf8")).roadmap_backend, "native", "Known older configuration converts to current form");
+  assert.equal(JSON.parse(readFileSync(configPath, "utf8")).plan_backend, "native", "Known older configuration converts to current form");
   assert(readdirSync(resolve(project, ".magistr/upgrades/configuration")).length > 0, "Upgrade retains recovery copies");
   run(["remove", ".", "--dry-run", "--json"]);
   assert(existsSync(resolve(project, ".mcp.json")), "Removal preview preserves the connection");

@@ -3,7 +3,7 @@ title: Sessions and resuming work
 description: Continue unfinished work, return to a conversation, or change agents.
 section: working
 order: 5
-related: [storage, chunks, troubleshooting]
+related: [storage, tasks, troubleshooting]
 ---
 A new conversation can continue a project using Magistr's saved records.
 Resuming the exact old conversation is a separate action and depends on the
@@ -24,8 +24,8 @@ The agent should find unfinished work rather than reconstruct it from memory.
 It should retain completed tasks and earlier failures, inspect changes made
 since the last session, and rerun only verification affected by those changes.
 
-The `next` skill resumes interrupted roadmap work before selecting a ready
-chunk. Inspect saved plans in the project terminal:
+The `next` skill resumes interrupted plan work before selecting a ready
+task. Inspect saved plans in the project terminal:
 
 ```sh
 magistr runs .
@@ -68,7 +68,7 @@ Magistr's conversation list.
 ## Change agents
 
 Connect the new agent to the same project, open a new conversation, and ask it
-to read the saved work. Roadmap records, reasoning, work plans, checks, and
+to read the saved work. Plan records, reasoning, work plans, checks, and
 feedback can be shared through Magistr.
 
 The previous agent's entire transcript, authentication, and model settings do

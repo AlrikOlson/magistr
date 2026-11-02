@@ -1,5 +1,5 @@
-use magistr_workflow_contracts::{Chunk, ChunkStatus, Signal, SignalStatus};
-use magistr_workflow_contracts::{Delivery, NativeEvent, RoadmapFrame, SignalFrame};
+use magistr_workflow_contracts::{Delivery, NativeEvent, PlanFrame, SignalFrame};
+use magistr_workflow_contracts::{Signal, SignalStatus, Task, TaskStatus};
 use serde_json::json;
 
 use super::*;
@@ -18,10 +18,10 @@ struct Port {
     fail: bool,
 }
 
-fn chunk(id: &str, status: ChunkStatus) -> Chunk {
-    let mut chunk = fixtures::chunk(id);
-    chunk.status = status;
-    chunk
+fn task(id: &str, status: TaskStatus) -> Task {
+    let mut task = fixtures::task(id);
+    task.status = status;
+    task
 }
 
 fn signal(id: &str, status: SignalStatus) -> Signal {
@@ -50,18 +50,18 @@ impl EnginePort for Port {
         Ok(json!({"open_hypotheses": []}))
     }
 
-    fn start_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
+    fn start_task(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError> {
         if self.fail {
-            return Err(WorkflowMutationError::rejected("no such chunk"));
+            return Err(WorkflowMutationError::rejected("no such task"));
         }
-        Ok(observed(chunk(id, ChunkStatus::InProgress)))
+        Ok(observed(task(id, TaskStatus::InProgress)))
     }
 
-    fn complete_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
+    fn complete_task(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError> {
         if self.fail {
-            return Err(WorkflowMutationError::rejected("no such chunk"));
+            return Err(WorkflowMutationError::rejected("no such task"));
         }
-        Ok(observed(chunk(id, ChunkStatus::Done)))
+        Ok(observed(task(id, TaskStatus::Done)))
     }
 
     fn resolve_proposal(
@@ -69,18 +69,20 @@ impl EnginePort for Port {
         id: &str,
         _kind: crate::cockpit::ProposalKind,
         _accept: bool,
-    ) -> Result<Observed<Chunk>, WorkflowMutationError> {
+    ) -> Result<Observed<Task>, WorkflowMutationError> {
         if self.fail {
             return Err(WorkflowMutationError::rejected("no open proposal"));
         }
-        Ok(observed(chunk(id, ChunkStatus::Pending)))
+        Ok(observed(task(id, TaskStatus::ToDo)))
     }
 
-    fn clear_blocker(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
+    fn clear_blocker(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError> {
         if self.fail {
-            return Err(WorkflowMutationError::rejected("no blocker to clear"));
+            return Err(WorkflowMutationError::rejected(
+                "no waiting reason to clear",
+            ));
         }
-        Ok(observed(chunk(id, ChunkStatus::Pending)))
+        Ok(observed(task(id, TaskStatus::ToDo)))
     }
 
     fn promote_signal(&mut self, id: &str) -> Result<SignalPromotion, WorkflowMutationError> {
@@ -89,10 +91,10 @@ impl EnginePort for Port {
         }
         Ok(SignalPromotion {
             signal_id: id.into(),
-            chunk_id: "new".into(),
+            task_id: "new".into(),
             created: true,
             signal: observed(signal(id, SignalStatus::Promoted)),
-            chunk: observed(chunk("new", ChunkStatus::Backlog)),
+            task: observed(task("new", TaskStatus::Idea)),
         })
     }
 
@@ -130,7 +132,7 @@ fn event_of(port: &mut Port, cmd: &EngineCmd) -> NativeEvent {
 }
 
 #[test]
-fn chunk_and_signal_acts_answer_as_the_typed_events_the_engines_would_announce() {
+fn task_and_signal_acts_answer_as_the_typed_events_the_engines_would_announce() {
     let mut port = Port {
         pins: Vec::new(),
         fail: false,
@@ -138,23 +140,23 @@ fn chunk_and_signal_acts_answer_as_the_typed_events_the_engines_would_announce()
     assert_eq!(
         event_of(
             &mut port,
-            &EngineCmd::StartChunk {
+            &EngineCmd::StartTask {
                 id: "auth".to_owned(),
             },
         ),
-        NativeEvent::Roadmap(RoadmapFrame::ChunkChanged {
-            chunk: chunk("auth", ChunkStatus::InProgress),
+        NativeEvent::Plan(PlanFrame::TaskChanged {
+            task: task("auth", TaskStatus::InProgress),
         })
     );
     assert_eq!(
         event_of(
             &mut port,
-            &EngineCmd::CompleteChunk {
+            &EngineCmd::CompleteTask {
                 id: "auth".to_owned(),
             },
         ),
-        NativeEvent::Roadmap(RoadmapFrame::ChunkCompleted {
-            chunk: chunk("auth", ChunkStatus::Done),
+        NativeEvent::Plan(PlanFrame::TaskCompleted {
+            task: task("auth", TaskStatus::Done),
         })
     );
     assert_eq!(
@@ -193,7 +195,7 @@ fn chunk_and_signal_acts_answer_as_the_typed_events_the_engines_would_announce()
 }
 
 #[test]
-fn a_chunk_refusal_names_the_act_and_the_kind() {
+fn a_task_refusal_names_the_act_and_the_kind() {
     use crate::cockpit::ProposalKind;
 
     let mut port = Port {
@@ -207,7 +209,7 @@ fn a_chunk_refusal_names_the_act_and_the_kind() {
     ] {
         for (accept, act) in [(true, "accept"), (false, "reject")] {
             let cmd = EngineCmd::ResolveProposal {
-                chunk: "auth".to_owned(),
+                task: "auth".to_owned(),
                 kind,
                 accept,
             };
@@ -292,7 +294,7 @@ fn a_refusal_names_what_was_asked() {
 }
 
 #[test]
-fn a_cleared_blocker_answers_with_the_chunk_changed_event_the_dock_folds() {
+fn a_cleared_blocker_answers_with_the_task_changed_event_the_dock_folds() {
     let mut port = Port {
         pins: Vec::new(),
         fail: false,
@@ -301,17 +303,17 @@ fn a_cleared_blocker_answers_with_the_chunk_changed_event_the_dock_folds() {
         event_of(
             &mut port,
             &EngineCmd::ClearBlocker {
-                chunk: "auth".to_owned(),
+                task: "auth".to_owned(),
             },
         ),
-        NativeEvent::Roadmap(RoadmapFrame::ChunkChanged {
-            chunk: chunk("auth", ChunkStatus::Pending),
+        NativeEvent::Plan(PlanFrame::TaskChanged {
+            task: task("auth", TaskStatus::ToDo),
         })
     );
 }
 
 #[test]
-fn a_blocker_the_engine_will_not_clear_names_the_chunk() {
+fn a_blocker_the_engine_will_not_clear_names_the_task() {
     let mut port = Port {
         pins: Vec::new(),
         fail: true,
@@ -320,39 +322,39 @@ fn a_blocker_the_engine_will_not_clear_names_the_chunk() {
         apply(
             &mut port,
             &EngineCmd::ClearBlocker {
-                chunk: "auth".to_owned(),
+                task: "auth".to_owned(),
             }
         ),
         EngineEvent::PortFailed {
             cmd: EngineCmd::ClearBlocker {
-                chunk: "auth".to_owned(),
+                task: "auth".to_owned(),
             },
             what: "clear the blocker on auth".to_owned(),
-            error: "no blocker to clear".to_owned(),
+            error: "no waiting reason to clear".to_owned(),
         }
     );
 }
 
 #[test]
-fn chunk_and_signal_refusals_carry_the_originating_command() {
+fn task_and_signal_refusals_carry_the_originating_command() {
     let mut port = Port {
         pins: Vec::new(),
         fail: true,
     };
     for (cmd, what, error) in [
         (
-            EngineCmd::StartChunk {
+            EngineCmd::StartTask {
                 id: "auth".to_owned(),
             },
             "start auth",
-            "no such chunk",
+            "no such task",
         ),
         (
-            EngineCmd::CompleteChunk {
+            EngineCmd::CompleteTask {
                 id: "auth".to_owned(),
             },
             "complete auth",
-            "no such chunk",
+            "no such task",
         ),
         (
             EngineCmd::PromoteSignal {

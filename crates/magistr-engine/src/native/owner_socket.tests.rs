@@ -12,12 +12,12 @@ fn the_socket_sits_beside_the_lock_when_the_path_is_short() {
     let host = owner_socket_path(&cfg, "lease", WriterRole::Host);
     assert_eq!(
         host,
-        PathBuf::from("/d/roadmap/sessions/lease.project-owner.lock.sock")
+        PathBuf::from("/d/plan/sessions/lease.project-owner.lock.sock")
     );
     let service = owner_socket_path(&cfg, "lease", WriterRole::Service);
     assert_eq!(
         service,
-        PathBuf::from("/d/roadmap/sessions/lease.project-owner.lock.sock")
+        PathBuf::from("/d/plan/sessions/lease.project-owner.lock.sock")
     );
     // A stateless store keys the endpoint under the project root.
     let stateless = cfg.persist(false);
@@ -58,6 +58,6 @@ fn store_aliases_share_one_rendezvous_before_and_after_creation() {
     let b = config(&tmp).with_data_dir(alias.join(".").join(&deep));
     let before = owner_socket_path(&a, "lease", WriterRole::Host);
     assert_eq!(before, owner_socket_path(&b, "lease", WriterRole::Service));
-    std::fs::create_dir_all(real.join(&deep).join("roadmap/sessions")).unwrap();
+    std::fs::create_dir_all(real.join(&deep).join("plan/sessions")).unwrap();
     assert_eq!(before, owner_socket_path(&b, "lease", WriterRole::Service));
 }

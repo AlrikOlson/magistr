@@ -102,7 +102,7 @@ export const explanations = {
     "details": [
       [
         "Why Magistr stopped",
-        "The project changed during the check, so Magistr won't mark the roadmap item finished yet."
+        "The project changed during the check, so Magistr won't mark the plan item finished yet."
       ],
       [
         "Next",
@@ -112,11 +112,11 @@ export const explanations = {
   },
   "action-12": {
     "title": "Save the rules work",
-    "summary": "The implementation task is marked finished. The roadmap item still needs the rules check to run again.",
+    "summary": "The implementation task is marked finished. The plan item still needs the rules check to run again.",
     "details": [
       [
         "The distinction",
-        "Finishing a task does not automatically finish its roadmap item."
+        "Finishing a task does not automatically finish its plan item."
       ]
     ]
   },
@@ -157,12 +157,12 @@ export const explanations = {
   },
   "action-17": {
     "title": "The rules are finished",
-    "summary": "The roadmap now marks rules and turns complete. The board and opponent can build on this shared code.",
+    "summary": "The plan now marks rules and turns complete. The board and opponent can build on this shared code.",
     "details": []
   },
   "action-18": {
     "title": "Start building the opponent",
-    "summary": "The rules are ready, so the agent starts the next roadmap item: an opponent that cannot lose.",
+    "summary": "The rules are ready, so the agent starts the next plan item: an opponent that cannot lose.",
     "details": []
   },
   "change-60": {
@@ -264,7 +264,7 @@ export const explanations = {
   },
   "action-26": {
     "title": "The opponent is finished",
-    "summary": "The roadmap marks the computer opponent complete. Its moves are legal and it has been checked against every legal human reply.",
+    "summary": "The plan marks the computer opponent complete. Its moves are legal and it has been checked against every legal human reply.",
     "details": []
   },
   "action-27": {
@@ -323,12 +323,12 @@ export const explanations = {
   },
   "action-32": {
     "title": "Check off the rules requirements",
-    "summary": "The roadmap's checklist now records the tested behavior: valid turns, wins and draws, and no moves after the game ends.",
+    "summary": "The plan's checklist now records the tested behavior: valid turns, wins and draws, and no moves after the game ends.",
     "details": []
   },
   "action-33": {
     "title": "Check off the opponent requirements",
-    "summary": "The roadmap records that the opponent plays either side, survives every legal human reply, and has a saved explanation for its approach.",
+    "summary": "The plan records that the opponent plays either side, survives every legal human reply, and has a saved explanation for its approach.",
     "details": []
   },
   "action-34": {
@@ -383,7 +383,7 @@ export const explanations = {
   },
   "action-40": {
     "title": "The playable board is finished",
-    "summary": "The roadmap marks the Bevy board complete. It has passed input checks and a separate visual review.",
+    "summary": "The plan marks the Bevy board complete. It has passed input checks and a separate visual review.",
     "details": []
   },
   "action-41": {
@@ -393,7 +393,7 @@ export const explanations = {
   },
   "action-42": {
     "title": "Make it a game you can play again",
-    "summary": "The agent starts the final roadmap item: connect the computer, keep score, and begin another round.",
+    "summary": "The agent starts the final plan item: connect the computer, keep score, and begin another round.",
     "details": [
       [
         "Ready to build on",
@@ -521,7 +521,7 @@ export const explanations = {
   },
   "action-56": {
     "title": "All four pieces are finished",
-    "summary": "The roadmap marks the last item complete. Rules, opponent, board, and rematches now form a checked, playable game.",
+    "summary": "The plan marks the last item complete. Rules, opponent, board, and rematches now form a checked, playable game.",
     "details": []
   },
   "action-57": {

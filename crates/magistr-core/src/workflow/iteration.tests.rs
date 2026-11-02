@@ -4,14 +4,14 @@ use magistr_engine::NativeEngines;
 /// Create a temp project with a spec file and git repo.
 pub(in crate::workflow) fn setup_project(spec_content: &str) -> (tempfile::TempDir, PathBuf) {
     let dir = tempfile::TempDir::new().unwrap();
-    let spec_path = dir.path().join("ROADMAP.md");
+    let spec_path = dir.path().join("PLAN.md");
     std::fs::write(&spec_path, spec_content).unwrap();
 
     // Initialize git repo so HEAD SHA checks work
     let magistr_dir = dir.path().join(".magistr");
     std::fs::create_dir_all(&magistr_dir).unwrap();
     let mut config = project_config();
-    config.roadmap_backend = magistr_engine::RoadmapBackend::Yaml;
+    config.plan_backend = magistr_engine::PlanBackend::Yaml;
     std::fs::write(
         magistr_dir.join("project.json"),
         serde_json::to_string(&config).unwrap(),
@@ -348,7 +348,7 @@ fn recovered_run_keeps_mode_budget_limits_and_terminal_reason() {
     let (dir, spec_path) = setup_project("- [ ] item 1\n");
     let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7)
         .unwrap()
-        .with_run_mode(RunMode::OneChunk);
+        .with_run_mode(RunMode::OneTask);
     loop_mgr.set_budget_limit(Some(5.0)).unwrap();
     loop_mgr.observe_budget(3.5);
     loop_mgr.stop(StopReason::Cancelled);
@@ -356,7 +356,7 @@ fn recovered_run_keeps_mode_budget_limits_and_terminal_reason() {
 
     let mut recovered = IterationLoop::open_or_recover(dir.path(), &spec_path, 99, None)
         .unwrap()
-        .with_run_mode(RunMode::ChunkLoop);
+        .with_run_mode(RunMode::TaskLoop);
     recovered.observe_budget(0.5);
     recovered.set_budget_limit(None).unwrap();
     assert!(recovered.set_budget_limit(Some(10.0)).is_err());
@@ -432,9 +432,9 @@ fn explicit_request_after_cancelled_settled_work_starts_fresh_and_archives_it() 
 fn explicit_request_can_follow_each_settled_terminal_outcome() {
     for reason in [
         StopReason::IterationLimit,
-        StopReason::OneChunkComplete,
+        StopReason::OneTaskComplete,
         StopReason::SpecComplete,
-        StopReason::NoReadyChunk,
+        StopReason::NoReadyTask,
         StopReason::NoProgress,
         StopReason::BudgetExceeded,
         StopReason::Aborted,
@@ -596,9 +596,9 @@ fn recovery_refuses_missing_required_progress_evidence() {
 }
 
 #[test]
-fn run_modes_share_policy_without_applying_chunk_loop_git_guard_to_conversations() {
+fn run_modes_share_policy_without_applying_task_loop_git_guard_to_conversations() {
     let (dir, spec_path) = setup_project("- [ ] item 1\n");
-    for mode in [RunMode::Conversation, RunMode::OneChunk] {
+    for mode in [RunMode::Conversation, RunMode::OneTask] {
         let mut loop_mgr = IterationLoop::with_max(dir.path(), &spec_path, 7)
             .unwrap()
             .with_run_mode(mode);
@@ -609,7 +609,7 @@ fn run_modes_share_policy_without_applying_chunk_loop_git_guard_to_conversations
         assert_eq!(
             loop_mgr.pre_iteration_check().unwrap(),
             match mode {
-                RunMode::OneChunk => PreCheckResult::Stopped(StopReason::OneChunkComplete),
+                RunMode::OneTask => PreCheckResult::Stopped(StopReason::OneTaskComplete),
                 _ => PreCheckResult::Continue,
             }
         );
@@ -619,7 +619,7 @@ fn run_modes_share_policy_without_applying_chunk_loop_git_guard_to_conversations
 #[test]
 fn recover_from_missing_file_errors() {
     let dir = tempfile::TempDir::new().unwrap();
-    let spec_path = dir.path().join("ROADMAP.md");
+    let spec_path = dir.path().join("PLAN.md");
     std::fs::write(&spec_path, "- [ ] item\n").unwrap();
 
     let result = IterationLoop::recover(dir.path(), &spec_path);
@@ -659,7 +659,7 @@ fn state_serializes_to_json() {
     let state = IterationState {
         run: RunState {
             completed_attempts: 3,
-            ..RunState::new(RunMode::ChunkLoop, 10, None)
+            ..RunState::new(RunMode::TaskLoop, 10, None)
         },
         run_id: magistr_domain::identity::RunId::new(
             magistr_domain::identity::ProjectId::new("proj").unwrap(),
@@ -668,7 +668,7 @@ fn state_serializes_to_json() {
         .unwrap(),
         operations: OperationLedger::new(),
         attempt_started: None,
-        native_chunk_id: None,
+        native_task_id: None,
         native_track: None,
         session_selection: None,
         last_commit_sha: Some("abc1234".to_string()),
@@ -687,7 +687,7 @@ fn state_serializes_to_json() {
 fn state_deserializes_from_json() {
     let json = r#"{
             "run": {
-                "mode": "chunk_loop", "completed_attempts": 2, "max_iterations": 8,
+                "mode": "task_loop", "completed_attempts": 2, "max_iterations": 8,
                 "consecutive_no_commits": 1, "budget_total_usd": 0.0,
                 "budget_limit_usd": null, "terminal_reason": null,
                 "last_settled_attempt": 1
@@ -695,7 +695,7 @@ fn state_deserializes_from_json() {
             "run_id": {"project": "proj", "local": "run-1"},
             "operations": {"records": []},
             "attempt_started": null,
-            "native_chunk_id": null,
+            "native_task_id": null,
             "native_track": null,
             "session_selection": null,
             "last_commit_sha": "def5678",
@@ -748,7 +748,7 @@ fn project_config() -> crate::types::ProjectConfig {
         },
         "quality_gate": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "true", "extensions": ["rs"]},
-        "spec": {"file": "ROADMAP.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
+        "spec": {"file": "PLAN.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [],
         "state_prefix": "fixture"
@@ -763,7 +763,7 @@ pub(in crate::workflow) fn native_engines(tmp: &tempfile::TempDir) -> NativeEngi
 
 /// A source that never moves and a project that configures no gates: the
 /// evidence capability every writer here is admitted with, so a recorded
-/// gate certifies a source and a chunk can complete on it.
+/// gate certifies a source and a task can complete on it.
 struct FixedSource;
 
 impl magistr_engine::native::SourceWitness for FixedSource {
@@ -812,12 +812,12 @@ fn admitted(tmp: &tempfile::TempDir, role: magistr_engine::WriterRole) -> Native
         .open()
 }
 
-/// Complete `id` the only way a chunk completes: a goal scoped to
+/// Complete `id` the only way a task completes: a goal scoped to
 /// it, a verification step, a gate recorded green on that step, then
-/// `roadmap_complete_chunk` naming the step.
-pub(in crate::workflow) fn complete_native_chunk(engines: &NativeEngines, id: &str) {
+/// `plan_complete_task` naming the step.
+pub(in crate::workflow) fn complete_native_task(engines: &NativeEngines, id: &str) {
     engines
-        .run_open(format!("do {id}"), vec![], vec![], format!("chunk:{id}"))
+        .run_open(format!("do {id}"), vec![], vec![], format!("task:{id}"))
         .expect("goal");
     engines
         .add_step(
@@ -832,23 +832,23 @@ pub(in crate::workflow) fn complete_native_chunk(engines: &NativeEngines, id: &s
         .run_record_gate(None, "test", "true".into(), 0, String::new(), true, None)
         .expect("gate");
     engines
-        .roadmap_complete_chunk(id, Some("step:verify"))
+        .plan_complete_task(id, Some("step:verify"))
         .expect("complete on the run's check_results");
 }
 
-pub(in crate::workflow) fn add_native_chunk(
+pub(in crate::workflow) fn add_native_task(
     engines: &NativeEngines,
     id: &str,
     priority: u32,
     deps: &[&str],
 ) {
-    use magistr_engine::native::ChunkStatus;
+    use magistr_engine::native::TaskStatus;
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             id.into(),
-            format!("Chunk {id}"),
+            format!("Task {id}"),
             String::new(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             priority,
             String::new(),
             vec![],
@@ -856,7 +856,7 @@ pub(in crate::workflow) fn add_native_chunk(
             None,
             None,
         )
-        .expect("add chunk");
+        .expect("add task");
 }
 
 #[test]
@@ -868,15 +868,15 @@ fn loop_observes_persisted_owner_changes_without_retaining_its_lease() {
     let reader = NativeReader::open_for_project(&config, project_id.clone());
     let mut run = IterationLoop::open(dir.path(), &spec_path, 3, Some(reader)).unwrap();
 
-    add_native_chunk(&owner, "first", 100, &[]);
+    add_native_task(&owner, "first", 100, &[]);
     assert_eq!(run.pre_iteration_check().unwrap(), PreCheckResult::Continue);
-    assert_eq!(run.state().native_chunk_id.as_deref(), Some("first"));
-    owner.roadmap_start_chunk("first").unwrap();
-    complete_native_chunk(&owner, "first");
-    add_native_chunk(&owner, "second", 200, &[]);
+    assert_eq!(run.state().native_task_id.as_deref(), Some("first"));
+    owner.plan_start_task("first").unwrap();
+    complete_native_task(&owner, "first");
+    add_native_task(&owner, "second", 200, &[]);
     run.advance();
     assert_eq!(run.pre_iteration_check().unwrap(), PreCheckResult::Continue);
-    assert_eq!(run.state().native_chunk_id.as_deref(), Some("second"));
+    assert_eq!(run.state().native_task_id.as_deref(), Some("second"));
     assert_eq!((run.state().spec_checked, run.state().spec_total), (1, 2));
     run.persist().unwrap();
 
@@ -888,16 +888,16 @@ fn loop_observes_persisted_owner_changes_without_retaining_its_lease() {
     )
     .expect("the loop does not retain workflow ownership")
     .open();
-    new_owner.roadmap_start_chunk("second").unwrap();
-    complete_native_chunk(&new_owner, "second");
+    new_owner.plan_start_task("second").unwrap();
+    complete_native_task(&new_owner, "second");
     assert_eq!(run.spec_summary().unwrap().checked, 2);
 }
 
 #[test]
-fn explicit_new_request_keeps_the_admitted_native_roadmap() {
+fn explicit_new_request_keeps_the_admitted_native_plan() {
     let (dir, spec_path) = setup_project("- [x] old file is complete\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "ready", 100, &[]);
+    add_native_task(&engines, "ready", 100, &[]);
     let mut previous =
         IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     previous.stop(StopReason::Cancelled);
@@ -910,22 +910,22 @@ fn explicit_new_request_keeps_the_admitted_native_roadmap() {
         PreCheckResult::Continue
     );
     assert_eq!(
-        next.native().unwrap().roadmap_next().unwrap().unwrap().id,
+        next.native().unwrap().plan_next().unwrap().unwrap().id,
         "ready"
     );
     assert_eq!(
-        engines.roadmap_chunk("ready").unwrap().unwrap().status,
-        magistr_engine::native::ChunkStatus::Pending
+        engines.plan_task("ready").unwrap().unwrap().status,
+        magistr_engine::native::TaskStatus::ToDo
     );
 }
 
 #[test]
-fn native_loop_advances_on_roadmap_next_and_stops_when_nothing_is_ready() {
-    // The spec file says "everything done"; the roadmap must win.
+fn native_loop_advances_on_plan_next_and_stops_when_nothing_is_ready() {
+    // The spec file says "everything done"; the plan must win.
     let (dir, spec_path) = setup_project("- [x] Legacy item\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "first", 100, &[]);
-    add_native_chunk(&engines, "second", 200, &["first"]);
+    add_native_task(&engines, "first", 100, &[]);
+    add_native_task(&engines, "second", 200, &["first"]);
 
     let mut il = IterationLoop::with_max(dir.path(), &spec_path, 5)
         .unwrap()
@@ -938,27 +938,27 @@ fn native_loop_advances_on_roadmap_next_and_stops_when_nothing_is_ready() {
     assert_eq!(summary.checked, 0);
     assert_eq!(
         summary.unchecked_items,
-        vec!["first — Chunk first".to_string()]
+        vec!["first — Task first".to_string()]
     );
     assert_eq!(il.state().spec_total, 2);
 
-    // Another client of the admitted project owner completes the chunk.
+    // Another client of the admitted project owner completes the task.
     let writer = engines.clone();
-    writer.roadmap_start_chunk("first").unwrap();
-    complete_native_chunk(&writer, "first");
+    writer.plan_start_task("first").unwrap();
+    complete_native_task(&writer, "first");
 
-    // The loop sees it without being re-opened and moves to the next chunk.
+    // The loop sees it without being re-opened and moves to the next task.
     let summary = il.spec_summary().unwrap();
     assert_eq!(summary.checked, 1);
     assert_eq!(
         summary.unchecked_items,
-        vec!["second — Chunk second".to_string()]
+        vec!["second — Task second".to_string()]
     );
 
     il.advance();
-    writer.roadmap_start_chunk("second").unwrap();
+    writer.plan_start_task("second").unwrap();
     assert_eq!(il.pre_iteration_check().unwrap(), PreCheckResult::Continue);
-    assert_eq!(il.next_native_chunk().unwrap().unwrap().id, "second");
+    assert_eq!(il.next_native_task().unwrap().unwrap().id, "second");
     assert!(
         il.next_prompt(&project_config())
             .unwrap()
@@ -966,24 +966,24 @@ fn native_loop_advances_on_roadmap_next_and_stops_when_nothing_is_ready() {
     );
     assert_eq!(il.state().spec_checked, 1);
     writer.run_finish(vec![], None).unwrap();
-    complete_native_chunk(&writer, "second");
+    complete_native_task(&writer, "second");
     il.advance();
     assert_eq!(
         il.pre_iteration_check().unwrap(),
-        PreCheckResult::NoReadyChunk
+        PreCheckResult::NoReadyTask
     );
 }
 
 #[test]
-fn native_prompt_names_the_next_chunk() {
+fn native_prompt_names_the_next_task() {
     let (dir, spec_path) = setup_project("- [ ] Legacy item\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "guards", 100, &[]);
+    add_native_task(&engines, "guards", 100, &[]);
     let il = IterationLoop::with_max(dir.path(), &spec_path, 5)
         .unwrap()
         .with_native(Some(engines.reader()));
     let prompt = il.next_prompt(&project_config()).unwrap();
-    assert!(prompt.contains("guards — Chunk guards"), "{prompt}");
+    assert!(prompt.contains("guards — Task guards"), "{prompt}");
     assert!(prompt.contains(magistr_engine::prompt::PromptConfig::REASONING_GUIDANCE));
     assert!(prompt.contains("Progress: 0/1"), "{prompt}");
     assert!(!prompt.contains("Legacy item"), "{prompt}");
@@ -994,19 +994,19 @@ fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
     use magistr_engine::native::StepType;
     let (dir, spec_path) = setup_project("- [x] Legacy item\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "current", 200, &[]);
+    add_native_task(&engines, "current", 200, &[]);
     let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     assert_eq!(
         first.pre_iteration_check().unwrap(),
         PreCheckResult::Continue
     );
-    engines.roadmap_start_chunk("current").unwrap();
+    engines.plan_start_task("current").unwrap();
     engines
         .run_open(
             "Finish the current change".into(),
             vec![],
             vec![],
-            "chunk:current".into(),
+            "task:current".into(),
         )
         .unwrap();
     engines
@@ -1024,25 +1024,25 @@ fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
     first.persist().unwrap();
     drop(first);
 
-    add_native_chunk(&engines, "urgent", 1, &[]);
-    add_native_chunk(&engines, "other", 10, &[]);
-    engines.roadmap_start_chunk("other").unwrap();
+    add_native_task(&engines, "urgent", 1, &[]);
+    add_native_task(&engines, "other", 10, &[]);
+    engines.plan_start_task("other").unwrap();
     let mut resumed =
         IterationLoop::start_or_recover(dir.path(), &spec_path, 5, Some(engines.reader())).unwrap();
     assert_eq!(resumed.max_iterations(), 5);
-    assert_eq!(resumed.state().native_chunk_id.as_deref(), Some("current"));
+    assert_eq!(resumed.state().native_task_id.as_deref(), Some("current"));
     assert_eq!(
         resumed.pre_iteration_check().unwrap(),
         PreCheckResult::Continue
     );
-    assert_eq!(resumed.next_native_chunk().unwrap().unwrap().id, "current");
+    assert_eq!(resumed.next_native_task().unwrap().unwrap().id, "current");
     let prompt = resumed.next_prompt(&project_config()).unwrap();
     assert!(
-        prompt.contains("current — Chunk current (in progress; resume this work)"),
+        prompt.contains("current — Task current (in progress; resume this work)"),
         "{prompt}"
     );
     assert!(
-        !prompt.contains("Chunk urgent") && !prompt.contains("Chunk other"),
+        !prompt.contains("Task urgent") && !prompt.contains("Task other"),
         "{prompt}"
     );
     assert_eq!(engines.run_goal().unwrap(), goal);
@@ -1053,8 +1053,8 @@ fn cancelled_native_run_resumes_its_saved_item_and_preserves_the_plan() {
 fn unselected_run_resumes_the_only_unfinished_item() {
     let (dir, spec_path) = setup_project("- [x] Legacy item\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "unfinished", 100, &[]);
-    engines.roadmap_start_chunk("unfinished").unwrap();
+    add_native_task(&engines, "unfinished", 100, &[]);
+    engines.plan_start_task("unfinished").unwrap();
     let first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     first.persist().unwrap();
     drop(first);
@@ -1067,7 +1067,7 @@ fn unselected_run_resumes_the_only_unfinished_item() {
         PreCheckResult::Continue
     );
     assert_eq!(
-        resumed.state().native_chunk_id.as_deref(),
+        resumed.state().native_task_id.as_deref(),
         Some("unfinished")
     );
 }
@@ -1081,11 +1081,11 @@ fn interrupted_native_item_does_not_bypass_a_live_or_unknown_dispatch() {
     ] {
         let (dir, spec_path) = setup_project("- [x] Legacy item\n");
         let engines = native_engines(&dir);
-        add_native_chunk(&engines, "unfinished", 100, &[]);
+        add_native_task(&engines, "unfinished", 100, &[]);
         let mut first =
             IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
         first.pre_iteration_check().unwrap();
-        engines.roadmap_start_chunk("unfinished").unwrap();
+        engines.plan_start_task("unfinished").unwrap();
         let dispatch = first
             .begin_operation(OperationKind::ProviderDispatch, "dispatch", "dispatch")
             .unwrap()
@@ -1102,8 +1102,8 @@ fn interrupted_native_item_does_not_bypass_a_live_or_unknown_dispatch() {
             PreCheckResult::Unreconciled(_)
         ));
         assert_eq!(
-            engines.roadmap_chunk("unfinished").unwrap().unwrap().status,
-            magistr_engine::native::ChunkStatus::InProgress
+            engines.plan_task("unfinished").unwrap().unwrap().status,
+            magistr_engine::native::TaskStatus::InProgress
         );
         assert_eq!(resumed.operations().records().len(), 2);
     }
@@ -1131,9 +1131,9 @@ fn open_on_a_native_project_needs_no_spec_file() {
     )
     .unwrap();
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "solo", 100, &[]);
+    add_native_task(&engines, "solo", 100, &[]);
 
-    let spec_path = dir.path().join("ROADMAP.md");
+    let spec_path = dir.path().join("PLAN.md");
     assert!(!spec_path.exists());
     // The canonical constructor takes the engines and never opens the spec file.
     let mut il = IterationLoop::open(dir.path(), &spec_path, 5, Some(engines.reader())).unwrap();
@@ -1168,13 +1168,13 @@ fn agent_settings_are_persisted_and_cannot_change_during_recovery() {
 fn new_loop_does_not_inherit_a_blocked_item_from_an_ended_run() {
     let (dir, spec_path) = setup_project("- [x] Done\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "previous", 1, &[]);
-    add_native_chunk(&engines, "ready", 2, &[]);
+    add_native_task(&engines, "previous", 1, &[]);
+    add_native_task(&engines, "ready", 2, &[]);
     let mut previous =
         IterationLoop::open(dir.path(), &spec_path, 1, Some(engines.reader())).unwrap();
     previous.pre_iteration_check().unwrap();
     engines
-        .roadmap_set_status("previous", magistr_engine::native::ChunkStatus::Blocked)
+        .plan_set_status("previous", magistr_engine::native::TaskStatus::Waiting)
         .unwrap();
     previous.stop(StopReason::Failed);
     previous.persist().unwrap();
@@ -1186,7 +1186,7 @@ fn new_loop_does_not_inherit_a_blocked_item_from_an_ended_run() {
         next.pre_iteration_check().unwrap(),
         PreCheckResult::Continue
     );
-    assert_eq!(next.state().native_chunk_id.as_deref(), Some("ready"));
+    assert_eq!(next.state().native_task_id.as_deref(), Some("ready"));
     assert_eq!(engines.snapshot(), before, "blocked work remains unchanged");
 }
 
@@ -1194,13 +1194,13 @@ fn new_loop_does_not_inherit_a_blocked_item_from_an_ended_run() {
 fn track_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_workstream() {
     let (dir, spec_path) = setup_project("- [x] Done\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "chosen", 100, &[]);
-    add_native_chunk(&engines, "elsewhere", 1, &[]);
+    add_native_task(&engines, "chosen", 100, &[]);
+    add_native_task(&engines, "elsewhere", 1, &[]);
     engines
-        .roadmap_set_group("chosen", Some("Surface work".into()))
+        .plan_set_feature("chosen", Some("Surface work".into()))
         .unwrap();
     engines
-        .roadmap_set_group("elsewhere", Some("Other work".into()))
+        .plan_set_feature("elsewhere", Some("Other work".into()))
         .unwrap();
     let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     first.select_track(Some("surface")).unwrap();
@@ -1209,7 +1209,7 @@ fn track_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_workstream() {
         first.pre_iteration_check().unwrap(),
         PreCheckResult::Continue
     );
-    assert_eq!(first.state().native_chunk_id.as_deref(), Some("chosen"));
+    assert_eq!(first.state().native_task_id.as_deref(), Some("chosen"));
     first.persist().unwrap();
 
     let mut recovered =
@@ -1219,8 +1219,8 @@ fn track_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_workstream() {
     assert!(recovered.select_track(Some("Other work")).is_err());
     assert_eq!(recovered.state(), &before);
     let checkpoint = std::fs::read(loop_state_path(dir.path())).unwrap();
-    engines.roadmap_start_chunk("chosen").unwrap();
-    complete_native_chunk(&engines, "chosen");
+    engines.plan_start_task("chosen").unwrap();
+    complete_native_task(&engines, "chosen");
     let before_closed = recovered.state().clone();
     assert!(recovered.select_track(None).is_err());
     assert!(recovered.select_track(Some("Other work")).is_err());
@@ -1233,8 +1233,8 @@ fn track_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_workstream() {
         checkpoint
     );
     assert_eq!(
-        engines.roadmap_chunk("elsewhere").unwrap().unwrap().status,
-        magistr_engine::native::ChunkStatus::Pending
+        engines.plan_task("elsewhere").unwrap().unwrap().status,
+        magistr_engine::native::TaskStatus::ToDo
     );
 }
 
@@ -1242,13 +1242,13 @@ fn track_loop_keeps_its_scope_after_recovery_and_refuses_a_closed_workstream() {
 fn track_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
     let (dir, spec_path) = setup_project("- [x] Done\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "chosen", 100, &[]);
-    add_native_chunk(&engines, "elsewhere", 1, &[]);
+    add_native_task(&engines, "chosen", 100, &[]);
+    add_native_task(&engines, "elsewhere", 1, &[]);
     engines
-        .roadmap_set_group("chosen", Some("Surface".into()))
+        .plan_set_feature("chosen", Some("Surface".into()))
         .unwrap();
     engines
-        .roadmap_set_group("elsewhere", Some("Surface follow-up".into()))
+        .plan_set_feature("elsewhere", Some("Surface follow-up".into()))
         .unwrap();
     let mut first = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     first.select_track(Some("Surface")).unwrap();
@@ -1257,7 +1257,7 @@ fn track_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
     let checkpoint = std::fs::read(loop_state_path(dir.path())).unwrap();
 
     engines
-        .roadmap_set_group("chosen", Some("Interface".into()))
+        .plan_set_feature("chosen", Some("Interface".into()))
         .unwrap();
     let mut recovered =
         IterationLoop::recover_with(dir.path(), &spec_path, Some(engines.reader())).unwrap();
@@ -1279,8 +1279,8 @@ fn track_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
     );
     assert_eq!(recovered.track(), Some("Surface"));
     assert_eq!(
-        engines.roadmap_chunk("elsewhere").unwrap().unwrap().status,
-        magistr_engine::native::ChunkStatus::Pending
+        engines.plan_task("elsewhere").unwrap().unwrap().status,
+        magistr_engine::native::TaskStatus::ToDo
     );
 }
 
@@ -1288,23 +1288,23 @@ fn track_loop_refuses_a_moved_saved_name_without_replacing_the_checkpoint() {
 fn track_loop_ignores_unrelated_blocked_and_in_progress_items() {
     let (dir, spec_path) = setup_project("- [x] Done\n");
     let engines = native_engines(&dir);
-    for (id, group) in [
+    for (id, feature) in [
         ("ready", "Chosen"),
         ("blocked", "Other"),
         ("unfinished", "Other"),
     ] {
-        add_native_chunk(&engines, id, 1, &[]);
-        engines.roadmap_set_group(id, Some(group.into())).unwrap();
+        add_native_task(&engines, id, 1, &[]);
+        engines.plan_set_feature(id, Some(feature.into())).unwrap();
     }
-    engines.roadmap_start_chunk("unfinished").unwrap();
+    engines.plan_start_task("unfinished").unwrap();
     engines
-        .roadmap_set_status("blocked", magistr_engine::native::ChunkStatus::Blocked)
+        .plan_set_status("blocked", magistr_engine::native::TaskStatus::Waiting)
         .unwrap();
     let before = engines.snapshot();
     let mut run = IterationLoop::open(dir.path(), &spec_path, 3, Some(engines.reader())).unwrap();
     run.select_track(Some("Chosen")).unwrap();
     assert_eq!(run.pre_iteration_check().unwrap(), PreCheckResult::Continue);
-    assert_eq!(run.state().native_chunk_id.as_deref(), Some("ready"));
+    assert_eq!(run.state().native_task_id.as_deref(), Some("ready"));
     assert_eq!(engines.snapshot(), before);
 }
 
@@ -1312,18 +1312,16 @@ fn track_loop_ignores_unrelated_blocked_and_in_progress_items() {
 fn track_loop_never_runs_a_dependency_from_another_track_or_a_blocked_pending_item() {
     let (dir, spec_path) = setup_project("- [x] Done\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "dependency", 1, &[]);
-    add_native_chunk(&engines, "waiting", 2, &["dependency"]);
-    add_native_chunk(&engines, "blocked", 3, &[]);
+    add_native_task(&engines, "dependency", 1, &[]);
+    add_native_task(&engines, "waiting", 2, &["dependency"]);
+    add_native_task(&engines, "blocked", 3, &[]);
     for id in ["waiting", "blocked"] {
-        engines
-            .roadmap_set_group(id, Some("Chosen".into()))
-            .unwrap();
+        engines.plan_set_feature(id, Some("Chosen".into())).unwrap();
     }
     engines
-        .roadmap_set_blocked_by(
+        .plan_set_waiting_on(
             "blocked",
-            magistr_engine::native::BlockerKind::External,
+            magistr_engine::native::WaitingReason::Outside,
             "Waiting for input".into(),
             None,
         )
@@ -1335,7 +1333,7 @@ fn track_loop_never_runs_a_dependency_from_another_track_or_a_blocked_pending_it
     run.select_track(Some("Chosen")).unwrap();
     assert_eq!(
         run.pre_iteration_check().unwrap(),
-        PreCheckResult::NoReadyChunk
+        PreCheckResult::NoReadyTask
     );
 }
 
@@ -1343,7 +1341,7 @@ fn track_loop_never_runs_a_dependency_from_another_track_or_a_blocked_pending_it
 fn a_new_run_cannot_archive_the_previous_checkpoint_during_a_read_refusal() {
     let (dir, spec) = setup_project("- [ ] item\n");
     let engines = native_engines(&dir);
-    add_native_chunk(&engines, "work", 1, &[]);
+    add_native_task(&engines, "work", 1, &[]);
     let mut previous = IterationLoop::open(dir.path(), &spec, 3, Some(engines.reader())).unwrap();
     previous.pre_iteration_check().unwrap();
     previous.stop(StopReason::Cancelled);
@@ -1351,9 +1349,9 @@ fn a_new_run_cannot_archive_the_previous_checkpoint_during_a_read_refusal() {
     let checkpoint = std::fs::read(loop_state_path(dir.path())).unwrap();
     let path = dir
         .path()
-        .join("workflow-state/roadmap/sessions/iteration-native.json");
+        .join("workflow-state/plan/sessions/iteration-native.json");
     let valid = std::fs::read(&path).unwrap();
-    std::fs::write(&path, b"{ unreadable roadmap").unwrap();
+    std::fs::write(&path, b"{ unreadable plan").unwrap();
     assert!(IterationLoop::start_or_recover(dir.path(), &spec, 5, Some(engines.reader())).is_err());
     assert_eq!(
         std::fs::read(loop_state_path(dir.path())).unwrap(),

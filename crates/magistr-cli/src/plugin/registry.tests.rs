@@ -535,7 +535,7 @@ fn registry_without_allowlist_allows_everything() {
 }
 
 #[test]
-fn registry_register_blocked_by_allowlist() {
+fn registry_register_waiting_on_allowlist() {
     let base = TempDir::new().unwrap();
     let org_config = OrgPluginConfig {
         index_url: None,

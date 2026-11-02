@@ -129,8 +129,8 @@ that resumes after a pause cannot write under an old number.
 
 ### Lifecycle
 
-The [lifecycle table](../../crates/magistr-workflow-contracts/src/roadmap/records.rs)
-(`ChunkStatus::allows`, after the cutover `TaskStatus::allows`) does not change.
+The [lifecycle table](../../crates/magistr-workflow-contracts/src/plan/records.rs)
+(`TaskStatus::allows`) does not change.
 Every move above is already legal:
 
 | Event | Move | Holder after |
@@ -243,7 +243,7 @@ directly.
 ## Readiness
 
 Readiness stays one derived function, `assess_readiness`
-([readiness.rs](../../crates/magistr-workflow-contracts/src/roadmap/readiness.rs)),
+([readiness.rs](../../crates/magistr-workflow-contracts/src/plan/readiness.rs)),
 fed from one snapshot. A task is ready when all five conditions hold:
 
 1. It is to do (an expired checkout counts as to do).

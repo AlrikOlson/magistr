@@ -456,7 +456,7 @@ impl ToolRegistry {
                         "items": {
                             "type": "object",
                             "properties": {
-                                "path": { "type": "string", "description": "Relative path from project root (e.g. 'CLAUDE.md', 'ROADMAP.md', '.claude/rules/conventions.md')" },
+                                "path": { "type": "string", "description": "Relative path from project root (e.g. 'CLAUDE.md', 'PLAN.md', '.claude/rules/conventions.md')" },
                                 "content": { "type": "string", "description": "Complete file content" }
                             },
                             "required": ["path", "content"]

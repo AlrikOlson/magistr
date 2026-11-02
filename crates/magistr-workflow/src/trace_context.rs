@@ -358,7 +358,7 @@ mod tests {
         assert_eq!(got.baggage.as_deref(), Some("userId=alice"));
     }
 
-    /// The claim the whole chunk rests on: the MCP server stores a context in
+    /// The claim the whole task rests on: the MCP server stores a context in
     /// one process and `trace export` reads it back in another. If this
     /// is wrong the join silently never happens and everything else here is
     /// decoration.

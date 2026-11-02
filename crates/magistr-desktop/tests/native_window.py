@@ -52,7 +52,7 @@ def project(path, name):
     (path/".magistr/project.json").write_text(json.dumps({
         "project":{"name":name,"description":"","type":"cli"},
         "stack":{"language":"rust","framework":"none","package_manager":"cargo","test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
-        "roadmap_backend":"native","roadmap_exports":False,
+        "plan_backend":"native","plan_exports":False,
         "quality_gate":{"check":"true","test":"true","lint":"true"},
         "format":{"command":"true","extensions":["rs"]},
         "testing":{"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
@@ -70,7 +70,7 @@ def source_hashes():
         "crates/magistr-cli/src/agent/session_supervisor/permissions.rs",
         "crates/magistr-cli/src/agent/session_supervisor/opening.rs",
         "crates/magistr-cli/src/agent/cockpit_session.rs",
-        "crates/magistr-cli/src/orchestration/roadmap_request.rs",
+        "crates/magistr-cli/src/orchestration/plan_request.rs",
         "crates/magistr-cli/src/application/mod.rs",
         "crates/magistr-cli/src/application/session_catalog.rs",
         "crates/magistr-cli/src/application/interactive_host.rs",

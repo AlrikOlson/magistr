@@ -12,8 +12,8 @@ async function capture(app,name){
   await app.screenshot({path:resolve(dir,name+".png"),animations:"disabled"});
   await captureIteration(app,{root,name,scenario:test.info().file});
 }
-test("01 roadmap sections navigate complete content and retain focus",async({app})=>{
-  await openWork(app,"Roadmap");
+test("01 plan sections navigate complete content and retain focus",async({app})=>{
+  await openWork(app,"Plan");
   await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
   await app.setViewportSize({width:760,height:550});
   for(const theme of ["dark","light"]){
@@ -21,45 +21,45 @@ test("01 roadmap sections navigate complete content and retain focus",async({app
     await app.getByLabel("Jump to section",{exact:true}).selectOption({label:"Requirements"});
     const heading=app.getByRole("heading",{name:"Requirements",exact:true});
     await expect(heading).toBeFocused();await expect(heading).toBeInViewport();
-    await expect(app.locator(".roadmap-requirements")).toContainText("The same conversation and unsent message return after reopening.");
+    await expect(app.locator(".plan-requirements")).toContainText("The same conversation and unsent message return after reopening.");
     await capture(app,"01-sections-"+theme);
   }
   await app.evaluate(()=>window.__fixture.publish("release",{workflow_revision:1}));
   await expect(app.getByRole("heading",{name:"Requirements",exact:true})).toBeFocused();
 });
-test("02 roadmap prose uses compact readable documents",async({app})=>{
-  await openWork(app,"Roadmap");await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
+test("02 plan prose uses compact readable documents",async({app})=>{
+  await openWork(app,"Plan");await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
   await app.setViewportSize({width:760,height:550});
   for(const theme of ["dark","light"]){
     await app.evaluate(value=>document.documentElement.dataset.theme=value,theme);
     await app.getByLabel("Jump to section",{exact:true}).selectOption({label:"Description"});
-    const section=app.locator(".roadmap-document").first();
+    const section=app.locator(".plan-document").first();
     expect((await section.boundingBox()).height).toBeLessThan(95);
     await expect(section).toContainText("Keep the last conversation available when opening a project.");
     await capture(app,"02-documents-"+theme);
   }
 });
-test("03 roadmap checklist states are compact static marks",async({app})=>{
-  await openWork(app,"Roadmap");await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
+test("03 plan checklist states are compact static marks",async({app})=>{
+  await openWork(app,"Plan");await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
   await app.setViewportSize({width:760,height:550});
   await app.getByLabel("Jump to section",{exact:true}).selectOption({label:"What changes"});
   await expect(app.locator(".work-checklist").getByRole("img",{name:"Completed",exact:true})).toBeVisible();
   await expect(app.locator(".work-checklist").getByRole("img",{name:"To do",exact:true})).toBeVisible();
   await expect(app.locator(".work-checklist input")).toHaveCount(0);
-  await expect(app.locator(".roadmap-requirements>header .work-record-count")).toHaveText("1");
+  await expect(app.locator(".plan-requirements>header .work-record-count")).toHaveText("1");
   await capture(app,"03-checklists");
 });
 test("04 related work shows counts and readable state rows",async({app})=>{
-  await openWork(app,"Roadmap");await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
+  await openWork(app,"Plan");await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();
   await app.setViewportSize({width:760,height:550});
-  await expect(app.locator(".roadmap-relations header .work-record-count")).toHaveText(["1","0"]);
-  await app.locator(".roadmap-relations").scrollIntoViewIfNeeded();
+  await expect(app.locator(".plan-relations header .work-record-count")).toHaveText(["1","0"]);
+  await app.locator(".plan-relations").scrollIntoViewIfNeeded();
   await capture(app,"04-relations");
   await app.getByRole("region",{name:"Required work",exact:true}).getByRole("button",{name:"Store conversations and drafts",exact:true}).click();
   await expect(app.getByRole("heading",{name:"Store conversations and drafts",exact:true})).toBeVisible();
 });
-test("05 roadmap status and readiness remain distinct",async({app})=>{
-  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
+test("05 plan status and readiness remain distinct",async({app})=>{
+  await openWork(app,"Plan");await app.setViewportSize({width:760,height:550});
   await expect(app.locator("#work-browser .surface-readiness span")).toHaveText(["1 ready","1 waiting","1 blocked"]);
   await expect(app.locator("#work-browser .work-surface")).toContainText("The release date needs approval.");
   for(const theme of ["dark","light"]){
@@ -69,7 +69,7 @@ test("05 roadmap status and readiness remain distinct",async({app})=>{
   }
 });
 test("06 track choices show owner counts and preserve the selection",async({app})=>{
-  await openWork(app,"Roadmap");
+  await openWork(app,"Plan");
   const tracks=app.getByLabel("Track",{exact:true});
   await expect(tracks.locator('option[value=\'"Desktop"\']')).toHaveText("Desktop · 3 open");
   await tracks.selectOption('"Platform"');
@@ -79,8 +79,8 @@ test("06 track choices show owner counts and preserve the selection",async({app}
   await capture(app,"06-tracks");
 });
 test("07 work searches clear directly and restore the collection",async({app})=>{
-  await openWork(app,"Roadmap");await app.setViewportSize({width:760,height:550});
-  for(const [tab,label] of [["Roadmap","Search all roadmap"],["Reasoning","Search all reasoning"],["Feedback","Search feedback"],["Current and saved work","Find a step"]]){
+  await openWork(app,"Plan");await app.setViewportSize({width:760,height:550});
+  for(const [tab,label] of [["Plan","Search all plan"],["Reasoning","Search all reasoning"],["Feedback","Search feedback"],["Current and saved work","Find a step"]]){
     await app.getByRole("tab",{name:tab,exact:true}).click();
     const input=app.getByLabel(label,{exact:true});await input.fill("no-matching-record-xyz");
     const clear=app.getByRole("button",{name:"Clear "+label.toLowerCase(),exact:true});
@@ -89,8 +89,8 @@ test("07 work searches clear directly and restore the collection",async({app})=>
   await app.getByLabel("Find a step",{exact:true}).fill("installer");await capture(app,"07-search-clear");
 });
 test("08 find shortcut selects the visible work search",async({app})=>{
-  await openWork(app,"Roadmap");
-  for(const [tab,label] of [["Roadmap","Search all roadmap"],["Reasoning","Search all reasoning"],["Feedback","Search feedback"],["Current and saved work","Find a step"]]){
+  await openWork(app,"Plan");
+  for(const [tab,label] of [["Plan","Search all plan"],["Reasoning","Search all reasoning"],["Feedback","Search feedback"],["Current and saved work","Find a step"]]){
     await app.getByRole("tab",{name:tab,exact:true}).click();await app.keyboard.press("Control+f");await expect(app.getByLabel(label,{exact:true})).toBeFocused();
     await app.getByLabel(label,{exact:true}).fill("installer");await app.keyboard.press("Meta+f");
     expect(await app.getByLabel(label,{exact:true}).evaluate(input=>input.selectionEnd-input.selectionStart)).toBe(9);

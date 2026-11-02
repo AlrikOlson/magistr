@@ -1,7 +1,7 @@
 import {desktopMeta,openRelease,visible} from "./desktop.mjs";
 export default {...desktopMeta,title:"Feedback"};
 export const Overview={parameters:{desktop:{
- caption:"Feedback list with a researched concern and an idea added to the roadmap",task:"Scan feedback by kind, title and status.",
+ caption:"Feedback list with a researched concern and an idea added to the plan",task:"Scan feedback by kind, title and status.",
  arrange:async context=>{await openRelease(context);await context.userEvent.click(context.ui.getByRole("tab",{name:"Feedback",exact:true}));},
  verify:({doc,expect})=>{expect(visible(doc,".feedback-list")).toBe(true);expect(doc.querySelectorAll(".feedback-row").length).toBe(2);},
 }}};

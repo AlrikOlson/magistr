@@ -2,7 +2,7 @@
 //!
 //! `MAGISTR_WORKFLOW_TRACKER_PROPOSE` (shipped in 5ca9aa6) is the
 //! machine-readable answer to one question: *may a sweep nobody typed write
-//! proposals onto the roadmap?* It is default-off and it works — but an env var
+//! proposals onto the plan?* It is default-off and it works — but an env var
 //! is a surface almost nobody sets, which is why a whole later change
 //! (f822ca4) existed only to make the switch announce itself.
 //!

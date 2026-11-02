@@ -17,7 +17,7 @@ test("development catalog loads and switches verified stories promptly",async({p
   const started=performance.now();
   await page.goto("http://127.0.0.1:6007/?path=/story/projects-directory--list",{waitUntil:"domcontentloaded",timeout:5000});
   await ready("projects-directory--list",started);
-  for(const [group,id] of [["conversation","conversation--release-plan"],["roadmap","roadmap--overview"],["feedback","feedback--research"]]){
+  for(const [group,id] of [["conversation","conversation--release-plan"],["plan","plan--overview"],["feedback","feedback--research"]]){
     const started=performance.now();
     await page.locator("button#"+group).click();
     await page.locator("a#"+id).click();

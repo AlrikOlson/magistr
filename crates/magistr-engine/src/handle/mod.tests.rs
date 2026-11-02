@@ -1,13 +1,13 @@
 use super::*;
 use crate::{
-    BudgetConfig, CostEvent, RoadmapProgress, SessionCommand, SessionStatus, WorkflowCommand,
+    BudgetConfig, CostEvent, PlanProgress, SessionCommand, SessionStatus, WorkflowCommand,
     WorkflowConfig, WorkflowPhase,
 };
 
 fn test_config() -> WorkflowConfig {
     WorkflowConfig {
         project_dir: "/tmp/test".into(),
-        spec_path: "ROADMAP.md".into(),
+        spec_path: "PLAN.md".into(),
         quality_gate: None,
         max_iterations: 10,
         lifecycle_hooks: vec![],
@@ -130,18 +130,18 @@ fn extend_budget() {
     assert!(!handle.is_budget_exceeded());
 }
 
-// ── Roadmap commands ────────────────────────────────────────────────
+// ── Plan commands ────────────────────────────────────────────────
 
 #[test]
-fn update_roadmap_progress() {
+fn update_plan_progress() {
     let handle = test_handle();
-    handle.update_roadmap_progress(RoadmapProgress {
+    handle.update_plan_progress(PlanProgress {
         total_tasks: 10,
         checked_tasks: 5,
         total_phases: 3,
         completed_phases: 1,
     });
-    let progress = handle.roadmap_progress().unwrap();
+    let progress = handle.plan_progress().unwrap();
     assert_eq!(progress.total_tasks, 10);
     assert_eq!(progress.checked_tasks, 5);
     assert!(!handle.is_spec_complete().unwrap());
@@ -150,7 +150,7 @@ fn update_roadmap_progress() {
 #[test]
 fn spec_complete_detection() {
     let handle = test_handle();
-    handle.update_roadmap_progress(RoadmapProgress {
+    handle.update_plan_progress(PlanProgress {
         total_tasks: 10,
         checked_tasks: 10,
         total_phases: 3,
@@ -258,7 +258,7 @@ fn should_stop_respects_limits() {
     assert!(!handle.should_stop().unwrap());
 
     // Complete the spec
-    handle.update_roadmap_progress(RoadmapProgress {
+    handle.update_plan_progress(PlanProgress {
         total_tasks: 10,
         checked_tasks: 10,
         total_phases: 1,
@@ -313,7 +313,7 @@ fn first_process() -> EngineHandle {
     handle.record_cost(2.5, 900, 300);
     handle.advance_iteration();
     handle.advance_iteration();
-    handle.update_roadmap_progress(RoadmapProgress {
+    handle.update_plan_progress(PlanProgress {
         total_tasks: 20,
         checked_tasks: 8,
         total_phases: 4,
@@ -333,9 +333,9 @@ fn a_capture_writes_down_where_the_session_had_got_to() {
     assert_eq!(snapshot.phase, WorkflowPhase::Executing);
     assert_eq!(snapshot.iteration.iteration, 2);
     assert_eq!(snapshot.cost.total_usd, 2.5);
-    assert_eq!(snapshot.roadmap.checked_tasks, 8);
+    assert_eq!(snapshot.plan.checked_tasks, 8);
     // No native engines here, so nothing to derive a cursor from.
-    assert_eq!(snapshot.roadmap_cursor, None);
+    assert_eq!(snapshot.plan_cursor, None);
 }
 
 #[test]
@@ -349,7 +349,7 @@ fn a_second_process_resumes_the_workflow_where_the_first_stopped() {
 
     assert_eq!(resumed.session_id(), "test-session");
     assert_eq!(resumed.phase(), WorkflowPhase::Executing);
-    assert_eq!(resumed.roadmap_progress().unwrap().checked_tasks, 8);
+    assert_eq!(resumed.plan_progress().unwrap().checked_tasks, 8);
     assert_eq!(restored.iteration.iteration, 2);
     // The turn in flight stayed with the process that was running it.
     assert_eq!(resumed.session_status(), SessionStatus::Awaiting);
@@ -535,8 +535,8 @@ fn a_live_checkpoint_cannot_reset_no_progress_or_replace_the_session() {
 }
 
 #[test]
-fn native_capture_and_decisions_require_one_current_roadmap_observation() {
-    use crate::native::{ChunkStatus, NativeConfig, NativeReader, ProjectAuthority, WriterRole};
+fn native_capture_and_decisions_require_one_current_plan_observation() {
+    use crate::native::{NativeConfig, NativeReader, ProjectAuthority, TaskStatus, WriterRole};
 
     let temp = tempfile::tempdir().unwrap();
     let config =
@@ -547,11 +547,11 @@ fn native_capture_and_decisions_require_one_current_roadmap_observation() {
             .open();
     let add = |id: &str, priority| {
         writer
-            .roadmap_add_chunk(
+            .plan_add_task(
                 id.into(),
                 format!("Work {id}"),
                 String::new(),
-                ChunkStatus::Pending,
+                TaskStatus::ToDo,
                 priority,
                 String::new(),
                 vec![],
@@ -563,22 +563,22 @@ fn native_capture_and_decisions_require_one_current_roadmap_observation() {
     };
     add("first", 20);
     let handle = test_handle().with_native(writer.reader());
-    handle.refresh_native_roadmap().unwrap();
+    handle.refresh_native_plan().unwrap();
     add("second", 1);
 
     let captured = handle.capture().unwrap();
-    assert_eq!(captured.roadmap.total_tasks, 2);
+    assert_eq!(captured.plan.total_tasks, 2);
     assert_eq!(captured.iteration.spec_total, 2);
-    assert_eq!(captured.roadmap_cursor.as_deref(), Some("second"));
+    assert_eq!(captured.plan_cursor.as_deref(), Some("second"));
     captured.restore().unwrap();
 
-    let path = temp.path().join("data/roadmap/sessions/capture-read.json");
+    let path = temp.path().join("data/plan/sessions/capture-read.json");
     let valid = std::fs::read(&path).unwrap();
-    std::fs::write(&path, b"{ unreadable roadmap").unwrap();
+    std::fs::write(&path, b"{ unreadable plan").unwrap();
     let mut events = handle.subscribe();
     assert!(handle.capture().is_err());
-    assert!(handle.refresh_native_roadmap().is_err());
-    assert!(handle.roadmap_progress().is_err());
+    assert!(handle.refresh_native_plan().is_err());
+    assert!(handle.plan_progress().is_err());
     assert!(handle.is_spec_complete().is_err());
     assert!(handle.should_stop().is_err());
     assert!(
@@ -602,5 +602,5 @@ fn native_capture_and_decisions_require_one_current_roadmap_observation() {
         "attachment does not certify unavailable data"
     );
     std::fs::write(&path, valid).unwrap();
-    assert_eq!(attached.capture().unwrap().roadmap, captured.roadmap);
+    assert_eq!(attached.capture().unwrap().plan, captured.plan);
 }

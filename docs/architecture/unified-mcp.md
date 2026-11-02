@@ -7,7 +7,7 @@ workspace operations; external MCP services remain separate.
 ## Ownership
 
 The public service composes two native bridges. The project workflow owner keeps
-roadmap, reasoning, feedback, execution and verification state. Each canonical
+plan, reasoning, feedback, execution and verification state. Each canonical
 working copy has its own workspace owner for source, policy, keys, journal, index
 and workers. Existing admission, local peer checks and source certification
 remain authoritative. The public endpoint creates neither a second state store
@@ -59,7 +59,7 @@ Cancellation propagates to the native request and its command children.
 
 Native permissions, confirmations, stale hashes, journaling and source checks
 apply to every direct or composed operation. `--access planning` additionally
-allows source inspection, reasoning, feedback capture and planning-only roadmap
+allows source inspection, reasoning, feedback capture and planning-only plan
 changes; it refuses implementation, checks and completion. Native planning
 sessions set this restriction on their connection, including when reopened.
 `--access read-only` permits inspection only. Discovery itself changes no

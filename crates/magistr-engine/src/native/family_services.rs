@@ -3,8 +3,8 @@
 use std::sync::{Arc, Mutex};
 
 use magistr_workflow::mcp::UnifiedService;
-use magistr_workflow::roadmap::application::RoadmapUseCases;
-use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
+use magistr_workflow::plan::application::PlanUseCases;
+use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::application::EvidencePort;
 use magistr_workflow::run::application::RunUseCases;
@@ -24,21 +24,21 @@ type Shared<T> = Arc<Mutex<T>>;
 pub(crate) struct FamilyServices {
     pub(crate) think: ThinkUseCases,
     pub(crate) run: RunUseCases,
-    pub(crate) roadmap: RoadmapUseCases,
+    pub(crate) plan: PlanUseCases,
     pub(crate) signal: SignalUseCases,
 }
 
 impl FamilyServices {
     /// Wrap freshly opened engines in their services and wire the
-    /// reciprocal handles: roadmap ↔ signal, and run as the roadmap's
-    /// completion authority, so a chunk completes only on the run's
+    /// reciprocal handles: plan ↔ signal, and run as the plan's
+    /// completion authority, so a task completes only on the run's
     /// current receipts whichever adapter asks. The host's evidence
     /// capability, when composed, is what lets those receipts certify a
     /// source; without it the run family refuses every completion.
     pub(crate) fn compose(
         think: ReasoningServer,
         run: RunEngine,
-        roadmap: RoadmapEngine,
+        plan: PlanEngine,
         signal: SignalEngine,
         evidence: Option<Arc<dyn EvidencePort>>,
     ) -> Self {
@@ -47,14 +47,13 @@ impl FamilyServices {
         if let Some(evidence) = evidence {
             run = run.with_evidence(evidence);
         }
-        let roadmap = RoadmapUseCases::new(Arc::new(Mutex::new(roadmap)), run.clone());
-        let signal =
-            SignalUseCases::new(Arc::new(Mutex::new(signal))).with_roadmap(roadmap.engine());
-        let roadmap = roadmap.with_signal(signal.engine());
+        let plan = PlanUseCases::new(Arc::new(Mutex::new(plan)), run.clone());
+        let signal = SignalUseCases::new(Arc::new(Mutex::new(signal))).with_plan(plan.engine());
+        let plan = plan.with_signal(signal.engine());
         Self {
             think,
             run,
-            roadmap,
+            plan,
             signal,
         }
     }
@@ -68,12 +67,12 @@ impl FamilyServices {
         if let Some(evidence) = evidence {
             run = run.with_evidence(evidence);
         }
-        let roadmap = RoadmapUseCases::new(self.roadmap.engine(), run.clone())
-            .with_signal(self.signal.engine());
+        let plan =
+            PlanUseCases::new(self.plan.engine(), run.clone()).with_signal(self.signal.engine());
         Self {
             think: self.think.clone(),
             run,
-            roadmap,
+            plan,
             signal: self.signal.clone(),
         }
     }
@@ -83,7 +82,7 @@ impl FamilyServices {
         feed: &magistr_workflow::infra::Broadcaster,
         execution_key: &str,
     ) -> std::io::Result<()> {
-        let (think, run, roadmap, signal) = self.engines();
+        let (think, run, plan, signal) = self.engines();
         think
             .lock()
             .map_err(|_| std::io::Error::other("The reasoning publisher could not be attached."))?
@@ -95,12 +94,11 @@ impl FamilyServices {
             .set_broadcaster(magistr_workflow::run::broadcast::Broadcaster::from_engine(
                 feed.clone().with_execution(execution_key.to_owned()),
             ));
-        roadmap
-            .lock()
-            .map_err(|_| std::io::Error::other("The roadmap publisher could not be attached."))?
-            .set_broadcaster(
-                magistr_workflow::roadmap::broadcast::Broadcaster::from_engine(feed.clone()),
-            );
+        plan.lock()
+            .map_err(|_| std::io::Error::other("The plan publisher could not be attached."))?
+            .set_broadcaster(magistr_workflow::plan::broadcast::Broadcaster::from_engine(
+                feed.clone(),
+            ));
         signal
             .lock()
             .map_err(|_| std::io::Error::other("The signal publisher could not be attached."))?
@@ -115,7 +113,7 @@ impl FamilyServices {
         UnifiedService::new(
             ThinkService::from_use_cases(self.think.clone()),
             RunService::from_use_cases(self.run.clone()),
-            RoadmapService::from_use_cases(self.roadmap.clone()),
+            PlanService::from_use_cases(self.plan.clone()),
             SignalService::from_use_cases(self.signal.clone()),
         )
     }
@@ -127,13 +125,13 @@ impl FamilyServices {
     ) -> (
         Shared<ReasoningServer>,
         Shared<RunEngine>,
-        Shared<RoadmapEngine>,
+        Shared<PlanEngine>,
         Shared<SignalEngine>,
     ) {
         (
             self.think.engine(),
             self.run.engine(),
-            self.roadmap.engine(),
+            self.plan.engine(),
             self.signal.engine(),
         )
     }

@@ -48,7 +48,7 @@ Further groupings stay with their owning feature units
 (`audit-260912-26` decision, `-27` session, `-28` work objects); there is
 no workspace-wide mechanical migration and no crate-count target.
 
-The native magistr library continues to own chunks, signals, reasoning,
+The native magistr library continues to own tasks, signals, reasoning,
 execution tasks and their durable records. These are not replicated in the
 domain. `magistr-engine::native` remains the native adapter. Engine and core still
 contain effects; neither crate is a substitute for the domain dependency boundary.
@@ -104,17 +104,17 @@ a nonempty spec and checked count at least the total. Gate labels, icons,
 cached-pass behavior and serialization describe that implementation. They may
 change with the intended design and current tests.
 
-Architecture chunk `arch-03-run-semantics` implements the run-policy decisions
+Architecture task `arch-03-run-semantics` implements the run-policy decisions
 recorded in the [contract baseline](contracts.md#implemented-run-consolidation).
 [`RunMode`](../../crates/magistr-domain/src/workflow/run_mode.rs) distinguishes
-conversation, one-chunk execution and bounded chunk loops.
+conversation, one-task execution and bounded task loops.
 [`RunState`](../../crates/magistr-domain/src/workflow/run_state.rs) owns the
 attempt cursor, iteration ceiling, consecutive no-commit count, cumulative
 budget observation and limit, settlement marker and terminal reason.
 [`StopReason`](../../crates/magistr-domain/src/workflow/stop_reason.rs) names
 completion, limits, no progress, budget, cancellation, failure, abort and pause.
-Conversation has no Git no-progress guard; one-chunk mode stops after its
-selected attempt; chunk loops stop after two consecutive no-commit attempts.
+Conversation has no Git no-progress guard; one-task mode stops after its
+selected attempt; task loops stop after two consecutive no-commit attempts.
 Repeated settlement of the same attempt cannot increase that count. An observed
 commit clears it, while recovery and provider restarts retain it. Only an
 explicit pause is resumable through the domain's resume operation; a later

@@ -23,7 +23,7 @@ The most urgent distinction is:
 
 - **Build readiness:** green in this checkout.
 - **Public availability:** unverified or unavailable from an anonymous environment.
-- **Public comprehension:** covered in source by the roadmap/workflow, ownership-boundary, and evidence-chain views.
+- **Public comprehension:** covered in source by the plan/workflow, ownership-boundary, and evidence-chain views.
 
 ## Evidence at a glance
 
@@ -41,8 +41,8 @@ The most urgent distinction is:
 | Crates.io publication | Deliberate source-only boundary or gap | cargo publish --dry-run --locked -p magistr-cli fails because local path dependencies have no publish version requirements | Do not imply a crates.io install until a publication plan exists |
 | Contributor intake | Ready | `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md` are linked from README and website | New contributors and reporters have canonical entry points |
 | License and notices | Ready | MIT LICENSE; host package includes MIT and bundled font notices | Distribution notices are present |
-| Experimental boundaries | Documented | Release inventory names gui2, peer protocol, live-provider prerequisites, and disabled roadmap exports | Keep these limits visible in the first-run docs |
-| Product message | Ready | README, website hero/meta, manifest, Cargo metadata, installation docs, and release inventory lead with roadmap/workflow management and source-first v0.1 | New users receive one explanation of the product |
+| Experimental boundaries | Documented | Release inventory names gui2, peer protocol, live-provider prerequisites, and disabled plan exports | Keep these limits visible in the first-run docs |
+| Product message | Ready | README, website hero/meta, manifest, Cargo metadata, installation docs, and release inventory lead with plan/workflow management and source-first v0.1 | New users receive one explanation of the product |
 
 The HTTP and DNS observations are environment-scoped checks, not a claim about the intended deployment. Run the same checks from an anonymous network after the repository and site are published.
 
@@ -53,11 +53,11 @@ The release inventory is a useful source of truth. It names the shipped CLI, ter
 The implementation has a coherent product model:
 
 1. A person and a project supply intent.
-2. Native roadmap state keeps goals, priorities, dependencies, acceptance, and ready work.
+2. Native plan state keeps goals, priorities, dependencies, acceptance, and ready work.
 3. A selected item becomes one recorded workflow iteration.
 4. The agent uses project context and the native workspace tools to make changes.
 5. Configured checks produce evidence attached to the work.
-6. The result is committed as one scoped change and the roadmap is ready for the next decision.
+6. The result is committed as one scoped change and the plan is ready for the next decision.
 
 The package script also does the practical things a development release needs on the current host: builds with --locked, includes shell completions, a generated man page, the MIT license, bundled font notices, and a SHA-256 sidecar.
 
@@ -93,7 +93,7 @@ The source install is real and tested. The host archive path is real and tested 
 
 A public development release needs three small policy pages:
 
-- CONTRIBUTING.md: setup, focused changes, required gates, and how to propose a roadmap/workflow change.
+- CONTRIBUTING.md: setup, focused changes, required gates, and how to propose a plan/workflow change.
 - SECURITY.md: how to report a vulnerability privately, what local data may contain, and the support window for an early release.
 - CODE_OF_CONDUCT.md: the community standard and contact path.
 
@@ -101,11 +101,11 @@ Link them from the README and website Community section. The existing developmen
 
 ### Resolved in closure: one product message
 
-The README, website hero/meta, manifest, Cargo metadata, installation docs, and release inventory now lead with “Roadmap and workflow management for coding agents.”
+The README, website hero/meta, manifest, Cargo metadata, installation docs, and release inventory now lead with “Plan and workflow management for coding agents.”
 
 The canonical lead sentence is:
 
-> **Roadmap and workflow management for coding agents.**
+> **Plan and workflow management for coding agents.**
 
 Then explain the terminal cockpit, MCP/workspace tools, and provider adapters as the supporting surfaces. Keep the early-development warning beside that sentence.
 
@@ -121,38 +121,38 @@ The installation docs now describe v0.1 as source-first and point to the package
 
 ## A better visual language for Magistr
 
-The public surface now uses four hand-authored SVG views with the same visual vocabulary and literal labels. Together they answer how to steer the roadmap, which loop owns the work, what one iteration does, and what remains when you return.
+The public surface now uses four hand-authored SVG views with the same visual vocabulary and literal labels. Together they answer how to steer the plan, which loop owns the work, what one iteration does, and what remains when you return.
 
 Use four views, each answering one question.
 
-### View 1: conversation-driven roadmap control
+### View 1: conversation-driven plan control
 
 **Question:** “How does an idea become the next safe change?”
 
-The conversation view shows a user describing an outcome, an agent drafting a roadmap change, the user reviewing that proposal, and one ready chunk entering the queue. It makes the steering boundary clear: the user chooses the direction and applies roadmap changes.
+The conversation view shows a user describing an outcome, an agent drafting a plan change, the user reviewing that proposal, and one ready task entering the queue. It makes the steering boundary clear: the user chooses the direction and applies plan changes.
 
 ### View 2: harness and TUI loop ownership
 
 **Question:** “What changes when I use Codex or Claude instead of the TUI?”
 
-The modes view separates the agent-harness path from the native cockpit. Codex and Claude run skills one chunk per session; `$next-loop` writes a handoff and requires a fresh agent session before the next chunk. `magistr next-loop` is the host-owned TUI loop: it starts a fresh provider session per iteration, persists a checkpoint, and can recover it. Both paths use the same native project state. Crate-level ownership details remain in docs/architecture/overview.md.
+The modes view separates the agent-harness path from the native cockpit. Codex and Claude run skills one task per session; `$next-loop` writes a handoff and requires a fresh agent session before the next task. `magistr next-loop` is the host-owned TUI loop: it starts a fresh provider session per iteration, persists a checkpoint, and can recover it. Both paths use the same native project state. Crate-level ownership details remain in docs/architecture/overview.md.
 
 ### View 3: one bounded iteration
 
-**Question:** “What does one next chunk include?”
+**Question:** “What does one next task include?”
 
-The iteration view follows a ready chunk through selection, preparation, workspace changes, verification, and recorded output. The boundary is concrete: one chunk, its configured checks, and its artifacts.
+The iteration view follows a ready task through selection, preparation, workspace changes, verification, and recorded output. The boundary is concrete: one task, its configured checks, and its artifacts.
 
 ### View 4: resumable native state
 
 **Question:** “What will still be there when I return?”
 
-The state view connects the project checkout, roadmap/reasoning/run records, and agent/workspace clients through the local service. The README describes the records in plain language so the image is not required to understand the model.
+The state view connects the project checkout, plan/reasoning/run records, and agent/workspace clients through the local service. The README describes the records in plain language so the image is not required to understand the model.
 
 ## Visual rules
 
 - Use a flat 2D treatment with orthographic geometry, clear labels, and no 3D metaphors.
-- Preserve the existing accents: cyan for roadmap, orange for planning/action, violet for agent/session, and green for verification/evidence.
+- Preserve the existing accents: cyan for plan, orange for planning/action, violet for agent/session, and green for verification/evidence.
 - Give every node a noun and a verb-sized caption. Avoid icons that require guessing.
 - Keep literal labels and text alt descriptions next to every artwork. Never make color the only encoding.
 - Use the same labels in the README, website, and architecture docs so a reader can move between levels without translating vocabulary.
@@ -165,5 +165,5 @@ The local implementation order is complete: tracked assets, canonical copy, poli
 
 ## Definition of “ready to announce”
 
-A stranger can anonymously clone or download the project, read the license and release notes, reach the issues and security path, follow one install path from a clean checkout, run magistr --version, initialize a disposable project, identify the next roadmap item, and understand what is recorded and what remains their responsibility. The README, website, Cargo metadata, release inventory, and package contents all name the same v0.1 development boundary.
+A stranger can anonymously clone or download the project, read the license and release notes, reach the issues and security path, follow one install path from a clean checkout, run magistr --version, initialize a disposable project, identify the next plan item, and understand what is recorded and what remains their responsibility. The README, website, Cargo metadata, release inventory, and package contents all name the same v0.1 development boundary.
 

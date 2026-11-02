@@ -35,7 +35,7 @@ fn in_flight() -> GuardInput {
 #[test]
 fn stop_is_silent_while_the_goal_is_in_flight() {
     let input = GuardInput {
-        chunk_in_progress: true,
+        task_in_progress: true,
         ..in_flight()
     };
     assert_eq!(
@@ -56,7 +56,7 @@ fn stop_is_silent_without_an_goal() {
 }
 
 #[test]
-fn stop_allows_a_shipped_goal_with_a_clean_tree_and_closed_chunk() {
+fn stop_allows_a_shipped_goal_with_a_clean_tree_and_closed_task() {
     assert_eq!(
         evaluate(GuardEvent::Stop, &shipped()),
         GuardVerdict::Allow(None)
@@ -72,15 +72,15 @@ fn stop_allows_a_shipped_goal_without_claiming_ownership_of_worktree_changes() {
 }
 
 #[test]
-fn stop_blocks_a_shipped_goal_whose_chunk_is_still_in_progress() {
+fn stop_blocks_a_shipped_goal_whose_task_is_still_in_progress() {
     let input = GuardInput {
-        chunk_in_progress: true,
+        task_in_progress: true,
         ..shipped()
     };
     match evaluate(GuardEvent::Stop, &input) {
         GuardVerdict::Block(reason) => {
-            assert!(reason.contains("roadmap item is still open"), "{reason}");
-            assert!(reason.contains("roadmap_complete_chunk"), "{reason}");
+            assert!(reason.contains("plan item is still open"), "{reason}");
+            assert!(reason.contains("plan_complete_task"), "{reason}");
         }
         other => panic!("expected Block, got {other:?}"),
     }
@@ -89,15 +89,15 @@ fn stop_blocks_a_shipped_goal_whose_chunk_is_still_in_progress() {
 #[test]
 fn stop_guidance_preserves_unrelated_changes_and_never_requests_exports() {
     let input = GuardInput {
-        chunk_in_progress: true,
+        task_in_progress: true,
         ..shipped()
     };
     let GuardVerdict::Block(reason) = evaluate(GuardEvent::Stop, &input) else {
-        panic!("the goal's own chunk must be closed");
+        panic!("the goal's own task must be closed");
     };
     assert!(reason.contains("Preserve unrelated changes"), "{reason}");
     assert!(!reason.contains("stage everything"), "{reason}");
-    assert!(!reason.contains("ROADMAP"), "{reason}");
+    assert!(!reason.contains("PLAN"), "{reason}");
 }
 
 #[test]
@@ -193,7 +193,7 @@ fn commit_allows_after_a_verified_passing_required_check() {
 #[test]
 fn commit_allows_a_shipped_goal_with_its_green_checks() {
     let input = GuardInput {
-        command: Some("git commit -m 'docs: roadmap'".into()),
+        command: Some("git commit -m 'docs: plan'".into()),
         ..shipped()
     };
     assert!(matches!(
@@ -372,7 +372,7 @@ fn write_is_not_gated_without_a_frozen_declaration() {
         ..write_input(
             "crates/magistr-gui/src/App.svelte",
             Some("active"),
-            Some("chunk:unrelated"),
+            Some("task:unrelated"),
         )
     };
     assert_eq!(
@@ -385,7 +385,7 @@ fn write_is_not_gated_without_a_frozen_declaration() {
 fn write_is_not_gated_without_a_file_path() {
     let input = GuardInput {
         write_path: None,
-        ..write_input("", Some("active"), Some("chunk:unrelated"))
+        ..write_input("", Some("active"), Some("task:unrelated"))
     };
     assert_eq!(
         evaluate(GuardEvent::Write, &input),
@@ -402,7 +402,7 @@ fn write_allows_paths_outside_the_frozen_tree() {
         "src/main.rs",
         "tests/legacy_gui_guard.rs",
     ] {
-        let input = write_input(path, Some("active"), Some("chunk:unrelated"));
+        let input = write_input(path, Some("active"), Some("task:unrelated"));
         assert_eq!(
             evaluate(GuardEvent::Write, &input),
             GuardVerdict::Allow(None),
@@ -416,7 +416,7 @@ fn write_blocks_under_the_frozen_tree_with_an_unrelated_goal() {
     let input = write_input(
         "crates/magistr-gui/src/App.svelte",
         Some("active"),
-        Some("chunk:acp-reconnect — src/acp/*.rs"),
+        Some("task:acp-reconnect — src/acp/*.rs"),
     );
     match evaluate(GuardEvent::Write, &input) {
         GuardVerdict::Block(reason) => {
@@ -448,8 +448,8 @@ fn write_blocks_under_the_frozen_tree_without_an_goal() {
 #[test]
 fn write_allows_when_the_goal_scope_carries_an_unlock_word() {
     for scope in [
-        "chunk:gui2-0-freeze-tauri — legacy-gui freeze",
-        "chunk:gui2-4-cutover: delete crates/magistr-gui",
+        "task:gui2-0-freeze-tauri — legacy-gui freeze",
+        "task:gui2-4-cutover: delete crates/magistr-gui",
         "Legacy-GUI hotfix: the window will not open",
         "DELETE crates/magistr-gui",
     ] {
@@ -475,7 +475,7 @@ fn write_ignores_the_scope_of_a_shipped_goal() {
     let input = write_input(
         "crates/magistr-gui/src/App.svelte",
         Some("finished"),
-        Some("chunk:gui2-0-freeze-tauri — legacy-gui freeze"),
+        Some("task:gui2-0-freeze-tauri — legacy-gui freeze"),
     );
     assert!(matches!(
         evaluate(GuardEvent::Write, &input),
@@ -488,7 +488,7 @@ fn write_matches_the_frozen_root_itself() {
     let input = write_input(
         "crates/magistr-gui/README.md",
         Some("active"),
-        Some("chunk:other"),
+        Some("task:other"),
     );
     assert!(matches!(
         evaluate(GuardEvent::Write, &input),
@@ -509,7 +509,7 @@ fn write_block_omits_the_replacement_clause_when_none_is_declared() {
         ..write_input(
             "crates/magistr-gui/src/App.svelte",
             Some("active"),
-            Some("chunk:unrelated"),
+            Some("task:unrelated"),
         )
     };
     match evaluate(GuardEvent::Write, &input) {
@@ -531,7 +531,7 @@ fn write_block_suggests_the_declared_unlock_word_as_the_hotfix_scope() {
             unlock: vec!["legacy-thing".into(), "delete".into()],
             replacement: Some("somewhere else".into()),
         }),
-        ..write_input("vendor/thing/x.rs", Some("active"), Some("chunk:unrelated"))
+        ..write_input("vendor/thing/x.rs", Some("active"), Some("task:unrelated"))
     };
     match evaluate(GuardEvent::Write, &input) {
         GuardVerdict::Block(reason) => {

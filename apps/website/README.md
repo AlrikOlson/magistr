@@ -47,7 +47,7 @@ divider. The page says plainly that the session built its own example.
 
 terminal-playback.ts owns the read-only xterm.js terminal. Seeking rebuilds its
 scrollback up to the current entry; queued writes coalesce to the latest seek.
-Play streams complete ANSI chunks into xterm, preserving syntax colors. Pause
+Play streams complete ANSI tasks into xterm, preserving syntax colors. Pause
 retains partial text; resume continues it. A seek cancels outstanding writes and
 shows the selected entry immediately. Submitted human messages appear whole.
 Reduced motion skips character animation. Resizing or changing themes pauses
@@ -78,13 +78,13 @@ Chapter controls seek recorded actions; long idle gaps are shortened during
 playback. Animation timing is a re-enactment, not captured keystroke timing.
 Dialogs follow the [native HTML dialog contract](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog).
 
-The roadmap and reasoning maps import the actual desktop renderer modules from
+The plan and reasoning maps import the actual desktop renderer modules from
 crates/magistr-desktop/ui. The website adapts their surrounding layout and uses
 a readable list on compact screens. Selecting a record opens its requirements
 or explanation. The cursor reconstructs only records available at that action.
 
 The recording comes from implementing examples/bevy-tic-tac-toe with Bevy
-0.20.0. It includes actual roadmap changes, reasoning branches, file writes,
+0.20.0. It includes actual plan changes, reasoning branches, file writes,
 task transitions and command results, interleaved with all 33 visible conversation
 messages from the Bevy request through final delivery. Human prompts are rewritten
 for publication; assistant messages retain their wording with local evidence links

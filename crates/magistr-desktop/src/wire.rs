@@ -60,7 +60,7 @@ impl From<&magistr_application::sessions::Conversation> for Conversation {
 pub(crate) fn purpose(value: SessionPurpose) -> &'static str {
     match value {
         SessionPurpose::Conversation => "conversation",
-        SessionPurpose::Roadmap => "roadmap",
+        SessionPurpose::Plan => "plan",
     }
 }
 #[derive(Serialize)]

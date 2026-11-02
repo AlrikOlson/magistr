@@ -1,7 +1,7 @@
 //! Carrying an engine command out on a port.
 
-use magistr_workflow_contracts::{Chunk, Observed, Signal, WorkflowMutationError};
-use magistr_workflow_contracts::{NativeEvent, RoadmapFrame, SignalFrame};
+use magistr_workflow_contracts::{NativeEvent, PlanFrame, SignalFrame};
+use magistr_workflow_contracts::{Observed, Signal, Task, WorkflowMutationError};
 
 use super::describe::describe;
 use super::event::EngineEvent;
@@ -15,9 +15,9 @@ use crate::cockpit::EngineCmd;
 /// was asked. A checkpoint report is rendered to lines here, so the
 /// cockpit never sees JSON.
 ///
-/// A mutation's answer — the updated chunk or signal — comes back as a
+/// A mutation's answer — the updated task or signal — comes back as a
 /// local [`EngineEvent::Event`] carrying the typed frame the engines
-/// would have announced for it, so the rail, the dock and the Roadmap
+/// would have announced for it, so the rail, the dock and the Plan
 /// tab fold it through the one path they already have; the in-process
 /// engines write no socket of their own.
 pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
@@ -37,21 +37,19 @@ pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
             .map(|report| EngineEvent::Checkpoint {
                 lines: lines(&report),
             }),
-        EngineCmd::StartChunk { id } => chunk_event(port.start_chunk(id), |chunk| {
-            RoadmapFrame::ChunkChanged { chunk }
+        EngineCmd::StartTask { id } => {
+            task_event(port.start_task(id), |task| PlanFrame::TaskChanged { task })
+        }
+        EngineCmd::CompleteTask { id } => task_event(port.complete_task(id), |task| {
+            PlanFrame::TaskCompleted { task }
         }),
-        EngineCmd::CompleteChunk { id } => chunk_event(port.complete_chunk(id), |chunk| {
-            RoadmapFrame::ChunkCompleted { chunk }
-        }),
-        EngineCmd::ResolveProposal {
-            chunk,
-            kind,
-            accept,
-        } => chunk_event(port.resolve_proposal(chunk, *kind, *accept), |chunk| {
-            RoadmapFrame::ChunkChanged { chunk }
-        }),
-        EngineCmd::ClearBlocker { chunk } => chunk_event(port.clear_blocker(chunk), |chunk| {
-            RoadmapFrame::ChunkChanged { chunk }
+        EngineCmd::ResolveProposal { task, kind, accept } => {
+            task_event(port.resolve_proposal(task, *kind, *accept), |task| {
+                PlanFrame::TaskChanged { task }
+            })
+        }
+        EngineCmd::ClearBlocker { task } => task_event(port.clear_blocker(task), |task| {
+            PlanFrame::TaskChanged { task }
         }),
         EngineCmd::PromoteSignal { id } => signal_event(
             port.promote_signal(id).map(|promotion| promotion.signal),
@@ -73,12 +71,12 @@ pub fn apply(port: &mut dyn EnginePort, cmd: &EngineCmd) -> EngineEvent {
     })
 }
 
-/// A port's chunk answer as the roadmap event the engines would announce.
-fn chunk_event(
-    answer: Result<Observed<Chunk>, WorkflowMutationError>,
-    frame: impl FnOnce(Chunk) -> RoadmapFrame,
+/// A port's task answer as the plan event the engines would announce.
+fn task_event(
+    answer: Result<Observed<Task>, WorkflowMutationError>,
+    frame: impl FnOnce(Task) -> PlanFrame,
 ) -> Result<EngineEvent, WorkflowMutationError> {
-    answer.map(|chunk| EngineEvent::local(NativeEvent::Roadmap(frame(chunk.value))))
+    answer.map(|task| EngineEvent::local(NativeEvent::Plan(frame(task.value))))
 }
 
 /// A port's signal answer as the signal event the engines would announce.

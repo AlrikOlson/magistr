@@ -21,9 +21,9 @@ pub mod types;
 pub mod tools;
 pub mod validate;
 
-// ── Orchestration (roadmap, workflow) ─────────────────────────────────────────
+// ── Orchestration (plan, workflow) ─────────────────────────────────────────
 
-pub mod roadmap;
+pub mod plan;
 pub mod workflow;
 
 // ── Multi-agent roles & recommendation ──────────────────────────────────────

@@ -2,7 +2,7 @@
 
 use magistr_engine::NativeEngines;
 use magistr_engine::Observed;
-use magistr_engine::native::{Chunk, Signal, SignalPromotion, WorkflowMutationError};
+use magistr_engine::native::{Signal, SignalPromotion, Task, WorkflowMutationError};
 
 use magistr_cockpit::cockpit::ProposalKind;
 use magistr_cockpit::engine::EnginePort;
@@ -40,13 +40,13 @@ impl EnginePort for NativeEnginePort {
         self.engines.think_checkpoint()
     }
 
-    fn start_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
-        self.engines.roadmap_start_chunk(id).map_err(Into::into)
+    fn start_task(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError> {
+        self.engines.plan_start_task(id).map_err(Into::into)
     }
 
-    fn complete_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
+    fn complete_task(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError> {
         self.engines
-            .roadmap_complete_chunk(id, None)
+            .plan_complete_task(id, None)
             .map_err(Into::into)
     }
 
@@ -55,19 +55,17 @@ impl EnginePort for NativeEnginePort {
         id: &str,
         kind: ProposalKind,
         accept: bool,
-    ) -> Result<Observed<Chunk>, WorkflowMutationError> {
+    ) -> Result<Observed<Task>, WorkflowMutationError> {
         match kind {
-            ProposalKind::Title => self.engines.roadmap_resolve_title_proposal(id, accept),
-            ProposalKind::Status => self.engines.roadmap_resolve_status_proposal(id, accept),
-            ProposalKind::Reprioritize => self.engines.roadmap_resolve_reprioritize(id, accept),
+            ProposalKind::Title => self.engines.plan_resolve_title_proposal(id, accept),
+            ProposalKind::Status => self.engines.plan_resolve_status_proposal(id, accept),
+            ProposalKind::Reprioritize => self.engines.plan_resolve_reprioritize(id, accept),
         }
         .map_err(Into::into)
     }
 
-    fn clear_blocker(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError> {
-        self.engines
-            .roadmap_clear_blocked_by(id)
-            .map_err(Into::into)
+    fn clear_blocker(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError> {
+        self.engines.plan_clear_waiting_on(id).map_err(Into::into)
     }
 
     fn promote_signal(&mut self, id: &str) -> Result<SignalPromotion, WorkflowMutationError> {

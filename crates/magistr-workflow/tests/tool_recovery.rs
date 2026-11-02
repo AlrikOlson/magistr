@@ -296,7 +296,7 @@ async fn omitted_numbers_branch_continuation_and_merge_survive_server_restart() 
 fn every_advertised_required_field_has_actionable_admission() {
     use magistr_workflow::infra::tool_input::ToolInput;
     use magistr_workflow::{
-        roadmap::{RoadmapEngine, RoadmapService},
+        plan::{PlanEngine, PlanService},
         run::{RunService, engine::RunEngine},
         signal::{SignalEngine, SignalService},
     };
@@ -310,8 +310,8 @@ fn every_advertised_required_field_has_actionable_admission() {
     .into_iter()
     .chain(RunService::new(RunEngine::new("schema-contract".into())).list_tools_view())
     .chain(
-        RoadmapService::new(
-            RoadmapEngine::new("schema-contract".into()),
+        PlanService::new(
+            PlanEngine::new("schema-contract".into()),
             RunService::new(RunEngine::new("schema-contract".into())).use_cases(),
         )
         .list_tools_view(),

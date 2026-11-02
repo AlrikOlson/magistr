@@ -56,7 +56,7 @@
 //! assumption stops being an article of faith and becomes something a test, or
 //! a live smoke run, can falsify per provider.
 
-use crate::roadmap::domain::TrackerLink;
+use crate::plan::domain::TrackerLink;
 use crate::tracker::domain::WorkItem;
 
 /// What an inbound item turned out to be.
@@ -137,7 +137,7 @@ mod tests {
 
     fn link(hash: &str, version: Option<&str>) -> TrackerLink {
         TrackerLink {
-            chunk_id: "c1".into(),
+            task_id: "c1".into(),
             provider: "linear".into(),
             external_id: "ENG-1".into(),
             our_last_write_hash: hash.into(),

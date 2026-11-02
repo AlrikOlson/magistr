@@ -61,21 +61,21 @@ impl TrackerOutbox {
     }
 
     /// Identity of a queued projection. Latest-only replacement is keyed on
-    /// this, so re-queuing the same chunk supersedes the older attempt rather
+    /// this, so re-queuing the same task supersedes the older attempt rather
     /// than stacking a second write of a state we no longer believe.
     #[must_use]
-    fn key(provider: &str, chunk_id: &str) -> String {
-        format!("tracker/{provider}/{chunk_id}")
+    fn key(provider: &str, task_id: &str) -> String {
+        format!("tracker/{provider}/{task_id}")
     }
 
     /// Queue a projection for replay.
-    pub fn enqueue(&self, provider: &str, chunk_id: &str, item: &WorkItem) {
+    pub fn enqueue(&self, provider: &str, task_id: &str, item: &WorkItem) {
         let payload = serde_json::json!({
             "provider": provider,
-            "chunk_id": chunk_id,
+            "task_id": task_id,
             "item": item,
         });
-        self.inner.enqueue(Self::key(provider, chunk_id), payload);
+        self.inner.enqueue(Self::key(provider, task_id), payload);
     }
 
     /// How many projections are waiting.
@@ -89,9 +89,9 @@ impl TrackerOutbox {
         self.inner.is_empty()
     }
 
-    /// Chunk ids currently queued for `provider`, oldest first.
+    /// Task ids currently queued for `provider`, oldest first.
     #[must_use]
-    pub fn queued_chunks(&self, provider: &str) -> Vec<String> {
+    pub fn queued_tasks(&self, provider: &str) -> Vec<String> {
         let prefix = format!("tracker/{provider}/");
         self.inner
             .snapshot()
@@ -176,17 +176,17 @@ impl TrackerOutbox {
 pub(crate) fn handle_failure(
     outbox: Option<&TrackerOutbox>,
     provider: &str,
-    chunk_id: &str,
+    task_id: &str,
     item: &WorkItem,
     error: &TrackerError,
 ) -> bool {
     if error.retryable() {
         match outbox {
             Some(o) => {
-                o.enqueue(provider, chunk_id, item);
+                o.enqueue(provider, task_id, item);
                 tracing::warn!(
                     target: "magistr_workflow::tracker",
-                    "projection of '{chunk_id}' failed, queued for replay: {error}"
+                    "projection of '{task_id}' failed, queued for replay: {error}"
                 );
                 true
             }
@@ -197,7 +197,7 @@ pub(crate) fn handle_failure(
         // replay, so queueing it produces a backlog that can only grow.
         tracing::warn!(
             target: "magistr_workflow::tracker",
-            "projection of '{chunk_id}' was REJECTED by the provider \
+            "projection of '{task_id}' was REJECTED by the provider \
              (not queued — it would fail forever): {error}"
         );
         false
@@ -256,15 +256,15 @@ mod tests {
         assert_eq!(outbox.len(), 2, "a 4xx must never be queued");
     }
 
-    /// Latest-only: a chunk queued twice is one entry carrying the newer state,
+    /// Latest-only: a task queued twice is one entry carrying the newer state,
     /// not two writes of a history nobody wants replayed.
     #[test]
-    fn requeuing_a_chunk_supersedes_the_older_attempt() {
+    fn requeuing_a_task_supersedes_the_older_attempt() {
         let outbox = TrackerOutbox::new(None);
         outbox.enqueue("fake", "c1", &item("old"));
         outbox.enqueue("fake", "c1", &item("new"));
         assert_eq!(outbox.len(), 1);
-        assert_eq!(outbox.queued_chunks("fake"), vec!["c1".to_string()]);
+        assert_eq!(outbox.queued_tasks("fake"), vec!["c1".to_string()]);
     }
 
     #[tokio::test]

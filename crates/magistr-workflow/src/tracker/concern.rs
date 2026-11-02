@@ -19,18 +19,18 @@
 //! human only if one happened to be watching stderr during a push, which is
 //! nobody, most of the time. The signal family already solves this problem:
 //! capture, research, surface under earned-interruption discipline, promote to
-//! a roadmap chunk. Reusing it means a conflict arrives through machinery this
+//! a plan task. Reusing it means a conflict arrives through machinery this
 //! project already built and already trusts, instead of a bespoke channel that
 //! would need its own inbox, its own triage and its own reasons to be believed.
 //!
 //! # Both directions of provenance
 //!
-//! Each concern carries two cross-refs: `chunk:<id>` and
-//! `ext:<provider>/<external_id>`. From the chunk you can find the conflict;
-//! from the ticket you can find the chunk. A one-directional link would make
+//! Each concern carries two cross-refs: `task:<id>` and
+//! `ext:<provider>/<external_id>`. From the task you can find the conflict;
+//! from the ticket you can find the task. A one-directional link would make
 //! the concern findable only by someone who already knew where to look.
 
-use crate::roadmap::engine::RoadmapEngine;
+use crate::plan::engine::PlanEngine;
 use crate::signal::SignalEngine;
 use crate::signal::domain::SignalKind;
 use crate::tracker::TrackerError;
@@ -54,30 +54,30 @@ const AUTHOR: &str = "tracker-projection";
 /// new signal, which is correct: it is a different disagreement.
 pub fn emit_divergence_concerns(
     signal: &mut SignalEngine,
-    roadmap: &RoadmapEngine,
+    plan: &PlanEngine,
     provider: &str,
     report: &ProjectionReport,
 ) -> Result<Vec<String>, TrackerError> {
     let mut captured = Vec::new();
 
-    for (chunk_id, divergence) in &report.divergences {
+    for (task_id, divergence) in &report.divergences {
         // A field the tracker owns diverging is normal, not news. Raising it
         // would be the noise that gets the whole channel ignored.
         if divergence.owner == crate::tracker::ownership::Owner::Theirs {
             continue;
         }
 
-        let Some(link) = roadmap.tracker_link(chunk_id, provider) else {
+        let Some(link) = plan.tracker_link(task_id, provider) else {
             // No link means no external ref to point at, and a concern that
             // cannot name the ticket it is about is not worth raising.
             continue;
         };
 
-        let chunk_ref = format!("chunk:{chunk_id}");
+        let task_ref = format!("task:{task_id}");
         let external_ref = format!("ext:{provider}/{}", link.external_id);
         let body = divergence.summary();
 
-        if already_raised(signal, &body, &chunk_ref, &external_ref) {
+        if already_raised(signal, &body, &task_ref, &external_ref) {
             continue;
         }
 
@@ -86,7 +86,7 @@ pub fn emit_divergence_concerns(
                 SignalKind::Concern,
                 AUTHOR.to_string(),
                 body,
-                vec![chunk_ref, external_ref],
+                vec![task_ref, external_ref],
             )
             .map_err(|error| {
                 let message = format!(
@@ -108,16 +108,16 @@ pub fn emit_divergence_concerns(
 /// Whether this exact disagreement is already on someone's plate.
 ///
 /// Matches on the body AND both refs rather than the body alone: the same
-/// sentence about two different chunks is two different problems.
-fn already_raised(signal: &SignalEngine, body: &str, chunk_ref: &str, external_ref: &str) -> bool {
+/// sentence about two different tasks is two different problems.
+fn already_raised(signal: &SignalEngine, body: &str, task_ref: &str, external_ref: &str) -> bool {
     signal.signals().signals.iter().any(|s| {
         s.body == body
-            && s.cross_refs.iter().any(|r| r == chunk_ref)
-            && s.cross_refs.iter().any(|r| r == external_ref)
+            && s.refs.iter().any(|r| r == task_ref)
+            && s.refs.iter().any(|r| r == external_ref)
     })
 }
 
-/// Turn a sweep's remote changes into STATUS proposals on the chunks they
+/// Turn a sweep's remote changes into STATUS proposals on the tasks they
 /// belong to.
 ///
 /// The counterpart of [`emit_divergence_concerns`], and caller-invoked for the
@@ -125,14 +125,14 @@ fn already_raised(signal: &SignalEngine, body: &str, chunk_ref: &str, external_r
 /// to know what moved gets that without anything being written.
 ///
 /// A proposal is NEVER a transition. A ticket closed in the tracker looks
-/// exactly like a chunk that should go done, but a close means the ticket is
+/// exactly like a task that should go done, but a close means the ticket is
 /// finished — not that the acceptance criteria were met. Transitioning silently
 /// would remove the one moment a human was going to look at the evidence, which
-/// is the moment the roadmap exists to create.
+/// is the moment the plan exists to create.
 ///
-/// Returns the chunk ids that received a proposal.
+/// Returns the task ids that received a proposal.
 pub fn propose_status_from_sweep(
-    roadmap: &mut RoadmapEngine,
+    plan: &mut PlanEngine,
     provider: &str,
     report: &crate::tracker::sweep::SweepReport,
 ) -> Result<Vec<String>, TrackerError> {
@@ -142,20 +142,19 @@ pub fn propose_status_from_sweep(
         let Some(external_id) = item.external_id.as_deref() else {
             continue;
         };
-        let Some((chunk_id, current)) = roadmap
+        let Some((task_id, current)) = plan
             .tracker_link_by_external_id(provider, external_id)
-            .map(|l| l.chunk_id.clone())
+            .map(|l| l.task_id.clone())
             .and_then(|id| {
-                roadmap
-                    .roadmap()
-                    .chunks
+                plan.plan()
+                    .tasks
                     .iter()
                     .find(|c| c.id == id)
                     .map(|c| (c.id.clone(), c.status))
             })
         else {
             // A ticket we never projected. The sweep reports it; proposing a
-            // status for a chunk that does not exist would be nonsense.
+            // status for a task that does not exist would be nonsense.
             continue;
         };
 
@@ -172,21 +171,20 @@ pub fn propose_status_from_sweep(
         );
         let source = format!("ext:{provider}/{external_id}");
 
-        roadmap
-            .propose_status(&chunk_id, suggested, reason, source)
+        plan.propose_status(&task_id, suggested, reason, source)
             .map_err(|error| proposal_failure(error, proposed.len()))?;
-        proposed.push(chunk_id);
+        proposed.push(task_id);
     }
 
     Ok(proposed)
 }
 
-/// Turn a sweep's remote retitles into TITLE proposals on the chunks they
+/// Turn a sweep's remote retitles into TITLE proposals on the tasks they
 /// belong to — the pull-side door into the durable-concession machinery.
 ///
 /// The sibling of [`propose_status_from_sweep`], and the reason it exists is
 /// the shape that sibling cannot see: a human retitles a ticket and the plan
-/// never edits that chunk locally. Push cheap-skips before any I/O (nothing
+/// never edits that task locally. Push cheap-skips before any I/O (nothing
 /// local changed), so reconcile never runs and no Contested divergence is
 /// produced. The sweep DOES fetch the retitle as a genuine remote change —
 /// this is where that fetch becomes a proposal.
@@ -204,13 +202,13 @@ pub fn propose_status_from_sweep(
 ///   team decided title divergence is not a conversation at all.
 ///
 /// A proposal is NEVER an edit: `propose_title` fills `title_proposal` and
-/// the chunk's real `title` does not move. Idempotent across repeated sweeps
+/// the task's real `title` does not move. Idempotent across repeated sweeps
 /// because `propose_title` is — an unchanged suggestion does not restamp
 /// `proposed_at`.
 ///
-/// Returns the chunk ids that received a proposal.
+/// Returns the task ids that received a proposal.
 pub fn propose_titles_from_sweep(
-    roadmap: &mut RoadmapEngine,
+    plan: &mut PlanEngine,
     provider: &str,
     report: &crate::tracker::sweep::SweepReport,
     ownership: &crate::tracker::ownership::Ownership,
@@ -227,20 +225,19 @@ pub fn propose_titles_from_sweep(
         let Some(external_id) = item.external_id.as_deref() else {
             continue;
         };
-        let Some((chunk_id, current_title)) = roadmap
+        let Some((task_id, current_title)) = plan
             .tracker_link_by_external_id(provider, external_id)
-            .map(|l| l.chunk_id.clone())
+            .map(|l| l.task_id.clone())
             .and_then(|id| {
-                roadmap
-                    .roadmap()
-                    .chunks
+                plan.plan()
+                    .tasks
                     .iter()
                     .find(|c| c.id == id)
                     .map(|c| (c.id.clone(), c.title.clone()))
             })
         else {
             // A ticket we never projected. The sweep reports it; proposing a
-            // title for a chunk that does not exist would be nonsense.
+            // title for a task that does not exist would be nonsense.
             continue;
         };
 
@@ -257,42 +254,38 @@ pub fn propose_titles_from_sweep(
         );
         let source = format!("ext:{provider}/{external_id}");
 
-        roadmap
-            .propose_title(&chunk_id, item.title.clone(), reason, source)
+        plan.propose_title(&task_id, item.title.clone(), reason, source)
             .map_err(|error| proposal_failure(error, proposed.len()))?;
-        proposed.push(chunk_id);
+        proposed.push(task_id);
     }
 
     Ok(proposed)
 }
 
-/// The tracker's canonical state as a roadmap status.
+/// The tracker's canonical state as a plan status.
 ///
 /// Deliberately NOT the inverse of the projector's `state_of`: that maps five
-/// chunk statuses onto four tracker states, so the round trip cannot be a
+/// task statuses onto four tracker states, so the round trip cannot be a
 /// bijection and pretending otherwise would invent transitions nobody asked
-/// for. `Todo` maps to `Pending` rather than `Backlog` because a ticket that
+/// for. `Todo` maps to `ToDo` rather than `Idea` because a ticket that
 /// exists upstream is work someone has already decided to do.
-fn status_for(state: crate::tracker::domain::WorkItemState) -> crate::roadmap::domain::ChunkStatus {
-    use crate::roadmap::domain::ChunkStatus;
+fn status_for(state: crate::tracker::domain::WorkItemState) -> crate::plan::domain::TaskStatus {
+    use crate::plan::domain::TaskStatus;
     use crate::tracker::domain::WorkItemState;
     match state {
-        WorkItemState::Todo => ChunkStatus::Pending,
-        WorkItemState::InProgress => ChunkStatus::InProgress,
-        WorkItemState::Done => ChunkStatus::Done,
-        WorkItemState::Cancelled => ChunkStatus::Obsoleted,
+        WorkItemState::Todo => TaskStatus::ToDo,
+        WorkItemState::InProgress => TaskStatus::InProgress,
+        WorkItemState::Done => TaskStatus::Done,
+        WorkItemState::Cancelled => TaskStatus::Retired,
     }
 }
 
-fn proposal_failure(
-    error: crate::roadmap::engine::RoadmapMutationError,
-    saved: usize,
-) -> TrackerError {
+fn proposal_failure(error: crate::plan::engine::PlanMutationError, saved: usize) -> TrackerError {
     let message =
         format!("Saved {saved} suggestions; the next suggestion could not be saved: {error}");
     let store = match error {
-        crate::roadmap::engine::RoadmapMutationError::Store(error) => Some(error),
-        crate::roadmap::engine::RoadmapMutationError::Rejected(_) => None,
+        crate::plan::engine::PlanMutationError::Store(error) => Some(error),
+        crate::plan::engine::PlanMutationError::Rejected(_) => None,
     };
     TrackerError::Local { message, store }
 }

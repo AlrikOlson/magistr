@@ -58,7 +58,7 @@ compiled Bevy game; there is no JavaScript implementation of the rules.
 ## Recorded build
 
 The website publishes selected actual tool actions, recorded reasoning,
-roadmap changes, source changes and check results. Its terminal is an interactive
+plan changes, source changes and check results. Its terminal is an interactive
 re-enactment of those records, not a screen recording. No private session files
 or verbatim user prompts are included.
 

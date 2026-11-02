@@ -1,34 +1,34 @@
 ---
-title: Working in chunks
+title: Working in tasks
 description: Complete one deliverable or run a bounded sequence of ready work.
 section: working
 order: 3
 related: [verification, sessions, configuration]
 ---
-A **chunk** is a roadmap deliverable with acceptance criteria. Its implementation
+A **task** is a plan deliverable with acceptance criteria. Its implementation
 has an goal, tasks, actions, checks, and resulting artifacts.
 
 Before starting, [connect your agent](/docs/agents), review the
-[roadmap](/docs/roadmap), and confirm the project's check and delivery instructions.
+[plan](/docs/plan), and confirm the project's check and delivery instructions.
 Save or identify unrelated changes so the agent can preserve them.
 
-## Complete one chunk in your conversation
+## Complete one task in your conversation
 
 | Agent | Skill |
 | --- | --- |
 | Codex | `$next` |
 | Claude Code | `/next` |
 
-The skill resumes interrupted roadmap work first. Otherwise it selects one
-ready chunk. It reads requirements and code, records a task plan, implements
+The skill resumes interrupted plan work first. Otherwise it selects one
+ready task. It reads requirements and code, records a task plan, implements
 the change, runs relevant checks, and commits the completed result.
 
 Required checks and acceptance criteria must pass before completion.
 If verification fails, work remains unfinished. The agent should diagnose the
 failure, correct it, and rerun the affected checks.
 
-A direct small request can have a work plan without a roadmap chunk. Use the
-direct request instead of selecting unrelated roadmap work.
+A direct small request can have a work plan without a plan task. Use the
+direct request instead of selecting unrelated plan work.
 
 ## Start a separate session from a terminal
 
@@ -68,14 +68,14 @@ The loop stops when its limit is reached, no eligible work is ready, or it
 cannot continue safely. A failed check or unresolved agent attempt may require
 attention before another iteration can start.
 
-Inside a chat, `$next-loop` or `/next-loop` completes one chunk and writes a
+Inside a chat, `$next-loop` or `/next-loop` completes one task and writes a
 handoff. Continue that bound only in a fresh agent session. The terminal command
 manages the sequence of new sessions automatically.
 
 ## Resume after interruption
 
 Reopen the same project and inspect the saved work before editing. The
-roadmap workflow gives interrupted work precedence over new pending work.
+plan workflow gives interrupted work precedence over new pending work.
 For a loop started in a terminal, rerun the same command and settings.
 
 An unfinished loop retains its saved agent settings. Conflicting options are
@@ -87,7 +87,7 @@ attempt must be inspected; it must not be blindly retried. See
 
 The final report should identify the delivered behavior, current passing checks,
 commit, and remaining limitations. A completed task is only one part of the
-chunk; a successful command does not by itself prove every acceptance criterion.
+task; a successful command does not by itself prove every acceptance criterion.
 
 Pushes and deployments follow your explicit project instructions. Keep those
 instructions available to every session, including longer runs.

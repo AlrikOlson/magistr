@@ -10,17 +10,17 @@ pub enum SignalError {
     NotFound(String),
     #[error("{0}")]
     InvalidState(String),
-    #[error("signal_promote requires the roadmap engine (not wired in this context)")]
+    #[error("signal_promote requires the plan engine (not wired in this context)")]
     NotWired,
     #[error("signal engine mutex poisoned")]
     Poisoned,
     #[error("{0}")]
     Store(WriteError),
     #[error(
-        "Work item '{chunk_id}' was saved, but promotion could not finish: {cause}. Read both records and retry promotion."
+        "Work item '{task_id}' was saved, but promotion could not finish: {cause}. Read both records and retry promotion."
     )]
     PartialPromotion {
-        chunk_id: String,
+        task_id: String,
         committed_source: magistr_workflow_contracts::ReadSource,
         cause: Box<SignalError>,
     },

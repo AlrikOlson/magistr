@@ -19,7 +19,7 @@ const DATA_DIR_VAR: &str = "MAGISTR_WORKFLOW_DATA_DIR";
 pub enum Domain {
     Think,
     Run,
-    Roadmap,
+    Plan,
     Signal,
     /// Adopted W3C Trace Context (SEP-414). Not a tool family — the one
     /// partition written by the MCP server and read by the `trace export`
@@ -38,7 +38,7 @@ impl Domain {
         match self {
             Self::Think => "think",
             Self::Run => "run",
-            Self::Roadmap => "roadmap",
+            Self::Plan => "plan",
             Self::Signal => "signal",
             Self::Otel => "otel",
             Self::Usage => "usage",
@@ -155,7 +155,7 @@ impl Persistence {
     }
 
     /// The store file backing one session. `pub` so a caller that must operate
-    /// on the file itself — `roadmap prune`, which backs it up before writing —
+    /// on the file itself — `plan prune`, which backs it up before writing —
     /// doesn't have to reconstruct the path and risk disagreeing with this.
     pub fn path_for(&self, session_id: &str) -> PathBuf {
         self.sessions_dir.join(format!("{session_id}.json"))

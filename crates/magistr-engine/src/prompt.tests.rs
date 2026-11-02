@@ -2,7 +2,7 @@ use super::*;
 
 fn sample_config() -> PromptConfig {
     PromptConfig {
-        spec_file: Some("ROADMAP.md".into()),
+        spec_file: Some("PLAN.md".into()),
         check_command: "cargo check".into(),
         test_command: "cargo test".into(),
         lint_command: "cargo clippy".into(),
@@ -45,9 +45,9 @@ fn next_prompt_includes_workflow_reference() {
     let prompt = sample_config().build_next_prompt(&sample_summary());
     assert!(prompt.contains("Research-Plan-Execute-Verify"));
     assert!(prompt.contains("magistr_set_phase"));
-    assert!(prompt.contains("roadmap_complete_chunk"));
+    assert!(prompt.contains("plan_complete_task"));
     assert!(prompt.contains("run_finish"));
-    assert!(!prompt.contains("magistr_roadmap"));
+    assert!(!prompt.contains("magistr_plan"));
 }
 
 #[test]
@@ -127,7 +127,7 @@ fn next_prompt_includes_project_config() {
     assert!(prompt.contains("`cargo check`"));
     assert!(prompt.contains("`cargo test`"));
     assert!(prompt.contains("`cargo clippy`"));
-    assert!(prompt.contains("`ROADMAP.md`"));
+    assert!(prompt.contains("`PLAN.md`"));
 }
 
 #[test]
@@ -168,11 +168,11 @@ fn next_prompt_points_at_workflow_without_a_spec_file() {
     };
     let prompt = config.build_next_prompt(&sample_summary());
     assert!(
-        prompt.contains("`roadmap_next`"),
+        prompt.contains("`plan_next`"),
         "no spec file — the agent must be sent to the engines: {prompt}"
     );
     assert!(
-        !prompt.contains("**Roadmap:** `"),
+        !prompt.contains("**Plan:** `"),
         "must not invent a spec file to read: {prompt}"
     );
 }

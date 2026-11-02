@@ -2,8 +2,8 @@
 
 use magistr_workflow_contracts::WorkflowMutationError;
 
-impl From<crate::roadmap::application::RoadmapError> for WorkflowMutationError {
-    fn from(error: crate::roadmap::application::RoadmapError) -> Self {
+impl From<crate::plan::application::PlanError> for WorkflowMutationError {
+    fn from(error: crate::plan::application::PlanError) -> Self {
         Self {
             code: error.kind().into(),
             message: error.to_string(),
@@ -19,11 +19,11 @@ impl From<crate::signal::application::SignalError> for WorkflowMutationError {
     fn from(error: crate::signal::application::SignalError) -> Self {
         let committed_record = match &error {
             crate::signal::application::SignalError::PartialPromotion {
-                chunk_id,
+                task_id,
                 committed_source,
                 ..
             } => Some(Box::new(magistr_workflow_contracts::Observed {
-                value: chunk_id.clone(),
+                value: task_id.clone(),
                 source: *committed_source,
             })),
             _ => None,

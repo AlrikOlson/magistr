@@ -120,12 +120,12 @@ async fn parked_contexts_keep_late_events_and_duplicate_permission_ids_separate(
     commands
         .send(addressed(
             "logical-conversation",
-            Cmd::RoadmapPrompt("Plan".into()),
+            Cmd::PlanPrompt("Plan".into()),
         ))
         .unwrap();
     let mut planning = next(&mut connections).await;
     assert_eq!(next(&mut planning.prompts).await, "Plan");
-    accepted(&mut observations, "logical-roadmap").await;
+    accepted(&mut observations, "logical-plan").await;
 
     let permission = Cmd::Permission {
         id: 7,
@@ -140,7 +140,7 @@ async fn parked_contexts_keep_late_events_and_duplicate_permission_ids_separate(
     assert!(conversation.calls.try_recv().is_err());
     assert!(planning.calls.try_recv().is_err());
     commands
-        .send(addressed("logical-roadmap", permission.clone()))
+        .send(addressed("logical-plan", permission.clone()))
         .unwrap();
     assert_eq!(next(&mut planning.calls).await, permission);
 
@@ -156,17 +156,17 @@ async fn parked_contexts_keep_late_events_and_duplicate_permission_ids_separate(
         .send(AgentEvent::TurnEnded(TurnEnd::EndTurn))
         .unwrap();
     assert!(
-        matches!(message(&mut observations).await, (id, Msg::Agent(AgentEvent::TurnEnded(_))) if id == "logical-roadmap")
+        matches!(message(&mut observations).await, (id, Msg::Agent(AgentEvent::TurnEnded(_))) if id == "logical-plan")
     );
 
     commands.send(Cmd::Prompt("Continue A".into())).unwrap();
     assert_eq!(next(&mut conversation.prompts).await, "Continue A");
     accepted(&mut observations, "logical-conversation").await;
     commands
-        .send(addressed("logical-roadmap", permission.clone()))
+        .send(addressed("logical-plan", permission.clone()))
         .unwrap();
     assert!(
-        matches!(message(&mut observations).await, (id, Msg::CommandFailed { cmd, .. }) if id == "logical-roadmap" && cmd == permission)
+        matches!(message(&mut observations).await, (id, Msg::CommandFailed { cmd, .. }) if id == "logical-plan" && cmd == permission)
     );
     commands
         .send(addressed("logical-conversation", permission.clone()))
@@ -182,11 +182,9 @@ async fn parked_contexts_keep_late_events_and_duplicate_permission_ids_separate(
         message(&mut observations).await,
         (_, Msg::Agent(AgentEvent::TurnEnded(_)))
     ));
-    commands
-        .send(Cmd::RoadmapPrompt("Continue B".into()))
-        .unwrap();
+    commands.send(Cmd::PlanPrompt("Continue B".into())).unwrap();
     assert_eq!(next(&mut planning.prompts).await, "Continue B");
-    accepted(&mut observations, "logical-roadmap").await;
+    accepted(&mut observations, "logical-plan").await;
     assert!(
         connections.try_recv().is_err(),
         "both logical contexts retain their own provider"
@@ -224,7 +222,7 @@ async fn commands_waiting_across_a_connection_switch_never_reach_the_new_owner()
     commands
         .send(addressed(
             "logical-conversation",
-            Cmd::RoadmapPrompt("Plan".into()),
+            Cmd::PlanPrompt("Plan".into()),
         ))
         .unwrap();
     let mut planning = next(&mut connections).await;
@@ -247,17 +245,17 @@ async fn commands_waiting_across_a_connection_switch_never_reach_the_new_owner()
                 rejected = true;
             }
             Msg::InputAccepted(_) => {
-                assert_eq!(id, "logical-roadmap");
+                assert_eq!(id, "logical-plan");
                 admitted = true;
             }
-            Msg::RoadmapRequestStarted => assert_eq!(id, "logical-roadmap"),
+            Msg::PlanRequestStarted => assert_eq!(id, "logical-plan"),
             other => panic!("unexpected event: {other:?}"),
         }
     }
     assert_eq!(next(&mut planning.prompts).await, "Plan");
     assert!(planning.calls.try_recv().is_err());
     commands
-        .send(addressed("logical-roadmap", stale.clone()))
+        .send(addressed("logical-plan", stale.clone()))
         .unwrap();
     assert_eq!(next(&mut planning.calls).await, stale);
     commands.send(Cmd::Quit).unwrap();
@@ -269,7 +267,7 @@ async fn addressed_sends_and_reconnect_keep_the_opening_planning_purpose() {
     let (inbox, mut observations) = observed();
     let (commands, receiver) = Commands::channel();
     let (opened, mut connections) = mpsc::unbounded_channel();
-    let (handle, mut planning) = controlled(SessionPurpose::Roadmap);
+    let (handle, mut planning) = controlled(SessionPurpose::Plan);
     let task = InteractiveSession::new(
         move |purpose, resume| {
             let (handle, observed) = controlled(purpose);
@@ -284,24 +282,24 @@ async fn addressed_sends_and_reconnect_keep_the_opening_planning_purpose() {
     .connected(handle, false)
     .spawn(receiver);
     assert!(
-        matches!(next(&mut observations).await, Observation::Activated(id) if id == "logical-roadmap")
+        matches!(next(&mut observations).await, Observation::Activated(id) if id == "logical-plan")
     );
     commands
         .send(addressed(
-            "logical-roadmap",
+            "logical-plan",
             Cmd::Prompt("Continue planning".into()),
         ))
         .unwrap();
     assert_eq!(next(&mut planning.prompts).await, "Continue planning");
-    accepted(&mut observations, "logical-roadmap").await;
+    accepted(&mut observations, "logical-plan").await;
     commands
         .send(addressed(
-            "logical-roadmap",
+            "logical-plan",
             Cmd::Prompt("Queued planning".into()),
         ))
         .unwrap();
     assert_eq!(next(&mut planning.prompts).await, "Queued planning");
-    accepted(&mut observations, "logical-roadmap").await;
+    accepted(&mut observations, "logical-plan").await;
     assert!(connections.try_recv().is_err());
 
     for event in [
@@ -320,13 +318,13 @@ async fn addressed_sends_and_reconnect_keep_the_opening_planning_purpose() {
         AgentEvent::Error("lost connection".into()),
     ] {
         planning.events.send(event).unwrap();
-        assert_eq!(message(&mut observations).await.0, "logical-roadmap");
+        assert_eq!(message(&mut observations).await.0, "logical-plan");
     }
     commands
-        .send(addressed("logical-roadmap", Cmd::Reconnect))
+        .send(addressed("logical-plan", Cmd::Reconnect))
         .unwrap();
     let (purpose, resume, mut restored) = next(&mut connections).await;
-    assert_eq!(purpose, SessionPurpose::Roadmap);
+    assert_eq!(purpose, SessionPurpose::Plan);
     assert_eq!(resume.as_deref(), Some("provider-planning"));
     assert!(restored.prompts.try_recv().is_err());
     restored
@@ -341,7 +339,7 @@ async fn addressed_sends_and_reconnect_keep_the_opening_planning_purpose() {
         })
         .unwrap();
     assert!(
-        matches!(message(&mut observations).await, (id, Msg::Agent(AgentEvent::Initialized { .. })) if id == "logical-roadmap")
+        matches!(message(&mut observations).await, (id, Msg::Agent(AgentEvent::Initialized { .. })) if id == "logical-plan")
     );
     commands.send(Cmd::Quit).unwrap();
     task.await.unwrap().unwrap();

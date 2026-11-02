@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::roadmap_command::RoadmapCommand;
+use super::plan_command::PlanCommand;
 use super::run_command::RunCommand;
 use super::signal_command::SignalCommand;
 use super::think_command::ThinkCommand;
@@ -17,8 +17,8 @@ use super::think_command::ThinkCommand;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "family", rename_all = "snake_case")]
 pub enum OwnerCommand {
-    /// A roadmap mutation.
-    Roadmap(RoadmapCommand),
+    /// A plan mutation.
+    Plan(PlanCommand),
     /// A reasoning-trace mutation.
     Think(ThinkCommand),
     /// An execution-trace mutation.

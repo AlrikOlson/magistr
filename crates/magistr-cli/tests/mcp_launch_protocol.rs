@@ -108,10 +108,10 @@ impl Fixture {
         command
     }
 
-    fn assert_no_roadmap_files(&self) {
+    fn assert_no_plan_files(&self) {
         for base in [&self.root, &self.root.join("src/nested")] {
-            for path in ["ROADMAP.md", "ROADMAP.json", ".magistr/roadmap.yaml"] {
-                assert!(!base.join(path).exists(), "unexpected roadmap file: {path}");
+            for path in ["PLAN.md", "PLAN.json", ".magistr/plan.yaml"] {
+                assert!(!base.join(path).exists(), "unexpected plan file: {path}");
             }
         }
     }
@@ -187,13 +187,13 @@ async fn generated_magistr_launch_serves_native_tools_after_relocation_from_root
         for name in ["context", "arrange_steps", "discover", "execute"] {
             assert!(tools.iter().any(|tool| tool.name == name), "missing {name}");
         }
-        let status = call(&client, "roadmap_status", json!({})).await;
+        let status = call(&client, "plan_status", json!({})).await;
         assert_eq!(
             status["project_id"], identity["project"]["id"],
             "workspace identity"
         );
         stop(client, child).await;
-        fixture.assert_no_roadmap_files();
+        fixture.assert_no_plan_files();
     }
 }
 
@@ -241,6 +241,6 @@ async fn generated_workspace_launch_reads_and_searches_relocated_workspace_from_
             "source match: {search}"
         );
         stop(client, child).await;
-        fixture.assert_no_roadmap_files();
+        fixture.assert_no_plan_files();
     }
 }

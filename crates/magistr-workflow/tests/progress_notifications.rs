@@ -1,4 +1,4 @@
-//! End-to-end proof that a long tool call is no longer silent (roadmap chunk
+//! End-to-end proof that a long tool call is no longer silent (plan task
 //! `mcp-progress-and-logging`).
 //!
 //! Pairs a real rmcp client with the unified server over an in-memory duplex —
@@ -29,7 +29,7 @@ use std::sync::{Arc, Mutex};
 
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::progress::{FIRST_TICK, tick_message};
-use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
+use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
@@ -67,9 +67,9 @@ fn build_unified(project: &str) -> UnifiedService {
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new(project.into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), run.use_cases());
+    let plan = PlanService::new(PlanEngine::new(project.into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(think, run, roadmap, signal)
+    UnifiedService::new(think, run, plan, signal)
 }
 
 async fn pair(
@@ -269,7 +269,7 @@ async fn ticks_rise_carry_no_fake_total_and_name_the_tool_and_elapsed_time() {
 /// reason. Deleting the first-tick delay entirely left 3b green: a
 /// microsecond-long call is over before its spawned ticker is ever scheduled,
 /// so abort-on-drop — not the delay — is what silences it. A sub-second but
-/// non-trivial call (`roadmap_status` over a large plan, a quick `git` shell-out)
+/// non-trivial call (`plan_status` over a large plan, a quick `git` shell-out)
 /// is the band the delay actually protects, and only a test in that band can
 /// hold the constant honest.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

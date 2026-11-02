@@ -11,7 +11,7 @@ fn temp_project() -> (tempfile::TempDir, GuardContext) {
 
 fn temp_project_with(run: RunGuardState) -> (tempfile::TempDir, GuardContext) {
     let dir = tempfile::TempDir::new().unwrap();
-    let spec_path = dir.path().join("ROADMAP.md");
+    let spec_path = dir.path().join("PLAN.md");
     let ctx = GuardContext::new(
         dir.path().to_string_lossy().to_string(),
         spec_path.to_string_lossy().to_string(),
@@ -147,7 +147,7 @@ fn spec_guard_steers_when_spec_unmodified() {
         .output()
         .unwrap();
 
-    let spec_path = dir.path().join("ROADMAP.md");
+    let spec_path = dir.path().join("PLAN.md");
     std::fs::write(&spec_path, "- [x] Done\n").unwrap();
     Command::new("git")
         .args(["add", "."])
@@ -190,7 +190,7 @@ fn spec_guard_continues_when_spec_modified() {
         .output()
         .unwrap();
 
-    let spec_path = dir.path().join("ROADMAP.md");
+    let spec_path = dir.path().join("PLAN.md");
     std::fs::write(&spec_path, "- [x] Done\n").unwrap();
     Command::new("git")
         .args(["add", "."])
@@ -235,7 +235,7 @@ fn spec_guard_continues_when_spec_staged() {
         .output()
         .unwrap();
 
-    let spec_path = dir.path().join("ROADMAP.md");
+    let spec_path = dir.path().join("PLAN.md");
     std::fs::write(&spec_path, "- [x] Done\n").unwrap();
     Command::new("git")
         .args(["add", "."])
@@ -251,7 +251,7 @@ fn spec_guard_continues_when_spec_staged() {
     // Modify and stage
     std::fs::write(&spec_path, "- [x] Done\n- [x] Staged\n").unwrap();
     Command::new("git")
-        .args(["add", "ROADMAP.md"])
+        .args(["add", "PLAN.md"])
         .current_dir(dir.path())
         .output()
         .unwrap();
@@ -314,7 +314,7 @@ fn clean_tree_guard_ok_when_clean() {
 
     let ctx = GuardContext::new(
         dir.path().to_string_lossy().to_string(),
-        dir.path().join("ROADMAP.md").to_string_lossy().to_string(),
+        dir.path().join("PLAN.md").to_string_lossy().to_string(),
         planned(),
     );
 
@@ -335,7 +335,7 @@ fn clean_tree_guard_warns_when_dirty() {
 
     let ctx = GuardContext::new(
         dir.path().to_string_lossy().to_string(),
-        dir.path().join("ROADMAP.md").to_string_lossy().to_string(),
+        dir.path().join("PLAN.md").to_string_lossy().to_string(),
         planned(),
     );
 

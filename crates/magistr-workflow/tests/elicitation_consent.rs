@@ -1,5 +1,5 @@
 //! End-to-end proof that the server can ask a human — and cannot ask anyone
-//! else (roadmap chunk `mcp-elicitation-consent`).
+//! else (plan task `mcp-elicitation-consent`).
 //!
 //! Every test here drives a REAL rmcp client over an in-memory duplex, the same
 //! harness as `progress_notifications.rs`. Nothing inspects our internals: each
@@ -44,7 +44,7 @@ use std::time::Duration;
 
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::elicit::{AskOutcome, Unanswered, ask_propose_consent};
-use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
+use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
@@ -143,9 +143,9 @@ fn build_unified(project: &str) -> UnifiedService {
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new(project.into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), run.use_cases());
+    let plan = PlanService::new(PlanEngine::new(project.into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(think, run, roadmap, signal)
+    UnifiedService::new(think, run, plan, signal)
 }
 
 struct Session {
@@ -405,17 +405,17 @@ async fn an_already_answered_consent_is_not_asked_again() {
 /// green while turning the whole surface into a nag machine.
 #[test]
 fn exactly_one_tool_is_the_moment_to_ask() {
-    assert!(RoadmapService::consent_question_for("tracker_setup"));
+    assert!(PlanService::consent_question_for("tracker_setup"));
     for other in [
         "tracker_status",
-        "roadmap_status",
-        "roadmap_add_chunk",
+        "plan_status",
+        "plan_add_task",
         "think_record_step",
         "check_step",
         "",
     ] {
         assert!(
-            !RoadmapService::consent_question_for(other),
+            !PlanService::consent_question_for(other),
             "{other} must not trigger a consent prompt"
         );
     }
@@ -430,14 +430,14 @@ fn exactly_one_tool_is_the_moment_to_ask() {
 /// — the failure mode that let `propose_status_from_sweep` run dead,
 /// undetected, for a long stretch of development.
 #[test]
-fn the_roadmap_seam_actually_calls_the_consent_ask() {
-    let src = include_str!("../src/roadmap/mcp/service.rs");
+fn the_plan_seam_actually_calls_the_consent_ask() {
+    let src = include_str!("../src/plan/mcp/service.rs");
     assert!(
         src.contains(
             "\n            let _ = crate::mcp::elicit::ask_and_remember_propose_consent(&peer, \
              &data_dir).await;"
         ),
-        "RoadmapService::call_tool no longer asks; the elicitation point is dead \
+        "PlanService::call_tool no longer asks; the elicitation point is dead \
          in production, which is the exact state this gate exists to prevent"
     );
     assert!(

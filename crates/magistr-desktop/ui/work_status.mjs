@@ -1,10 +1,10 @@
 import {element} from "./work_dom.mjs";
 import {readState} from "./work_records.mjs";
 import {renderSourceDetail} from "./source_details.mjs";
-const families=[["run","Work","work"],["roadmap","Roadmap","roadmap"],["think","Reasoning","reasoning"],["signals","Feedback","feedback"]];
+const families=[["run","Work","work"],["plan","Plan","plan"],["think","Reasoning","reasoning"],["signals","Feedback","feedback"]];
 function counts(kind,value){
   if(kind==="run"){const runs=[...(value.current?[value.current]:[]),...value.retained],steps=runs.flatMap(run=>run.steps);return [["Current work",value.current?1:0],["Saved work",value.retained.length],["Steps",steps.length],["Check attempts",steps.reduce((sum,step)=>sum+step.checks.length,0)]];}
-  if(kind==="roadmap")return [["Roadmap items",value.chunks.length]];
+  if(kind==="plan")return [["Plan items",value.tasks.length]];
   if(kind==="signals")return [["Feedback items",value.length]];
   return [["Reasoning histories",value.sessions.length],["Recorded steps",value.sessions.reduce((sum,history)=>sum+history.steps.length,0)],["Investigations",value.sessions.reduce((sum,history)=>sum+(history.branches?.length??0),0)]];
 }
@@ -15,7 +15,7 @@ function savedTime(source){
   const date=new Date(millis);return Number.isNaN(date.getTime())?null:date;
 }
 export function renderRecordStatus(snapshot,{copy,navigate}){
-  const root=element("article","","work-record work-status"),title=element("h3","Record status","roadmap-track-title");title.tabIndex=-1;title.dataset.focusKey="record-status-title";
+  const root=element("article","","work-record work-status"),title=element("h3","Record status","plan-track-title");title.tabIndex=-1;title.dataset.focusKey="record-status-title";
   root.append(title,element("p","Each part of the project is read separately. Use Refresh to read the records again."));
   for(const [kind,label,area] of families){
     const record=snapshot[kind],observed=readState(record),section=element("section","","work-status-family");section.setAttribute("aria-label",label+" records");section.dataset.current=String(observed.current);
@@ -25,7 +25,7 @@ export function renderRecordStatus(snapshot,{copy,navigate}){
     if(observed.value){
       if(observed.source?.kind==="memory")section.append(element("p","Read from the running project.","work-status-source"));
       if(observed.source?.kind==="file")section.append(element("p","Read from saved project records.","work-status-source"));
-      const facts=element("dl","","roadmap-content-facts");
+      const facts=element("dl","","plan-content-facts");
       for(const [name,total] of counts(kind,observed.value)){const pair=element("div");pair.append(element("dt",name),element("dd",String(total)));facts.append(pair);}
       const modified=savedTime(observed.source);
       if(modified){const pair=element("div"),time=element("time",modified.toLocaleString()),value=element("dd");time.dateTime=modified.toISOString();value.append(time);pair.append(element("dt","Saved records last changed"),value);facts.append(pair);}

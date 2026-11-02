@@ -42,7 +42,7 @@ fn signal(id: &str, status: SignalStatus) -> Signal {
         created: "2026-06-09T10:00:00+00:00".into(),
         status,
         enrichment: Vec::new(),
-        cross_refs: Vec::new(),
+        refs: Vec::new(),
         surfaced_at: None,
         snooze_until: None,
         project_id: None,
@@ -51,6 +51,7 @@ fn signal(id: &str, status: SignalStatus) -> Signal {
 
 fn store(signals: Vec<Signal>) -> Signals {
     Signals {
+        schema_version: SIGNALS_SCHEMA_VERSION,
         project_id: "p".into(),
         signals,
     }
@@ -82,7 +83,7 @@ fn merge_conflict_keeps_the_furthest_lifecycle_progress() {
         SignalStatus::Surfaced
     );
 
-    // Promoted outranks Dismissed (the promotion spawned a chunk).
+    // Promoted outranks Dismissed (the promotion spawned a task).
     let memory = store(vec![signal("x", SignalStatus::Dismissed)]);
     let disk = store(vec![signal("x", SignalStatus::Promoted)]);
     assert_eq!(

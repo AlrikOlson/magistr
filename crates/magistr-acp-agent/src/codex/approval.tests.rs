@@ -171,7 +171,7 @@ fn file_approval_exposes_every_patch_path_and_move_destination_to_policy() {
     let params = json!({"itemId":"patch-1"});
     let item = json!({"id":"patch-1","type":"fileChange","changes":[
         {"path":"src/allowed.rs","kind":{"type":"update"},"diff":"patch"},
-        {"path":".magistr/roadmap.yaml","kind":{"type":"delete"},"diff":"patch"},
+        {"path":".magistr/plan.yaml","kind":{"type":"delete"},"diff":"patch"},
         {"path":"src/old.rs","kind":{"type":"update","move_path":".magistr/project.json"},"diff":"patch"}
     ]});
     let approval = Approval::parse("item/fileChange/requestApproval", &params, Some(&item))
@@ -181,7 +181,7 @@ fn file_approval_exposes_every_patch_path_and_move_destination_to_policy() {
         input["paths"],
         json!([
             "src/allowed.rs",
-            ".magistr/roadmap.yaml",
+            ".magistr/plan.yaml",
             "src/old.rs",
             ".magistr/project.json"
         ])

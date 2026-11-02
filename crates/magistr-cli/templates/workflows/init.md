@@ -17,7 +17,7 @@ question mechanism. Research current primary documentation where external
 tooling choices affect the configuration.
 
 Update only instructions and configuration needed for the requested setup.
-Keep `.magistr/project.json` authoritative for gates and roadmap policy.
+Keep `.magistr/project.json` authoritative for gates and plan policy.
 Preserve the `.magistr/project.json` identity, the **magistr** state
 endpoint, unrelated host settings, and user customization. Keep project entry
 instructions concise and link shared conventions. Never copy secrets into
@@ -28,4 +28,4 @@ instructions. When scaffolding is requested, inspect its supported targets
 and preview first. Follow the host adapter for configuration paths and host
 verification. Validate syntax, skill discovery, and read-only MCP connectivity;
 report changes and any reload required. Do not invoke `{{invoke}}next`, run a loop,
-or mutate roadmap work as a setup test.
+or mutate plan work as a setup test.

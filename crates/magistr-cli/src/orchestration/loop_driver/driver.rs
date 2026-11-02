@@ -18,8 +18,8 @@ use magistr_cockpit::engine::EngineEvent;
 use magistr_cockpit_runtime::Jobs;
 use magistr_cockpit_runtime::channel::{Commands, Inbox};
 use magistr_cockpit_runtime::spawn_session;
-use magistr_engine::native::{BlockerKind, CheckSettlement, Chunk};
-use magistr_engine::{ChunkStatus, NativeEngines, NativeEvent, RoadmapFrame};
+use magistr_engine::native::{CheckSettlement, Task, WaitingReason};
+use magistr_engine::{NativeEngines, NativeEvent, PlanFrame, TaskStatus};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
@@ -84,9 +84,9 @@ const CLEAR_GRACE: Duration = Duration::from_millis(300);
 ///
 /// With a [`Judge`] ([`LoopDriver::goal`]) it is the native goal loop:
 /// after the gates it asks the judge about the iteration's
-/// chunk and acts on the reconciled [`Decision`] — completes the chunk
+/// task and acts on the reconciled [`Decision`] — completes the task
 /// through the engines, iterates with the reason on the stage, reports
-/// a disagreement, or blocks the chunk on a human and ends.
+/// a disagreement, or blocks the task on a human and ends.
 pub struct LoopDriver {
     iter_loop: IterationLoop,
     /// The host's mutation capability, separate from iteration progress reads.
@@ -106,7 +106,7 @@ pub struct LoopDriver {
     choosing_track: bool,
     session_active: bool,
     conversation: Option<String>,
-    roadmap_request: Option<magistr_application::sessions::PromptInput>,
+    plan_request: Option<magistr_application::sessions::PromptInput>,
     goal: GoalMode,
     goal_note: Option<String>,
     judge: Option<Arc<dyn Judge>>,
@@ -118,7 +118,7 @@ pub struct LoopDriver {
     tap_rx: UnboundedReceiver<Msg>,
     control: super::control::Control,
     completed: Vec<String>,
-    /// The chunk the iteration's prompt was built for.
+    /// The task the iteration's prompt was built for.
     target: Option<String>,
     /// When this iteration began, on the wall clock the store stamps its
     /// records with: a goal set after it is this iteration's work.
@@ -303,7 +303,7 @@ impl LoopDriver {
             choosing_track: false,
             session_active: false,
             conversation: None,
-            roadmap_request: None,
+            plan_request: None,
             goal: GoalMode::Off,
             goal_note: None,
             judge: None,
@@ -387,7 +387,7 @@ impl LoopDriver {
                 format!("goal loop: {mode} — magistr's own judge decides after the gates")
             }
             (GoalMode::Native, false) => format!(
-                "goal loop: {mode} — no judge this loop (the project has no roadmap chunk to judge)"
+                "goal loop: {mode} — no judge this loop (the project has no plan task to judge)"
             ),
             (_, fallback) => format!(
                 "goal loop: {mode} — delegating to the agent's own /goal, confirmed by its echo; magistr is blind inside it, and no echo falls back to {}",
@@ -446,7 +446,7 @@ impl LoopDriver {
         self
     }
 
-    /// Keep accepting conversation and roadmap requests after the work loop ends.
+    /// Keep accepting conversation and plan requests after the work loop ends.
     #[must_use]
     pub const fn keep_open(mut self, keep_open: bool) -> Self {
         self.keep_open = keep_open;
@@ -463,7 +463,7 @@ impl LoopDriver {
     /// The observer for a tapped inbox: what a producer posts through
     /// `inbox.tap(driver.tap())` reaches the driver too — the entry
     /// point subscribes the engine feed this way so the driver counts the
-    /// chunks an iteration completes.
+    /// tasks an iteration completes.
     #[must_use]
     pub fn tap(&self) -> UnboundedSender<Msg> {
         self.tap_tx.clone()
@@ -557,7 +557,7 @@ impl LoopDriver {
                 PreCheckResult::Stopped(reason) => {
                     break LoopEnd::from_stop(reason, self.iter_loop.max_iterations());
                 }
-                PreCheckResult::NoReadyChunk => break LoopEnd::NoReadyChunk,
+                PreCheckResult::NoReadyTask => break LoopEnd::NoReadyTask,
                 PreCheckResult::SpecComplete => break LoopEnd::SpecComplete,
                 PreCheckResult::MaxIterations => {
                     break LoopEnd::MaxIterations(self.iter_loop.max_iterations());
@@ -597,8 +597,8 @@ impl LoopDriver {
                     break LoopEnd::Failed(why);
                 }
             }
-            if let Some(text) = self.roadmap_request.take()
-                && !self.interact(Some(Cmd::RoadmapPrompt(text)), true).await
+            if let Some(text) = self.plan_request.take()
+                && !self.interact(Some(Cmd::PlanPrompt(text)), true).await
             {
                 break LoopEnd::CockpitClosed;
             }
@@ -636,7 +636,7 @@ impl LoopDriver {
             .with_goal(self.goal_record())
             .with_metrics(std::mem::take(&mut self.metrics));
         if retain {
-            let first = self.roadmap_request.take().map(Cmd::RoadmapPrompt);
+            let first = self.plan_request.take().map(Cmd::PlanPrompt);
             self.interact(first, false).await;
         }
         report
@@ -701,8 +701,8 @@ impl LoopDriver {
             if state.phase != WorkPhase::Paused {
                 return Boundary::Go;
             }
-            if let Some(text) = self.roadmap_request.take()
-                && !self.interact(Some(Cmd::RoadmapPrompt(text)), true).await
+            if let Some(text) = self.plan_request.take()
+                && !self.interact(Some(Cmd::PlanPrompt(text)), true).await
             {
                 return Boundary::Closed;
             }
@@ -725,7 +725,7 @@ impl LoopDriver {
         let summary = self
             .iter_loop
             .spec_summary()
-            .map_err(|e| format!("cannot read the roadmap's progress: {e}"))?;
+            .map_err(|e| format!("cannot read the plan's progress: {e}"))?;
         self.post(LoopEvent::Started {
             iteration: display,
             max,
@@ -748,14 +748,14 @@ impl LoopDriver {
         // Prompt, delegated goal and judge share the resumable selection.
         let target = self
             .iter_loop
-            .next_native_chunk()
+            .next_native_task()
             .map_err(|e| format!("cannot choose the work to continue: {e}"))?;
-        if let Some(chunk) = &target
-            && chunk.status == ChunkStatus::InProgress
+        if let Some(task) = &target
+            && task.status == TaskStatus::InProgress
         {
-            self.note(format!("Resuming {}", chunk.title));
+            self.note(format!("Resuming {}", task.title));
         }
-        self.target = target.map(|chunk| chunk.id);
+        self.target = target.map(|task| task.id);
         self.control.begin(&self.iter_loop, self.target.clone());
         let prompt = self
             .iter_loop
@@ -1076,7 +1076,7 @@ impl LoopDriver {
     }
 
     /// One delegated turn: the goal compiled from the iteration's
-    /// chunk, then a fresh session per candidate delivery — remembered
+    /// task, then a fresh session per candidate delivery — remembered
     /// across iterations once one confirms. Confirmation is the
     /// optimistic echo and nothing else (agent_goal.rs): it proves
     /// delivery and recognition, never acceptance or progress. No
@@ -1087,15 +1087,15 @@ impl LoopDriver {
         started: Instant,
         ticks: &mut Interval,
     ) -> Result<Delegated, String> {
-        let chunk = match (&self.native, &self.target) {
+        let task = match (&self.native, &self.target) {
             (Some(engines), Some(id)) => engines
-                .roadmap_chunks()?
+                .plan_tasks()?
                 .into_iter()
-                .find(|chunk| chunk.id == *id),
+                .find(|task| task.id == *id),
             _ => None,
         };
         let goal =
-            AgentGoal::compile_objective(chunk.as_ref().map(|c| (c.id.as_str(), c.title.as_str())));
+            AgentGoal::compile_objective(task.as_ref().map(|c| (c.id.as_str(), c.title.as_str())));
         let picks: Vec<DeliveryKind> = match self.delegated {
             Some(DelegationOutcome::Chosen(kind)) => vec![kind],
             Some(DelegationOutcome::NativeFallback) => Vec::new(),
@@ -1439,7 +1439,7 @@ impl LoopDriver {
         tokio::time::sleep(CLEAR_GRACE).await;
     }
 
-    /// The native goal loop's half of an iteration: the target chunk
+    /// The native goal loop's half of an iteration: the target task
     /// re-read after the agent's own process wrote the store, the judge
     /// asked on the driver's own wake loop (so a quit, a pause and the
     /// clock all still land while it thinks), the verdict reported, and
@@ -1457,75 +1457,75 @@ impl LoopDriver {
         let Some(engines) = self.native.as_ref().cloned() else {
             return Step::Next;
         };
-        let chunk = match self.target_chunk(&engines) {
-            Ok(Some(chunk)) => chunk,
+        let task = match self.target_task(&engines) {
+            Ok(Some(task)) => task,
             Ok(None) => {
-                self.note("judge not asked: no chunk to judge this iteration");
+                self.note("judge not asked: no task to judge this iteration");
                 return Step::Next;
             }
             Err(error) => return Step::End(LoopEnd::Failed(error)),
         };
-        // A chunk the agent finished, blocked or retired during its turn
-        // is not a question for the judge: the only verdict on a chunk
+        // A task the agent finished, blocked or retired during its turn
+        // is not a question for the judge: the only verdict on a task
         // nobody could have worked is "not worked", and it costs a
         // judge call to hear it. The next iteration's target is
-        // roadmap_next's answer, which skips all three. A blocker is
-        // read off `blocked_by`, the field roadmap_next skips on — the
-        // roadmap's `set_blocked_by` records the reason and leaves the
-        // status where it was, so `ChunkStatus::Blocked` alone would
+        // plan_next's answer, which skips all three. A blocker is
+        // read off `waiting_on`, the field plan_next skips on — the
+        // plan's `set_waiting_on` records the reason and leaves the
+        // status where it was, so `TaskStatus::Waiting` alone would
         // miss exactly the agent that did the right thing.
-        if let Some(blocker) = &chunk.blocked_by {
+        if let Some(blocker) = &task.waiting_on {
             self.note(format!(
                 "judge not asked: {} was blocked by the agent this iteration — {}",
-                chunk.id, blocker.reason
+                task.id, blocker.reason
             ));
             return Step::Next;
         }
         if let Some(part) = &self.split_part
-            && chunk.status != ChunkStatus::Done
+            && task.status != TaskStatus::Done
         {
             self.note(format!(
                 "judge not asked: the agent split {} and shipped {part} this iteration; the rest is still to do",
-                chunk.id
+                task.id
             ));
             return Step::Next;
         }
-        match chunk.status {
-            ChunkStatus::Done => {
+        match task.status {
+            TaskStatus::Done => {
                 self.note(format!(
                     "judge not asked: {} was completed by the agent this iteration",
-                    chunk.id
+                    task.id
                 ));
                 return Step::Next;
             }
-            ChunkStatus::Blocked => {
+            TaskStatus::Waiting => {
                 self.note(format!(
                     "judge not asked: {} was blocked by the agent this iteration",
-                    chunk.id
+                    task.id
                 ));
                 return Step::Next;
             }
-            ChunkStatus::Obsoleted => {
+            TaskStatus::Retired => {
                 self.note(format!(
-                    "judge not asked: {} was obsoleted by the agent this iteration",
-                    chunk.id
+                    "judge not asked: {} was retired by the agent this iteration",
+                    task.id
                 ));
                 return Step::Next;
             }
-            ChunkStatus::Backlog | ChunkStatus::Pending | ChunkStatus::InProgress => {}
+            TaskStatus::Idea | TaskStatus::ToDo | TaskStatus::InProgress => {}
         }
         let evidence: Vec<GateEvidence> = gates.iter().map(GateEvidence::from).collect();
         let input = JudgeInput {
-            chunk: chunk.id.clone(),
-            title: chunk.title.clone(),
-            acceptance: chunk.acceptance.clone(),
+            task: task.id.clone(),
+            title: task.title.clone(),
+            acceptance: task.acceptance.clone(),
             gates: evidence.clone(),
             recorded_checks: self.recorded_verification.clone(),
             transcript_tail: std::mem::take(&mut self.transcript),
             iteration,
         };
         self.post(LoopEvent::Stage(LoopStage::Judge));
-        self.note(format!("asking the judge about {}", chunk.id));
+        self.note(format!("asking the judge about {}", task.id));
         let asked = Instant::now();
         let mut ask = Box::pin(async move { judge.judge(&input).await });
         let verdict = loop {
@@ -1553,7 +1553,7 @@ impl LoopDriver {
         });
         match Decision::reconcile(&verdict, &evidence) {
             Decision::Complete { reason } => {
-                self.complete(&engines, &chunk, &reason);
+                self.complete(&engines, &task, &reason);
                 Step::Next
             }
             Decision::Continue { .. } => {
@@ -1561,19 +1561,19 @@ impl LoopDriver {
                 // above put it there, so the note only says what follows.
                 self.note(format!(
                     "judge: not yet — the next iteration takes {} again",
-                    chunk.id
+                    task.id
                 ));
                 Step::Next
             }
             Decision::Disagreement { reason, failed } => {
                 self.post(LoopEvent::Failed(format!(
-                    "the judge says {} is met ({reason}) but the gates disagree: {} failed — the chunk stays in progress",
-                    chunk.id,
+                    "the judge says {} is met ({reason}) but the gates disagree: {} failed — the task stays in progress",
+                    task.id,
                     failed.join(", ")
                 )));
                 Step::Next
             }
-            Decision::Stop { reason } => self.stop(&engines, &chunk, &reason),
+            Decision::Stop { reason } => self.stop(&engines, &task, &reason),
         }
     }
 
@@ -1604,25 +1604,25 @@ impl LoopDriver {
     }
 
     /// The verification step and passing required checks of the item `scope`
-    /// names, when the roadmap already reads it done on that step's evidence.
+    /// names, when the plan already reads it done on that step's evidence.
     /// `None` for an item still open, one completed with no step behind it,
     /// or a step with nothing passing: those are judged the ordinary way.
     fn completed_on_record(
         engines: &NativeEngines,
         scope: &str,
     ) -> Result<Option<(String, Vec<String>)>, String> {
-        let Some(id) = scope.strip_prefix("chunk:") else {
+        let Some(id) = scope.strip_prefix("task:") else {
             return Ok(None);
         };
-        let Some(chunk) = engines.roadmap_chunk(id)? else {
+        let Some(task) = engines.plan_task(id)? else {
             return Ok(None);
         };
-        if chunk.status != ChunkStatus::Done {
+        if task.status != TaskStatus::Done {
             return Ok(None);
         }
         let steps = engines.run_steps()?;
-        Ok(chunk
-            .cross_refs
+        Ok(task
+            .refs
             .iter()
             .filter_map(|reference| reference.strip_prefix("step:"))
             .filter_map(|id| steps.iter().find(|step| step.id == id))
@@ -1651,15 +1651,15 @@ impl LoopDriver {
     /// it to). Three witnesses, any of which is enough: the goal names
     /// the item the prompt was built for (which also covers work resumed
     /// from an earlier iteration), it names an item the feed saw completed
-    /// this iteration, or it was set after this iteration began for a roadmap
+    /// this iteration, or it was set after this iteration began for a plan
     /// item the agent started or finished. A goal left over from
-    /// earlier work, or one that names no roadmap item, is none of these.
+    /// earlier work, or one that names no plan item, is none of these.
     fn is_iteration_work(
         &self,
         engines: &NativeEngines,
         goal: &magistr_workflow::run::domain::goal::Goal,
     ) -> Result<bool, String> {
-        let named = goal.scope.strip_prefix("chunk:");
+        let named = goal.scope.strip_prefix("task:");
         if named.is_some() && named == self.target.as_deref() {
             return Ok(true);
         }
@@ -1671,12 +1671,10 @@ impl LoopDriver {
             .as_deref()
             .and_then(|at| chrono::DateTime::parse_from_rfc3339(at).ok());
         let worked = named
-            .map(|id| engines.roadmap_chunk(id))
+            .map(|id| engines.plan_task(id))
             .transpose()?
             .flatten()
-            .is_some_and(|chunk| {
-                matches!(chunk.status, ChunkStatus::Done | ChunkStatus::InProgress)
-            });
+            .is_some_and(|task| matches!(task.status, TaskStatus::Done | TaskStatus::InProgress));
         Ok(
             worked
                 && matches!((set_at, self.began), (Some(set_at), Some(began)) if set_at >= began),
@@ -1685,30 +1683,30 @@ impl LoopDriver {
 
     /// Judge the work selected for this iteration, even if another item is
     /// in progress. An unselected legacy iteration may use its single active item.
-    fn target_chunk(&self, engines: &NativeEngines) -> Result<Option<Chunk>, String> {
-        let chunks = engines.roadmap_chunks()?;
+    fn target_task(&self, engines: &NativeEngines) -> Result<Option<Task>, String> {
+        let tasks = engines.plan_tasks()?;
         if let Some(target) = &self.target {
-            return Ok(chunks.into_iter().find(|chunk| &chunk.id == target));
+            return Ok(tasks.into_iter().find(|task| &task.id == target));
         }
-        let mut active = chunks
+        let mut active = tasks
             .into_iter()
-            .filter(|chunk| chunk.status == ChunkStatus::InProgress);
-        let chunk = active.next();
-        Ok(chunk.filter(|_| active.next().is_none()))
+            .filter(|task| task.status == TaskStatus::InProgress);
+        let task = active.next();
+        Ok(task.filter(|_| active.next().is_none()))
     }
 
-    /// Complete `chunk` through the engines (starting one the agent
+    /// Complete `task` through the engines (starting one the agent
     /// never started, since the lifecycle refuses pending → done) and
     /// put the completion frame in front of the cockpit.
-    fn complete(&mut self, engines: &NativeEngines, chunk: &Chunk, reason: &str) {
-        if chunk.status == ChunkStatus::Pending {
-            let started = self.mutate(&format!("start_chunk:{}", chunk.id), || {
-                engines.roadmap_start_chunk(&chunk.id).map(|_| ())
+    fn complete(&mut self, engines: &NativeEngines, task: &Task, reason: &str) {
+        if task.status == TaskStatus::ToDo {
+            let started = self.mutate(&format!("start_task:{}", task.id), || {
+                engines.plan_start_task(&task.id).map(|_| ())
             });
             if let Err(e) = started {
                 self.post(LoopEvent::Failed(format!(
                     "the judge says {} is met but the engines refused to start it: {e}",
-                    chunk.id
+                    task.id
                 )));
                 return;
             }
@@ -1720,22 +1718,22 @@ impl LoopDriver {
             .verification_step
             .as_ref()
             .map(|step| format!("step:{step}"));
-        let completed = self.mutate(&format!("complete_chunk:{}", chunk.id), || {
-            engines.roadmap_complete_chunk(&chunk.id, step_ref.as_deref())
+        let completed = self.mutate(&format!("complete_task:{}", task.id), || {
+            engines.plan_complete_task(&task.id, step_ref.as_deref())
         });
         match completed {
             Ok(Some(done)) => {
                 self.completed.push(done.value.id.clone());
-                self.post_chunk_event(RoadmapFrame::ChunkCompleted { chunk: done.value });
-                self.note(format!("judge: met — {reason}; {} completed", chunk.id));
+                self.post_task_event(PlanFrame::TaskCompleted { task: done.value });
+                self.note(format!("judge: met — {reason}; {} completed", task.id));
             }
             Ok(None) => self.note(format!(
                 "judge: met — {reason}; {} was already completed for this attempt",
-                chunk.id
+                task.id
             )),
             Err(e) => self.post(LoopEvent::Failed(format!(
                 "the judge says {} is met but the engines refused to complete it: {e}",
-                chunk.id
+                task.id
             ))),
         }
     }
@@ -1810,45 +1808,45 @@ impl LoopDriver {
         }
     }
 
-    /// Block `chunk` on a human with the judge's reason — the dock's
+    /// Block `task` on a human with the judge's reason — the dock's
     /// blocker card — and end the loop.
-    fn stop(&mut self, engines: &NativeEngines, chunk: &Chunk, reason: &str) -> Step {
-        let blocked = self.mutate(&format!("set_blocked_by:{}", chunk.id), || {
-            engines.roadmap_set_blocked_by(
-                &chunk.id,
-                BlockerKind::AwaitingHuman,
+    fn stop(&mut self, engines: &NativeEngines, task: &Task, reason: &str) -> Step {
+        let blocked = self.mutate(&format!("set_waiting_on:{}", task.id), || {
+            engines.plan_set_waiting_on(
+                &task.id,
+                WaitingReason::Person,
                 format!("the judge stopped the loop: {reason}"),
                 None,
             )
         });
         match blocked {
-            Ok(Some(blocked)) => self.post_chunk_event(RoadmapFrame::ChunkChanged {
-                chunk: blocked.value,
+            Ok(Some(blocked)) => self.post_task_event(PlanFrame::TaskChanged {
+                task: blocked.value,
             }),
             Ok(None) => {}
             Err(e) => self.post(LoopEvent::Failed(format!(
                 "could not block {} on a human: {e}",
-                chunk.id
+                task.id
             ))),
         }
         Step::End(LoopEnd::NeedsHuman(reason.to_owned()))
     }
 
-    /// A roadmap mutation of the driver's own, as the typed event the
-    /// engines would have announced — the rail, the dock and the Roadmap
+    /// A plan mutation of the driver's own, as the typed event the
+    /// engines would have announced — the rail, the dock and the Plan
     /// tab fold it through the one path they already have; the in-process
     /// engines write no socket, so the event is this process's own.
     ///
     /// A publication is recorded like any other operation, and is the one
     /// kind recovery never redoes: a surface that missed the event reseeds
     /// from the store, which is where the mutation it announces already is.
-    fn post_chunk_event(&mut self, frame: RoadmapFrame) {
+    fn post_task_event(&mut self, frame: PlanFrame) {
         let (kind, id) = match &frame {
-            RoadmapFrame::ChunkChanged { chunk } => ("chunk_changed", chunk.id.clone()),
-            RoadmapFrame::ChunkCompleted { chunk } => ("chunk_completed", chunk.id.clone()),
-            RoadmapFrame::ChunkAdded { chunk } => ("chunk_added", chunk.id.clone()),
-            RoadmapFrame::ChunkObsoleted { chunk } => ("chunk_obsoleted", chunk.id.clone()),
-            RoadmapFrame::RefreshRecorded { .. } => ("refresh_recorded", String::new()),
+            PlanFrame::TaskChanged { task } => ("task_changed", task.id.clone()),
+            PlanFrame::TaskCompleted { task } => ("task_completed", task.id.clone()),
+            PlanFrame::TaskAdded { task } => ("task_added", task.id.clone()),
+            PlanFrame::TaskRetired { task } => ("task_retired", task.id.clone()),
+            PlanFrame::RefreshRecorded { .. } => ("refresh_recorded", String::new()),
         };
         let publication =
             match self.intend(OperationKind::Publication, &format!("frame:{kind}:{id}")) {
@@ -1857,7 +1855,7 @@ impl LoopDriver {
                 Intent::Unrecorded(_) => None,
             };
         self.inbox
-            .send(Msg::Engine(EngineEvent::local(NativeEvent::Roadmap(frame))));
+            .send(Msg::Engine(EngineEvent::local(NativeEvent::Plan(frame))));
         if let Some(publication) = publication {
             self.settled(&publication, OperationOutcome::Completed);
         }
@@ -1975,7 +1973,7 @@ impl LoopDriver {
                 if let Some((step, checks)) = completed {
                     self.split_part = goal
                         .scope
-                        .strip_prefix("chunk:")
+                        .strip_prefix("task:")
                         .filter(|part| self.target.as_deref() != Some(*part))
                         .map(str::to_owned);
                     self.verification_step = Some(step);
@@ -1986,7 +1984,7 @@ impl LoopDriver {
                     Ok(evidence) if !evidence.accepted.is_empty() => {
                         self.split_part = goal
                             .scope
-                            .strip_prefix("chunk:")
+                            .strip_prefix("task:")
                             .filter(|part| self.target.as_deref() != Some(*part))
                             .map(str::to_owned);
                         self.verification_step = Some(evidence.step_id);
@@ -2288,7 +2286,7 @@ impl LoopDriver {
         outcome
     }
 
-    /// After the gates: the commit check, the chunks the feed saw
+    /// After the gates: the commit check, the tasks the feed saw
     /// completed, the gates' verdict and the auto-pause; the reason to
     /// stop, if there is one.
     fn settle(&mut self, gates: &[GateOutcome]) -> Option<LoopEnd> {
@@ -2306,9 +2304,9 @@ impl LoopDriver {
         }
         if self.iter_loop.is_native() {
             if self.completed.is_empty() {
-                self.note("no roadmap chunk was completed this iteration");
+                self.note("no plan task was completed this iteration");
             } else {
-                self.note(format!("completed chunk(s): {}", self.completed.join(", ")));
+                self.note(format!("completed task(s): {}", self.completed.join(", ")));
             }
         }
         let failed: Vec<String> = gates
@@ -2368,8 +2366,8 @@ impl LoopDriver {
         let Some(engines) = self.native.as_ref().cloned() else {
             return;
         };
-        let chunks = match engines.roadmap_chunks() {
-            Ok(chunks) => chunks,
+        let tasks = match engines.plan_tasks() {
+            Ok(tasks) => tasks,
             Err(error) => {
                 self.note(format!(
                     "Work records could not be read; completed work was not changed: {error}"
@@ -2382,8 +2380,8 @@ impl LoopDriver {
             }
         };
         // Two witnesses to the same fact, because either can be the only
-        // one present. The feed's `chunk_completed` frames are what the
-        // driver saw this iteration; the chunk the prompt was built for,
+        // one present. The feed's `task_completed` frames are what the
+        // driver saw this iteration; the task the prompt was built for,
         // now reading Done in the store the agent's own `magistr
         // mcp` wrote, is the route `judged` already trusts.
         let mut ids = self.completed.clone();
@@ -2395,21 +2393,21 @@ impl LoopDriver {
         let names: Vec<&str> = red.iter().map(|gate| gate.name.as_str()).collect();
         let names = names.join(", ");
         for id in ids {
-            // Only a chunk that is actually done gets reopened: nothing
-            // here may move a chunk that was merely started.
-            if !chunks
+            // Only a task that is actually done gets reopened: nothing
+            // here may move a task that was merely started.
+            if !tasks
                 .iter()
-                .any(|chunk| chunk.id == id && chunk.status == ChunkStatus::Done)
+                .any(|task| task.id == id && task.status == TaskStatus::Done)
             {
                 continue;
             }
             let reopened = self.mutate(&format!("set_status:{id}:in_progress"), || {
-                engines.roadmap_set_status(&id, ChunkStatus::InProgress)
+                engines.plan_set_status(&id, TaskStatus::InProgress)
             });
             match reopened {
-                Ok(Some(chunk)) => {
+                Ok(Some(task)) => {
                     self.note(format!("{id} reopened: {names} is red"));
-                    self.post_chunk_event(RoadmapFrame::ChunkChanged { chunk: chunk.value });
+                    self.post_task_event(PlanFrame::TaskChanged { task: task.value });
                 }
                 Ok(None) => {}
                 Err(e) => self.note(format!("could not reopen {id}: {e}")),
@@ -2436,7 +2434,7 @@ impl LoopDriver {
         }
     }
 
-    /// The next thing to act on: a tapped message (roadmap completions
+    /// The next thing to act on: a tapped message (plan completions
     /// counted on the way), a command, a gate outcome, a tick, or the
     /// cockpit gone.
     async fn wake(
@@ -2473,23 +2471,25 @@ impl LoopDriver {
                 self.inbox.send(rejection.clone());
                 Wake::Tap(rejection)
             }
-            Wake::Cmd(Cmd::RoadmapPrompt(text)) => {
-                if self.roadmap_request.is_none() {
-                    self.roadmap_request = Some(text);
-                    self.inbox.send(Msg::RoadmapRequestQueued);
+            Wake::Cmd(Cmd::PlanPrompt(text)) => {
+                if self.plan_request.is_none() {
+                    self.plan_request = Some(text);
+                    self.inbox.send(Msg::PlanRequestQueued);
                 } else {
                     self.inbox.send(Msg::Agent(AgentEvent::PromptRejected {
                         input: text,
-                        error: "A roadmap request is already waiting. Cancel it before sending another.".to_owned(),
+                        error:
+                            "A plan request is already waiting. Cancel it before sending another."
+                                .to_owned(),
                     }));
                 }
-                Wake::Tap(Msg::RoadmapRequestQueued)
+                Wake::Tap(Msg::PlanRequestQueued)
             }
-            Wake::Cmd(Cmd::CancelRoadmapPrompt) => {
-                if self.roadmap_request.take().is_some() {
-                    self.inbox.send(Msg::RoadmapRequestCancelled);
+            Wake::Cmd(Cmd::CancelPlanPrompt) => {
+                if self.plan_request.take().is_some() {
+                    self.inbox.send(Msg::PlanRequestCancelled);
                 }
-                Wake::Tap(Msg::RoadmapRequestCancelled)
+                Wake::Tap(Msg::PlanRequestCancelled)
             }
             Wake::Tap(msg) => {
                 self.observe(&msg);
@@ -2508,14 +2508,14 @@ impl LoopDriver {
         }
     }
 
-    /// A roadmap completion event names a chunk this iteration
+    /// A plan completion event names a task this iteration
     /// completed; the agent's own words are kept for the judge.
     fn observe(&mut self, msg: &Msg) {
         match msg {
             Msg::Engine(EngineEvent::Event {
-                event: NativeEvent::Roadmap(RoadmapFrame::ChunkCompleted { chunk }),
+                event: NativeEvent::Plan(PlanFrame::TaskCompleted { task }),
                 ..
-            }) => self.completed.push(chunk.id.clone()),
+            }) => self.completed.push(task.id.clone()),
             Msg::Agent(AgentEvent::Text(text)) => self.transcript.push_str(text),
             // ACP's `UsageUpdate.used` is the context's level; the
             // highest level of the turn is what the turn put in context.

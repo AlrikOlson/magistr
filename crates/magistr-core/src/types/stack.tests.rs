@@ -11,7 +11,7 @@ fn config(language: &str, framework: &str) -> ProjectConfig {
         },
         "quality_gate": { "check": "", "test": "", "lint": "" },
         "format": { "extensions": ["rs"], "command": "cargo fmt" },
-        "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+        "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
         "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
         "reference_repos": [],
         "state_prefix": "magistr"

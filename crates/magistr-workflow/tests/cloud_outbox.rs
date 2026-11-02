@@ -15,11 +15,11 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 fn envelope(id: &str) -> UnifiedRecordEnvelope {
     UnifiedRecordEnvelope::owner(
         "t",
-        Family::Roadmap,
-        Kind::Chunk,
+        Family::Plan,
+        Kind::Task,
         id,
         "2026-06-10T00:00:00Z",
-        json!({ "id": id, "status": "backlog" }),
+        json!({ "id": id, "status": "idea" }),
         vec![],
     )
 }

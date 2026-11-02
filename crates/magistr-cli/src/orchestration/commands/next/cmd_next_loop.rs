@@ -20,13 +20,13 @@ pub async fn cmd_next_loop(
 
     let wf = workflow::WorkflowConfig::load(&dir).suggest()?;
 
-    // Initialize iteration loop (native roadmap reader when the project
+    // Initialize iteration loop (native plan reader when the project
     // selects magistr; the spec file otherwise)
     let mut iter_loop = IterationLoop::start_or_recover(
         &dir,
         &wf.spec_path,
         request.max_iterations,
-        crate::roadmap::open_native_reader(&dir)?,
+        crate::plan::open_native_reader(&dir)?,
     )
     .suggest()?;
     super::select_loop_feature(&mut iter_loop, request.feature, true)?;
@@ -60,11 +60,11 @@ pub async fn cmd_next_loop(
                 eprintln!("{}", fmt::success("All spec items complete!"));
                 break;
             }
-            PreCheckResult::NoReadyChunk => {
+            PreCheckResult::NoReadyTask => {
                 eprintln!(
                     "{}",
                     fmt::success(
-                        "No work is ready to start or continue. Check the roadmap for blocked items."
+                        "No work is ready to start or continue. Check the plan for blocked items."
                     )
                 );
                 break;

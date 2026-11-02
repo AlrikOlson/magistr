@@ -6,9 +6,9 @@ use tokio::sync::broadcast;
 
 use crate::cost::{BudgetConfig, CostGovernor};
 use crate::error::{EngineError, Result};
-use crate::native::{NativeReader, NativeRoadmapSnapshot};
-use crate::roadmap::RoadmapEvent;
-use crate::roadmap::{RoadmapManager, RoadmapProgress};
+use crate::native::{NativePlanSnapshot, NativeReader};
+use crate::plan::PlanEvent;
+use crate::plan::{PlanManager, PlanProgress};
 use crate::session::{
     EngineSession, RestoredSession, SessionCommand, SessionEvent, SessionSnapshot, SessionStatus,
 };
@@ -27,7 +27,7 @@ struct EngineState {
     session: EngineSession,
     workflow: WorkflowEngine,
     cost_governor: CostGovernor,
-    roadmap: RoadmapManager,
+    plan: PlanManager,
 }
 
 /// Default broadcast channel capacity.
@@ -50,7 +50,7 @@ pub struct EngineHandle {
     state: Arc<Mutex<EngineState>>,
     event_tx: broadcast::Sender<EngineEvent>,
     /// The in-process magistr reader, when the project's
-    /// `roadmap_backend` is `native`. Outside the state mutex: the
+    /// `plan_backend` is `native`. Outside the state mutex: the
     /// engines carry their own locks and must never be held under ours.
     native: Option<NativeReader>,
 }
@@ -72,7 +72,7 @@ impl EngineHandle {
             session_id,
             workflow_config,
             budget_config,
-            RunMode::ChunkLoop,
+            RunMode::TaskLoop,
         )
     }
 
@@ -91,7 +91,7 @@ impl EngineHandle {
             session: EngineSession::new(session_id),
             workflow,
             cost_governor: CostGovernor::new(budget_config),
-            roadmap: RoadmapManager::empty(),
+            plan: PlanManager::empty(),
         };
         Self {
             state: Arc::new(Mutex::new(state)),
@@ -170,10 +170,10 @@ impl EngineHandle {
     /// adds them with [`SessionSnapshot::resident_on`] before handing the
     /// document anywhere.
     ///
-    /// The roadmap cursor is *derived* rather than tracked: it is the
-    /// first chunk the native roadmap reports in progress, or the next
+    /// The plan cursor is *derived* rather than tracked: it is the
+    /// first task the native plan reports in progress, or the next
     /// ready one when nothing is. There is no second copy of "what this
-    /// session is working on" to fall out of step with the roadmap
+    /// session is working on" to fall out of step with the plan
     /// itself.
     pub fn capture(&self) -> Result<SessionSnapshot> {
         // Observe before taking our state lock. Both native fields come from
@@ -181,7 +181,7 @@ impl EngineHandle {
         let native = self
             .native
             .as_ref()
-            .map(NativeReader::roadmap_snapshot)
+            .map(NativeReader::plan_snapshot)
             .transpose()
             .map_err(EngineError::WorkflowRead)?;
         let state = self.lock();
@@ -194,7 +194,7 @@ impl EngineHandle {
                     .or(snapshot.next_ready);
                 (snapshot.progress, cursor)
             }
-            None => (state.roadmap.progress().clone(), None),
+            None => (state.plan.progress().clone(), None),
         };
         Ok(SessionSnapshot::capture(
             &state.session,
@@ -203,7 +203,7 @@ impl EngineHandle {
         )
         .with_run(state.workflow.run().clone())
         .with_cost_governor(state.cost_governor.clone())
-        .with_roadmap(progress, cursor))
+        .with_plan(progress, cursor))
     }
 
     /// Take a snapshot up in this process.
@@ -211,7 +211,7 @@ impl EngineHandle {
     /// Refuses — touching nothing — when the document is from a format
     /// this build does not read, or when it carries a residency the
     /// restored session could not honestly survive losing. On success the
-    /// session, its phase, its iteration and its roadmap progress are
+    /// session, its phase, its iteration and its plan progress are
     /// this handle's, and the returned [`RestoredSession`] names every
     /// machine-bound thing the move left behind.
     ///
@@ -255,12 +255,12 @@ impl EngineHandle {
         state.cost_governor = restored.cost_governor.clone();
         state
             .workflow
-            .update_spec_progress(restored.roadmap.checked_tasks, restored.roadmap.total_tasks);
-        let event = state.roadmap.update_progress(restored.roadmap.clone());
+            .update_spec_progress(restored.plan.checked_tasks, restored.plan.total_tasks);
+        let event = state.plan.update_progress(restored.plan.clone());
         drop(state);
 
         if let Some(event) = event {
-            self.emit(EngineEvent::Roadmap(event));
+            self.emit(EngineEvent::Plan(event));
         }
         Ok(restored)
     }
@@ -332,7 +332,7 @@ impl EngineHandle {
 
     /// Whether the workflow loop should stop.
     pub fn should_stop(&self) -> Result<bool> {
-        let progress = self.roadmap_progress()?;
+        let progress = self.plan_progress()?;
         let mut state = self.lock();
         state
             .workflow
@@ -352,7 +352,7 @@ impl EngineHandle {
             command,
             WorkflowCommand::StartIteration | WorkflowCommand::Skip
         ) {
-            Some(self.roadmap_progress()?)
+            Some(self.plan_progress()?)
         } else {
             None
         };
@@ -430,44 +430,42 @@ impl EngineHandle {
         }
     }
 
-    // ── Roadmap commands ────────────────────────────────────────────────
+    // ── Plan commands ────────────────────────────────────────────────
 
-    /// Update roadmap progress from an external source.
-    pub fn update_roadmap_progress(&self, progress: RoadmapProgress) {
+    /// Update plan progress from an external source.
+    pub fn update_plan_progress(&self, progress: PlanProgress) {
         let mut state = self.lock();
         state
             .workflow
             .update_spec_progress(progress.checked_tasks, progress.total_tasks);
-        if let Some(event) = state.roadmap.update_progress(progress) {
+        if let Some(event) = state.plan.update_progress(progress) {
             drop(state);
-            self.emit(EngineEvent::Roadmap(event));
+            self.emit(EngineEvent::Plan(event));
         }
     }
 
-    /// Current roadmap progress.
-    pub fn roadmap_progress(&self) -> Result<RoadmapProgress> {
+    /// Current plan progress.
+    pub fn plan_progress(&self) -> Result<PlanProgress> {
         match &self.native {
-            Some(native) => native.roadmap_progress().map_err(EngineError::WorkflowRead),
-            None => Ok(self.lock().roadmap.progress().clone()),
+            Some(native) => native.plan_progress().map_err(EngineError::WorkflowRead),
+            None => Ok(self.lock().plan.progress().clone()),
         }
     }
 
-    /// Whether the roadmap spec is complete.
+    /// Whether the plan spec is complete.
     pub fn is_spec_complete(&self) -> Result<bool> {
-        Ok(self.roadmap_progress()?.is_complete())
+        Ok(self.plan_progress()?.is_complete())
     }
 
-    /// Re-read the native roadmap: feeds `RoadmapManager` from the chunks
+    /// Re-read the native plan: feeds `PlanManager` from the tasks
     /// and emits a `NativeSnapshot` event. `None` without native engines.
-    pub fn refresh_native_roadmap(&self) -> Result<Option<NativeRoadmapSnapshot>> {
+    pub fn refresh_native_plan(&self) -> Result<Option<NativePlanSnapshot>> {
         let Some(native) = self.native.as_ref() else {
             return Ok(None);
         };
-        let snapshot = native
-            .roadmap_snapshot()
-            .map_err(EngineError::WorkflowRead)?;
-        self.update_roadmap_progress(snapshot.progress.clone());
-        self.emit(EngineEvent::Roadmap(RoadmapEvent::NativeSnapshot {
+        let snapshot = native.plan_snapshot().map_err(EngineError::WorkflowRead)?;
+        self.update_plan_progress(snapshot.progress.clone());
+        self.emit(EngineEvent::Plan(PlanEvent::NativeSnapshot {
             snapshot: Box::new(snapshot.clone()),
         }));
         Ok(Some(snapshot))

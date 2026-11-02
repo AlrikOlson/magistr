@@ -19,7 +19,7 @@
 //! | Title    | [`Owner::Contested`]  | A remote retitle is a real statement about the plan, not noise — but so is ours. Nobody wins silently. |
 //! | State    | [`Owner::Theirs`]     | Workflow columns belong to the team's process, not to our four canonical states. |
 //! | Assignee | [`Owner::Theirs`]     | We never assign anyone. |
-//! | Labels   | [`Owner::Theirs`]     | The team's taxonomy. Our own `roadmap:` namespace is carved out at the adapter, which removes only labels it authored. |
+//! | Labels   | [`Owner::Theirs`]     | The team's taxonomy. Our own `plan:` namespace is carved out at the adapter, which removes only labels it authored. |
 //!
 //! # What "contested" actually does
 //!
@@ -28,7 +28,7 @@
 //! carries information our side does not have.
 //!
 //! The concession is DURABLE for the title: the projection records it as a
-//! title proposal on the chunk, and while that proposal is open the caller
+//! title proposal on the task, and while that proposal is open the caller
 //! passes it back in as `concession`, so every later round keeps deferring
 //! even though the remote is now unmoved (it holds the conceded value). A
 //! human resolves the proposal — accept adopts the tracker's title into the
@@ -183,7 +183,7 @@ impl Ownership {
 /// would we write anything?" A field the team owns can never make us write,
 /// because [`reconcile_fields`] replaces our value with theirs before the
 /// item is sent. Comparing the full hash to answer that question reports a
-/// pending write for every chunk whose Linear state or label has moved on
+/// pending write for every task whose Linear state or label has moved on
 /// without us — a preview that is wrong in the direction that manufactures
 /// phantom work, which is exactly the bug this function was written for.
 ///
@@ -227,10 +227,10 @@ pub fn authored_hash(policy: &Ownership, item: &WorkItem) -> String {
     if policy.owner(Field::Assignee) == Owner::Theirs {
         authored.assignee = None;
     }
-    // `group` is deliberately NOT neutralized: the ownership table has nothing
-    // to say about it and `reconcile_fields` never touches it, so the group we
-    // compute is always the group we send. Leaving it in is what makes a
-    // regrouped chunk show up as a real pending write rather than as noise.
+    // `feature` is deliberately NOT neutralized: the ownership table has nothing
+    // to say about it and `reconcile_fields` never touches it, so the feature we
+    // compute is always the feature we send. Leaving it in is what makes a
+    // regrouped task show up as a real pending write rather than as noise.
     authored.content_hash()
 }
 
@@ -316,7 +316,7 @@ impl Reconciled {
 /// that stopped deferring the moment the remote went quiet would be re-asserted
 /// on the very next projection.
 ///
-/// `concession` is the open title proposal's suggested title, when the chunk
+/// `concession` is the open title proposal's suggested title, when the task
 /// has one — the durable memory that we already conceded this exact contest.
 /// While present, the contested title keeps deferring even though the remote
 /// is unmoved (it holds the conceded value, which IS our last write). It also
@@ -463,7 +463,7 @@ pub fn reconcile_fields(
     }
 
     // Labels are the one field where both sides legitimately hold values at
-    // once: ours live under the `roadmap:` namespace and theirs outside it. So
+    // once: ours live under the `plan:` namespace and theirs outside it. So
     // "they own labels" means keep every label of theirs AND keep ours, rather
     // than replace one set with the other. The adapter removes only labels from
     // our own namespace, which is what makes this safe.
@@ -498,7 +498,7 @@ pub fn reconcile_fields(
 
 /// The namespace this system authors labels in. Mirrors the adapter's own
 /// constant; a label outside it is the team's and is never ours to drop.
-const BAND_PREFIX: &str = "roadmap:";
+const BAND_PREFIX: &str = "plan:";
 
 #[cfg(test)]
 mod tests {
@@ -509,7 +509,7 @@ mod tests {
         let mut i = WorkItem::new("our title");
         i.body = "our body".into();
         i.state = WorkItemState::Todo;
-        i.labels = vec!["roadmap:high".into()];
+        i.labels = vec!["plan:high".into()];
         i
     }
 
@@ -517,7 +517,7 @@ mod tests {
         let mut i = WorkItem::new("their title");
         i.body = "their body".into();
         i.state = WorkItemState::InProgress;
-        i.labels = vec!["roadmap:high".into(), "Bug".into()];
+        i.labels = vec!["plan:high".into(), "Bug".into()];
         i.assignee = Some("Ada".into());
         i.version = Some("v7".into());
         i

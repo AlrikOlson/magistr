@@ -12,14 +12,14 @@ fn planning_checks_each_effect_and_cannot_start_or_execute_source() {
         "check_step",
         "finish_step",
         "run_finish",
-        "roadmap_start_chunk",
-        "roadmap_export",
+        "plan_start_task",
+        "plan_export",
     ] {
         assert!(!Access::Planning.permits(name, &json!({})), "{name}");
     }
-    assert!(Access::Planning.permits("roadmap_add_chunk", &json!({"title":"Plan"})));
-    assert!(!Access::Planning.permits("roadmap_add_chunk", &json!({"status":"done"})));
-    assert!(!Access::Planning.permits("roadmap_update_chunk", &json!({"status":"in_progress"})));
+    assert!(Access::Planning.permits("plan_add_task", &json!({"title":"Plan"})));
+    assert!(!Access::Planning.permits("plan_add_task", &json!({"status":"done"})));
+    assert!(!Access::Planning.permits("plan_update_task", &json!({"status":"in_progress"})));
     assert!(!Access::ReadOnly.permits("signal_capture", &json!({})));
     assert!(Access::ReadOnly.permits("context", &json!({})));
 }

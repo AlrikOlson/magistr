@@ -175,12 +175,11 @@ impl Session {
                 }
                 return;
             }
-            Cmd::RoadmapPrompt(text) => {
+            Cmd::PlanPrompt(text) => {
                 self.inbox.send(Msg::Agent(AgentEvent::PromptRejected {
                     input: text,
-                    error:
-                        "This session cannot update the roadmap. Open a new session to try again."
-                            .into(),
+                    error: "This session cannot update the plan. Open a new session to try again."
+                        .into(),
                 }));
                 return;
             }

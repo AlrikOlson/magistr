@@ -1,5 +1,5 @@
 //! End-to-end proof that `think_engine_status` reports what the client on the
-//! other end of the request actually declared (roadmap chunk
+//! other end of the request actually declared (plan task
 //! `mcp-stderr-observability-gap`).
 //!
 //! # Why this file has to exist at all
@@ -37,7 +37,7 @@
 
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::client_view::{SOURCE_INITIALIZE, SOURCE_NONE};
-use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
+use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
@@ -100,9 +100,9 @@ fn build_unified(project: &str) -> UnifiedService {
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new(project.into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), run.use_cases());
+    let plan = PlanService::new(PlanEngine::new(project.into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(think, run, roadmap, signal)
+    UnifiedService::new(think, run, plan, signal)
 }
 
 type Client = rmcp::service::RunningService<RoleClient, DeclaringClient>;

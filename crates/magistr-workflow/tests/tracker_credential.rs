@@ -280,14 +280,14 @@ async fn a_provider_without_a_revocation_endpoint_says_so_rather_than_pretending
     assert!(s.load("jira").expect("load").is_none());
 }
 
-/// THE containment guarantee: a secret must not reach the roadmap store, the
-/// git-mirrored partition, or an export. It holds structurally — the roadmap
+/// THE containment guarantee: a secret must not reach the plan store, the
+/// git-mirrored partition, or an export. It holds structurally — the plan
 /// types have nowhere to put one — and this asserts it on the real serialized
 /// forms rather than trusting the design.
 #[test]
-fn no_secret_reaches_the_roadmap_store_or_its_export() {
-    use magistr_workflow::roadmap::domain::ChunkStatus;
-    use magistr_workflow::roadmap::engine::RoadmapEngine;
+fn no_secret_reaches_the_plan_store_or_its_export() {
+    use magistr_workflow::plan::domain::TaskStatus;
+    use magistr_workflow::plan::engine::PlanEngine;
 
     const SECRET: &str = "lin_api_THIS_MUST_NEVER_APPEAR";
 
@@ -297,12 +297,12 @@ fn no_secret_reaches_the_roadmap_store_or_its_export() {
         .connect_personal_key("linear", SECRET, AuthScheme::Raw)
         .expect("connect");
 
-    // A fully-populated roadmap: a chunk, bound to a tracker, with relations.
-    let mut e = RoadmapEngine::new("proj".into());
-    e.add_chunk(
+    // A fully-populated plan: a task, bound to a tracker, with relations.
+    let mut e = PlanEngine::new("proj".into());
+    e.add_task(
         "c1".into(),
-        "Chunk c1".into(),
-        ChunkStatus::Pending,
+        "Task c1".into(),
+        TaskStatus::ToDo,
         10,
         "why".into(),
         vec!["it works".into()],
@@ -316,13 +316,13 @@ fn no_secret_reaches_the_roadmap_store_or_its_export() {
     e.record_tracker_relations("c1", "linear", "rel-hash")
         .expect("relations");
 
-    // Every serialized form the roadmap can produce.
-    let roadmap_json = serde_json::to_string(e.roadmap()).expect("serialize roadmap");
+    // Every serialized form the plan can produce.
+    let plan_json = serde_json::to_string(e.plan()).expect("serialize plan");
     let markdown = e.export("markdown");
     let json_export = e.export("json");
 
     for (name, rendered) in [
-        ("roadmap store", &roadmap_json),
+        ("plan store", &plan_json),
         ("markdown export", &markdown),
         ("json export", &json_export),
     ] {
@@ -337,10 +337,10 @@ fn no_secret_reaches_the_roadmap_store_or_its_export() {
     }
 }
 
-/// The credential file lives outside the roadmap store entirely, so a
-/// git-mirrored roadmap partition cannot pick it up.
+/// The credential file lives outside the plan store entirely, so a
+/// git-mirrored plan partition cannot pick it up.
 #[test]
-fn credentials_live_outside_the_roadmap_store() {
+fn credentials_live_outside_the_plan_store() {
     let dir = tempfile::TempDir::new().expect("tempdir");
     let resolver = Resolver::new(store(&dir)).at(NOW);
     resolver
@@ -350,11 +350,11 @@ fn credentials_live_outside_the_roadmap_store() {
     let cred_dir = dir.path().join("tracker").join("credentials");
     assert!(cred_dir.is_dir(), "credentials have their own directory");
 
-    // Nothing under the roadmap partition, which is what repo-git mirrors.
-    let roadmap_dir = dir.path().join("roadmap");
+    // Nothing under the plan partition, which is what repo-git mirrors.
+    let plan_dir = dir.path().join("plan");
     assert!(
-        !roadmap_dir.exists(),
-        "storing a credential must not create anything under the roadmap store"
+        !plan_dir.exists(),
+        "storing a credential must not create anything under the plan store"
     );
 }
 

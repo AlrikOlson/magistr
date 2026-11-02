@@ -22,15 +22,15 @@ Use the single `magistr` MCP connection. Start with `context` to resume work.
 
 ## More operations
 
-Use `discover({"query":"roadmap"})` to find operations, then
-`discover({"operation":"roadmap_status"})` for the complete schema and examples.
+Use `discover({"query":"plan"})` to find operations, then
+`discover({"operation":"plan_status"})` for the complete schema and examples.
 Call advanced operations through `execute`:
 
 ```javascript
-return magistr.call("roadmap_status", {});
+return magistr.call("plan_status", {});
 ```
 
-The same catalog includes roadmap, reasoning (`think_*`), feedback (`signal_*`),
+The same catalog includes plan, reasoning (`think_*`), feedback (`signal_*`),
 runs and resumption (`run_*`), quality gates (`magistr_gate`), and all
 workspace operations: `map`, `files`, `command`, `undo`, `script`, health and indexing.
 Discover each operation before using it; do not guess argument names. Direct
@@ -51,8 +51,8 @@ deletions. Use `undo` for this session's writes. Inspect response `ok`, `results
 Follow the project's workspace-routing skill for recovery. Git stays in the shell.
 Explain a focused fallback if the connection is unavailable; never bypass a denial.
 
-Keep run steps in `arrange_steps` and the roadmap in native state. Respect the project's
-`roadmap_exports` setting; when false, never generate ROADMAP.md or ROADMAP.json.
+Keep run steps in `arrange_steps` and the plan in native state. Respect the project's
+`plan_exports` setting; when false, never generate PLAN.md or PLAN.json.
 Set `verification: "focused"` when opening a run for a bounded change.
 Run relevant formatting, crate and interface checks through `check_step` with
 `command`, or a named `magistr_gate`. A full suite requires an explicit request

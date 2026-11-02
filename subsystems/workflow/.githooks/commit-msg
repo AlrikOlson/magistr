@@ -37,7 +37,7 @@ check() {
 check "development phase marker"          '[Pp]hase[- ][0-9]'
 check "development saga marker"           '[Ss]aga([- ][0-9]|\b)'
 check "reasoning-trace step reference"    'think:[0-9]'
-check "roadmap work-item reference"       'chunk:[a-z0-9]'
+check "plan work-item reference"       'task:[a-z0-9]'
 check "private tracker ticket id"         'THI-[0-9]'
 check "private tracker URL"               'linear\.app/'
 check "internal verification-ritual name" '[Ss]abotage'

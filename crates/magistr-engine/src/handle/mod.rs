@@ -1,7 +1,7 @@
 //! Engine handle — the primary entry point for the magistr engine.
 //!
 //! `EngineHandle` composes all domain services (`EngineSession`,
-//! `WorkflowEngine`, `CostGovernor`, `RoadmapManager`) behind a typed
+//! `WorkflowEngine`, `CostGovernor`, `PlanManager`) behind a typed
 //! command/query API with event broadcasting.
 //!
 //! Thread-safe (`Clone + Send + Sync`) via `Arc<Mutex<...>>`.

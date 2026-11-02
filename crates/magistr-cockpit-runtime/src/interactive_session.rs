@@ -50,7 +50,7 @@ struct Connection {
     events: UnboundedReceiver<Msg>,
     conversation: Conversation,
     inbox: Inbox,
-    roadmap: bool,
+    plan: bool,
     replaying: bool,
 }
 
@@ -71,7 +71,7 @@ async fn connection_event(connection: &mut Option<Connection>) -> Option<Msg> {
 }
 
 /// Retains the command receiver after a work loop ends and opens a separate
-/// planning session for roadmap requests. Ordinary follow-ups reuse their
+/// planning session for plan requests. Ordinary follow-ups reuse their
 /// current conversation; switching purpose parks that connection until needed.
 pub struct InteractiveSession {
     connect: Arc<Connect>,
@@ -84,8 +84,8 @@ pub struct InteractiveSession {
     parked: Option<Connection>,
     conversation_id: Option<String>,
     conversation_can_resume: Option<bool>,
-    roadmap_id: Option<String>,
-    roadmap_can_resume: Option<bool>,
+    plan_id: Option<String>,
+    plan_can_resume: Option<bool>,
     active_context: Option<Conversation>,
     busy: bool,
     queued: Option<magistr_application::sessions::PromptInput>,
@@ -137,8 +137,8 @@ impl InteractiveSession {
             parked: None,
             conversation_id: None,
             conversation_can_resume: None,
-            roadmap_id: None,
-            roadmap_can_resume: None,
+            plan_id: None,
+            plan_can_resume: None,
             active_context: None,
             busy: false,
             queued: None,
@@ -200,7 +200,7 @@ impl InteractiveSession {
         let outbound = self.inbox.for_conversation(&conversation.id);
         outbound.activate(&conversation.id)?;
         self.active_context = Some(conversation.clone());
-        let roadmap = conversation.purpose == SessionPurpose::Roadmap;
+        let plan = conversation.purpose == SessionPurpose::Plan;
         let (commands, receiver) = Commands::channel();
         let (inbox, events) = Inbox::channel();
         let task = spawn_session(handle, inbox, receiver, None, None, None);
@@ -210,7 +210,7 @@ impl InteractiveSession {
             events,
             conversation,
             inbox: outbound,
-            roadmap,
+            plan,
             replaying,
         });
         Ok(())
@@ -243,22 +243,22 @@ impl InteractiveSession {
     async fn submit(
         &mut self,
         text: magistr_application::sessions::PromptInput,
-        roadmap: bool,
+        plan: bool,
         commands: &mut Commands,
     ) {
         if self.busy {
-            if !roadmap
+            if !plan
                 && self
                     .connection
                     .as_ref()
-                    .is_some_and(|current| !current.roadmap)
+                    .is_some_and(|current| !current.plan)
             {
                 self.forward(Cmd::Prompt(text));
                 return;
             }
-            if roadmap && self.queued.is_none() {
+            if plan && self.queued.is_none() {
                 self.queued = Some(text);
-                self.current_inbox().send(Msg::RoadmapRequestQueued);
+                self.current_inbox().send(Msg::PlanRequestQueued);
             } else {
                 self.reject(
                     text,
@@ -271,7 +271,7 @@ impl InteractiveSession {
         if self
             .connection
             .as_ref()
-            .is_some_and(|current| current.roadmap != roadmap)
+            .is_some_and(|current| current.plan != plan)
         {
             // Each purpose keeps its own provider context, including sessions
             // that cannot be loaded again after their connection is closed.
@@ -282,7 +282,7 @@ impl InteractiveSession {
             && self
                 .parked
                 .as_ref()
-                .is_some_and(|session| session.roadmap == roadmap)
+                .is_some_and(|session| session.plan == plan)
         {
             std::mem::swap(&mut self.connection, &mut self.parked);
             swapped = !swapped;
@@ -295,13 +295,13 @@ impl InteractiveSession {
             return;
         }
         if self.connection.is_none() {
-            let purpose = if roadmap {
-                SessionPurpose::Roadmap
+            let purpose = if plan {
+                SessionPurpose::Plan
             } else {
                 SessionPurpose::Conversation
             };
-            let resume = if roadmap {
-                &self.roadmap_id
+            let resume = if plan {
+                &self.plan_id
             } else {
                 &self.conversation_id
             }
@@ -332,12 +332,12 @@ impl InteractiveSession {
                             self.closed = true;
                             return;
                         }
-                        Some(Cmd::CancelRoadmapPrompt) if roadmap => {
+                        Some(Cmd::CancelPlanPrompt) if plan => {
                             self.reject(text, "This send was stopped. Your draft is still available.");
-                            self.current_inbox().send(Msg::RoadmapRequestCancelled);
+                            self.current_inbox().send(Msg::PlanRequestCancelled);
                             return;
                         }
-                        Some(Cmd::Cancel) if !roadmap => {
+                        Some(Cmd::Cancel) if !plan => {
                             self.reject(text, "This send was stopped. Your draft is still available.");
                             self.current_inbox().send(Msg::Agent(AgentEvent::TurnEnded(
                                 magistr_application::sessions::TurnEnd::Cancelled,
@@ -345,7 +345,7 @@ impl InteractiveSession {
                             return;
                         }
                         Some(Cmd::Loop(command)) => self.control_work(command),
-                        Some(Cmd::Prompt(other) | Cmd::RoadmapPrompt(other)) => {
+                        Some(Cmd::Prompt(other) | Cmd::PlanPrompt(other)) => {
                             self.reject(other, "Wait for the connection before sending another message.");
                         }
                         Some(Cmd::Launch(action)) => self.refuse_start(action, START_WAITS.to_owned()),
@@ -362,8 +362,8 @@ impl InteractiveSession {
                 }
             }
         }
-        if roadmap {
-            self.current_inbox().send(Msg::RoadmapRequestStarted);
+        if plan {
+            self.current_inbox().send(Msg::PlanRequestStarted);
         }
         self.busy = true;
         if !self.forward(Cmd::Prompt(text)) {
@@ -384,8 +384,8 @@ impl InteractiveSession {
             return true;
         };
         if let Msg::Agent(AgentEvent::Activity(activity)) = event {
-            if connection.roadmap {
-                self.roadmap_can_resume = activity.can_resume;
+            if connection.plan {
+                self.plan_can_resume = activity.can_resume;
             } else {
                 self.conversation_can_resume = activity.can_resume;
             }
@@ -395,8 +395,8 @@ impl InteractiveSession {
             }
         }
         if let Msg::Agent(AgentEvent::Initialized { session_id, .. }) = event {
-            let saved = if connection.roadmap {
-                &mut self.roadmap_id
+            let saved = if connection.plan {
+                &mut self.plan_id
             } else {
                 &mut self.conversation_id
             };
@@ -412,12 +412,12 @@ impl InteractiveSession {
     }
 
     async fn reconnect(&mut self, commands: &mut Commands) {
-        let roadmap = self
+        let plan = self
             .active_context
             .as_ref()
-            .is_some_and(|context| context.purpose == SessionPurpose::Roadmap);
-        let can_resume = if roadmap {
-            self.roadmap_can_resume
+            .is_some_and(|context| context.purpose == SessionPurpose::Plan);
+        let can_resume = if plan {
+            self.plan_can_resume
         } else {
             self.conversation_can_resume
         };
@@ -437,16 +437,16 @@ impl InteractiveSession {
             });
             return;
         }
-        let identity = if roadmap {
-            &self.roadmap_id
+        let identity = if plan {
+            &self.plan_id
         } else {
             &self.conversation_id
         };
         let Some(identity) = identity.clone() else {
             return;
         };
-        let purpose = if roadmap {
-            SessionPurpose::Roadmap
+        let purpose = if plan {
+            SessionPurpose::Plan
         } else {
             SessionPurpose::Conversation
         };
@@ -592,7 +592,7 @@ impl InteractiveSession {
                             )));
                             self.close().await;
                             if let Some(text) = self.queued.take() {
-                                first = Some(Cmd::RoadmapPrompt(text));
+                                first = Some(Cmd::PlanPrompt(text));
                             } else if once {
                                 break;
                             }
@@ -610,7 +610,7 @@ impl InteractiveSession {
                         )) {
                             self.busy = false;
                             if let Some(text) = self.queued.take() {
-                                first = Some(Cmd::RoadmapPrompt(text));
+                                first = Some(Cmd::PlanPrompt(text));
                             } else if once {
                                 break;
                             }
@@ -647,36 +647,33 @@ impl InteractiveSession {
             match command {
                 Cmd::Reconnect => self.reconnect(commands).await,
                 Cmd::Prompt(text) => {
-                    let roadmap = addressed
+                    let plan = addressed
                         && self
                             .active_context
                             .as_ref()
-                            .is_some_and(|context| context.purpose == SessionPurpose::Roadmap);
+                            .is_some_and(|context| context.purpose == SessionPurpose::Plan);
                     if addressed && self.busy && self.connection.is_some() {
                         self.forward(Cmd::Prompt(text));
                     } else {
-                        self.submit(text, roadmap, commands).await;
+                        self.submit(text, plan, commands).await;
                     }
                 }
-                Cmd::RoadmapPrompt(text) => self.submit(text, true, commands).await,
-                Cmd::CancelRoadmapPrompt => {
+                Cmd::PlanPrompt(text) => self.submit(text, true, commands).await,
+                Cmd::CancelPlanPrompt => {
                     if let Some(input) = self.queued.take() {
                         self.reject(
                             input,
                             "This send was stopped. Your draft is still available.",
                         );
-                        self.current_inbox().send(Msg::RoadmapRequestCancelled);
-                    } else if self
-                        .connection
-                        .as_ref()
-                        .is_some_and(|session| session.roadmap)
+                        self.current_inbox().send(Msg::PlanRequestCancelled);
+                    } else if self.connection.as_ref().is_some_and(|session| session.plan)
                         && self.busy
                     {
                         self.forward(Cmd::Cancel);
                     } else {
                         self.current_inbox().send(Msg::CommandFailed {
-                            cmd: Cmd::CancelRoadmapPrompt,
-                            error: "There is no roadmap request to stop.".into(),
+                            cmd: Cmd::CancelPlanPrompt,
+                            error: "There is no plan request to stop.".into(),
                         });
                     }
                 }

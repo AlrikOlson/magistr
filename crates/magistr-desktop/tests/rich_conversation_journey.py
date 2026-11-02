@@ -20,7 +20,7 @@ def exercise_rich_conversation(*, call, pid, evidence, results, send, wait,
 
     def progress():
         path = control / "progress.json"
-        return json.loads(path.read_text()) if path.exists() else {"chunks": 0}
+        return json.loads(path.read_text()) if path.exists() else {"tasks": 0}
 
     def stream_number(sample):
         values = "\n".join(sample["stream_values"])
@@ -107,7 +107,7 @@ def exercise_rich_conversation(*, call, pid, evidence, results, send, wait,
     assert tool_copy == tool_source, tool_copy
     checks["Copy tool details preserves final original fields"] = True
     streamed = "".join(f"{STREAM_PREFIX}{number:04d}: new result café 日本語 👩🏽‍💻.\n\n"
-                       for number in range(1, observed["stream"]["chunks"] + 1))
+                       for number in range(1, observed["stream"]["tasks"] + 1))
     expected = "\n\n".join([baseline, "You\n" + PROMPT, "Command\n" + tool_source,
                             "Agent\n" + canonical,
                             "Command\n" + PROGRESS_TOOL_TITLE + "\nStatus: Finished",

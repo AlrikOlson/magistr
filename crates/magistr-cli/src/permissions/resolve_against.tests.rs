@@ -4,17 +4,17 @@ use std::path::{Path, PathBuf};
 
 #[test]
 fn a_relative_path_is_joined_to_the_root() {
-    let out = resolve_against(Some(Path::new("/project")), Path::new("ROADMAP.md"));
-    assert_eq!(out, PathBuf::from("/project/ROADMAP.md"));
+    let out = resolve_against(Some(Path::new("/project")), Path::new("PLAN.md"));
+    assert_eq!(out, PathBuf::from("/project/PLAN.md"));
 }
 
 #[test]
 fn dot_and_dot_dot_components_are_resolved_lexically() {
     let out = resolve_against(
         Some(Path::new("/project")),
-        Path::new("./src/../.magistr/./roadmap.yaml"),
+        Path::new("./src/../.magistr/./plan.yaml"),
     );
-    assert_eq!(out, PathBuf::from("/project/.magistr/roadmap.yaml"));
+    assert_eq!(out, PathBuf::from("/project/.magistr/plan.yaml"));
 }
 
 #[test]
@@ -28,8 +28,8 @@ fn an_absolute_path_ignores_the_root() {
 
 #[test]
 fn without_a_root_a_relative_path_stays_relative_but_normalized() {
-    let out = resolve_against(None, Path::new("./.magistr/../.magistr/roadmap.yaml"));
-    assert_eq!(out, PathBuf::from(".magistr/roadmap.yaml"));
+    let out = resolve_against(None, Path::new("./.magistr/../.magistr/plan.yaml"));
+    assert_eq!(out, PathBuf::from(".magistr/plan.yaml"));
 }
 
 #[test]
@@ -50,13 +50,13 @@ fn dot_dot_cannot_climb_above_an_absolute_root() {
 #[test]
 fn an_existing_path_is_canonicalized_so_symlinked_roots_agree() {
     let dir = tempfile::TempDir::new().expect("a temp dir");
-    let file = dir.path().join("ROADMAP.md");
+    let file = dir.path().join("PLAN.md");
     std::fs::write(&file, "x").expect("write");
     let canonical = std::fs::canonicalize(&file).expect("canonical");
     // The temp dir on macOS is /var/... → /private/var/...: a relative
     // target resolved against the uncanonical root must still land on
     // the canonical file.
-    let out = resolve_against(Some(dir.path()), Path::new("ROADMAP.md"));
+    let out = resolve_against(Some(dir.path()), Path::new("PLAN.md"));
     assert_eq!(out, plain_form(&canonical));
 }
 

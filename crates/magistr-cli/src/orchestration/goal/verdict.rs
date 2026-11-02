@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// `{ok:false, reason}` and `{ok:false, impossible:true, reason}` — so
 /// a delegated mode's verdict and magistr's own report through one type.
 ///
-/// A verdict is an *opinion*: it never completes a chunk by itself. See
+/// A verdict is an *opinion*: it never completes a task by itself. See
 /// [`Decision::reconcile`](super::Decision::reconcile) for what the loop
 /// does with it against the real gates.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

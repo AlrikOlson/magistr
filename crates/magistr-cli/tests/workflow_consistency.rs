@@ -9,12 +9,10 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use magistr::application::HostedWorkspace;
-use magistr_engine::native::{
-    CallerIdentity, OwnerClient, OwnerCommand, OwnerReply, RoadmapCommand,
-};
+use magistr_engine::native::{CallerIdentity, OwnerClient, OwnerCommand, OwnerReply, PlanCommand};
 use magistr_engine::{
-    ChunkStatus, NativeConfig, NativeEngines, NativeReader, OwnerEndpoint, ProjectAuthority,
-    StepType, WriterRole,
+    NativeConfig, NativeEngines, NativeReader, OwnerEndpoint, ProjectAuthority, StepType,
+    TaskStatus, WriterRole,
 };
 use magistr_workflow::signal::domain::SignalKind;
 use magistr_workspace::service::WorkspaceOpenOptions;
@@ -54,13 +52,13 @@ fn attached(cfg: &NativeConfig) -> OwnerClient {
     .expect("attached to the host")
 }
 
-fn add_chunk(engines: &NativeEngines, id: &str) {
+fn add_task(engines: &NativeEngines, id: &str) {
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             id.into(),
-            format!("Chunk {id}"),
+            format!("Task {id}"),
             String::new(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             100,
             String::new(),
             vec![],
@@ -68,27 +66,27 @@ fn add_chunk(engines: &NativeEngines, id: &str) {
             None,
             None,
         )
-        .expect("add chunk");
+        .expect("add task");
 }
 
-fn add_chunk_command(id: &str) -> OwnerCommand {
-    OwnerCommand::Roadmap(RoadmapCommand::AddChunk {
+fn add_task_command(id: &str) -> OwnerCommand {
+    OwnerCommand::Plan(PlanCommand::AddTask {
         id: id.into(),
-        title: format!("Chunk {id}"),
+        title: format!("Task {id}"),
         name: String::new(),
-        status: ChunkStatus::Pending,
+        status: TaskStatus::ToDo,
         priority: 100,
         description: String::new(),
         acceptance: vec![],
         deps: vec![],
         content: None,
-        group: None,
+        feature: None,
     })
 }
 
-fn chunk_ids(reader: &NativeReader) -> Vec<String> {
+fn task_ids(reader: &NativeReader) -> Vec<String> {
     let mut ids: Vec<String> = reader
-        .roadmap_chunks()
+        .plan_tasks()
         .unwrap()
         .into_iter()
         .map(|c| c.id)
@@ -117,65 +115,60 @@ async fn an_attached_command_is_current_on_every_capability_and_observer() {
     let service = host.clone();
     let observer = reader(&cfg);
     // Both capabilities and the observer opened on an empty store.
-    assert!(
-        service.roadmap_chunks().unwrap().is_empty()
-            && observer.roadmap_chunks().unwrap().is_empty()
-    );
+    assert!(service.plan_tasks().unwrap().is_empty() && observer.plan_tasks().unwrap().is_empty());
 
     // The attached client's command runs on the host's engines: read-your-
     // writes for the owner, and on disk at once.
     let mut client = attached(&cfg);
-    let OwnerReply::Chunk(chunk) = client
-        .command(add_chunk_command("via-attached"))
+    let OwnerReply::Task(task) = client
+        .command(add_task_command("via-attached"))
         .expect("command")
     else {
-        panic!("a chunk comes back");
+        panic!("a task comes back");
     };
-    assert_eq!(chunk.value.id, "via-attached");
+    assert_eq!(task.value.id, "via-attached");
     assert!(
-        host.roadmap_chunk("via-attached").unwrap().is_some(),
+        host.plan_task("via-attached").unwrap().is_some(),
         "the owner is current"
     );
-    assert_eq!(chunk_ids(&reader(&cfg)), vec!["via-attached".to_owned()]);
+    assert_eq!(task_ids(&reader(&cfg)), vec!["via-attached".to_owned()]);
 
     // The service view acts through the same writer. Its mutation preserves
     // the acknowledged record and becomes visible to persisted observers.
     assert!(
-        service.roadmap_chunk("via-attached").unwrap().is_some(),
+        service.plan_task("via-attached").unwrap().is_some(),
         "a query on the shared capability sees the acknowledged write"
     );
-    add_chunk(&service, "via-service");
+    add_task(&service, "via-service");
     assert_eq!(
-        chunk_ids(&service.reader()),
+        task_ids(&service.reader()),
         vec!["via-attached".to_owned(), "via-service".to_owned()],
         "the writer's memory is the merged file after its own save"
     );
     assert_eq!(
-        chunk_ids(&reader(&cfg)),
+        task_ids(&reader(&cfg)),
         vec!["via-attached".to_owned(), "via-service".to_owned()],
         "the locked merge-on-save erased nothing"
     );
     // The observer opened before both writes and refreshes the current file.
     assert_eq!(
-        chunk_ids(&observer),
+        task_ids(&observer),
         vec!["via-attached".to_owned(), "via-service".to_owned()]
     );
-    assert!(host.roadmap_chunk("via-service").unwrap().is_some());
+    assert!(host.plan_task("via-service").unwrap().is_some());
     // A transition on the host validates against the current record, so
-    // starting the chunk the service just obsoleted is refused with the
+    // starting the task the service just retired is refused with the
     // current status, not carried out on a stale pending copy.
     service
-        .roadmap_obsolete_chunk("via-attached", "superseded".into())
+        .plan_retire_task("via-attached", "superseded".into())
         .expect("obsolete");
     let refused = host
-        .roadmap_start_chunk("via-attached")
-        .expect_err("obsoleted on disk");
+        .plan_start_task("via-attached")
+        .expect_err("retired on disk");
     assert!(refused.to_string().contains("replaced"), "{refused}");
     assert_eq!(
-        host.roadmap_chunk("via-attached")
-            .unwrap()
-            .map(|c| c.status),
-        Some(ChunkStatus::Obsoleted)
+        host.plan_task("via-attached").unwrap().map(|c| c.status),
+        Some(TaskStatus::Retired)
     );
 
     drop(client);
@@ -191,7 +184,7 @@ fn shared_run_capabilities_and_observers_retain_a_recorded_gate() {
     let observer = reader(&cfg);
 
     // The host opens the cycle: a goal with one step, started.
-    host.run_open("cycle".into(), vec![], vec![], "chunk:c1".into())
+    host.run_open("cycle".into(), vec![], vec![], "task:c1".into())
         .expect("goal");
     host.add_step("verify".into(), "verify".into(), StepType::Test, None)
         .expect("step");
@@ -299,28 +292,25 @@ fn shared_signal_capabilities_promote_once_and_observers_refresh() {
     host.signal_research(&captured.value.id, "worth it".into(), 0.9, vec![], None)
         .expect("research");
     let promoted = host.signal_promote(&captured.value.id).expect("promote");
-    let chunk_id = promoted
+    let task_id = promoted
         .signal
         .value
-        .cross_refs
+        .refs
         .iter()
-        .find_map(|r| r.strip_prefix("chunk:"))
-        .expect("a chunk back-reference")
+        .find_map(|r| r.strip_prefix("task:"))
+        .expect("a task back-reference")
         .to_owned();
     assert!(
-        service.roadmap_chunk(&chunk_id).unwrap().is_some(),
-        "the promoted chunk is current on the shared capability"
+        service.plan_task(&task_id).unwrap().is_some(),
+        "the promoted task is current on the shared capability"
     );
     // The service's own promote of the same signal is the same promotion:
     // it observes the promoted record and creates nothing.
     let again = service
         .signal_promote(&captured.value.id)
         .expect("idempotent");
-    assert_eq!(
-        again.signal.value.cross_refs,
-        promoted.signal.value.cross_refs
-    );
-    assert_eq!(observer.roadmap_chunks().unwrap().len(), 1);
+    assert_eq!(again.signal.value.refs, promoted.signal.value.refs);
+    assert_eq!(observer.plan_tasks().unwrap().len(), 1);
 }
 
 #[test]

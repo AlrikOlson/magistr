@@ -18,61 +18,61 @@ import { request as operationRequest, response } from '../hooks/mcp.js'
 
 async function verifyWorkstreams(call, lane) {
   const read = (args = {}) =>
-    call('roadmap_focus_get', { lane, ...args }).then((reply) =>
+    call('plan_focus_get', { lane, ...args }).then((reply) =>
       validate('focus', reply),
     )
   assert.equal((await read()).focus_state.state, 'unset')
-  for (const [id, group, status] of [
-    ['current', 'Rust desktop', 'pending'],
+  for (const [id, feature, status] of [
+    ['current', 'Rust desktop', 'to_do'],
     ['earlier', 'Rust desktop', 'done'],
-    ['retired', 'Rust', 'obsoleted'],
+    ['retired', 'Rust', 'retired'],
   ]) {
-    const added = await call('roadmap_add_chunk', {
+    const added = await call('plan_add_task', {
       id,
       title: id,
-      group,
+      feature,
       status,
     })
     assert.notEqual(added.isError, true)
   }
-  await call('roadmap_focus_set', {
+  await call('plan_focus_set', {
     lane,
-    group: 'Rust desktop',
+    feature: 'Rust desktop',
     mode: 'build',
   })
   const current = await read()
   assert.deepEqual(Object.keys(current.workstreams.current), ['Rust desktop'])
   assert.equal(current.frontier.frontier.activity.next_ready, 'current')
-  assert.equal(JSON.stringify(current).includes('chunk_ids'), false)
+  assert.equal(JSON.stringify(current).includes('task_ids'), false)
 
-  const history = await read({ group: 'Rust desktop', view: 'history' })
+  const history = await read({ feature: 'Rust desktop', view: 'history' })
   assert.equal(history.frontier.state, 'history')
-  assert.deepEqual(history.frontier.history.chunk_ids, ['earlier'])
+  assert.deepEqual(history.frontier.history.task_ids, ['earlier'])
   assert.deepEqual(history.focus, current.focus)
-  const closed = await read({ group: 'Rust', view: 'history' })
-  assert.deepEqual(closed.frontier.history.chunk_ids, ['retired'])
+  const closed = await read({ feature: 'Rust', view: 'history' })
+  assert.deepEqual(closed.frontier.history.task_ids, ['retired'])
   assert.deepEqual(closed.focus, current.focus)
   const records = decode(
-    await call('roadmap_get', { ids: ['earlier', 'retired'] }),
+    await call('plan_get', { ids: ['earlier', 'retired'] }),
   )
   assert.deepEqual(
     records.records.map((record) => record.id),
     ['earlier', 'retired'],
   )
 
-  await call('roadmap_obsolete_chunk', {
+  await call('plan_retire_task', {
     id: 'current',
     reason: 'Exercise closure of the last unfinished item',
   })
   const ended = await read()
   assert.deepEqual(ended.focus_state, {
     state: 'closed',
-    group: 'Rust desktop',
+    feature: 'Rust desktop',
   })
   assert.deepEqual(ended.workstreams.current, {})
-  assert.equal(JSON.stringify(ended).includes('chunk_ids'), false)
+  assert.equal(JSON.stringify(ended).includes('task_ids'), false)
   assert.deepEqual(
-    (await read({ view: 'history' })).frontier.history.chunk_ids,
+    (await read({ view: 'history' })).frontier.history.task_ids,
     ['current', 'earlier'],
   )
   assert.equal(
@@ -148,7 +148,7 @@ test(
           },
           reference_repos: [],
           state_prefix: 'fixture',
-          roadmap_exports: false,
+          plan_exports: false,
         }),
       )
       const binary =
@@ -250,16 +250,16 @@ test(
       assert.equal(run.project_id, projectId)
       const first = validate('context', await call('context'))
       assert.equal(first.phase, null)
-      validate('roadmap', await call('roadmap_status'))
+      validate('plan', await call('plan_status'))
       validate('findings', await call('think_engine_status', { verbose: true }))
       assert.equal(phase(first, run), 'Phase not reported')
       await verifyWorkstreams(call, root)
       await verifyReadRecovery(
         call,
-        path.join(data, 'roadmap', 'sessions', projectId + '.json'),
+        path.join(data, 'plan', 'sessions', projectId + '.json'),
         [
-          ['roadmap_status', {}],
-          ['roadmap_focus_get', { lane: root }],
+          ['plan_status', {}],
+          ['plan_focus_get', { lane: root }],
         ],
       )
       await call('run_open', {

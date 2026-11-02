@@ -22,7 +22,7 @@ impl PlanBody {
     pub(super) fn validate(&self, contract: &RunContract) -> Result<(), AgreementError> {
         super::require_list("scope", &self.scope)?;
         super::require_list("acceptance", &self.acceptance)?;
-        super::require_text("roadmap_revision", &self.context.roadmap_revision)?;
+        super::require_text("plan_revision", &self.context.plan_revision)?;
         super::require_text("code_revision", &self.context.code_revision)?;
         super::require_text(
             "routing_history_revision",

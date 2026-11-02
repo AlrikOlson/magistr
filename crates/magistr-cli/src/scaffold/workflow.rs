@@ -64,8 +64,8 @@ The `magistr` MCP connection (`magistr mcp --dir .`) provides source tools and t
 |--------|---------|-----------|
 | **think_*** | Reasoning trace: record steps, branch hypotheses, pin conclusions | `think_record_step`, `think_pin_step`, `think_trace_checkpoint` |
 | **run_*** | Run history: goals, steps, progress, checks and approvals | `run_open`, `arrange_steps`, `start_step`, `record_progress`, `check_step`, `run_finish` |
-| **roadmap_*** | The long-horizon plan-of-plans driving both | `roadmap_status`, `roadmap_next`, `roadmap_start_chunk`, `roadmap_complete_chunk` |
-| **signal_*** | Stakeholder signals: capture, research, surface, promote to the roadmap | `signal_capture`, `signal_pending`, `signal_research`, `signal_promote` |
+| **plan_*** | The long-horizon plan-of-plans driving both | `plan_status`, `plan_next`, `plan_start_task`, `plan_complete_task` |
+| **signal_*** | Stakeholder signals: capture, research, surface, promote to the plan | `signal_capture`, `signal_pending`, `signal_research`, `signal_promote` |
 
 ## Cross-referencing
 
@@ -78,7 +78,7 @@ traces auto-correlate.
 
 ## Quick-start workflow
 
-First read `run_status` and, for roadmap work, `roadmap_status`. Resume a matching unfinished goal and keep its plan, step statuses, progress, checks, and reasoning. Continue an already active step without starting it again; do not restart completed steps. Select the authorized scope with `run_open` when another scope is selected, then read `run_status` again. Scope selection saves unrelated unfinished work and restores a saved goal and plan unchanged; never reset or finalize unrelated work to make room. For `/next`, follow the selected chunk and the recovery contract in `.claude/skills/next/SKILL.md`; pending work is considered only when no authorized in-progress work remains.
+First read `run_status` and, for plan work, `plan_status`. Resume a matching unfinished goal and keep its plan, step statuses, progress, checks, and reasoning. Continue an already active step without starting it again; do not restart completed steps. Select the authorized scope with `run_open` when another scope is selected, then read `run_status` again. Scope selection saves unrelated unfinished work and restores a saved goal and plan unchanged; never reset or finalize unrelated work to make room. For `/next`, follow the selected task and the recovery contract in `.claude/skills/next/SKILL.md`; pending work is considered only when no authorized in-progress work remains.
 
 1. `run_open` — select the authorized scope or define a new goal; resume a matching unfinished scope without repeating setup
 2. `arrange_steps` — keep existing steps and add only missing work

@@ -9,7 +9,7 @@ instructions. Each page can be entered directly.
 | --- | --- |
 | Install and connect | [Installation](https://magistr.dev/docs/installation), [agents](https://magistr.dev/docs/agents) |
 | Understand and start work | [Concepts](https://magistr.dev/docs/concepts), [first task](https://magistr.dev/docs/workflow) |
-| Plan and deliver | [Roadmap](https://magistr.dev/docs/roadmap), [reasoning](https://magistr.dev/docs/reasoning), [chunks](https://magistr.dev/docs/chunks), [verification](https://magistr.dev/docs/verification) |
+| Plan and deliver | [Plan](https://magistr.dev/docs/plan), [reasoning](https://magistr.dev/docs/reasoning), [tasks](https://magistr.dev/docs/tasks), [verification](https://magistr.dev/docs/verification) |
 | Continue and improve | [Sessions](https://magistr.dev/docs/sessions), [feedback](https://magistr.dev/docs/feedback), [desktop](https://magistr.dev/docs/desktop) |
 | Look up settings or behavior | [Commands](https://magistr.dev/docs/commands), [skills](https://magistr.dev/docs/skills), [configuration](https://magistr.dev/docs/configuration), [permissions](https://magistr.dev/docs/permissions) |
 | Maintain an installation | [Storage](https://magistr.dev/docs/storage), [troubleshooting](https://magistr.dev/docs/troubleshooting), [upgrades](https://magistr.dev/docs/upgrades), [uninstall](https://magistr.dev/docs/uninstall) |
@@ -35,8 +35,8 @@ These files require repository access. They describe changing Magistr itself.
 - [Website](../apps/website/README.md): content ownership, routes, search,
   browser checks and evidence.
 
-The native roadmap and work plans are stored in Magistr. Keep
-`roadmap_exports: false`; do not generate `ROADMAP.md` or `ROADMAP.json`.
+The native plan and work plans are stored in Magistr. Keep
+`plan_exports: false`; do not generate `PLAN.md` or `PLAN.json`.
 
 ## Technical reference
 

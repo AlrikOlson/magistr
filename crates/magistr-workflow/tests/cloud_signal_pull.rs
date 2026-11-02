@@ -2,7 +2,7 @@
 //! engine. NEWEST-wins per signal via lifecycle progress (reconcile-recency-guard):
 //! the forward-only status rank + append-only enrichment count decide, exactly as
 //! in `merge_signal_stores` — a stale cloud copy must never roll back a newer
-//! local transition. Mirror of the roadmap pull proof.
+//! local transition. Mirror of the plan pull proof.
 
 use magistr_workflow::cloud::build::from_signal;
 use magistr_workflow::cloud::client::CloudClient;
@@ -37,7 +37,7 @@ fn signal_at(id: &str, status: SignalStatus) -> Signal {
         created: "2026-06-08T00:00:00Z".into(),
         status,
         enrichment: vec![],
-        cross_refs: vec![],
+        refs: vec![],
         surfaced_at: None,
         snooze_until: None,
         project_id: None,
@@ -68,7 +68,7 @@ fn upsert_signal_replaces_by_id_or_inserts() {
     assert_eq!(a.status, SignalStatus::Triaged);
 }
 
-/// The roadmap race's signal twin: a stale cloud copy (still New) must not
+/// The plan race's signal twin: a stale cloud copy (still New) must not
 /// roll back a local signal that already advanced to Triaged.
 #[test]
 fn upsert_signal_keeps_newer_local_lifecycle_progress() {
@@ -93,10 +93,10 @@ fn upsert_signal_keeps_newer_local_lifecycle_progress() {
 
 /// sync-project-scope, the signal family's copy: with an org token every
 /// project in the org shares one cloud tenant, so `apply_signal_records` filters
-/// on the record's project stamp exactly as roadmap and think do.
+/// on the record's project stamp exactly as plan and think do.
 ///
 /// This gate is here because it was NOT: neutralising `record_is_local` reddened
-/// the roadmap and think files and left this one entirely green, so the one line
+/// the plan and think files and left this one entirely green, so the one line
 /// standing between the signal store and every other project's signals could
 /// have been deleted to applause. The rule is per-FAMILY, and so is its proof.
 #[test]

@@ -1,15 +1,15 @@
 use serde::{Deserialize, Serialize};
 
-/// Why a run cannot admit another attempt; none of these certifies a chunk.
+/// Why a run cannot admit another attempt; none of these certifies a task.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StopReason {
-    OneChunkComplete,
+    OneTaskComplete,
     IterationLimit,
     NoProgress,
     BudgetExceeded,
     SpecComplete,
-    NoReadyChunk,
+    NoReadyTask,
     Cancelled,
     Failed,
     Aborted,
@@ -20,12 +20,12 @@ impl StopReason {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::OneChunkComplete => "one_chunk_complete",
+            Self::OneTaskComplete => "one_task_complete",
             Self::IterationLimit => "iteration_limit",
             Self::NoProgress => "no_progress",
             Self::BudgetExceeded => "budget_exceeded",
             Self::SpecComplete => "spec_complete",
-            Self::NoReadyChunk => "no_ready_chunk",
+            Self::NoReadyTask => "no_ready_task",
             Self::Cancelled => "cancelled",
             Self::Failed => "failed",
             Self::Aborted => "aborted",

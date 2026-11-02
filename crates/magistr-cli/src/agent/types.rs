@@ -342,7 +342,7 @@ pub fn messages_from_session_update(
             vec![AgentMessage::Assistant {
                 parent_tool_use_id: None,
                 message: AssistantContent {
-                    model: String::new(), // ACP doesn't expose model per-chunk
+                    model: String::new(), // ACP doesn't expose model per-task
                     content: vec![block],
                 },
                 session_id: Some(session_id.clone()),

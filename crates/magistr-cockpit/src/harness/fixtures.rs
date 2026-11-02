@@ -1,6 +1,6 @@
 //! Typed store records for scenes and tests, and the wire line they ride.
 //!
-//! A scene or a test needs a chunk, a signal, a step, a goal,
+//! A scene or a test needs a task, a signal, a step, a goal,
 //! a progress record or a check without saying every field the store
 //! records; these constructors say the rest. [`frame`] is the wire-shaped
 //! way in — a family, a kind and the payload a socket line would carry —
@@ -11,38 +11,38 @@
 //! wire's: a live line missing a field is dropped by that same decoder.
 
 use magistr_workflow_contracts::{
-    Check, CheckType, Chunk, ChunkStatus, Goal, GoalStatus, NativeFrame, Progress, ProgressType,
-    Signal, SignalKind, SignalStatus, Step, StepStatus, StepType, ThinkStep, VerificationMode,
+    Check, CheckType, Goal, GoalStatus, NativeFrame, Progress, ProgressType, Signal, SignalKind,
+    SignalStatus, Step, StepStatus, StepType, Task, TaskStatus, ThinkStep, VerificationMode,
 };
 use magistr_workflow_contracts::{NativeEvent, NativeSnapshot};
 use serde_json::{Value, json};
 
 use crate::engine::EngineEvent;
 
-/// A pending chunk with nothing but its id — no title, no name (the row
+/// A pending task with nothing but its id — no title, no name (the row
 /// falls back to the id), priority zero, no deps.
 #[must_use]
-pub fn chunk(id: &str) -> Chunk {
-    Chunk {
+pub fn task(id: &str) -> Task {
+    Task {
         id: id.to_owned(),
         title: String::new(),
         name: String::new(),
-        status: ChunkStatus::Pending,
+        status: TaskStatus::ToDo,
         priority: 0,
         description: String::new(),
         content: None,
         notes: String::new(),
-        group: None,
+        feature: None,
         acceptance: Vec::new(),
         deps: Vec::new(),
         tier: None,
-        cross_refs: Vec::new(),
+        refs: Vec::new(),
         shared: false,
         reprioritize: None,
         status_proposal: None,
         title_proposal: None,
-        obsoleted_reason: None,
-        blocked_by: None,
+        retired_reason: None,
+        waiting_on: None,
         project_id: None,
         created_at: String::new(),
         updated_at: String::new(),
@@ -61,7 +61,7 @@ pub fn signal(id: &str) -> Signal {
         created: String::new(),
         status: SignalStatus::New,
         enrichment: Vec::new(),
-        cross_refs: Vec::new(),
+        refs: Vec::new(),
         surfaced_at: None,
         snooze_until: None,
         project_id: None,
@@ -172,16 +172,16 @@ pub fn check(name: &str, passed: bool) -> Check {
     }
 }
 
-/// A snapshot holding `chunks` and `signals` and nothing else — what a
-/// roadmap scene seeds from.
+/// A snapshot holding `tasks` and `signals` and nothing else — what a
+/// plan scene seeds from.
 #[must_use]
-pub fn snapshot(chunks: Vec<Chunk>, signals: Vec<Signal>) -> NativeSnapshot {
-    use magistr_workflow_contracts::{Observed, ReadSource, ReadState, RoadmapData};
+pub fn snapshot(tasks: Vec<Task>, signals: Vec<Signal>) -> NativeSnapshot {
+    use magistr_workflow_contracts::{Observed, PlanData, ReadSource, ReadState};
     NativeSnapshot {
-        roadmap: ReadState::Current(Observed {
-            value: RoadmapData {
-                chunks,
-                ..RoadmapData::default()
+        plan: ReadState::Current(Observed {
+            value: PlanData {
+                tasks,
+                ..PlanData::default()
             },
             source: ReadSource::Memory,
         }),
@@ -193,21 +193,21 @@ pub fn snapshot(chunks: Vec<Chunk>, signals: Vec<Signal>) -> NativeSnapshot {
     }
 }
 
-/// The roadmap's progress as `done` of `total` chunks.
+/// The plan's progress as `done` of `total` tasks.
 #[must_use]
-pub fn progress(done: u32, total: u32) -> magistr_workflow_contracts::RoadmapProgress {
-    magistr_workflow_contracts::RoadmapProgress {
+pub fn progress(done: u32, total: u32) -> magistr_workflow_contracts::PlanProgress {
+    magistr_workflow_contracts::PlanProgress {
         total_tasks: total,
         checked_tasks: done,
-        ..magistr_workflow_contracts::RoadmapProgress::default()
+        ..magistr_workflow_contracts::PlanProgress::default()
     }
 }
 
-/// The chunks a list of partial records describes — [`chunk_from`] over
+/// The tasks a list of partial records describes — [`task_from`] over
 /// each.
 #[must_use]
-pub fn chunks_from(partials: Vec<Value>) -> Vec<Chunk> {
-    partials.into_iter().map(chunk_from).collect()
+pub fn tasks_from(partials: Vec<Value>) -> Vec<Task> {
+    partials.into_iter().map(task_from).collect()
 }
 
 /// The signals a list of partial records describes — [`signal_from`]
@@ -250,16 +250,16 @@ pub fn frame(family: &str, kind: &str, payload: Value) -> NativeEvent {
             object.entry("warnings").or_insert(json!([]));
         }
         let ended = match kind {
-            "chunk_completed" => Some("done"),
-            "chunk_obsoleted" => Some("obsoleted"),
+            "task_completed" => Some("done"),
+            "task_retired" => Some("retired"),
             _ => None,
         };
-        fill_record(object, "chunk", |partial| {
-            let mut default = chunk(id_of(partial, "id"));
+        fill_record(object, "task", |partial| {
+            let mut default = task(id_of(partial, "id"));
             if let Some(status) = ended {
                 default.status = serde_json::from_value(json!(status)).expect("a status");
             }
-            fill_chunk(&default, partial)
+            fill_task(&default, partial)
         });
         fill_record(object, "signal", |partial| {
             fill_signal(&signal(id_of(partial, "id")), partial)
@@ -290,12 +290,12 @@ pub fn event(family: &str, kind: &str, payload: Value) -> EngineEvent {
     EngineEvent::local(frame(family, kind, payload))
 }
 
-/// The chunk a partial record describes, the rest filled in from
-/// [`chunk`].
+/// The task a partial record describes, the rest filled in from
+/// [`task`].
 #[must_use]
-pub fn chunk_from(partial: Value) -> Chunk {
-    let filled = fill_chunk(&chunk(id_of(&partial, "id")), &partial);
-    serde_json::from_value(filled).expect("a filled chunk decodes")
+pub fn task_from(partial: Value) -> Task {
+    let filled = fill_task(&task(id_of(&partial, "id")), &partial);
+    serde_json::from_value(filled).expect("a filled task decodes")
 }
 
 /// The signal a partial record describes, the rest filled in from
@@ -367,7 +367,7 @@ macro_rules! to_value_via_serde {
     };
 }
 
-to_value_via_serde!(Chunk, Signal, ThinkStep, Goal, Step, Progress, Check);
+to_value_via_serde!(Task, Signal, ThinkStep, Goal, Step, Progress, Check);
 
 fn id_of<'a>(partial: &'a Value, key: &str) -> &'a str {
     partial[key].as_str().unwrap_or_default()
@@ -397,21 +397,21 @@ fn fill(default: &impl ToValue, partial: &Value) -> Value {
     value
 }
 
-fn fill_chunk(default: &Chunk, partial: &Value) -> Value {
+fn fill_task(default: &Task, partial: &Value) -> Value {
     let mut value = fill(default, partial);
     // The state word the row spells as `stuck` is two fields on the
     // record: work in progress that carries a blocker.
     if value["status"] == json!("stuck") {
         value["status"] = json!("in_progress");
-        if value.get("blocked_by").is_none_or(Value::is_null) {
-            value["blocked_by"] = json!({"kind": "awaiting_human", "reason": "needs a decision"});
+        if value.get("waiting_on").is_none_or(Value::is_null) {
+            value["waiting_on"] = json!({"kind": "person", "reason": "needs a decision"});
         }
     }
     for (key, extra) in [
         ("reprioritize", json!({"proposed_at": ""})),
         ("status_proposal", json!({"proposed_at": "", "source": ""})),
         ("title_proposal", json!({"proposed_at": "", "source": ""})),
-        ("blocked_by", json!({"blocked_at": ""})),
+        ("waiting_on", json!({"waiting_since": ""})),
     ] {
         if let Some(nested) = value.get_mut(key).filter(|v| v.is_object()) {
             let filled = fill(&extra, nested);

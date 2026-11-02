@@ -10,7 +10,7 @@ its `PreToolUse`/`Stop` guard hooks; inspect their result, but execute and verif
 the explicit shared lifecycle and recorded gates yourself. Hooks do not turn
 a green unrecorded result into proof of run.
 
-For `/next-loop`, use the shared single-chunk handoff contract. This
+For `/next-loop`, use the shared single-task handoff contract. This
 invocation completes exactly one `/next` iteration; then write the handoff and
 stop. The host may invoke it again only after opening a fresh Claude session,
 or using `/clear` as the explicit new-session command. Do not invoke `/next`
@@ -22,4 +22,4 @@ loop. Preserve unrelated state in every mode.
 
 During init, preserve Codex project configuration and skills. Verify changed
 configuration syntax, Claude skill discovery, and read-only MCP connectivity;
-do not start a roadmap iteration as a setup test.
+do not start a plan iteration as a setup test.

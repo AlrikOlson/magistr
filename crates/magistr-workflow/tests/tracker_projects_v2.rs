@@ -21,8 +21,8 @@
 //! transport's author imagined. Two assumptions died on contact with it; see
 //! the tests for which.
 
-use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::roadmap::engine::RoadmapEngine;
+use magistr_workflow::plan::domain::TaskStatus;
+use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::tracker::domain::{WorkItem, WorkItemState};
 use magistr_workflow::tracker::outbox::TrackerOutbox;
 use magistr_workflow::tracker::port::{TrackerError, TrackerPort};
@@ -74,7 +74,7 @@ fn org_board() -> Value {
 
 fn user_board() -> Value {
     json!({ "data": { "user": { "projectV2": {
-        "id": "PVT_kwHOxyz123", "title": "Personal roadmap", "number": 3
+        "id": "PVT_kwHOxyz123", "title": "Personal plan", "number": 3
     }}}})
 }
 
@@ -90,7 +90,7 @@ async fn serve(responder: Board) -> MockServer {
 }
 
 /// An ORGANISATION-owned board resolves to its node id, and the id is what the
-/// later sub-chunks will actually need.
+/// later subtasks will actually need.
 #[tokio::test]
 async fn an_organisation_board_resolves_to_its_node_id() {
     let server = serve(Board {
@@ -449,7 +449,7 @@ fn a_default_board_ships_status_with_todo_in_progress_done() {
     assert_eq!(names, vec!["Todo", "In Progress", "Done"]);
 }
 
-/// THE CHUNK'S OWN CASE, read off the real capture rather than off a fixture
+/// THE TASK'S OWN CASE, read off the real capture rather than off a fixture
 /// anyone invented: our canonical states resolve to the board's REAL option ids.
 ///
 /// Note what the ids look like. Nothing here could have been guessed, defaulted
@@ -486,15 +486,15 @@ fn the_real_captured_board_maps_our_states_to_its_real_option_ids() {
     );
 }
 
-/// THE FINDING THIS CHUNK PRODUCED, and it is a negative one: a DEFAULT GitHub
-/// board cannot express two of the four things the roadmap wants to say.
+/// THE FINDING THIS TASK PRODUCED, and it is a negative one: a DEFAULT GitHub
+/// board cannot express two of the four things the plan wants to say.
 ///
 /// There is no option meaning *cancelled* — Todo / In Progress / Done is the
-/// whole vocabulary — so an obsoleted chunk has nowhere to land, and there is no
+/// whole vocabulary — so an retired task has nowhere to land, and there is no
 /// second single-select at all, so priority has nowhere to land either. Both are
 /// refusals or omissions on the most ordinary board there is, which makes the
 /// refusal path the COMMON case for `Cancelled` rather than the exotic one the
-/// chunk description expected.
+/// task description expected.
 #[test]
 fn the_real_captured_board_cannot_express_cancelled_or_priority() {
     let v: Value = serde_json::from_str(REAL_FIELDS).unwrap();
@@ -781,7 +781,7 @@ async fn a_board_with_no_lifecycle_analogue_is_refused_before_any_mutation() {
 /// THE ACCEPTANCE CRITERION for a cancelled state with no board column: proven
 /// against the REAL captured board rather than a hand-built one.
 ///
-/// On the most ordinary board there is, an obsoleted chunk must NOT raise — it
+/// On the most ordinary board there is, an retired task must NOT raise — it
 /// must come back as a deliberate non-write carrying what the end-of-run
 /// summary needs. The states the same board CAN express still resolve, so this
 /// is a per-state policy and not a board-wide give-up.
@@ -942,7 +942,7 @@ async fn a_missing_priority_analogue_degrades_to_none_rather_than_refusing() {
 }
 
 // ---------------------------------------------------------------------------
-// The attach path — one chunk, one twin per provider.
+// The attach path — one task, one twin per provider.
 // ---------------------------------------------------------------------------
 
 /// Serves the three operations an attach needs: the board lookup, the issue-node
@@ -1061,13 +1061,13 @@ async fn the_item_attaches_to_the_linked_issue_by_content_id_and_never_as_a_draf
     assert_eq!(item.content_id, "I_kwDOIssue42");
 }
 
-/// IDEMPOTENCY, OUR HALF: adding the same chunk twice within a run finds the
+/// IDEMPOTENCY, OUR HALF: adding the same task twice within a run finds the
 /// existing item instead of posting again.
 ///
 /// Asserted on the wire and on the point budget, because "returns the same
 /// value" is also true of a client that re-posts every time.
 #[tokio::test]
-async fn attaching_the_same_chunk_twice_reaches_the_board_once_and_costs_nothing_again() {
+async fn attaching_the_same_task_twice_reaches_the_board_once_and_costs_nothing_again() {
     let server = serve_issues(json!({ "id": "I_kwDOIssue42" }), "PVTI_lADOitem1").await;
     let client = client_for(&server);
 
@@ -1087,7 +1087,7 @@ async fn attaching_the_same_chunk_twice_reaches_the_board_once_and_costs_nothing
         "a cached attach must not spend a point"
     );
 
-    // NON-VACUITY: a DIFFERENT chunk on the same client still reaches the board,
+    // NON-VACUITY: a DIFFERENT task on the same client still reaches the board,
     // so the cache is keyed on the issue rather than swallowing everything.
     client.attach_issue("acme/widgets#43").await.unwrap();
     assert_eq!(mutations_reaching(&server).await.len(), 2);
@@ -1298,7 +1298,7 @@ fn board_tracker(server: &MockServer) -> ProjectsV2Tracker {
 }
 
 fn linked_item(external_id: &str, state: WorkItemState) -> WorkItem {
-    let mut item = WorkItem::new("Chunk that already reached GitHub Issues");
+    let mut item = WorkItem::new("Task that already reached GitHub Issues");
     item.external_id = Some(external_id.to_string());
     item.state = state;
     item
@@ -1325,7 +1325,7 @@ async fn the_status_write_carries_the_boards_own_field_and_the_resolved_option()
     let outcome = tracker
         .upsert_item(&linked_item("acme/widgets#42", WorkItemState::InProgress))
         .await
-        .expect("a linked chunk must reach the board");
+        .expect("a linked task must reach the board");
 
     let write = field_write_reaching(&server)
         .await
@@ -1374,18 +1374,18 @@ async fn the_status_write_carries_the_boards_own_field_and_the_resolved_option()
     );
 }
 
-/// A chunk that has not reached GitHub Issues yet is REFUSED, and the refusal
+/// A task that has not reached GitHub Issues yet is REFUSED, and the refusal
 /// names the fix rather than failing as a null somewhere downstream.
 ///
 /// Paired with a positive in the same test and against the same server: the
 /// very next call, with an id present, really does write. Without that half the
 /// refusal could be passing because the mock is broken.
 #[tokio::test]
-async fn a_chunk_with_no_issue_is_refused_and_nothing_reaches_the_board() {
+async fn a_task_with_no_issue_is_refused_and_nothing_reaches_the_board() {
     let server = serve_projection(lifecycle_field(), false).await;
     let tracker = board_tracker(&server);
 
-    let mut unlinked = WorkItem::new("Chunk that has never been pushed anywhere");
+    let mut unlinked = WorkItem::new("Task that has never been pushed anywhere");
     unlinked.state = WorkItemState::Todo;
     let error = match tracker.upsert_item(&unlinked).await {
         Ok(o) => panic!("a board cannot mint an issue, yet it returned {o:?}"),
@@ -1474,19 +1474,19 @@ async fn a_cancelled_state_leaves_the_column_alone_and_is_announced_once_per_run
 async fn a_secondary_rate_limit_on_the_board_queues_instead_of_being_lost() {
     let server = serve_projection(lifecycle_field(), true).await;
 
-    let mut engine = RoadmapEngine::new("proj".into());
+    let mut engine = PlanEngine::new("proj".into());
     engine
-        .add_chunk(
+        .add_task(
             "c1".into(),
-            "Chunk c1".into(),
-            ChunkStatus::Pending,
+            "Task c1".into(),
+            TaskStatus::ToDo,
             10,
             "why c1 exists".into(),
             vec!["c1 works".into()],
             vec![],
             false,
         )
-        .expect("add chunk");
+        .expect("add task");
     engine
         .set_tracker_opt_in("c1", "github_projects", true)
         .expect("opt in");

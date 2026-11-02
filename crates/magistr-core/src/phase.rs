@@ -27,8 +27,8 @@ pub enum Phase {
     Done,
     /// An error occurred
     Error(String),
-    /// Interactive roadmap wizard
-    Roadmap,
+    /// Interactive plan wizard
+    Plan,
 }
 
 impl Phase {
@@ -38,7 +38,7 @@ impl Phase {
             Self::Detecting => "Detecting stack...",
             Self::LoadingPreset => "Loading preset...",
             Self::Wizard => "Configure project...",
-            Self::Roadmap => "Interactive roadmap...",
+            Self::Plan => "Interactive plan...",
             Self::Scaffolding => "Scaffolding .claude/...",
             Self::Connecting => "Connecting to agent...",
             Self::Running => "Running agent...",

@@ -57,7 +57,7 @@ fn developer_matrix_is_build_and_view() {
     for cap in Capability::ALL {
         let expected = matches!(
             cap,
-            Capability::EditRoadmap | Capability::RunSessions | Capability::View
+            Capability::EditPlan | Capability::RunSessions | Capability::View
         );
         assert_eq!(PersonRole::Developer.can(cap), expected, "{cap:?}");
     }
@@ -75,9 +75,9 @@ fn viewer_can_only_view() {
 }
 
 #[test]
-fn ci_runs_and_edits_roadmap_but_never_approves_or_manages() {
+fn ci_runs_and_edits_plan_but_never_approves_or_manages() {
     assert!(PersonRole::Ci.can(Capability::RunSessions));
-    assert!(PersonRole::Ci.can(Capability::EditRoadmap));
+    assert!(PersonRole::Ci.can(Capability::EditPlan));
     assert!(PersonRole::Ci.can(Capability::View));
     assert!(!PersonRole::Ci.can(Capability::ApprovePermissions));
     assert!(!PersonRole::Ci.can(Capability::ManageTeam));

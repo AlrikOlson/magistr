@@ -23,7 +23,7 @@ fn base_config(archetypes: serde_json::Value) -> crate::types::ProjectConfig {
             { "name": "structure", "command": "echo structure-ok", "required": true }
         ],
         "format": { "extensions": ["rs"], "command": "cargo fmt" },
-        "spec": { "file": "ROADMAP.md", "unchecked_pattern": "" },
+        "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
         "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
         "reference_repos": [],
         "state_prefix": "test",

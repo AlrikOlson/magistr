@@ -27,7 +27,7 @@ configuration and stored formats until the owner declares official public releas
 | Desktop interface | Tauri desktop for project/working-copy navigation, resident conversations, permissions, cancellation, drafts and clipboard; macOS checks are separate from the first CLI package acceptance |
 | Peer protocol | Opt-in engine experiment, disabled in production; runtime authentication and governed dispatch are not implemented |
 | Live provider sessions | Fixtures and adapters are covered by tests; a local install still needs the selected runtime or API credentials and no live provider is implied by this release |
-| Roadmap export | Disabled by project policy (`roadmap_exports = false`). Native roadmap state remains the source of truth and no `ROADMAP.md` or `ROADMAP.json` export is generated |
+| Plan export | Disabled by project policy (`plan_exports = false`). Native plan state remains the source of truth and no `PLAN.md` or `PLAN.json` export is generated |
 
 ## Install and runtime prerequisites
 

@@ -2,11 +2,11 @@
 //! behind the scaffolded `.claude/hooks/magistr-guard.sh`.
 //!
 //! Reads the hook's JSON on stdin (only when stdin is not a terminal), the
-//! run/roadmap state through the in-process magistr engines, the
+//! run/plan state through the in-process magistr engines, the
 //! project's frozen-tree declaration
 //! (`.magistr/legacy-gui-ratchet.json`) and whether `.mcp.json` declares
 //! magistr, then exits 2 with the reason on stderr to block the event.
-//! A project without the native roadmap backend is never blocked.
+//! A project without the native plan backend is never blocked.
 
 use std::io::{IsTerminal, Read};
 use std::path::{Component, Path, PathBuf};
@@ -45,7 +45,7 @@ pub fn cmd_guard(event: GuardEvent, dir: &Path) -> eyre::Result<()> {
     input.workspace = workspace_declared(&dir);
     input.project_dir = Some(dir.clone());
 
-    match crate::roadmap::open_native_reader(&dir) {
+    match crate::plan::open_native_reader(&dir) {
         Ok(Some(engines)) => {
             if let Err(error) = read_engine_state(&mut input, &engines) {
                 eprintln!(
@@ -64,7 +64,7 @@ pub fn cmd_guard(event: GuardEvent, dir: &Path) -> eyre::Result<()> {
         }
         Ok(None) => {
             eprintln!(
-                "magistr guard: {} does not use the magistr roadmap backend; allowing",
+                "magistr guard: {} does not use the magistr plan backend; allowing",
                 dir.display()
             );
             return Ok(());
@@ -219,8 +219,8 @@ fn read_engine_state(
     engines: &magistr_engine::NativeReader,
 ) -> Result<(), String> {
     let run = engines.run_snapshot()?;
-    let chunks = engines.roadmap_chunks()?;
-    apply_engine_state(input, &run, &chunks);
+    let tasks = engines.plan_tasks()?;
+    apply_engine_state(input, &run, &tasks);
     Ok(())
 }
 
@@ -228,7 +228,7 @@ fn read_engine_state(
 pub(crate) fn apply_engine_state(
     input: &mut GuardInput,
     run: &magistr_engine::RunData,
-    chunks: &[magistr_workflow::roadmap::domain::Chunk],
+    tasks: &[magistr_workflow::plan::domain::Task],
 ) {
     use magistr_workflow::run::domain::goal::GoalStatus;
     input.goal_status = run.goal().map(|goal| {
@@ -253,14 +253,14 @@ pub(crate) fn apply_engine_state(
             verified: check.verified,
         })
         .collect();
-    input.chunk_in_progress = input
+    input.task_in_progress = input
         .goal_scope
         .as_deref()
-        .and_then(|scope| scope.strip_prefix("chunk:"))
+        .and_then(|scope| scope.strip_prefix("task:"))
         .is_some_and(|id| {
-            chunks.iter().any(|chunk| {
-                chunk.id == id
-                    && chunk.status == magistr_workflow::roadmap::domain::ChunkStatus::InProgress
+            tasks.iter().any(|task| {
+                task.id == id
+                    && task.status == magistr_workflow::plan::domain::TaskStatus::InProgress
             })
         });
 }

@@ -87,12 +87,9 @@ fn plugins_dir_path() {
 }
 
 #[test]
-fn roadmap_yaml_at_repo_root() {
+fn plan_yaml_at_repo_root() {
     let dir = Path::new("/tmp/proj");
-    assert_eq!(
-        roadmap_yaml(dir),
-        PathBuf::from("/tmp/proj/.magistr-roadmap.yml")
-    );
+    assert_eq!(plan_yaml(dir), PathBuf::from("/tmp/proj/.magistr-plan.yml"));
 }
 
 #[test]
@@ -124,10 +121,7 @@ fn project_paths_all_methods() {
         PathBuf::from("/p/.magistr/interview-trace.log")
     );
     assert_eq!(paths.plugins_dir(), PathBuf::from("/p/.magistr/plugins"));
-    assert_eq!(
-        paths.roadmap_yaml(),
-        PathBuf::from("/p/.magistr-roadmap.yml")
-    );
+    assert_eq!(paths.plan_yaml(), PathBuf::from("/p/.magistr-plan.yml"));
     assert_eq!(paths.claude_dir(), PathBuf::from("/p/.claude"));
     assert_eq!(paths.rules_dir(), PathBuf::from("/p/.claude/rules"));
     assert_eq!(

@@ -98,7 +98,7 @@ def fixture(root):
                  "test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
         "quality_gate":{"check":"true","test":"true","lint":"true"},
         "format":{"command":"true","extensions":["rs"]},
-        "roadmap_exports":False, "roadmap_backend":"native",
+        "plan_exports":False, "plan_backend":"native",
         "testing":{"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
         "reference_repos":[], "state_prefix":"unified-test"
     }))
@@ -134,9 +134,9 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
         self.assertEqual(len(result["receipts"]),1)
         self.assertIn("not allowed",result["failure"]["message"])
         self.assertFalse((self.root/"forbidden.txt").exists())
-        plan = c.operation("roadmap_add_chunk", {"id":"future","title":"Future improvement","status":"pending"})
+        plan = c.operation("plan_add_task", {"id":"future","title":"Future improvement","status":"pending"})
         self.assertIsNotNone(plan)
-        for operation, args in [("roadmap_set_status",{"id":"future","status":"done"}),
+        for operation, args in [("plan_set_status",{"id":"future","status":"done"}),
                                 ("script",{"source":"return 1;"}),
                                 ("check_step",{"name":"forbidden","type":"test","command":"true"})]:
             stopped = c.execute("return magistr.call("+json.dumps(operation)+","+json.dumps(args)+");")
@@ -154,7 +154,7 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
             operations.update((op["name"], op) for op in page["operations"])
             if page["nextOffset"] is None: break
             offset = page["nextOffset"]
-        for name in ["map","files","command","undo","script","workspace_status","roadmap_add_chunk",
+        for name in ["map","files","command","undo","script","workspace_status","plan_add_task",
                      "think_record_step","run_open","run_finish","signal_capture"]:
             self.assertIn(name, operations)
         for name, tool in tools.items():
@@ -201,9 +201,9 @@ magistr.call('signal_capture', {kind:'feedback',body:'must not run'});""")
         c.tool("finish_step",{"step_id":"verify"})
         final=c.operation("run_finish",{})
         self.assertNotEqual(final.get("ok"),False,final)
-        result=c.execute('return magistr.call("roadmap_export", {});')
+        result=c.execute('return magistr.call("plan_export", {});')
         self.assertFalse(result["ok"],result)
-        self.assertFalse((self.root/"ROADMAP.md").exists())
+        self.assertFalse((self.root/"PLAN.md").exists())
 
     def test_bounds_and_confirmation(self):
         c=self.connect()

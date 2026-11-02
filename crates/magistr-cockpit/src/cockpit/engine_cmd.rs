@@ -19,32 +19,32 @@ pub enum EngineCmd {
     },
     /// \[Checkpoint\]: the trace-wide metacognitive report.
     Checkpoint,
-    /// \[Start\] on a roadmap chunk: mark it in progress.
-    StartChunk {
-        /// The chunk to start.
+    /// \[Start\] on a plan task: mark it in progress.
+    StartTask {
+        /// The task to start.
         id: String,
     },
-    /// \[Complete\] on a roadmap chunk: mark it done.
-    CompleteChunk {
-        /// The chunk to complete.
+    /// \[Complete\] on a plan task: mark it done.
+    CompleteTask {
+        /// The task to complete.
         id: String,
     },
     /// Accept or reject an open proposal — from the dock's front card
-    /// or the Roadmap tab's proposal list.
+    /// or the Plan tab's proposal list.
     ResolveProposal {
-        /// The chunk the proposal is on.
-        chunk: String,
+        /// The task the proposal is on.
+        task: String,
         /// Which field it wants to change.
         kind: ProposalKind,
         /// Take the suggestion, or clear it.
         accept: bool,
     },
-    /// \[Clear\] on a blocked chunk: lift its awaiting-human blocker.
+    /// \[Clear\] on a blocked task: lift its awaiting-human blocker.
     ClearBlocker {
-        /// The blocked chunk.
-        chunk: String,
+        /// The blocked task.
+        task: String,
     },
-    /// \[Promote\] on a signal: it becomes a roadmap concern.
+    /// \[Promote\] on a signal: it becomes a plan concern.
     PromoteSignal {
         /// The signal to promote.
         id: String,

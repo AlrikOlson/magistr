@@ -5,15 +5,15 @@ use std::fmt::Write as _;
 use super::gate_evidence::GateEvidence;
 use super::verdict::Verdict;
 
-/// Everything the judge is given: the chunk's acceptance list, entire
+/// Everything the judge is given: the task's acceptance list, entire
 /// and unabridged — there is no 500-character cap here, which is one of
 /// the three reasons the native judge leads — the real gate
 /// evidence, and the tail of what the agent said.
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct JudgeInput {
-    /// The chunk's id.
-    pub chunk: String,
-    /// The chunk's title — the claim in one sentence.
+    /// The task's id.
+    pub task: String,
+    /// The task's title — the claim in one sentence.
     pub title: String,
     /// Every acceptance criterion, verbatim.
     pub acceptance: Vec<String>,
@@ -38,7 +38,7 @@ impl JudgeInput {
         let mut out = String::new();
         let _ = writeln!(
             out,
-            "You are judging whether a roadmap chunk is complete after iteration {} of {}.",
+            "You are judging whether a plan task is complete after iteration {} of {}.",
             self.iteration.0, self.iteration.1
         );
         let _ = writeln!(
@@ -49,12 +49,12 @@ impl JudgeInput {
              it is not met. If the transcript does not contain clear evidence that the \
              acceptance is satisfied, answer {{\"ok\": false, \"reason\": \"insufficient evidence\"}}."
         );
-        let _ = writeln!(out, "\n## Chunk `{}`\n{}", self.chunk, self.title);
+        let _ = writeln!(out, "\n## Task `{}`\n{}", self.task, self.title);
         let _ = writeln!(out, "\n## Acceptance criteria");
         if self.acceptance.is_empty() {
             let _ = writeln!(
                 out,
-                "(the chunk lists none: judge the title as the criterion)"
+                "(the task lists none: judge the title as the criterion)"
             );
         }
         for (n, criterion) in self.acceptance.iter().enumerate() {

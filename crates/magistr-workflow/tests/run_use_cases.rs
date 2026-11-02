@@ -25,7 +25,7 @@ fn stored(root: &std::path::Path) -> RunUseCases {
 
 fn planned(cases: &RunUseCases) {
     cases
-        .set_goal("Current run".into(), vec![], vec![], "chunk:test".into())
+        .set_goal("Current run".into(), vec![], vec![], "task:test".into())
         .unwrap();
     cases
         .add_step("verify".into(), "Verify".into(), StepType::Test, None, None)
@@ -373,7 +373,7 @@ fn editing_an_inflight_goal_keeps_its_run_and_admission() {
     planned(&cases);
     let admission = cases.admit_check(request()).unwrap().value;
     cases
-        .set_goal("Clarified goal".into(), vec![], vec![], "chunk:test".into())
+        .set_goal("Clarified goal".into(), vec![], vec![], "task:test".into())
         .unwrap();
     assert_eq!(cases.admit_step(None).unwrap(), admission.target);
     assert!(matches!(
@@ -449,7 +449,7 @@ fn switching_scopes_restores_the_exact_unfinished_plan_across_restart() {
     let original = serde_json::to_value(cases.snapshot().unwrap()).unwrap();
 
     cases
-        .set_goal("Other work".into(), vec![], vec![], "chunk:other".into())
+        .set_goal("Other work".into(), vec![], vec![], "task:other".into())
         .unwrap();
     assert!(cases.snapshot().unwrap().steps.is_empty());
     cases
@@ -466,14 +466,14 @@ fn switching_scopes_restores_the_exact_unfinished_plan_across_restart() {
 
     let reopened = stored(temp.path());
     reopened
-        .set_goal("Current run".into(), vec![], vec![], "chunk:test".into())
+        .set_goal("Current run".into(), vec![], vec![], "task:test".into())
         .unwrap();
     assert_eq!(
         serde_json::to_value(reopened.snapshot().unwrap()).unwrap(),
         original
     );
     reopened
-        .set_goal("Other work".into(), vec![], vec![], "chunk:other".into())
+        .set_goal("Other work".into(), vec![], vec![], "task:other".into())
         .unwrap();
     assert_eq!(
         serde_json::to_value(reopened.snapshot().unwrap()).unwrap(),
@@ -519,7 +519,7 @@ async fn mcp_scope_recovery_preserves_blocked_work_and_saved_goal_metadata() {
             "Read selected records".into(),
             vec!["Show all recorded content".into()],
             vec![],
-            "chunk:rich-records".into(),
+            "task:rich-records".into(),
             VerificationMode::Focused,
         )
         .unwrap();
@@ -538,7 +538,7 @@ async fn mcp_scope_recovery_preserves_blocked_work_and_saved_goal_metadata() {
     // Recovery arguments seed only a new scope, never replace a saved goal.
     let reopened = stored(temp.path());
     let service = RunService::from_use_cases(reopened.clone());
-    for (scope, expected) in [("benchmark", benchmark), ("chunk:rich-records", selected)] {
+    for (scope, expected) in [("benchmark", benchmark), ("task:rich-records", selected)] {
         let answer = service
             .run_open(Parameters(RunOpenArgs {
                 description: "Newly supplied description".into(),
@@ -583,7 +583,7 @@ fn stale_writers_cannot_reselect_a_saved_plan_or_erase_its_latest_steps() {
         )
         .unwrap();
     current
-        .set_goal("Other".into(), vec![], vec![], "chunk:other".into())
+        .set_goal("Other".into(), vec![], vec![], "task:other".into())
         .unwrap();
     let refused = stale
         .add_step(
@@ -598,10 +598,10 @@ fn stale_writers_cannot_reselect_a_saved_plan_or_erase_its_latest_steps() {
     let reopened = stored(temp.path());
     assert_eq!(
         reopened.snapshot().unwrap().goal.unwrap().scope,
-        "chunk:other"
+        "task:other"
     );
     reopened
-        .set_goal("Current run".into(), vec![], vec![], "chunk:test".into())
+        .set_goal("Current run".into(), vec![], vec![], "task:test".into())
         .unwrap();
     let ids: Vec<_> = reopened
         .snapshot()
@@ -619,7 +619,7 @@ fn a_reset_run_cannot_be_replaced_by_a_stale_track_selection() {
     let cases = stored(temp.path());
     planned(&cases);
     cases
-        .set_goal("Other".into(), vec![], vec![], "chunk:other".into())
+        .set_goal("Other".into(), vec![], vec![], "task:other".into())
         .unwrap();
     let mut stale =
         RunEngine::new("project".into()).with_persistence(Persistence::new(&PersistenceConfig {

@@ -11,7 +11,7 @@ imported behavior as frozen.
 Magistr owns this repository-local fork of
 [think-and-ship](https://github.com/AlrikOlson/think-and-ship). The source adoption
 is `arch-14a-workflow-source-fork`; typed use-case extraction is the separate
-`arch-14b-workflow-use-cases` chunk; `arch-14f4-rehome-naming` moved the crate
+`arch-14b-workflow-use-cases` task; `arch-14f4-rehome-naming` moved the crate
 to [`crates/magistr-workflow`](../../crates/magistr-workflow/Cargo.toml) under
 Magistr's name and deleted the standalone surfaces (see
 [Rehome and retired surfaces](#rehome-and-retired-surfaces)). This directory
@@ -100,16 +100,16 @@ following the workspace precedent (engine under `crates/`, provenance under
 
 Deleted as retired standalone surfaces (decided by `arch-14f-native-application`):
 the `think-and-ship` binary (`src/main.rs`, `[[bin]]`) and its CLI
-(`src/cli/`: serve, init, project, skills, roadmap, prune/adopt, doctor,
+(`src/cli/`: serve, init, project, skills, plan, prune/adopt, doctor,
 status, trace, otel, corpus, sync, calls, telemetry, tracker, repair,
 connect/token/disconnect), the `build.rs` skill embedding and
 `skill-clients/`, `examples/cloud_census.rs`, the crate README, the CLI-only
 `corpus` and `hygiene` modules, `otel_receipt` and the OTel retention note
 (both read only by `otel send`), and the tests that executed or parsed the
 binary (`docs_command_reachability`, `http_transport`,
-`project_identity_only`, `roadmap_blocker_command_seam`,
-`roadmap_next_command_seam`, `roadmap_status_command_seam`, the two spawned
-tests in `roadmap_export_tool_seam`). The library plumbing the served
+`project_identity_only`, `plan_blocker_command_seam`,
+`plan_next_command_seam`, `plan_status_command_seam`, the two spawned
+tests in `plan_export_tool_seam`). The library plumbing the served
 `tracker_*` tools reached through the CLI — configuration and credential
 resolution and the table-taking port builder — now lives in
 `tracker::host`, and `tracker_command_seam` drives the served setup path
@@ -140,7 +140,7 @@ read them through the preserved layout. External-service smoke tests retain
 their upstream opt-in requirements; a normal workspace run does not certify
 those live integrations.
 
-The source-adoption chunk changes Rust tests in two files:
+The source-adoption task changes Rust tests in two files:
 
 - [`tests/think_config.rs`](../../crates/magistr-workflow/tests/think_config.rs): two
   current-directory identity tests re-execute in a disposable, unmarked
@@ -166,7 +166,7 @@ Acceptance requires fresh recorded workspace checks for the integrated implement
 Magistr's configured workspace formatting, check, Clippy, and nextest commands
 include both Magistr crates and the adopted crate. The required
 [`workflow-source` gate](../../scripts/workflow-source-gate.sh) verifies locked
-dependency resolution, retained source inputs, and the disabled roadmap-export
+dependency resolution, retained source inputs, and the disabled plan-export
 policy. It also runs the imported structure gate against
 [`STRUCTURE_BASELINE.json`](STRUCTURE_BASELINE.json), an explicit per-file
 baseline for inherited public-item, inline-test, and long-function counts.
@@ -183,7 +183,7 @@ import.
 ## Migration boundary
 
 `arch-14b-workflow-use-cases` adds native application modules for reasoning,
-run, roadmap, and signals. Validation, reciprocal-family operations, tracker
+run, plan, and signals. Validation, reciprocal-family operations, tracker
 setup, and ordinary completion policy now sit beneath CLI/MCP adapters.
 Synchronous commands return typed values; command execution, provider probes,
 and approval waits use explicit async capabilities. Native callers no longer
@@ -203,7 +203,7 @@ New regressions cover native/MCP success and refusal parity, reciprocal-family
 behavior, tracker probe concurrency and consent, legacy identity, task reuse,
 peer rollover, and stale check settlement. Full configured gates are rerun on
 the actual integrated main checkout. Workspace source adoption, ownership, and
-`SourceSnapshot` production remain later chunks.
+`SourceSnapshot` production remain later tasks.
 
 The uncommitted receipt draft remains an unverified recovery checkpoint:
 native `think:714`, architecture closeout `think:715`, and the exact recovery

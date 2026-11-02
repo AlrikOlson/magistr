@@ -59,7 +59,7 @@ fn linked_worktrees_share_authority_but_not_execution_selection() {
             "main".into(),
             vec![],
             vec![],
-            "chunk:main".into(),
+            "task:main".into(),
             magistr_workflow::run::domain::goal::VerificationMode::Focused,
         )
         .expect("main goal");
@@ -68,24 +68,21 @@ fn linked_worktrees_share_authority_but_not_execution_selection() {
             "linked".into(),
             vec![],
             vec![],
-            "chunk:linked".into(),
+            "task:linked".into(),
             magistr_workflow::run::domain::goal::VerificationMode::Focused,
         )
         .expect("linked goal");
-    assert_eq!(
-        writer.run_goal().unwrap().expect("main").scope,
-        "chunk:main"
-    );
+    assert_eq!(writer.run_goal().unwrap().expect("main").scope, "task:main");
     assert_eq!(
         other.run_goal().unwrap().expect("linked").scope,
-        "chunk:linked"
+        "task:linked"
     );
     let again = writer
         .for_working_copy(&linked, "default")
         .expect("same context");
     assert_eq!(
         again.run_goal().unwrap().expect("retained").scope,
-        "chunk:linked"
+        "task:linked"
     );
     let parallel = writer
         .for_working_copy(&linked, "second")
@@ -93,12 +90,12 @@ fn linked_worktrees_share_authority_but_not_execution_selection() {
     assert!(parallel.run_goal().unwrap().is_none());
     assert_eq!(
         other.run_goal().unwrap().expect("unchanged").scope,
-        "chunk:linked"
+        "task:linked"
     );
     let reader = super::super::NativeReader::open(&linked_config);
     assert_eq!(
         reader.run_goal().unwrap().expect("persisted").scope,
-        "chunk:linked"
+        "task:linked"
     );
 }
 

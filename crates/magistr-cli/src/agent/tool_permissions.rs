@@ -1,7 +1,7 @@
 /// Composable tool permission sets for agent sessions.
 ///
 /// Replaces the previous `DEFAULT_ALLOWED_TOOLS`, `INTERVIEW_ALLOWED_TOOLS`,
-/// `ROADMAP_ALLOWED_TOOLS`, and `WORKFLOW_ALLOWED_TOOLS` const arrays with a
+/// `PLAN_ALLOWED_TOOLS`, and `WORKFLOW_ALLOWED_TOOLS` const arrays with a
 /// single builder that composes a base set with context-specific extensions.
 #[derive(Debug, Clone)]
 pub struct ToolPermissions {
@@ -17,7 +17,7 @@ const CODEBASE_READ: &[&str] = &["Read", "Glob", "Grep"];
 /// Full development tools for autonomous workflow iterations.
 ///
 /// Write and Edit are intentionally excluded — they flow through the
-/// permission handler so we can block writes to protected files (e.g. ROADMAP.md).
+/// permission handler so we can block writes to protected files (e.g. PLAN.md).
 const DEV_TOOLS: &[&str] = &[
     "Bash",
     "WebSearch",
@@ -67,12 +67,12 @@ impl ToolPermissions {
             .with(INSPECTION_MCP)
     }
 
-    /// Roadmap generation context: base + read-only codebase access.
+    /// Plan generation context: base + read-only codebase access.
     ///
-    /// The agent authors the roadmap exclusively through the magistr
-    /// `roadmap_*` tools (`roadmap_add_chunk`), which are pre-approved too.
+    /// The agent authors the plan exclusively through the magistr
+    /// `plan_*` tools (`plan_add_task`), which are pre-approved too.
     #[must_use]
-    pub fn for_roadmap() -> Self {
+    pub fn for_plan() -> Self {
         Self::base()
             .with(CODEBASE_READ)
             .with(&["context", "search", "read", "discover", "execute"])
@@ -81,7 +81,7 @@ impl ToolPermissions {
     /// Planning requests may inspect sources and update the native plan, without
     /// implementation, completion, export, shell, or source-write tools.
     #[must_use]
-    pub fn for_roadmap_request() -> Self {
+    pub fn for_plan_request() -> Self {
         Self::base().with(CODEBASE_READ).with(&[
             "WebSearch",
             "WebFetch",

@@ -1,12 +1,12 @@
 //! What the cockpit asks of the native workflow engines.
 
 use magistr_workflow_contracts::signal::SignalPromotion;
-use magistr_workflow_contracts::{Chunk, Observed, Signal, WorkflowMutationError};
+use magistr_workflow_contracts::{Observed, Signal, Task, WorkflowMutationError};
 
 use crate::cockpit::ProposalKind;
 
 /// The engines the cockpit acts through without the agent: the Trace
-/// tab's \[Pin\] and \[Checkpoint\], and the Roadmap tab's chunk,
+/// tab's \[Pin\] and \[Checkpoint\], and the Plan tab's task,
 /// proposal and signal actions. The in-process engines broadcast
 /// nothing, so the consumer answers the cockpit itself with an
 /// [`EngineEvent`](super::EngineEvent) built from the port's return —
@@ -33,20 +33,20 @@ pub trait EnginePort: Send + Sync {
     /// The engine's reason no report was taken.
     fn checkpoint(&mut self) -> Result<serde_json::Value, String>;
 
-    /// Mark the chunk in progress; the updated chunk comes back.
+    /// Mark the task in progress; the updated task comes back.
     ///
     /// # Errors
     /// The engine's reason — an unknown id or an illegal transition.
-    fn start_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError>;
+    fn start_task(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError>;
 
-    /// Mark the chunk done; the updated chunk comes back.
+    /// Mark the task done; the updated task comes back.
     ///
     /// # Errors
     /// The engine's reason — an unknown id or an illegal transition.
-    fn complete_chunk(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError>;
+    fn complete_task(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError>;
 
-    /// Resolve the chunk's open proposal of `kind`: accept takes the
-    /// suggestion, reject clears it. The updated chunk comes back.
+    /// Resolve the task's open proposal of `kind`: accept takes the
+    /// suggestion, reject clears it. The updated task comes back.
     ///
     /// # Errors
     /// The engine's reason — no open proposal of that kind included.
@@ -55,17 +55,17 @@ pub trait EnginePort: Send + Sync {
         id: &str,
         kind: ProposalKind,
         accept: bool,
-    ) -> Result<Observed<Chunk>, WorkflowMutationError>;
+    ) -> Result<Observed<Task>, WorkflowMutationError>;
 
-    /// Lift the chunk's blocker; the updated chunk comes back.
+    /// Lift the task's blocker; the updated task comes back.
     ///
     /// # Errors
-    /// The engine's reason — an unknown id, or a chunk with no blocker
+    /// The engine's reason — an unknown id, or a task with no blocker
     /// to clear, which the engines refuse loudly rather than answer as
     /// a no-op.
-    fn clear_blocker(&mut self, id: &str) -> Result<Observed<Chunk>, WorkflowMutationError>;
+    fn clear_blocker(&mut self, id: &str) -> Result<Observed<Task>, WorkflowMutationError>;
 
-    /// Promote the signal to the roadmap; the updated signal comes back.
+    /// Promote the signal to the plan; the updated signal comes back.
     ///
     /// # Errors
     /// The engine's reason — a signal not yet researched included.

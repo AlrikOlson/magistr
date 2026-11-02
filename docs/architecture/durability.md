@@ -77,7 +77,7 @@ effect:
 | Reserve | `Reservation` `attempt:<n>` | pre-iteration check | the checkpoint itself |
 | Launch | `ProviderDispatch` `dispatch` (or `dispatch:<delivery>` per delegated delivery) | `Accepted` before connect; `Running` with the runtime's handle `pid:<pgid>@<start>` the moment the transport has spawned, before the session is opened | the turn: ended → `Completed`, closed → `Cancelled`, failed → `Failed`; a session that cannot be opened → `Failed` |
 | Record | `CheckResult` `gate:<name>@step:<step>` | `Accepted` before the gate is admitted; `Running` with `check_result:<id>` — the durable check result's id — once admitted, before the gate runs | the ledger's settlement: applied → `Completed`, stale or refused → `Failed`; an admission that fails → `Failed` |
-| Mutate | `NativeMutation` `start_chunk:<id>`, `complete_chunk:<id>`, `set_blocked_by:<id>`, `set_status:<id>:<status>` | before the handler is called | the handler's answer |
+| Mutate | `NativeMutation` `start_task:<id>`, `complete_task:<id>`, `set_waiting_on:<id>`, `set_status:<id>:<status>` | before the handler is called | the handler's answer |
 | Announce | `Publication` `frame:<kind>:<id>` | before the frame is posted | the post |
 
 An intent that cannot be written is not dispatched for a provider launch or a
@@ -107,7 +107,7 @@ The plain, headless and cockpit `next-loop` commands all call
 `IterationLoop::start_or_recover`. A settled terminal run is archived in
 `.magistr/loop-history` before the caller persists a fresh checkpoint with
 the newly requested iteration limit. Its budget and operation records start
-fresh; its selected unfinished roadmap item remains selected. The archive
+fresh; its selected unfinished plan item remains selected. The archive
 keeps the previous run identity and its settled records.
 
 A paused or unfinished run retains its identity, limits, budget observations
@@ -135,7 +135,7 @@ effect. A dispatch's persisted launch phase also establishes whether the transpo
 | Kind | Authority asked | Established outcome |
 | --- | --- | --- |
 | `Reservation` | the checkpoint carrying it | `Completed` |
-| `NativeMutation` | the chunk as the native store holds it now (`roadmap_chunk` after reload) | `Completed` when the verb's effect is visible (`start_chunk`: in progress or done; `complete_chunk`: done; `set_blocked_by`: a blocker; `set_status`: that status), else `Failed`; an unknown verb stays open |
+| `NativeMutation` | the task as the native store holds it now (`plan_task` after reload) | `Completed` when the verb's effect is visible (`start_task`: in progress or done; `complete_task`: done; `set_waiting_on`: a blocker; `set_status`: that status), else `Failed`; an unknown verb stays open |
 | `Receipt` | the durable receipt the record names (`run_check_result` by the `receipt:<id>` handle) | `Completed` when that receipt is settled and applied; `Failed` when it is unsettled, settled stale, absent from the ledger, or the record carries no id — nothing was applied, since application needs the live loop's settlement, which always follows the persisted `Running`; a receipt naming another gate or task than the record does stays open. No check of the same name on the task is consulted |
 | `Publication` | none needed | `Cancelled`: attached surfaces reseed from the store, where the announced mutation already is |
 | `ProviderDispatch` | the particular runtime the handle names (`is_live`: the id alive and holding the recorded start identity), then the attempt's Git baseline | `Failed` when its phase is `pending` and it has no handle; open without a handle when its phase is `started` or absent on an older checkpoint; open while the runtime is alive or the host cannot say; once it is gone — or its id is held by another process — `Completed` when HEAD advanced from the baseline (the baseline is an ancestor of HEAD, `git merge-base --is-ancestor`), else `Failed`. A reset, a rebase or a branch switch is movement, not an advance |
@@ -181,7 +181,7 @@ magistr resolve-dispatch . --loop run-… --command 0/dispatch --attempt 1 \
 
 `failed` and `cancelled` allow the next attempt of the same command.
 `completed` suppresses another dispatch for that command; it does not complete
-a roadmap item or manufacture gate evidence. The explanation is retained as
+a plan item or manufacture gate evidence. The explanation is retained as
 `resolution` on that record. Other records, run limits, budget, terminal status,
 Git baseline and saved plan/task files are preserved.
 
@@ -250,7 +250,7 @@ against the binary.
 | Family | Store | Atomic unit | Cross-family atomicity |
 | --- | --- | --- | --- |
 | Loop run (run state, stop counters, budget, operations) | `.magistr/loop-state.json` | one whole-file atomic replacement | none with any other family; the ledger records the run's side of every effect |
-| Native workflow (roadmap, run, think, signal) | magistr's own per-family files, written by the library | one family write | none across families; the library does not commit a mutation and its receipt together, so the ledger marks the operation and recovery reads the family back |
+| Native workflow (plan, run, think, signal) | magistr's own per-family files, written by the library | one family write | none across families; the library does not commit a mutation and its receipt together, so the ledger marks the operation and recovery reads the family back |
 | Cost history | the machine's cost ledger file | one whole-file atomic replacement | none; the shared session owner settles its optional cumulative spend after cleanup, replacing that conversation's entry; bookkeeping failures do not change the provider outcome |
 | Cockpit checkpoint spine | in-memory `SessionSnapshot` chain | one snapshot | none; it is the session's own ledger, not run persistence |
 | Peer journal | its own versioned journal | one accepted transition | none; peer reservations, unsettled worker attempts and receipts stay there and are not loop-checkpoint fields |
@@ -320,5 +320,5 @@ identity/liveness refusals, lock exclusion and saved-context preservation.
 
 Verification is focused on affected domain, core, ACP and CLI behavior,
 all-target compilation and Clippy, formatting and relevant architecture and
-custom gates. This change does not alter rendering, goldens, motion or roadmap
+custom gates. This change does not alter rendering, goldens, motion or plan
 export policy.

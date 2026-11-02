@@ -48,7 +48,7 @@ pub(super) fn apply(config: &mut AgentConfig) -> Result<()> {
             "execution": native.execution_context().execution_id,
             "purpose": match config.history.purpose() {
                 magistr_application::sessions::SessionPurpose::Conversation => "conversation",
-                magistr_application::sessions::SessionPurpose::Roadmap => "planning",
+                magistr_application::sessions::SessionPurpose::Plan => "planning",
             },
             "current": current,
         }))

@@ -21,8 +21,8 @@ fn captured() -> SessionSnapshot {
     session.record_turn(1.25, 400, 90);
     session.push_message("hello");
 
-    SessionSnapshot::capture(&session, iteration(3), Utc::now()).with_roadmap(
-        RoadmapProgress {
+    SessionSnapshot::capture(&session, iteration(3), Utc::now()).with_plan(
+        PlanProgress {
             total_tasks: 12,
             checked_tasks: 7,
             total_phases: 3,
@@ -65,13 +65,13 @@ fn serialization_keeps_the_status_the_capture_saw_even_though_a_restore_cannot()
 }
 
 #[test]
-fn the_roadmap_cursor_and_progress_survive_the_round_trip() {
+fn the_plan_cursor_and_progress_survive_the_round_trip() {
     let snapshot = captured();
     let json = serde_json::to_string(&snapshot).expect("serialize");
     let parsed: SessionSnapshot = serde_json::from_str(&json).expect("deserialize");
-    assert_eq!(parsed.roadmap_cursor.as_deref(), Some("e10c"));
-    assert_eq!(parsed.roadmap.checked_tasks, 7);
-    assert_eq!(parsed.roadmap.total_tasks, 12);
+    assert_eq!(parsed.plan_cursor.as_deref(), Some("e10c"));
+    assert_eq!(parsed.plan.checked_tasks, 7);
+    assert_eq!(parsed.plan.total_tasks, 12);
 }
 
 #[test]
@@ -185,7 +185,7 @@ fn the_restored_session_keeps_its_id_phase_cost_and_creation_time() {
     assert_eq!(restored.session.created_at(), snapshot.created_at);
     assert_eq!(restored.session.messages(), ["hello"]);
     assert_eq!(restored.iteration, iteration(3));
-    assert_eq!(restored.roadmap_cursor.as_deref(), Some("e10c"));
+    assert_eq!(restored.plan_cursor.as_deref(), Some("e10c"));
 }
 
 #[test]
@@ -258,7 +258,7 @@ fn contradictory_projection_or_budget_is_refused_before_restoring() {
     snapshot.run.budget_limit_usd = Some(10.0);
     assert!(snapshot.restore().is_err());
     let mut snapshot = captured();
-    snapshot.roadmap.checked_tasks = 0;
+    snapshot.plan.checked_tasks = 0;
     assert!(snapshot.restore().is_err());
 }
 

@@ -4,7 +4,7 @@
 //! `family: "signal"` discriminator flattened on top of the typed
 //! [`SignalFrame`] payload. The socket + fan-out tasks live in
 //! [`crate::infra::broadcast`]; this is the typed view the signal engine
-//! emits through, mirroring `crate::roadmap::broadcast`.
+//! emits through, mirroring `crate::plan::broadcast`.
 
 use tracing::warn;
 
@@ -52,7 +52,7 @@ mod tests {
             created: "t".into(),
             status: SignalStatus::New,
             enrichment: vec![],
-            cross_refs: vec![],
+            refs: vec![],
             surfaced_at: None,
             snooze_until: None,
             project_id: None,

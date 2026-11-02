@@ -29,7 +29,7 @@ no renderer action is required to write a boundary checkpoint or settle work.
 The current CLI is streamed or headless. The desktop composes the same admitted
 provider, workflow and source services. It offers project/workspace navigation
 and resident conversations; additional supervision, planning and review views
-remain separate roadmap work.
+remain separate plan work.
 
 ## Evidence
 

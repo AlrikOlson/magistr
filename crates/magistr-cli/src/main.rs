@@ -400,8 +400,8 @@ async fn run_cli() -> eyre::Result<()> {
             provider,
             allow_tool,
         } => commands::misc::cmd_acp_agent(&provider, &allow_tool).await,
-        Command::Roadmap { action } => {
-            commands::misc::cmd_roadmap(action, &*renderer, &env, &inputs).await
+        Command::Plan { action } => {
+            commands::misc::cmd_plan(action, &*renderer, &env, &inputs).await
         }
     };
 

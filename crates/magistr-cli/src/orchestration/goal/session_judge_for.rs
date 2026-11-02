@@ -10,9 +10,9 @@ use crate::agent::Backend;
 use crate::orchestration::loop_driver::Connector;
 
 /// Who judges an iteration: magistr's own fresh session ([`SessionJudge`])
-/// on a roadmap-driven project under the native mode — and under the
+/// on a plan-driven project under the native mode — and under the
 /// delegated modes too, as what an unconfirmed delivery falls back to;
-/// nobody under `off`, and nobody on a project with no chunk to judge.
+/// nobody under `off`, and nobody on a project with no task to judge.
 /// The judge is constrained: it holds no source-write authority, so its
 /// session advertises no write capability and refuses any write.
 pub(crate) fn session_judge_for(

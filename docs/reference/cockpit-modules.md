@@ -30,8 +30,8 @@ desktop workspace. Companion Rust tests live beside their owners.
 ## Modules and harnesses
 
 - `crates/magistr-desktop/src/workflow.rs` — addressed on-demand workflow reads from the session owner.
-- `crates/magistr-desktop/src/roadmap.rs` — desktop wire shape of shared roadmap projections.
-- `crates/magistr-desktop/src/roadmap_item.rs` — selected complete roadmap records and safe rich documents.
+- `crates/magistr-desktop/src/plan.rs` — desktop wire shape of shared plan projections.
+- `crates/magistr-desktop/src/plan_item.rs` — selected complete plan records and safe rich documents.
 - `crates/magistr-desktop/ui/work_item.mjs` — addressed item reader, full authored details, suspended/resumed reads and return navigation.
 - `crates/magistr-desktop/ui/work_reasoning_search.mjs` — complete authored reasoning search across sessions.
 - `crates/magistr-desktop/ui/work_reasoning_links.mjs` — direct references, revisions and project-wide identity resolution.
@@ -40,7 +40,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/work_execution.mjs` — execution browsing, selection and task filter state.
 - `crates/magistr-desktop/ui/work_task_view.mjs` — bounded task views and recorded type/timestamps.
 - `crates/magistr-desktop/ui/work_execution_search.mjs` — complete current/retained execution search and exact run selection.
-- `crates/magistr-desktop/ui/work_proposals.mjs` — explicit roadmap suggestions beside the actual saved values.
+- `crates/magistr-desktop/ui/work_proposals.mjs` — explicit plan suggestions beside the actual saved values.
 - `crates/magistr-desktop/ui/work_references.mjs` — exact cross-family feedback references and explicit unresolved states.
 - `crates/magistr-desktop/ui/work_feedback_search.mjs` — complete feedback search and saved kind/status filters.
 - `crates/magistr-desktop/ui/work_feedback_research.mjs` — append-only research notes, reported confidence and source references.
@@ -49,10 +49,10 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/ui/work_reasoning.mjs` — complete reasoning sessions, step selection and pages.
 - `crates/magistr-desktop/ui/work_reasoning_step.mjs` — complete authored reasoning fields and exact copying.
 - `crates/magistr-desktop/ui/work_search.mjs` — complete-record matching and bounded result pages.
-- `crates/magistr-desktop/ui/work_roadmap_search.mjs` — complete roadmap search and stable item navigation.
+- `crates/magistr-desktop/ui/work_plan_search.mjs` — complete plan search and stable item navigation.
 - `crates/magistr-desktop/ui/work_relations.mjs` — complete dependency/dependent navigation and owner readiness.
-- `crates/magistr-desktop/ui/work_roadmap.mjs` — track selection and owner-provided readiness.
-- `crates/magistr-desktop/ui/work_roadmap_surface.mjs` — work pieces and actual prerequisite geometry.
+- `crates/magistr-desktop/ui/work_plan.mjs` — track selection and owner-provided readiness.
+- `crates/magistr-desktop/ui/work_plan_surface.mjs` — work pieces and actual prerequisite geometry.
 - `crates/magistr-desktop/ui/work_surface.mjs` — shared camera, semantic selection and arrangement controls.
 - `crates/magistr-desktop/ui/work_surface_input.mjs` — cancellable pointer and keyboard camera input.
 - `crates/magistr-desktop/ui/work_surface_paint.mjs` — disposable canvas relationship geometry.
@@ -222,8 +222,8 @@ desktop workspace. Companion Rust tests live beside their owners.
 - `crates/magistr-desktop/tests/work_fixture.py`
 - `crates/magistr-desktop/tests/work_journey.py`
 - `crates/magistr-desktop/ui/work_surface_routes.mjs` — obstacle-aware orthogonal routes and distinct attachment points.
-- `crates/magistr-desktop/ui/work_roadmap_layout.mjs` — prerequisite alignment and frontier placement.
-- `crates/magistr-desktop/ui/work_roadmap_context.mjs` — bounded graph neighborhoods with explicit prerequisite bundles.
+- `crates/magistr-desktop/ui/work_plan_layout.mjs` — prerequisite alignment and frontier placement.
+- `crates/magistr-desktop/ui/work_plan_context.mjs` — bounded graph neighborhoods with explicit prerequisite bundles.
 - `crates/magistr-desktop/tests/browser/surface_routes.spec.mjs` — rendered route clearance, legibility, branches and shared prerequisites.
 - `crates/magistr-desktop/tests/browser/freeform_workspace.spec.mjs` — camera, arrangement, inspection and shell continuity.
 ## Desktop review catalog

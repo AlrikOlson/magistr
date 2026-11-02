@@ -27,7 +27,7 @@ export class ProjectAtlas{
       const button=this.piece(id,"project",project.name,project.directory,project.sessions.length?"Open workspace · "+project.sessions.length+" "+(project.sessions.length===1?"conversation":"conversations"):"Open project");
       button.setAttribute("aria-label",(project.sessions.length?"Open workspace for ":"Open project ")+project.name+" from map");
       nodes.push({id,label:project.name,x:0,y:y+(height-104)/2,w:260,h:104,element:button});
-      actions.set(id,()=>project.sessions.length?this.work(project,"roadmap",button):this.open(project.directory));
+      actions.set(id,()=>project.sessions.length?this.work(project,"plan",button):this.open(project.directory));
       visible.forEach((session,index)=>{
         const child="conversation:"+addressKey(session.address),label=this.label(session),state=session.pending?.length?"Needs your answer":session.status;
         const piece=this.piece(child,"conversation",label,state,"Open conversation");piece.dataset.state=sessionActivity(session);

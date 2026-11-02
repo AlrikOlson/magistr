@@ -103,8 +103,8 @@ pub struct SystemConfig {
 /// same trade f275f10 guarded against on the tools/list side — and a floor that
 /// configuration can lower is not a floor.
 ///
-/// Five: a trace tends to accumulate roughly two pinned steps per roadmap
-/// chunk (a decision and a close), so five is the smallest window in which a
+/// Five: a trace tends to accumulate roughly two pinned steps per plan
+/// task (a decision and a close), so five is the smallest window in which a
 /// conclusion and the decision it rests on both still appear.
 pub const ROLLUP_PINNED_FLOOR: usize = 5;
 

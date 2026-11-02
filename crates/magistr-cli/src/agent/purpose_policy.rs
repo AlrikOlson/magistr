@@ -7,15 +7,15 @@ use magistr_application::sessions::{
 use super::{AgentConfig, ToolPermissions};
 use crate::permissions::SessionPermissionPolicy;
 
-const INSTRUCTIONS: &str = "You are updating the project's roadmap in response to the user's request. Read the current native roadmap and relevant source context, make the requested planning changes through the native roadmap tools, and explain what changed in plain language. Keep existing in-progress work intact. Do not implement code, start or complete work items, run implementation workflows or gates, or create/export ROADMAP.md or ROADMAP.json. This is a planning conversation, not permission to begin the planned work. Record meaningful findings and explored alternatives when they inform the plan. Ask a clear question if essential information is missing. Finish with a brief account of the changes and what remains ready or unfinished.";
+const INSTRUCTIONS: &str = "You are updating the project's plan in response to the user's request. Read the current native plan and relevant source context, make the requested planning changes through the native plan tools, and explain what changed in plain language. Keep existing in-progress work intact. Do not implement code, start or complete work items, run implementation workflows or gates, or create/export PLAN.md or PLAN.json. This is a planning conversation, not permission to begin the planned work. Record meaningful findings and explored alternatives when they inform the plan. Ask a clear question if essential information is missing. Finish with a brief account of the changes and what remains ready or unfinished.";
 
 /// Apply the intent already held by history without replacing its identity or resume token.
 pub(super) fn apply(config: &mut AgentConfig) {
-    if config.history.purpose() != SessionPurpose::Roadmap {
+    if config.history.purpose() != SessionPurpose::Plan {
         return;
     }
     config.workflow_permissions = false;
-    config.allowed_tools = ToolPermissions::for_roadmap_request().into_strings();
+    config.allowed_tools = ToolPermissions::for_plan_request().into_strings();
     config.system_prompt = Some(match &config.system_prompt {
         Some(context) => format!("{context}\n\n{INSTRUCTIONS}"),
         None => INSTRUCTIONS.to_owned(),
@@ -24,11 +24,11 @@ pub(super) fn apply(config: &mut AgentConfig) {
 
 /// The request's purpose remains a hard ceiling even under a permissive project
 /// profile. Allowed tools still pass through standing refusals and governance.
-pub(super) struct RoadmapPolicy {
+pub(super) struct PlanPolicy {
     inner: SessionPermissionPolicy,
 }
 
-impl RoadmapPolicy {
+impl PlanPolicy {
     pub(super) fn new(inner: SessionPermissionPolicy) -> Self {
         Self { inner }
     }
@@ -41,11 +41,11 @@ impl RoadmapPolicy {
             .unwrap_or_default()
             .trim();
         let name = title.rsplit("__").next().unwrap_or(title);
-        ToolPermissions::for_roadmap_request().contains(name)
+        ToolPermissions::for_plan_request().contains(name)
     }
 }
 
-impl SessionPolicy for RoadmapPolicy {
+impl SessionPolicy for PlanPolicy {
     fn can_use_model(&self, model: &str) -> bool {
         self.inner.can_use_model(model)
     }

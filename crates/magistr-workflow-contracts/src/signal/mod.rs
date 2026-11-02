@@ -7,5 +7,6 @@ pub use promotion::SignalPromotion;
 
 pub use frame::SignalFrame;
 pub use records::{
-    Enrichment, Signal, SignalKind, SignalStatus, Signals, merge_signal_stores, signal_wins,
+    Enrichment, SIGNALS_SCHEMA_VERSION, Signal, SignalKind, SignalStatus, Signals,
+    merge_signal_stores, signal_wins,
 };

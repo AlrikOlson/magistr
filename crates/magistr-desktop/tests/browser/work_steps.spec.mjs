@@ -9,7 +9,7 @@ test("large step plans stay bounded and filters follow actual status updates",as
 });
 test("step text search preserves native input focus and complete matching details",async({app})=>{
   await open(app);const query=app.getByLabel("Find a step",{exact:true});await query.fill("installer");await expect(query).toBeFocused();await expect(app.locator(".work-steps>li")).toHaveCount(1);await expect(app.locator(".work-steps")).toContainText("Build and inspect the installer");
-  await app.getByRole("tab",{name:"Roadmap",exact:true}).click();await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();await expect(query).toHaveValue("installer");await expect(app.locator(".work-steps>li")).toHaveCount(1);
+  await app.getByRole("tab",{name:"Plan",exact:true}).click();await app.getByRole("tab",{name:"Current and saved work",exact:true}).click();await expect(query).toHaveValue("installer");await expect(app.locator(".work-steps>li")).toHaveCount(1);
   await app.evaluate(()=>{const f=window.__fixture;f.workflow.run.data.value.current.run_id="replacement";f.publish("release",{workflow_revision:1});});
   await expect(query).toHaveValue("");await expect(app.locator(".work-steps>li")).toHaveCount(3);
 });

@@ -162,7 +162,7 @@ impl InteractiveHost {
         let seed = resources.engines.snapshot_reads().read(None, true).await;
         let workspace_files = crate::commands::workspace_files::workspace_files(&config.cwd);
         // The feed is tapped for the work this host may be asked to start:
-        // the loop driver counts completed chunks from it while it runs.
+        // the loop driver counts completed tasks from it while it runs.
         let (feed_tap, tapped) = tokio::sync::mpsc::unbounded_channel();
         let feed = OwnedTask(resources.engines.subscribe(inbox.tap(feed_tap)));
         let reseed = OwnedTask(resources.engines.reseed(inbox.clone()));

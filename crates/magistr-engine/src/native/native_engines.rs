@@ -3,9 +3,9 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use magistr_workflow::content::StructuredContent;
-use magistr_workflow::roadmap::application::RoadmapError;
-use magistr_workflow::roadmap::application::{BlockerDraft, ChunkDraft, ChunkPatch};
-use magistr_workflow::roadmap::domain::{BlockerKind, Chunk, ChunkStatus};
+use magistr_workflow::plan::application::PlanError;
+use magistr_workflow::plan::application::{TaskDraft, TaskPatch, WaitingDraft};
+use magistr_workflow::plan::domain::{Task, TaskStatus, WaitingReason};
 use magistr_workflow::run::application::RunError;
 use magistr_workflow::run::application::{
     CheckAdmission, CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, RunReport,
@@ -162,13 +162,13 @@ impl NativeEngines {
             executions.insert(key, Arc::downgrade(&services));
             services
         };
-        let (think, run, roadmap, signal) = services.engines();
+        let (think, run, plan, signal) = services.engines();
         let reader = NativeReader::from_shared(
             self.authority.project_id().to_owned(),
             config,
             think,
             run,
-            roadmap,
+            plan,
             signal,
         );
         Ok(Self {
@@ -208,35 +208,35 @@ impl NativeEngines {
         &self.services
     }
 
-    // ── Roadmap ────────────────────────────────────────────────────────
+    // ── Plan ────────────────────────────────────────────────────────
 
-    pub fn roadmap_start_chunk(&self, id: &str) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.start_chunk(id)
+    pub fn plan_start_task(&self, id: &str) -> Result<Observed<Task>, PlanError> {
+        self.services.plan.start_task(id)
     }
 
-    pub fn roadmap_complete_chunk(
+    pub fn plan_complete_task(
         &self,
         id: &str,
         step_ref: Option<&str>,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.complete_chunk(id, step_ref)
+    ) -> Result<Observed<Task>, PlanError> {
+        self.services.plan.complete_task(id, step_ref)
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn roadmap_add_chunk(
+    pub fn plan_add_task(
         &self,
         id: String,
         title: String,
         name: String,
-        status: ChunkStatus,
+        status: TaskStatus,
         priority: u32,
         description: String,
         acceptance: Vec<String>,
         deps: Vec<String>,
         content: Option<StructuredContent>,
-        group: Option<String>,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.add_chunk(ChunkDraft {
+        feature: Option<String>,
+    ) -> Result<Observed<Task>, PlanError> {
+        self.services.plan.add_task(TaskDraft {
             id,
             title,
             name,
@@ -246,13 +246,13 @@ impl NativeEngines {
             acceptance,
             deps,
             content,
-            group,
+            feature,
             shared: false,
         })
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn roadmap_update_chunk(
+    pub fn plan_update_task(
         &self,
         id: &str,
         title: Option<String>,
@@ -261,140 +261,132 @@ impl NativeEngines {
         acceptance: Option<Vec<String>>,
         deps: Option<Vec<String>>,
         content: Option<StructuredContent>,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
-        self.update_chunk(
+    ) -> Result<Observed<Task>, PlanError> {
+        self.update_task(
             id,
-            ChunkPatch {
+            TaskPatch {
                 title,
                 priority,
                 description,
                 acceptance,
                 deps,
                 content,
-                ..ChunkPatch::default()
+                ..TaskPatch::default()
             },
         )
     }
 
-    fn update_chunk(&self, id: &str, patch: ChunkPatch) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.update_chunk(id, patch)
+    fn update_task(&self, id: &str, patch: TaskPatch) -> Result<Observed<Task>, PlanError> {
+        self.services.plan.update_task(id, patch)
     }
 
-    pub fn roadmap_clear_blocked_by(&self, id: &str) -> Result<Observed<Chunk>, RoadmapError> {
-        self.update_chunk(
+    pub fn plan_clear_waiting_on(&self, id: &str) -> Result<Observed<Task>, PlanError> {
+        self.update_task(
             id,
-            ChunkPatch {
-                clear_blocked_by: true,
-                ..ChunkPatch::default()
+            TaskPatch {
+                clear_waiting_on: true,
+                ..TaskPatch::default()
             },
         )
     }
 
-    pub fn roadmap_set_blocked_by(
+    pub fn plan_set_waiting_on(
         &self,
         id: &str,
-        kind: BlockerKind,
+        kind: WaitingReason,
         reason: String,
         evidence: Option<String>,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
-        self.update_chunk(
+    ) -> Result<Observed<Task>, PlanError> {
+        self.update_task(
             id,
-            ChunkPatch {
-                blocked_by: Some(BlockerDraft {
+            TaskPatch {
+                waiting_on: Some(WaitingDraft {
                     kind,
                     reason,
                     evidence,
                 }),
-                ..ChunkPatch::default()
+                ..TaskPatch::default()
             },
         )
     }
 
-    pub fn roadmap_set_status(
-        &self,
-        id: &str,
-        to: ChunkStatus,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.set_status(id, to)
+    pub fn plan_set_status(&self, id: &str, to: TaskStatus) -> Result<Observed<Task>, PlanError> {
+        self.services.plan.set_status(id, to)
     }
 
-    pub fn roadmap_obsolete_chunk(
-        &self,
-        id: &str,
-        reason: String,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.obsolete_chunk(id, reason)
+    pub fn plan_retire_task(&self, id: &str, reason: String) -> Result<Observed<Task>, PlanError> {
+        self.services.plan.retire_task(id, reason)
     }
 
-    pub fn roadmap_reprioritize(
+    pub fn plan_reprioritize(
         &self,
         id: &str,
         suggested_priority: u32,
         reason: String,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
+    ) -> Result<Observed<Task>, PlanError> {
         self.services
-            .roadmap
+            .plan
             .propose_reprioritize(id, suggested_priority, reason)
     }
 
-    pub fn roadmap_propose_title(
+    pub fn plan_propose_title(
         &self,
         id: &str,
         suggested_title: String,
         reason: String,
         source: String,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
+    ) -> Result<Observed<Task>, PlanError> {
         self.services
-            .roadmap
+            .plan
             .propose_title(id, suggested_title, reason, source)
     }
 
-    pub fn roadmap_propose_status(
+    pub fn plan_propose_status(
         &self,
         id: &str,
-        suggested_status: ChunkStatus,
+        suggested_status: TaskStatus,
         reason: String,
         source: String,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
+    ) -> Result<Observed<Task>, PlanError> {
         self.services
-            .roadmap
+            .plan
             .propose_status(id, suggested_status, reason, source)
     }
 
-    pub fn roadmap_link(&self, id: &str, cross_ref: &str) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.link_chunk(id, cross_ref)
+    pub fn plan_link(&self, id: &str, cross_ref: &str) -> Result<Observed<Task>, PlanError> {
+        self.services.plan.link_task(id, cross_ref)
     }
 
-    pub fn roadmap_set_group(
+    pub fn plan_set_feature(
         &self,
         id: &str,
-        group: Option<String>,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.set_group(id, group)
+        feature: Option<String>,
+    ) -> Result<Observed<Task>, PlanError> {
+        self.services.plan.set_feature(id, feature)
     }
 
-    pub fn roadmap_resolve_title_proposal(
-        &self,
-        id: &str,
-        accept: bool,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.resolve_title_proposal(id, accept)
-    }
-
-    pub fn roadmap_resolve_status_proposal(
+    pub fn plan_resolve_title_proposal(
         &self,
         id: &str,
         accept: bool,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.resolve_status_proposal(id, accept)
+    ) -> Result<Observed<Task>, PlanError> {
+        self.services.plan.resolve_title_proposal(id, accept)
     }
 
-    pub fn roadmap_resolve_reprioritize(
+    pub fn plan_resolve_status_proposal(
         &self,
         id: &str,
         accept: bool,
-    ) -> Result<Observed<Chunk>, RoadmapError> {
-        self.services.roadmap.resolve_reprioritize(id, accept)
+    ) -> Result<Observed<Task>, PlanError> {
+        self.services.plan.resolve_status_proposal(id, accept)
+    }
+
+    pub fn plan_resolve_reprioritize(
+        &self,
+        id: &str,
+        accept: bool,
+    ) -> Result<Observed<Task>, PlanError> {
+        self.services.plan.resolve_reprioritize(id, accept)
     }
 
     // ── Think ──────────────────────────────────────────────────────────
@@ -685,10 +677,10 @@ impl NativeEngines {
             .research(id, summary, confidence, sources, think_step)
     }
 
-    /// Promote a researched or surfaced signal to the roadmap (the
-    /// `signal_promote` verb): the backlog chunk `signal-<id>` is created
-    /// and the two are cross-linked — `signal:<id>` on the chunk,
-    /// `chunk:<id>` on the signal — idempotently. Answers the signal as it
+    /// Promote a researched or surfaced signal to the plan (the
+    /// `signal_promote` verb): the idea task `signal-<id>` is created
+    /// and the two are cross-linked — `signal:<id>` on the task,
+    /// `task:<id>` on the signal — idempotently. Answers the signal as it
     /// stands after.
     pub fn signal_promote(&self, id: &str) -> Result<SignalPromotion, SignalError> {
         self.services.signal.promote(id)

@@ -42,10 +42,10 @@ pub fn build_system_prompt(project_dir: &Path) -> Option<String> {
     }
 
     // Recovery instructions override older fresh-start recipes without editing
-    // customized project rules. They apply only to authorized roadmap work.
+    // customized project rules. They apply only to authorized plan work.
     let recovery = magistr_engine::prompt::PromptConfig::NEXT_RECOVERY_GUIDANCE;
     if !prompt.contains(recovery) {
-        prompt.push_str("\n---\n\nFor authorized roadmap work (`next` or `next-loop`), follow this recovery policy. It does not authorize starting roadmap work for an unrelated request.\n\n");
+        prompt.push_str("\n---\n\nFor authorized plan work (`next` or `next-loop`), follow this recovery policy. It does not authorize starting plan work for an unrelated request.\n\n");
         prompt.push_str(recovery);
     }
 
@@ -152,19 +152,19 @@ fn format_prompt(config: &ProjectConfig) -> String {
     ));
     prompt.push('\n');
 
-    // Spec — absent on a magistr project, where the roadmap lives in
-    // the native engines and is read through `roadmap_next`.
+    // Spec — absent on a magistr project, where the plan lives in
+    // the native engines and is read through `plan_next`.
     prompt.push_str("## Specification\n\n");
     if let Some(spec) = &config.spec {
         prompt.push_str(&format!("- **Spec file:** `{}`\n", spec.file));
         prompt.push_str("- Update the spec file after implementing changes\n");
     } else {
         prompt.push_str(
-            "- The roadmap lives in magistr — read it with `roadmap_next` / \
-             `roadmap_status`, never from a file\n",
+            "- The plan lives in magistr — read it with `plan_next` / \
+             `plan_status`, never from a file\n",
         );
         prompt.push_str(
-            "- Update it with `roadmap_complete_chunk` / `roadmap_add_chunk` after \
+            "- Update it with `plan_complete_task` / `plan_add_task` after \
              implementing changes\n",
         );
     }

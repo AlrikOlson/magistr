@@ -30,11 +30,11 @@ test("the cursor cannot reveal future records, checks or file contents",()=>{
  assert.equal(stateAt(recording,0).checks.length,0);
 });
 test("the completed project has actual prerequisite relationships and retained failed checks",()=>{
- const state=stateAt(recording,recording.events.length-1),ids=new Set(state.chunks.map(c=>c.id));
- assert.equal(state.chunks.length,4);
- assert(state.chunks.every(c=>c.status==="done"));
- for(const c of state.chunks)for(const dep of c.deps)assert(ids.has(dep));
- assert.equal(state.chunks.find(c=>c.id==="example-ttt-rematch").deps.length,2);
+ const state=stateAt(recording,recording.events.length-1),ids=new Set(state.tasks.map(c=>c.id));
+ assert.equal(state.tasks.length,4);
+ assert(state.tasks.every(c=>c.status==="done"));
+ for(const c of state.tasks)for(const dep of c.deps)assert(ids.has(dep));
+ assert.equal(state.tasks.find(c=>c.id==="example-ttt-rematch").deps.length,2);
  assert(state.checks.some(c=>c.passed===false&&c.verified));
  assert(state.checks.some(c=>c.passed===true&&c.name==="Rules, opponent and rematches"));
  const steps=new Set(state.steps.map(s=>s.step_number));
@@ -64,15 +64,15 @@ test("the walkthrough ends with the last recorded project action; the later conv
  assert(end>0&&end<recording.events.length-1);
  assert.notEqual(recording.events[end].kind,"message");
  assert(recording.events.slice(end+1).every(e=>e.kind==="message"),"only conversation follows the finished game");
- assert.equal(stateAt(recording,end).chunks.filter(c=>c.status==="done").length,4,"every planned piece is finished at the end of the walkthrough");
+ assert.equal(stateAt(recording,end).tasks.filter(c=>c.status==="done").length,4,"every planned piece is finished at the end of the walkthrough");
  assert(chapters(recording).every(p=>p.index<=end));
 });
 test("chapters open at the start of each phase, in order, inside the walkthrough",()=>{
  const parts=chapters(recording);assert.equal(parts.length,6);assert.equal(parts[0].index,0);
  assert(parts.every(p=>p.index>=0&&p.index<=walkthroughEnd(recording)));
  assert(parts.every(p=>p.label&&p.note));
- for(const [i,kind] of [[1,"roadmap"],[2,"roadmap"],[3,"roadmap"],[4,"roadmap"]])assert.equal(recording.events[parts[i].index].operation,"roadmap_start_chunk",parts[i].label+" opens when its piece starts ("+kind+")");
- assert.equal(recording.events[parts[5].index].operation,"roadmap_complete_chunk","the last chapter is the finished game");
+ for(const [i,kind] of [[1,"plan"],[2,"plan"],[3,"plan"],[4,"plan"]])assert.equal(recording.events[parts[i].index].operation,"plan_start_task",parts[i].label+" opens when its piece starts ("+kind+")");
+ assert.equal(recording.events[parts[5].index].operation,"plan_complete_task","the last chapter is the finished game");
  assert(parts.every((p,i)=>i===0||p.index>parts[i-1].index));
  for(let i=1;i<recording.events.length;i++)assert(recording.events[i].at>=recording.events[i-1].at);
  assert.equal(new Set(recording.events.map(e=>e.id)).size,recording.events.length);

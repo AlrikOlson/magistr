@@ -79,13 +79,13 @@ fn a_protected_path_write_is_denied() {
         PermissionProfile::Yolo,
         Vec::new(),
         Vec::new(),
-        vec![PathBuf::from("/project/.magistr/roadmap.yaml")],
+        vec![PathBuf::from("/project/.magistr/plan.yaml")],
         false,
     )
     .audit_to(None);
     let decision = policy.decide(&policy_request(&request(
         "Write",
-        serde_json::json!({"file_path": "/project/.magistr/roadmap.yaml"}),
+        serde_json::json!({"file_path": "/project/.magistr/plan.yaml"}),
         None,
     )));
     assert_eq!(decision, PolicyDecision::Deny, "even yolo never writes it");
@@ -181,16 +181,16 @@ fn unresolvable_symlink_targets_are_denied_even_with_workflow_allowance() {
 #[test]
 fn a_relative_spelling_of_a_protected_path_is_denied_once_the_policy_is_rooted() {
     for spelling in [
-        "ROADMAP.md",
-        "./ROADMAP.md",
-        "src/../ROADMAP.md",
-        "/project/./ROADMAP.md",
+        "PLAN.md",
+        "./PLAN.md",
+        "src/../PLAN.md",
+        "/project/./PLAN.md",
     ] {
         let mut policy = CockpitPolicy::new(
             PermissionProfile::Yolo,
             Vec::new(),
             Vec::new(),
-            vec![PathBuf::from("/project/ROADMAP.md")],
+            vec![PathBuf::from("/project/PLAN.md")],
             true,
         )
         .rooted_at(Some(PathBuf::from("/project")))
@@ -205,12 +205,12 @@ fn a_relative_spelling_of_a_protected_path_is_denied_once_the_policy_is_rooted()
 
 #[test]
 fn a_different_file_with_the_same_name_is_not_blocked() {
-    for spelling in ["/elsewhere/ROADMAP.md", "docs/ROADMAP.md", "OLDROADMAP.md"] {
+    for spelling in ["/elsewhere/PLAN.md", "docs/PLAN.md", "OLDPLAN.md"] {
         let mut policy = CockpitPolicy::new(
             PermissionProfile::Yolo,
             Vec::new(),
             Vec::new(),
-            vec![PathBuf::from("/project/ROADMAP.md")],
+            vec![PathBuf::from("/project/PLAN.md")],
             true,
         )
         .rooted_at(Some(PathBuf::from("/project")))
@@ -230,30 +230,28 @@ fn without_a_root_a_relative_target_matches_by_trailing_components_only() {
             PermissionProfile::Yolo,
             Vec::new(),
             Vec::new(),
-            vec![PathBuf::from("/project/.magistr/roadmap.yaml")],
+            vec![PathBuf::from("/project/.magistr/plan.yaml")],
             true,
         )
         .audit_to(None)
     };
     assert_eq!(
-        protect().decide(&policy_request(&write_request(".magistr/roadmap.yaml"))),
+        protect().decide(&policy_request(&write_request(".magistr/plan.yaml"))),
         PolicyDecision::Deny,
         "the trailing components are the protected entry's"
     );
     assert_eq!(
-        protect().decide(&policy_request(&write_request("roadmap.yaml"))),
+        protect().decide(&policy_request(&write_request("plan.yaml"))),
         PolicyDecision::Deny,
         "so is the bare file name"
     );
     assert_eq!(
-        protect().decide(&policy_request(&write_request("old-roadmap.yaml"))),
+        protect().decide(&policy_request(&write_request("old-plan.yaml"))),
         PolicyDecision::Allow,
         "a string suffix is not a component"
     );
     assert_eq!(
-        protect().decide(&policy_request(&write_request(
-            "/other/.magistr/roadmap.yaml"
-        ))),
+        protect().decide(&policy_request(&write_request("/other/.magistr/plan.yaml"))),
         PolicyDecision::Allow,
         "an absolute path elsewhere is a different file"
     );
@@ -262,7 +260,7 @@ fn without_a_root_a_relative_target_matches_by_trailing_components_only() {
 #[test]
 fn a_symlinked_root_still_blocks_the_protected_file() {
     let dir = TempDir::new().expect("a temp dir");
-    let protected = dir.path().join("ROADMAP.md");
+    let protected = dir.path().join("PLAN.md");
     std::fs::write(&protected, "").expect("write");
     let canonical = std::fs::canonicalize(&protected).expect("canonical");
     // The entry was recorded canonical; the agent writes through the
@@ -277,7 +275,7 @@ fn a_symlinked_root_still_blocks_the_protected_file() {
     .rooted_at(Some(dir.path().to_path_buf()))
     .audit_to(None);
     assert_eq!(
-        policy.decide(&policy_request(&write_request("ROADMAP.md"))),
+        policy.decide(&policy_request(&write_request("PLAN.md"))),
         PolicyDecision::Deny
     );
 }
@@ -288,13 +286,13 @@ fn a_protected_path_write_is_denied_even_in_workflow_mode() {
         PermissionProfile::Standard,
         Vec::new(),
         Vec::new(),
-        vec![PathBuf::from("/project/.magistr/roadmap.yaml")],
+        vec![PathBuf::from("/project/.magistr/plan.yaml")],
         true,
     )
     .audit_to(None);
     let decision = policy.decide(&policy_request(&request(
         "Edit",
-        serde_json::json!({"file_path": "/project/.magistr/roadmap.yaml"}),
+        serde_json::json!({"file_path": "/project/.magistr/plan.yaml"}),
         Some(ToolKind::Edit),
     )));
     assert_eq!(
@@ -310,16 +308,16 @@ fn every_path_in_a_multi_file_edit_is_checked_before_workflow_auto_approval() {
         PermissionProfile::Yolo,
         Vec::new(),
         Vec::new(),
-        vec![PathBuf::from("/project/.magistr/roadmap.yaml")],
+        vec![PathBuf::from("/project/.magistr/plan.yaml")],
         true,
     )
     .rooted_at(Some(PathBuf::from("/project")))
     .audit_to(None);
     for input in [
-        serde_json::json!({"paths":["src/allowed.rs",".magistr/roadmap.yaml"]}),
-        serde_json::json!({"file_path":"src/allowed.rs","paths":["src/another.rs",".magistr/roadmap.yaml"]}),
-        serde_json::json!({"file_path":"src/allowed.rs","path":".magistr/roadmap.yaml"}),
-        serde_json::json!({"target_file":".magistr/roadmap.yaml"}),
+        serde_json::json!({"paths":["src/allowed.rs",".magistr/plan.yaml"]}),
+        serde_json::json!({"file_path":"src/allowed.rs","paths":["src/another.rs",".magistr/plan.yaml"]}),
+        serde_json::json!({"file_path":"src/allowed.rs","path":".magistr/plan.yaml"}),
+        serde_json::json!({"target_file":".magistr/plan.yaml"}),
     ] {
         assert_eq!(
             policy.decide(&policy_request(&request(
@@ -536,14 +534,14 @@ fn denies_and_auto_approvals_are_not_audited() {
         PermissionProfile::Standard,
         Vec::new(),
         Vec::new(),
-        vec![PathBuf::from("/project/ROADMAP.md")],
+        vec![PathBuf::from("/project/PLAN.md")],
         true,
     )
     .audit_to(Some(log.clone()));
 
     policy.decide(&policy_request(&request(
         "Write",
-        serde_json::json!({"file_path": "/project/ROADMAP.md"}),
+        serde_json::json!({"file_path": "/project/PLAN.md"}),
         None,
     )));
     policy.decide(&policy_request(&request(
@@ -765,13 +763,13 @@ fn the_policy_cannot_loosen_a_local_denial() {
         PermissionProfile::Yolo,
         Vec::new(),
         Vec::new(),
-        vec![PathBuf::from("/repo/ROADMAP.md")],
+        vec![PathBuf::from("/repo/PLAN.md")],
         true,
     )
     .governed_by(allow_everything.compile())
     .audit_to(None);
     assert_eq!(
-        under.decide(&policy_request(&write_request("/repo/ROADMAP.md"))),
+        under.decide(&policy_request(&write_request("/repo/PLAN.md"))),
         PolicyDecision::Deny
     );
 }
@@ -1077,13 +1075,13 @@ fn protected_targets_include_delete_and_move_requests() {
             PermissionProfile::Yolo,
             vec![],
             vec![],
-            vec![PathBuf::from("/repo/ROADMAP.md")],
+            vec![PathBuf::from("/repo/PLAN.md")],
             true,
         )
         .audit_to(None);
         let target = request(
             "change target",
-            serde_json::json!({"paths":["/repo/ordinary.rs", "/repo/ROADMAP.md"]}),
+            serde_json::json!({"paths":["/repo/ordinary.rs", "/repo/PLAN.md"]}),
             Some(kind),
         );
         assert_eq!(

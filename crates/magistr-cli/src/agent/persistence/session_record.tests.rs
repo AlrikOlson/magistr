@@ -111,9 +111,9 @@ fn absent_usage_remains_unknown_and_resume_requires_identity_and_capability() {
 #[test]
 fn purpose_is_required_and_round_trips_in_exported_history() {
     let mut record = sample_record("planning", "project", 0.0, 0);
-    record.purpose = SessionPurpose::Roadmap;
+    record.purpose = SessionPurpose::Plan;
     let mut encoded = serde_json::to_value(&record).unwrap();
-    assert_eq!(encoded["purpose"], "roadmap");
+    assert_eq!(encoded["purpose"], "plan");
     assert_eq!(
         serde_json::from_value::<SessionRecord>(encoded.clone()).unwrap(),
         record

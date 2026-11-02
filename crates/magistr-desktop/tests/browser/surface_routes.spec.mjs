@@ -25,28 +25,28 @@ async function inspectRoutes(app,expected){
   }
   geometry.labels.forEach((label,i)=>{for(const piece of geometry.pieces)expect(overlaps(label,piece),"connection label overlaps content").toBe(false);for(const other of geometry.labels.slice(i+1))expect(overlaps(label,other),"connection labels overlap").toBe(false);});
 }
-test("default compact roadmap is readable and prerequisites align with their consumers",async({app})=>{
-  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.setViewportSize({width:760,height:550});await app.getByRole("tab",{name:"Roadmap",exact:true}).click();await expect(app.locator(".work-piece")).toHaveCount(5);
+test("default compact plan is readable and prerequisites align with their consumers",async({app})=>{
+  await app.getByRole("button",{name:"Review the release plan",exact:true}).click();await app.setViewportSize({width:760,height:550});await app.getByRole("tab",{name:"Plan",exact:true}).click();await expect(app.locator(".work-piece")).toHaveCount(5);
   const values=await app.locator("#work-browser .work-surface").evaluate(root=>{const zoom=Number(root.dataset.zoom),nodes=[...root.querySelectorAll(".surface-node")];return {zoom,font:parseFloat(getComputedStyle(root.querySelector(".work-piece-name strong")).fontSize)*zoom,rows:Object.fromEntries(nodes.map(n=>[n.dataset.node,n.offsetTop]))};});
   expect(values.font).toBeGreaterThanOrEqual(12);expect(values.rows.foundation).toBe(values.rows.reopen);expect(values.rows.signing).toBe(values.rows.packaging);
   await inspectRoutes(app,2);
-  for(const theme of ["dark","light"]){await app.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);await capture(app,"04-default-roadmap-compact-"+theme);}
+  for(const theme of ["dark","light"]){await app.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);await capture(app,"04-default-plan-compact-"+theme);}
 });
 test("shared prerequisites and manual obstruction keep routes clear",async({app})=>{
   await app.evaluate(()=>{
-    const f=window.__fixture,r=f.workflow.roadmap,base=r.data.value.chunks[0];
-    const specs=[["source","Save project data",[],"done"],["draft","Restore the unsent message",["source"],"done"],["files","Verify attached files",[],"done"],["reopen","Reopen the conversation",["source","draft"],"pending"],["installer","Build the installer",["source","files"],"pending"],["verify","Check a clean installation",["reopen","installer"],"pending"],["release","Publish the release",["verify"],"blocked"]];
-    r.data.value.chunks=specs.map(([id,title,deps,status])=>({...base,id,name:title,title,deps,status,group:"Desktop"}));
-    const frontier=f.roadmap.data.value.frontiers[0];frontier.items=r.data.value.chunks.filter(n=>n.status!=="done").map(n=>({id:n.id,status:n.status,readiness:{state:n.id==="reopen"?"ready":"waiting"}}));frontier.activity.next_ready="reopen";
+    const f=window.__fixture,r=f.workflow.plan,base=r.data.value.tasks[0];
+    const specs=[["source","Save project data",[],"done"],["draft","Restore the unsent message",["source"],"done"],["files","Verify attached files",[],"done"],["reopen","Reopen the conversation",["source","draft"],"to_do"],["installer","Build the installer",["source","files"],"to_do"],["verify","Check a clean installation",["reopen","installer"],"to_do"],["release","Publish the release",["verify"],"blocked"]];
+    r.data.value.tasks=specs.map(([id,title,deps,status])=>({...base,id,name:title,title,deps,status,feature:"Desktop"}));
+    const frontier=f.plan.data.value.frontiers[0];frontier.items=r.data.value.tasks.filter(n=>n.status!=="done").map(n=>({id:n.id,status:n.status,readiness:{state:n.id==="reopen"?"ready":"dependent"}}));frontier.activity.next_ready="reopen";
     f.publish("release",{workflow_revision:3});
   });
-  await open(app,"Roadmap");
+  await open(app,"Plan");
   await expect(app.locator(".work-piece")).toHaveCount(7);
-  const canvas=await app.locator("#work-browser .surface-viewport").boundingBox(),next=await app.locator('.work-piece[data-next="true"]').boundingBox();expect(next.x).toBeGreaterThanOrEqual(canvas.x);expect(next.x+next.width).toBeLessThanOrEqual(canvas.x+canvas.width);await inspectRoutes(app,8);await capture(app,"04-dense-roadmap-default");
-  await app.getByRole("button",{name:"Fit all",exact:true}).click();await capture(app,"04-dense-roadmap-overview");
+  const canvas=await app.locator("#work-browser .surface-viewport").boundingBox(),next=await app.locator('.work-piece[data-next="true"]').boundingBox();expect(next.x).toBeGreaterThanOrEqual(canvas.x);expect(next.x+next.width).toBeLessThanOrEqual(canvas.x+canvas.width);await inspectRoutes(app,8);await capture(app,"04-dense-plan-default");
+  await app.getByRole("button",{name:"Fit all",exact:true}).click();await capture(app,"04-dense-plan-overview");
   const grip=app.getByRole("button",{name:"Move Verify attached files",exact:true});await grip.click();
   for(let i=0;i<3;i++)await app.getByRole("button",{name:"Move piece right",exact:true}).click();
-  await app.getByRole("button",{name:"Done arranging",exact:true}).click();await inspectRoutes(app,8);await capture(app,"04-dense-roadmap-arranged");
+  await app.getByRole("button",{name:"Done arranging",exact:true}).click();await inspectRoutes(app,8);await capture(app,"04-dense-plan-arranged");
 });
 test("nested investigations and return paths stay separate from decision content",async({app})=>{
   await app.evaluate(()=>{
@@ -72,21 +72,21 @@ test("nested investigations and return paths stay separate from decision content
 });
 test("large prerequisite sets expose an explicit bundle and keep complete details reachable",async({app})=>{
   await app.evaluate(()=>{
-    const f=window.__fixture,r=f.workflow.roadmap,base=r.data.value.chunks[0],ids=Array.from({length:500},(_,i)=>"required-"+i);
-    r.data.value.chunks=[{...base,id:"many",title:"Validate the full delivery",deps:ids},...ids.map((id,i)=>({...base,id,title:"Required check "+(i+1),deps:[],status:"done"}))];
-    f.roadmap.data.value.frontiers[0].items=[{id:"many",status:"pending",readiness:{state:"ready"}}];f.roadmap.data.value.frontiers[0].activity.next_ready="many";
+    const f=window.__fixture,r=f.workflow.plan,base=r.data.value.tasks[0],ids=Array.from({length:500},(_,i)=>"required-"+i);
+    r.data.value.tasks=[{...base,id:"many",title:"Validate the full delivery",deps:ids},...ids.map((id,i)=>({...base,id,title:"Required check "+(i+1),deps:[],status:"done"}))];
+    f.plan.data.value.frontiers[0].items=[{id:"many",status:"to_do",readiness:{state:"ready"}}];f.plan.data.value.frontiers[0].activity.next_ready="many";
   });
-  await open(app,"Roadmap");await expect(app.locator("#work-browser .surface-node")).toHaveCount(2);await expect(app.locator(".dependency-bundle")).toContainText("500");
+  await open(app,"Plan");await expect(app.locator("#work-browser .surface-node")).toHaveCount(2);await expect(app.locator(".dependency-bundle")).toContainText("500");
   await app.getByRole("button",{name:"Fit all",exact:true}).click();await inspectRoutes(app,1);await capture(app,"04-prerequisite-bundle");
   await app.getByRole("button",{name:"View 500 prerequisites for Validate the full delivery",exact:true}).click();
   await expect(app.getByRole("region",{name:"Required work",exact:true})).toContainText("Required check 500");
 });
 test("pointer arrangement cancels cleanly and preserves the camera across hidden views",async({app})=>{
-  await open(app,"Roadmap");const view=app.locator("#work-browser .surface-viewport"),world=app.locator("#work-browser .surface-world");
+  await open(app,"Plan");const view=app.locator("#work-browser .surface-viewport"),world=app.locator("#work-browser .surface-world");
   const grip=app.getByRole("button",{name:"Move Restore the project conversation and draft",exact:true}),box=await grip.boundingBox(),node=app.locator('[data-node="reopen"]'),initial=await node.evaluate(n=>n.style.left);
   await app.mouse.move(box.x+box.width/2,box.y+box.height/2);await app.mouse.down();await app.mouse.move(box.x+70,box.y+20,{steps:4});
   expect(await node.evaluate(n=>n.style.left)).not.toBe(initial);await app.keyboard.press("Escape");await app.mouse.up();expect(await node.evaluate(n=>n.style.left)).toBe(initial);await expect(app.locator("#work-browser")).toBeVisible();
   await app.getByRole("button",{name:"Restore the project conversation and draft",exact:true}).click();const before=await world.evaluate(n=>n.style.transform);
-  await app.getByRole("tab",{name:"Conversation",exact:true}).click();await app.getByRole("tab",{name:"Roadmap",exact:true}).click();expect(await world.evaluate(n=>n.style.transform)).toBe(before);
+  await app.getByRole("tab",{name:"Conversation",exact:true}).click();await app.getByRole("tab",{name:"Plan",exact:true}).click();expect(await world.evaluate(n=>n.style.transform)).toBe(before);
   await expect(view).toBeVisible();
 });

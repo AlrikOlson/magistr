@@ -14,7 +14,7 @@ use super::writer_role::WriterRole;
 /// from, so the endpoint is keyed by exactly what the lease is.
 pub(crate) fn lock_path(tas: &NativeConfig, project_id: &str, _role: WriterRole) -> PathBuf {
     if tas.persist {
-        Persistence::new(&tas.persistence_config(), Domain::Roadmap)
+        Persistence::new(&tas.persistence_config(), Domain::Plan)
             .path_for(project_id)
             .with_extension("project-owner.lock")
     } else {

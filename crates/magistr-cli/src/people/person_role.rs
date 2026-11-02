@@ -17,11 +17,11 @@ pub enum PersonRole {
     Owner,
     /// Everything except transferring ownership.
     Admin,
-    /// Builds: runs sessions and edits the roadmap.
+    /// Builds: runs sessions and edits the plan.
     Developer,
     /// Read-only access.
     Viewer,
-    /// Headless automation (CI pipelines): runs sessions and roadmap
+    /// Headless automation (CI pipelines): runs sessions and plan
     /// iterations, never answers permission prompts or edits the roster.
     Ci,
 }
@@ -30,7 +30,7 @@ impl PersonRole {
     /// How privileged this role is; higher outranks lower.
     ///
     /// Declaration order cannot answer this — `Ci` is declared last but
-    /// runs sessions and edits the roadmap, which puts it above
+    /// runs sessions and edits the plan, which puts it above
     /// `Viewer`. The ranking exists for one question: when several
     /// directory groups map a person to different roles, which wins
     /// ([`GroupRole::highest`]).
@@ -55,7 +55,7 @@ impl PersonRole {
             PersonRole::Admin => !matches!(capability, Capability::TransferOwnership),
             PersonRole::Developer | PersonRole::Ci => matches!(
                 capability,
-                Capability::EditRoadmap | Capability::RunSessions | Capability::View
+                Capability::EditPlan | Capability::RunSessions | Capability::View
             ),
             PersonRole::Viewer => matches!(capability, Capability::View),
         }

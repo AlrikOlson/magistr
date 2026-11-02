@@ -3,7 +3,7 @@
 //! Cloud sync is write-through on *mutation* only, so an
 //! agent that connects after it already has local history shows nothing in the
 //! cloud until it next mutates each record. `magistr sync push` closes
-//! that gap: it walks the persisted think/run/roadmap/signal stores, builds the
+//! that gap: it walks the persisted think/run/plan/signal stores, builds the
 //! same envelopes the write-through path builds (via [`crate::cloud::build`]),
 //! and `PUT`s each to `/v1/records`.
 //!
@@ -13,14 +13,14 @@
 //! landed records collapse to dedups.
 //!
 //! Scope mirrors the write-through path **exactly**: think steps, run *progress*,
-//! roadmap chunks, signals. Run goals/checks/steps are not pushed by
+//! plan tasks, signals. Run goals/checks/steps are not pushed by
 //! write-through (no stable wire id) and stay deferred to `saas-cloud-sync-all`
 //! — this back-fill does not silently widen that scope.
 
 use crate::cloud::build;
 use crate::cloud::client::{CloudClient, PushOutcome};
 use crate::cloud::envelope::{Family, UnifiedRecordEnvelope};
-use crate::roadmap::domain::Roadmap;
+use crate::plan::domain::Plan;
 use crate::run::domain::goal::Goal;
 use crate::run::domain::step::Step;
 use crate::signal::domain::Signal;
@@ -31,7 +31,7 @@ use crate::think::domain::step::ThinkStep;
 pub struct BackfillCounts {
     pub think: usize,
     pub run: usize,
-    pub roadmap: usize,
+    pub plan: usize,
     pub signal: usize,
 }
 
@@ -39,7 +39,7 @@ impl BackfillCounts {
     /// Total records across all four families.
     #[must_use]
     pub fn total(&self) -> usize {
-        self.think + self.run + self.roadmap + self.signal
+        self.think + self.run + self.plan + self.signal
     }
 
     /// Derive the per-family breakdown from a built envelope list.
@@ -50,7 +50,7 @@ impl BackfillCounts {
             match e.family {
                 Family::Think => c.think += 1,
                 Family::Run => c.run += 1,
-                Family::Roadmap => c.roadmap += 1,
+                Family::Plan => c.plan += 1,
                 Family::Signal => c.signal += 1,
             }
         }
@@ -60,12 +60,12 @@ impl BackfillCounts {
 
 /// Build the cloud envelopes for every local record across the four families,
 /// reusing the write-through builders. Pure and network-free — the unit-test
-/// seam for the whole back-fill. Order is stable: think, run, roadmap, signal.
+/// seam for the whole back-fill. Order is stable: think, run, plan, signal.
 pub fn collect_envelopes<'a>(
     tenant: &str,
     steps: impl Iterator<Item = &'a ThinkStep>,
     run: Option<(&Goal, &[Step])>,
-    roadmap: &Roadmap,
+    plan: &Plan,
     signals: &[Signal],
 ) -> Result<Vec<UnifiedRecordEnvelope>, magistr_workflow_contracts::ReadError> {
     let mut out = Vec::new();
@@ -94,23 +94,23 @@ pub fn collect_envelopes<'a>(
             );
         }
     }
-    // Carry each chunk's tracker state, exactly as the write-through push does
-    // — a backfill that stripped it would un-bind every projected chunk on the
+    // Carry each task's tracker state, exactly as the write-through push does
+    // — a backfill that stripped it would un-bind every projected task on the
     // next machine to reconcile.
-    out.extend(roadmap.chunks.iter().map(|c| {
-        let links: Vec<_> = roadmap
+    out.extend(plan.tasks.iter().map(|c| {
+        let links: Vec<_> = plan
             .links
             .iter()
-            .filter(|l| l.chunk_id == c.id)
+            .filter(|l| l.task_id == c.id)
             .cloned()
             .collect();
-        let opt_ins: Vec<_> = roadmap
+        let opt_ins: Vec<_> = plan
             .tracker_opt_ins
             .iter()
-            .filter(|o| o.chunk_id == c.id)
+            .filter(|o| o.task_id == c.id)
             .cloned()
             .collect();
-        build::from_chunk(tenant, c, &links, &opt_ins)
+        build::from_task(tenant, c, &links, &opt_ins)
     }));
     out.extend(signals.iter().map(|s| build::from_signal(tenant, s)));
     if out.iter().any(|envelope| envelope.id.trim().is_empty()) {

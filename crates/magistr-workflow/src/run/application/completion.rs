@@ -1,4 +1,4 @@
-//! Whether the current run's check_results let a chunk complete.
+//! Whether the current run's check_results let a task complete.
 
 use std::collections::BTreeMap;
 
@@ -12,7 +12,7 @@ use super::{
 };
 
 impl RunUseCases {
-    /// Decide whether the chunk scoped as `scope` may complete on the
+    /// Decide whether the task scoped as `scope` may complete on the
     /// evidence of the current run. The verification step is the explicit
     /// `step` when given (it must be a step of the current run), else the
     /// instance the run's latest check_result was admitted on. Every gate the

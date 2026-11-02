@@ -29,7 +29,7 @@ Setup adds the following artifacts:
 | `.agents/skills/*/SKILL.md` | Nine project skills |
 | `.agents/skills/craft/references/runtime.md` | Workflow contract and Codex adapter |
 
-The skills are `craft`, `init`, `next`, `next-loop`, `roadmap`,
+The skills are `craft`, `init`, `next`, `next-loop`, `plan`,
 `roadmap-refresh`, `signals`, `validate` and `workspace-routing`.
 One `magistr` connection serves workflow and workspace operations. Cargo
 installations use `magistr mcp --dir .`; npm installations use a pinned npx
@@ -166,7 +166,7 @@ task statuses, actions, and check results are retained. The agent re-reads the
 code and remaining tasks before continuing; it does not start the item again
 or replace another session's goal.
 
-When `roadmap_exports` is false, setup adds native-only instructions and disables
+When `plan_exports` is false, setup adds native-only instructions and disables
 the export tool. Codex skills perform each workflow step directly. Reusable
 workflow sources live in
 `crates/magistr-cli/templates/workflows`, with small host adapters. Workspace's

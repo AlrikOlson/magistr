@@ -5,20 +5,20 @@
 //! adapter-level halves (rename survival at the wire, vocabulary guards, the
 //! regroup patch) are in `tracker_linear.rs` against the GraphQL mock.
 
-use magistr_workflow::roadmap::domain::{ChunkStatus, ContainerKind};
-use magistr_workflow::roadmap::engine::RoadmapEngine;
+use magistr_workflow::plan::domain::{ContainerKind, TaskStatus};
+use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::tracker::fake::FakeTracker;
 use magistr_workflow::tracker::ownership::Ownership;
 use magistr_workflow::tracker::project::project_all_with_policy;
 
 const PROVIDER: &str = "fake";
 
-fn engine_with(chunks: &[(&str, Option<&str>, ChunkStatus)]) -> RoadmapEngine {
-    let mut e = RoadmapEngine::new("proj".into());
-    for (id, group, status) in chunks {
-        e.add_chunk(
+fn engine_with(tasks: &[(&str, Option<&str>, TaskStatus)]) -> PlanEngine {
+    let mut e = PlanEngine::new("proj".into());
+    for (id, feature, status) in tasks {
+        e.add_task(
             (*id).into(),
-            format!("Chunk {id}"),
+            format!("Task {id}"),
             *status,
             10,
             format!("why {id}"),
@@ -28,33 +28,33 @@ fn engine_with(chunks: &[(&str, Option<&str>, ChunkStatus)]) -> RoadmapEngine {
         )
         .expect("add");
         e.set_tracker_opt_in(id, PROVIDER, true).expect("opt in");
-        if let Some(g) = group {
-            e.set_group(id, Some((*g).into())).expect("group");
+        if let Some(g) = feature {
+            e.set_feature(id, Some((*g).into())).expect("feature");
         }
     }
     e
 }
 
-async fn push(e: &mut RoadmapEngine, t: &FakeTracker, initiative: Option<&str>) {
+async fn push(e: &mut PlanEngine, t: &FakeTracker, initiative: Option<&str>) {
     project_all_with_policy(e, t, None, &Ownership::default(), initiative)
         .await
         .expect("project");
 }
 
 /// THE promise: the identity recorded on push N is handed to the adapter on
-/// push N+1, for the group and the roof alike. This is the whole of rename
+/// push N+1, for the feature and the roof alike. This is the whole of rename
 /// survival at the projector's level — an adapter holding the uuid never
 /// needs the name to resolve.
 #[tokio::test]
 async fn the_identity_recorded_last_push_is_passed_back_this_push() {
-    let mut e = engine_with(&[("a-1", Some("Quayside"), ChunkStatus::Pending)]);
+    let mut e = engine_with(&[("a-1", Some("Quayside"), TaskStatus::ToDo)]);
     let t = FakeTracker::new(PROVIDER);
 
     push(&mut e, &t, Some("roof")).await;
     push(&mut e, &t, Some("roof")).await;
 
     assert_eq!(
-        t.group_calls(),
+        t.feature_calls(),
         vec![
             ("Quayside".to_string(), None),
             ("Quayside".to_string(), Some("grp-Quayside".to_string())),
@@ -77,12 +77,12 @@ async fn the_identity_recorded_last_push_is_passed_back_this_push() {
 /// the record that we minted it.
 #[tokio::test]
 async fn a_minted_container_is_remembered_as_ours_forever() {
-    let mut e = engine_with(&[("a-1", Some("Quayside"), ChunkStatus::Pending)]);
+    let mut e = engine_with(&[("a-1", Some("Quayside"), TaskStatus::ToDo)]);
     let t = FakeTracker::new(PROVIDER);
 
     push(&mut e, &t, Some("roof")).await;
     let after_first = e
-        .container_link(ContainerKind::Group, "Quayside", PROVIDER)
+        .container_link(ContainerKind::Feature, "Quayside", PROVIDER)
         .expect("recorded")
         .clone();
     assert!(after_first.created_by_us, "the first push minted it");
@@ -92,7 +92,7 @@ async fn a_minted_container_is_remembered_as_ours_forever() {
     // created: false) — the mint memory must survive it.
     push(&mut e, &t, Some("roof")).await;
     assert!(
-        e.container_link(ContainerKind::Group, "Quayside", PROVIDER)
+        e.container_link(ContainerKind::Feature, "Quayside", PROVIDER)
             .expect("still recorded")
             .created_by_us,
         "created_by_us is sticky — a resolve is not an un-mint"
@@ -104,46 +104,46 @@ async fn a_minted_container_is_remembered_as_ours_forever() {
     );
 }
 
-/// The group-move criterion at the projector: regrouping a chunk re-sends the
-/// item carrying the NEW group, and the old group is not re-ensured — the
+/// The group-move criterion at the projector: regrouping a task re-sends the
+/// item carrying the NEW feature, and the old feature is not re-ensured — the
 /// container it leaves behind is left standing (never deleted; the decided
 /// empty-container rule).
 #[tokio::test]
-async fn moving_a_chunk_between_groups_moves_its_item_and_touches_nothing_else() {
-    let mut e = engine_with(&[("mover", Some("Quayside"), ChunkStatus::Pending)]);
+async fn moving_a_task_between_features_moves_its_item_and_touches_nothing_else() {
+    let mut e = engine_with(&[("mover", Some("Quayside"), TaskStatus::ToDo)]);
     let t = FakeTracker::new(PROVIDER);
 
     push(&mut e, &t, None).await;
     assert_eq!(
-        t.items()[0].group.as_deref(),
+        t.items()[0].feature.as_deref(),
         Some("Quayside"),
         "precondition"
     );
 
-    e.set_group("mover", Some("Paperwork".into()))
+    e.set_feature("mover", Some("Paperwork".into()))
         .expect("regroup");
     push(&mut e, &t, None).await;
 
     assert_eq!(
-        t.items()[0].group.as_deref(),
+        t.items()[0].feature.as_deref(),
         Some("Paperwork"),
         "the item must carry its NEW container after the move"
     );
-    let groups = t.groups();
+    let features = t.features();
     assert!(
-        groups.iter().any(|(n, _)| n == "Quayside"),
+        features.iter().any(|(n, _)| n == "Quayside"),
         "the emptied container still stands — moving out is not deleting"
     );
     assert!(
-        groups.iter().any(|(n, _)| n == "Paperwork"),
+        features.iter().any(|(n, _)| n == "Paperwork"),
         "and the new one exists"
     );
     assert_eq!(
-        t.group_calls()
+        t.feature_calls()
             .iter()
             .filter(|(n, _)| n == "Quayside")
             .count(),
         1,
-        "the second push does not re-ensure the abandoned group at all"
+        "the second push does not re-ensure the abandoned feature at all"
     );
 }

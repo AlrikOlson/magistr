@@ -13,7 +13,7 @@ use crate::think::domain::ThinkHistory;
 #[path = "persistence_upgrade.rs"]
 mod upgrade;
 
-const SCHEMA_VERSION: u32 = 3;
+const SCHEMA_VERSION: u32 = 4;
 
 /// The complete transaction boundary. Selected histories are projections of it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

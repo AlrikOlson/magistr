@@ -5,7 +5,7 @@
 [Explore Magistr](https://magistr.dev) · [Documentation](https://magistr.dev/docs) ·
 [Installation](https://magistr.dev/docs/installation)
 
-Magistr keeps a project's roadmap, recorded decisions, work in progress, and
+Magistr keeps a project's plan, recorded decisions, work in progress, and
 verification results available to connected coding agents. Your agent still
 writes the code and uses its own model account. Git keeps your source history;
 Magistr keeps the project records needed to continue the work.
@@ -27,11 +27,11 @@ you request it.
 
 ## Work with a plan
 
-- [Roadmaps](https://magistr.dev/docs/roadmap) keep deliverables, dependencies,
+- [Plans](https://magistr.dev/docs/plan) keep deliverables, dependencies,
   priorities, and acceptance criteria.
 - [Reasoning](https://magistr.dev/docs/reasoning) records findings, sources,
   decisions, and open questions.
-- [Chunks](https://magistr.dev/docs/chunks) turn one deliverable into tasks,
+- [Tasks](https://magistr.dev/docs/tasks) turn one deliverable into tasks,
   checked changes, and a commit.
 - [Verification](https://magistr.dev/docs/verification) keeps actual results
   and whether they still apply.

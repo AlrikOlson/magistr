@@ -6,13 +6,13 @@ description: Apply Magistr project conventions for native planning, code groundi
 # Magistr craft
 
 Read [the runtime contract](references/runtime.md), including its host adapter.
-This skill guides the requested work; it does not select a roadmap chunk or
+This skill guides the requested work; it does not select a plan task or
 start an implementation loop by itself.
 
 - Ground substantial decisions in the actual code through workspace before
   researching replacements. Record evidence-backed findings with native
   `think_*` tools throughout research, implementation, and verification,
-  linked to the relevant chunk and run step. Explain what each finding
+  linked to the relevant task and run step. Explain what each finding
   changes and what to check next. Follow the shared runtime's guidance for
   real questions, branch membership, revisions, dependencies, and synthesis;
   revisit earlier conclusions when evidence changes them.
@@ -23,7 +23,7 @@ start an implementation loop by itself.
   gates, including required custom gates, and inspect recorded evidence.
   Verify acceptance criteria as well as compilation and tests. Format before
   final gates. Report failures, omissions, and uncertainty accurately.
-- Commit completed chunks atomically with a conventional message. Preserve
+- Commit completed tasks atomically with a conventional message. Preserve
   unrelated changes and the user's chosen checkout. Follow project commit
   conventions; do not invent model identity or attribute work to another host.
   Pushing remains a separate action.
@@ -50,5 +50,5 @@ start an implementation loop by itself.
   completing the affected work or advancing to its next visual iteration.
 
 `{{invoke}}next` owns one implementation iteration; `{{invoke}}next-loop` owns bounded
-fresh-session handoffs, one chunk per agent session. `{{invoke}}roadmap-refresh` and `{{invoke}}signals` research and
+fresh-session handoffs, one task per agent session. `{{invoke}}roadmap-refresh` and `{{invoke}}signals` research and
 record discoveries without implementing the resulting features.

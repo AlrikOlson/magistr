@@ -99,7 +99,7 @@ pub(crate) async fn run(cli: Desktop) -> eyre::Result<()> {
             crate::commands::overview,
             crate::work::control_work,
             crate::workflow::read_workflow,
-            crate::roadmap_item::read_roadmap_item,
+            crate::plan_item::read_plan_item,
             crate::exit::subscribe_exit,
             crate::exit::finish_exit,
             crate::preferences::preferences,

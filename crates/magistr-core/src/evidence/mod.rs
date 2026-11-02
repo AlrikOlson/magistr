@@ -17,7 +17,7 @@
 //!
 //! [`writer_config_from_env`] captures production configuration and attaches
 //! the capability; [`writer_config`] accepts explicit test inputs. A writer
-//! opened without evidence records source-less checks and cannot complete a chunk.
+//! opened without evidence records source-less checks and cannot complete a task.
 
 mod execution_fingerprint;
 mod snapshot_witness;

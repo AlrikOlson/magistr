@@ -79,7 +79,7 @@ export class TerminalPlayback{
     }
     this.host.dataset.streaming="true";
     const offset=++stream.offset;stream.writing=true;
-    // Writes are acknowledged before scheduling another chunk, so pause/seek
+    // Writes are acknowledged before scheduling another task, so pause/seek
     // cannot leave a backlog of old text queued inside xterm.
     void this.write(stream.parts[offset-1]).then(()=>{
       if(stream!==this.stream||stream.revision!==this.revision)return;

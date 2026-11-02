@@ -1,5 +1,5 @@
 //! End-to-end proof that a long gate stops holding the tool call open — and
-//! that nothing changes for a client that never heard of tasks (roadmap chunk
+//! that nothing changes for a client that never heard of tasks (plan task
 //! `mcp-tasks-long-gates`, SEP-2663).
 //!
 //! Every test drives a REAL rmcp client over an in-memory duplex, cloning the
@@ -40,7 +40,7 @@ use std::time::Duration;
 
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::progress::tick_message;
-use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
+use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
@@ -101,9 +101,9 @@ fn build_unified(project: &str) -> UnifiedService {
     cfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(cfg));
     let run = RunService::new(RunEngine::new(project.into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new(project.into()), run.use_cases());
+    let plan = PlanService::new(PlanEngine::new(project.into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new(project.into()));
-    UnifiedService::new(think, run, roadmap, signal)
+    UnifiedService::new(think, run, plan, signal)
 }
 
 type Client = rmcp::service::RunningService<RoleClient, TaskClient>;
@@ -533,7 +533,7 @@ async fn other_tools_stay_inline_even_for_a_tasks_declaring_client() {
 
     for (tool, arguments) in [
         ("run_status", json!({})),
-        ("roadmap_status", json!({})),
+        ("plan_status", json!({})),
         ("run_open", json!({"description": "not a long gate"})),
     ] {
         let response = call(&client, tool, arguments).await;

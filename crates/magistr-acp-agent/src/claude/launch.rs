@@ -21,7 +21,7 @@ pub(crate) struct LaunchSpec {
     pub mcp_servers: Vec<McpServer>,
     /// Tools the session may run without asking (`--allowedTools`): the
     /// CLI's own rule syntax (`Bash`, `Bash(git *)`, `Edit`, …) or a bare
-    /// MCP tool name (`roadmap_status`), which is expanded to
+    /// MCP tool name (`plan_status`), which is expanded to
     /// `mcp__<server>__<name>` for every server of the session, since the
     /// CLI only matches an MCP tool by its full name.
     pub allowed_tools: Vec<String>,

@@ -1,5 +1,5 @@
 //! The signal dogfood loop: a local signal capture pushes to the
-//! cloud backend. Mirrors the roadmap proof (cloud_roadmap_sync.rs).
+//! cloud backend. Mirrors the plan proof (cloud_plan_sync.rs).
 
 use std::time::Duration;
 

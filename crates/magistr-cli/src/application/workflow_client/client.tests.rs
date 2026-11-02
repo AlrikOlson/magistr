@@ -128,16 +128,16 @@ fn a_second_host_on_the_same_project_is_refused_until_the_first_is_gone() {
     EngineClient::with_config(config(&root, &data)).expect("released with the last writer");
 }
 
-/// A pending chunk on the host's writer.
+/// A pending task on the host's writer.
 #[cfg(any(unix, windows))]
-fn seed_chunk(host: &EngineClient, id: &str) {
+fn seed_task(host: &EngineClient, id: &str) {
     host.writer()
         .expect("the host")
-        .roadmap_add_chunk(
+        .plan_add_task(
             id.into(),
-            format!("Chunk {id}"),
+            format!("Task {id}"),
             String::new(),
-            magistr_engine::ChunkStatus::Pending,
+            magistr_engine::TaskStatus::ToDo,
             100,
             String::new(),
             vec![],
@@ -145,7 +145,7 @@ fn seed_chunk(host: &EngineClient, id: &str) {
             None,
             None,
         )
-        .expect("chunk");
+        .expect("task");
 }
 
 /// The store under a tempdir is too deep for `sun_path`: the endpoint
@@ -169,7 +169,7 @@ async fn a_second_cockpit_attaches_to_the_running_host_and_acts_through_it() {
     std::fs::create_dir_all(&root).expect("root");
     let data = tmp.path().join("data");
     let host = EngineClient::with_config(attachable(&root, &data)).expect("the host");
-    seed_chunk(&host, "c1");
+    seed_task(&host, "c1");
     let endpoint = host
         .serve_owner()
         .await
@@ -181,21 +181,18 @@ async fn a_second_cockpit_attaches_to_the_running_host_and_acts_through_it() {
     assert!(second.writer().is_none(), "no second writer");
     assert_eq!(second.attached_generation(), Some(endpoint.generation()));
     let mut port = second.port().expect("an attached port");
-    let started = port.start_chunk("c1").expect("acts through the host");
-    assert_eq!(
-        started.value.status,
-        magistr_engine::ChunkStatus::InProgress
-    );
+    let started = port.start_task("c1").expect("acts through the host");
+    assert_eq!(started.value.status, magistr_engine::TaskStatus::InProgress);
     assert_eq!(
         host.reader()
-            .roadmap_chunk("c1")
+            .plan_task("c1")
             .unwrap()
-            .map(|chunk| chunk.status),
-        Some(magistr_engine::ChunkStatus::InProgress),
+            .map(|task| task.status),
+        Some(magistr_engine::TaskStatus::InProgress),
         "the host's own writer carried it out"
     );
     assert!(
-        port.start_chunk("missing")
+        port.start_task("missing")
             .expect_err("refused")
             .to_string()
             .contains("missing"),
@@ -250,7 +247,7 @@ async fn an_attached_port_reports_a_gone_owner_and_opens_nothing() {
     std::fs::create_dir_all(&root).expect("root");
     let data = tmp.path().join("data");
     let host = EngineClient::with_config(attachable(&root, &data)).expect("the host");
-    seed_chunk(&host, "c1");
+    seed_task(&host, "c1");
     let endpoint = host.serve_owner().await.expect("served");
     let second = EngineClient::admit_or_attach_config(attachable(&root, &data)).expect("attached");
     let mut port = second.port().expect("port");
@@ -264,9 +261,9 @@ async fn an_attached_port_reports_a_gone_owner_and_opens_nothing() {
         .await
         .expect("connections closed");
     drop(host);
-    let gone = port.start_chunk("c1").expect_err("hung up");
+    let gone = port.start_task("c1").expect_err("hung up");
     assert!(gone.to_string().contains("gone"), "{gone}");
-    let nobody = port.start_chunk("c1").expect_err("nothing to reconnect to");
+    let nobody = port.start_task("c1").expect_err("nothing to reconnect to");
     assert!(nobody.to_string().contains("no owner endpoint"), "{nobody}");
     assert!(second.writer().is_none(), "never a writer of its own");
     EngineClient::with_config(attachable(&root, &data))

@@ -6,8 +6,8 @@ use std::time::Duration;
 use tempfile::TempDir;
 
 use magistr_workflow::infra::{Domain, Persistence, PersistenceConfig};
-use magistr_workflow::roadmap::RoadmapEngine;
-use magistr_workflow::roadmap::domain::ChunkStatus;
+use magistr_workflow::plan::PlanEngine;
+use magistr_workflow::plan::domain::TaskStatus;
 use magistr_workflow::run::domain::step::StepType;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::run::persistence as run_persistence;
@@ -20,9 +20,8 @@ fn infra_cfg(tmp: &TempDir) -> PersistenceConfig {
         .enabled(true)
 }
 
-fn roadmap_engine(tmp: &TempDir) -> RoadmapEngine {
-    RoadmapEngine::new("proj".into())
-        .with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Roadmap))
+fn plan_engine(tmp: &TempDir) -> PlanEngine {
+    PlanEngine::new("proj".into()).with_persistence(Persistence::new(&infra_cfg(tmp), Domain::Plan))
 }
 
 fn signal_engine(tmp: &TempDir) -> SignalEngine {
@@ -38,11 +37,11 @@ fn run_engine(tmp: &TempDir) -> RunEngine {
     RunEngine::new("proj".into()).with_persistence(run_persistence::Persistence::new(&cfg))
 }
 
-fn add_chunk(e: &mut RoadmapEngine, id: &str) {
-    e.add_chunk(
+fn add_task(e: &mut PlanEngine, id: &str) {
+    e.add_task(
         id.into(),
-        format!("Chunk {id}"),
-        ChunkStatus::Pending,
+        format!("Task {id}"),
+        TaskStatus::ToDo,
         10,
         String::new(),
         Vec::new(),
@@ -52,94 +51,88 @@ fn add_chunk(e: &mut RoadmapEngine, id: &str) {
     .unwrap();
 }
 
-fn chunk_ids(e: &RoadmapEngine) -> Vec<String> {
-    let mut ids: Vec<String> = e.roadmap().chunks.iter().map(|c| c.id.clone()).collect();
+fn task_ids(e: &PlanEngine) -> Vec<String> {
+    let mut ids: Vec<String> = e.plan().tasks.iter().map(|c| c.id.clone()).collect();
     ids.sort();
     ids
 }
 
 #[test]
-fn a_roadmap_refresh_validates_the_store_and_reports_changes() {
+fn a_plan_refresh_validates_the_store_and_reports_changes() {
     let tmp = TempDir::new().unwrap();
-    let mut a = roadmap_engine(&tmp);
-    let mut b = roadmap_engine(&tmp);
+    let mut a = plan_engine(&tmp);
+    let mut b = plan_engine(&tmp);
     assert_eq!(a.refresh_if_stale(), Ok(false), "nothing written yet");
 
-    add_chunk(&mut b, "from-b");
+    add_task(&mut b, "from-b");
     assert_eq!(a.refresh_if_stale(), Ok(true), "the stamp moved");
-    assert_eq!(chunk_ids(&a), vec!["from-b".to_owned()]);
+    assert_eq!(task_ids(&a), vec!["from-b".to_owned()]);
     assert_eq!(a.refresh_if_stale(), Ok(false), "unchanged: no re-read");
 
     // A's own save records the stamp of the file it wrote, so its next
     // refresh is a stat; B, which never saw it, reads once.
-    add_chunk(&mut a, "from-a");
+    add_task(&mut a, "from-a");
     assert_eq!(a.refresh_if_stale(), Ok(false));
     assert_eq!(b.refresh_if_stale(), Ok(true));
-    assert_eq!(
-        chunk_ids(&b),
-        vec!["from-a".to_owned(), "from-b".to_owned()]
-    );
+    assert_eq!(task_ids(&b), vec!["from-a".to_owned(), "from-b".to_owned()]);
     assert_eq!(b.refresh_if_stale(), Ok(false));
 }
 
 #[test]
 fn a_writers_memory_is_the_merged_file_after_its_own_save() {
     let tmp = TempDir::new().unwrap();
-    let mut a = roadmap_engine(&tmp);
-    let mut b = roadmap_engine(&tmp);
-    add_chunk(&mut b, "from-b");
-    // A writes from memory that predates B's chunk: the locked merge keeps
-    // B's chunk on disk, and A adopts what landed rather than its stale copy.
-    add_chunk(&mut a, "from-a");
-    assert_eq!(
-        chunk_ids(&a),
-        vec!["from-a".to_owned(), "from-b".to_owned()]
-    );
+    let mut a = plan_engine(&tmp);
+    let mut b = plan_engine(&tmp);
+    add_task(&mut b, "from-b");
+    // A writes from memory that predates B's task: the locked merge keeps
+    // B's task on disk, and A adopts what landed rather than its stale copy.
+    add_task(&mut a, "from-a");
+    assert_eq!(task_ids(&a), vec!["from-a".to_owned(), "from-b".to_owned()]);
     assert_eq!(a.refresh_if_stale(), Ok(false));
 }
 
 #[test]
-fn roadmap_changes_apply_to_fresh_state_without_overwriting_other_fields() {
+fn plan_changes_apply_to_fresh_state_without_overwriting_other_fields() {
     let tmp = TempDir::new().unwrap();
-    let mut a = roadmap_engine(&tmp);
-    add_chunk(&mut a, "c");
-    let mut b = roadmap_engine(&tmp);
+    let mut a = plan_engine(&tmp);
+    add_task(&mut a, "c");
+    let mut b = plan_engine(&tmp);
     assert_eq!(
         b.refresh_if_stale(),
         Ok(false),
         "opened on the current file"
     );
 
-    // Both engines hold the current record. A starts the chunk; B, still
+    // Both engines hold the current record. A starts the task; B, still
     // holding the pre-start copy, retitles it a moment later without
     // refreshing — the window between a read and a save.
-    a.start_chunk("c").unwrap();
+    a.start_task("c").unwrap();
     sleep(Duration::from_millis(5));
-    b.update_chunk("c", Some("B's title".into()), None, None, None, None, None)
+    b.update_task("c", Some("B's title".into()), None, None, None, None, None)
         .unwrap();
 
-    // The title edit applies to the current committed chunk and retains its status.
-    let on_disk = roadmap_engine(&tmp);
-    let chunk = &on_disk.roadmap().chunks[0];
-    assert_eq!(chunk.title, "B's title");
-    assert_eq!(chunk.status, ChunkStatus::InProgress);
+    // The title edit applies to the current committed task and retains its status.
+    let on_disk = plan_engine(&tmp);
+    let task = &on_disk.plan().tasks[0];
+    assert_eq!(task.title, "B's title");
+    assert_eq!(task.status, TaskStatus::InProgress);
     assert_eq!(a.refresh_if_stale(), Ok(true));
-    let seen = &a.roadmap().chunks[0];
+    let seen = &a.plan().tasks[0];
     assert_eq!(
         (seen.title.as_str(), seen.status),
-        ("B's title", ChunkStatus::InProgress)
+        ("B's title", TaskStatus::InProgress)
     );
     // A's next transition validates against the record it now holds.
     assert!(
-        a.start_chunk("c").is_err(),
-        "the started chunk cannot start twice"
+        a.start_task("c").is_err(),
+        "the started task cannot start twice"
     );
     assert_eq!(
         b.refresh_if_stale(),
         Ok(false),
         "a refused write changes no file"
     );
-    assert_eq!(b.roadmap().chunks[0].status, ChunkStatus::InProgress);
+    assert_eq!(b.plan().tasks[0].status, TaskStatus::InProgress);
 }
 
 #[test]
@@ -179,7 +172,7 @@ fn a_run_refresh_validates_the_store_and_reports_changes() {
     let mut b = run_engine(&tmp);
     assert_eq!(b.refresh_if_stale(), Ok(false));
 
-    a.set_goal("cycle".into(), vec![], vec![], "chunk:c".into())
+    a.set_goal("cycle".into(), vec![], vec![], "task:c".into())
         .unwrap();
     a.add_step("t".into(), "step".into(), StepType::Implement, None, None)
         .unwrap();
@@ -197,10 +190,10 @@ fn a_run_refresh_validates_the_store_and_reports_changes() {
 
 #[test]
 fn engines_without_persistence_never_refresh() {
-    let mut roadmap = RoadmapEngine::new("proj".into());
+    let mut plan = PlanEngine::new("proj".into());
     let mut signal = SignalEngine::new("proj".into());
     let mut run = RunEngine::new("proj".into());
-    assert_eq!(roadmap.refresh_if_stale(), Ok(false));
+    assert_eq!(plan.refresh_if_stale(), Ok(false));
     assert_eq!(signal.refresh_if_stale(), Ok(false));
     assert_eq!(run.refresh_if_stale(), Ok(false));
 }
@@ -211,7 +204,7 @@ fn corrupt_cold_run_reads_never_confirm_empty_and_recover_without_reopening() {
     let tmp = TempDir::new().unwrap();
     let mut writer = run_engine(&tmp);
     writer
-        .set_goal("kept".into(), vec![], vec![], "chunk:c".into())
+        .set_goal("kept".into(), vec![], vec![], "task:c".into())
         .unwrap();
     let persistence = run_persistence::Persistence::new(&run_persistence::PersistenceConfig {
         enabled: true,
@@ -239,17 +232,17 @@ fn corrupt_cold_run_reads_never_confirm_empty_and_recover_without_reopening() {
 fn each_family_retries_refused_reads_and_observes_deletion() {
     use magistr_workflow_contracts::{ReadErrorKind, ReadSource};
     let tmp = TempDir::new().unwrap();
-    let mut roadmap = roadmap_engine(&tmp);
-    add_chunk(&mut roadmap, "kept");
+    let mut plan = plan_engine(&tmp);
+    add_task(&mut plan, "kept");
     let mut signal = signal_engine(&tmp);
     signal
         .capture(SignalKind::Idea, "author".into(), "kept".into())
         .unwrap();
     let mut run = run_engine(&tmp);
-    run.set_goal("kept".into(), vec![], vec![], "chunk:kept".into())
+    run.set_goal("kept".into(), vec![], vec![], "task:kept".into())
         .unwrap();
     let paths = [
-        Persistence::new(&infra_cfg(&tmp), Domain::Roadmap).path_for("proj"),
+        Persistence::new(&infra_cfg(&tmp), Domain::Plan).path_for("proj"),
         Persistence::new(&infra_cfg(&tmp), Domain::Signal).path_for("proj"),
         run_persistence::Persistence::new(&run_persistence::PersistenceConfig {
             enabled: true,
@@ -265,27 +258,27 @@ fn each_family_retries_refused_reads_and_observes_deletion() {
         std::fs::write(path, "{").unwrap();
     }
     for _ in 0..2 {
-        assert_eq!(roadmap.observe().unwrap_err().kind, ReadErrorKind::Decode);
+        assert_eq!(plan.observe().unwrap_err().kind, ReadErrorKind::Decode);
         assert_eq!(signal.observe().unwrap_err().kind, ReadErrorKind::Decode);
         assert_eq!(run.observe().unwrap_err().kind, ReadErrorKind::Decode);
-        assert!(roadmap.refresh_if_stale().is_err());
+        assert!(plan.refresh_if_stale().is_err());
         assert!(signal.refresh_if_stale().is_err());
         assert!(run.refresh_if_stale().is_err());
     }
-    assert_eq!(roadmap.roadmap().chunks.len(), 1);
+    assert_eq!(plan.plan().tasks.len(), 1);
     assert_eq!(signal.signals().signals.len(), 1);
     assert!(run.goal.is_some());
     for (path, bytes) in paths.iter().zip(good) {
         std::fs::write(path, bytes).unwrap();
     }
-    assert_eq!(roadmap.observe().unwrap().value.chunks.len(), 1);
+    assert_eq!(plan.observe().unwrap().value.tasks.len(), 1);
     assert_eq!(signal.observe().unwrap().value.signals.len(), 1);
     assert!(run.observe().unwrap().value.goal().is_some());
     for path in &paths {
         std::fs::remove_file(path).unwrap();
     }
-    assert_eq!(roadmap.observe().unwrap().source, ReadSource::Missing);
-    assert!(roadmap.observe().unwrap().value.chunks.is_empty());
+    assert_eq!(plan.observe().unwrap().source, ReadSource::Missing);
+    assert!(plan.observe().unwrap().value.tasks.is_empty());
     assert_eq!(signal.observe().unwrap().source, ReadSource::Missing);
     assert!(signal.observe().unwrap().value.signals.is_empty());
     assert_eq!(run.observe().unwrap().source, ReadSource::Missing);
@@ -306,9 +299,9 @@ fn run_observes_the_opened_execution_and_refuses_an_unsavable_mutation() {
     let mut a = RunEngine::new("proj".into()).with_persistence(a_store.clone());
     let a_reader = RunEngine::new("proj".into()).with_persistence(a_store);
     let mut b = RunEngine::new("proj".into()).with_persistence(b_store);
-    a.set_goal("execution a".into(), vec![], vec![], "chunk:a".into())
+    a.set_goal("execution a".into(), vec![], vec![], "task:a".into())
         .unwrap();
-    b.set_goal("execution b".into(), vec![], vec![], "chunk:b".into())
+    b.set_goal("execution b".into(), vec![], vec![], "task:b".into())
         .unwrap();
     assert_eq!(
         a_reader
@@ -564,9 +557,9 @@ fn reasoning_reads_complete_explicit_sessions_independently_of_writer_and_cache(
 fn refresh_revalidates_bytes_even_when_the_public_stamp_is_unchanged() {
     use magistr_workflow_contracts::{ReadErrorKind, ReadSource};
     let tmp = TempDir::new().unwrap();
-    let mut owner = roadmap_engine(&tmp);
-    add_chunk(&mut owner, "saved");
-    let path = Persistence::new(&infra_cfg(&tmp), Domain::Roadmap).path_for("proj");
+    let mut owner = plan_engine(&tmp);
+    add_task(&mut owner, "saved");
+    let path = Persistence::new(&infra_cfg(&tmp), Domain::Plan).path_for("proj");
     let before = owner.observe().unwrap();
     let ReadSource::File(stamp) = before.source else {
         panic!("saved file");
@@ -585,5 +578,5 @@ fn refresh_revalidates_bytes_even_when_the_public_stamp_is_unchanged() {
     assert_eq!(metadata.len(), stamp.length);
     assert_eq!(owner.observe().unwrap_err().kind, ReadErrorKind::Decode);
     assert!(owner.refresh_if_stale().is_err());
-    assert_eq!(owner.roadmap().chunks[0].id, "saved");
+    assert_eq!(owner.plan().tasks[0].id, "saved");
 }

@@ -6,9 +6,9 @@ use std::fmt;
 /// How the iteration loop ended.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LoopEnd {
-    /// The roadmap has no ready chunk: everything left is done, blocked
-    /// or backlog.
-    NoReadyChunk,
+    /// The plan has no ready task: everything left is done, blocked
+    /// or an idea.
+    NoReadyTask,
     /// Every spec item is checked (a yaml project).
     SpecComplete,
     /// The iteration budget is spent.
@@ -21,8 +21,8 @@ pub enum LoopEnd {
     Failed(String),
     /// The cockpit closed while the loop ran.
     CockpitClosed,
-    /// The judge said the chunk's acceptance cannot be met as written:
-    /// the chunk is blocked on a human with this reason.
+    /// The judge said the task's acceptance cannot be met as written:
+    /// the task is blocked on a human with this reason.
     NeedsHuman(String),
     /// Recovery could not establish what happened to these attempts; the
     /// run is not stopped, only not admitting another attempt until they
@@ -34,9 +34,9 @@ impl LoopEnd {
     pub(super) fn from_stop(reason: StopReason, max: u32) -> Self {
         match reason {
             StopReason::NoProgress => Self::NoCommits,
-            StopReason::IterationLimit | StopReason::OneChunkComplete => Self::MaxIterations(max),
+            StopReason::IterationLimit | StopReason::OneTaskComplete => Self::MaxIterations(max),
             StopReason::SpecComplete => Self::SpecComplete,
-            StopReason::NoReadyChunk => Self::NoReadyChunk,
+            StopReason::NoReadyTask => Self::NoReadyTask,
             StopReason::Aborted => Self::Aborted,
             StopReason::Cancelled => Self::CockpitClosed,
             other => Self::Failed(other.to_string()),
@@ -47,7 +47,7 @@ impl LoopEnd {
     /// without the run reaching a terminal outcome.
     pub(super) fn stop_reason(&self) -> Option<StopReason> {
         Some(match self {
-            Self::NoReadyChunk => StopReason::NoReadyChunk,
+            Self::NoReadyTask => StopReason::NoReadyTask,
             Self::SpecComplete => StopReason::SpecComplete,
             Self::MaxIterations(_) => StopReason::IterationLimit,
             Self::NoCommits => StopReason::NoProgress,
@@ -62,8 +62,8 @@ impl LoopEnd {
 impl fmt::Display for LoopEnd {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NoReadyChunk => f.write_str(
-                "Nothing on the roadmap is ready to start.",
+            Self::NoReadyTask => f.write_str(
+                "Nothing on the plan is ready to start.",
             ),
             Self::SpecComplete => f.write_str("All planned work is complete."),
             Self::MaxIterations(1) => f.write_str("Reached the limit of 1 attempt."),

@@ -105,7 +105,7 @@ fn goal(engines: &NativeEngines, step: &str) {
             "Compose".into(),
             vec![],
             vec![],
-            "chunk:test".into(),
+            "task:test".into(),
             magistr_engine::native::VerificationMode::Full,
         )
         .expect("goal");
@@ -178,7 +178,7 @@ fn a_check_with_no_step_is_refused_before_any_bytes_are_hashed() {
             "Compose".into(),
             vec![],
             vec![],
-            "chunk:test".into(),
+            "task:test".into(),
             magistr_engine::native::VerificationMode::Full,
         )
         .expect("goal");
@@ -367,7 +367,7 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
         assert_eq!(settled.freshness(), Some(&SourceFreshness::Unchanged));
     }
     let evidence = engines
-        .run_verify_completion("chunk:test", Some("verify"))
+        .run_verify_completion("task:test", Some("verify"))
         .expect("every required gate has current evidence");
     assert!(evidence.is_complete());
     assert!(!evidence.config_digest.is_empty());
@@ -376,7 +376,7 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
     // moves. The evidence no longer applies, and says why.
     std::fs::write(&policy, "[security]\nredaction=false\n").expect("policy edit");
     let refusal = engines
-        .run_verify_completion("chunk:test", Some("verify"))
+        .run_verify_completion("task:test", Some("verify"))
         .expect_err("a changed external layer invalidates the evidence");
     let CompletionRefusal::Outstanding(later) = &refusal else {
         panic!("{refusal}");
@@ -408,7 +408,7 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
         })
     );
     let refusal = engines
-        .run_verify_completion("chunk:test", Some("verify"))
+        .run_verify_completion("task:test", Some("verify"))
         .expect_err("a reconfiguration during the run is not evidence");
     assert!(
         outstanding(&refusal)["check"]
@@ -422,7 +422,7 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
     }
     assert!(
         engines
-            .run_verify_completion("chunk:test", Some("verify"))
+            .run_verify_completion("task:test", Some("verify"))
             .is_ok()
     );
 
@@ -435,7 +435,7 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
     )
     .expect("scope edit");
     let refusal = engines
-        .run_verify_completion("chunk:test", Some("verify"))
+        .run_verify_completion("task:test", Some("verify"))
         .expect_err("a widened command scope invalidates the evidence");
     let reasons = outstanding(&refusal);
     assert!(
@@ -451,7 +451,7 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
     }
     assert!(
         engines
-            .run_verify_completion("chunk:test", Some("verify"))
+            .run_verify_completion("task:test", Some("verify"))
             .is_ok()
     );
 }
@@ -478,7 +478,7 @@ async fn real_host_reuses_narrowed_inputs_and_promotes_evidence_for_completion()
             "Reuse current evidence".into(),
             vec![],
             vec![],
-            "chunk:test".into(),
+            "task:test".into(),
             magistr_engine::native::VerificationMode::Focused,
         )
         .unwrap();
@@ -527,7 +527,7 @@ async fn real_host_reuses_narrowed_inputs_and_promotes_evidence_for_completion()
     );
     assert!(
         engines
-            .run_verify_completion("chunk:test", Some("verify"))
+            .run_verify_completion("task:test", Some("verify"))
             .unwrap()
             .is_complete()
     );
@@ -589,7 +589,7 @@ async fn real_host_reuses_narrowed_inputs_and_promotes_evidence_for_completion()
     );
     assert!(
         engines
-            .run_verify_completion("chunk:test", Some("verify"))
+            .run_verify_completion("task:test", Some("verify"))
             .is_err()
     );
 }

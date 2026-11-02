@@ -17,7 +17,7 @@ there before its engines open, and reading needs no admission.
 
 `arch-14f-native-application` reconciled this crate with the native workflow
 use cases that now exist: the contract-only `workflow`, `checks` and
-`projections` facades — start/complete a chunk, run a configured gate, read a
+`projections` facades — start/complete a task, run a configured gate, read a
 run projection — had no adapter and duplicated what the first-party family
 use cases and `NativeEngines` already do under real admission, so they were
 deleted together with the `Capability` variants only they named.
@@ -43,7 +43,7 @@ the [composition boundary](#the-composition-boundary) in the entry-point crate.
 Each scoped facade borrows a `ProjectScope` and its own port. The public methods
 name use cases rather than exposing a universal message dispatcher or repository.
 Small command enums and request structures describe only the relevant family.
-Native chunks, tasks and checks are not modeled here at all: their records,
+Native tasks, tasks and checks are not modeled here at all: their records,
 transition rules and admission live in the native workflow use cases.
 
 The port methods return `PortFuture`, an explicit boxed
@@ -152,7 +152,7 @@ admission and settlement inside this module and the writer itself.
 | `magistr_gate` in `magistr mcp` | `NativeEngines` (Service role, the same writer the MCP session serves) | `WorkspaceEvidence` attached in `MagistrService::new` | `AdmittedCheck::admit` before the pty run, `settle` with the run's `CheckExecution` after; the answer carries the receipt id, source revision and freshness |
 | Hosted loop driver gates | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set; the set is `required_gates()` of the same capability | the same capability on the host's config | `AdmittedCheck` per gate, refusing a superseded verification target |
 | Native `check_step` (agent) | `RunUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
-| `roadmap_complete_chunk` (MCP, owner command, cockpit Complete, loop judge) | `RoadmapUseCases` with the run family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
+| `plan_complete_task` (MCP, owner command, cockpit Complete, loop judge) | `PlanUseCases` with the run family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
 | Cockpit `start` and the cockpit loops | `NativeEngines` or an attached `OwnerClient` | the [`HostedWorkspace`](#the-hosted-workspace) this process admits for the run — the agent's bridge and the cockpit's port attach to it | engine port; `magistr workspace journal` for the journal model |
 | ACP `fs/write_text_file` | none | the host's `SourceRoute`: `WorkspaceSourceWriter` over the hosted workspace's `write` verb after session authorization, or a `SourceRefusal` | `LocalEffectPort` routes the authorized write through the pipeline (journal intent, `MutationReceipt`) and stamps the `fs_write` event `route: workspace`; with a refusal it advertises no write capability and refuses the call before authorization (`route: refused`) — there is no direct write |
 | ACP `fs/read_text_file`, `terminal/*` | none | direct host I/O after session authorization | `LocalEffectPort` |
@@ -162,7 +162,7 @@ admission and settlement inside this module and the writer itself.
 
 `WorkspaceAdmission::admit(root)` is how every source-writing host — `magistr
 run` on the cockpit, plain and headless, the cockpit, plain and headless loops,
-`magistr roadmap generate` and the init interview — tries to become the
+`magistr plan generate` and the init interview — tries to become the
 checkout's one workspace owner for the run. Admitted, it holds a
 `HostedWorkspace`: it opens `WorkspaceService` on
 the same open options the bridge composes (this binary as the worker, the host
@@ -200,7 +200,7 @@ workflow `check_step` command, a workspace declared command — is a
 `magistr_process::OwnedProcess`: its own session and process group, stdin
 closed, both streams under a bounded head+tail capture, a timeout and a
 cancel that end the whole group (gracefully with a `SIGTERM` grace, or at
-once), every chunk to a live sink, and a kill on drop so an abandoned future
+once), every task to a live sink, and a kill on drop so an abandoned future
 never leaves a running command behind. What is shared is the mechanism, not
 the admission: the gate runner passes the configured gate line and the
 workflow passes the caller's own command string as `Launch::Shell`; only the
@@ -268,8 +268,8 @@ workflow writer; HostedWork supplies its writer explicitly to LoopDriver.
 | Workflow owner generation | project lease (`ProjectAuthority`) | `OwnerGeneration`; `epoch` on every feed line | a new project writer is admitted |
 | Workflow event sequence | the owner's broadcaster | `seq` on every feed line, `EventCursor { epoch, sequence }` decoded | every frame that owner emits, whatever its family |
 | Workflow read provenance | the opened family persistence owner | `ReadSource::File(StoreStamp { inode, modified, length })`, `Missing` or `Memory` within a successful observation | that family's source is observed; it does not certify another family |
-| Workflow record stamp | the family engine | `updated_at` on chunks and signals; ids and timestamps on run actions and checks | that record is written |
-| Workflow schema version | the think history file | `schema_version` (1) | the file format changes; roadmap, signal and run files carry none |
+| Workflow record stamp | the family engine | `updated_at` on tasks and signals; ids and timestamps on run actions and checks | that record is written |
+| Workflow schema version | the think history file | `schema_version` (1) | the file format changes; plan, signal and run files carry none |
 | Workspace | admitted `WorkspaceService` | `WorkspaceIdentity { root, generation }` | the canonical root never; the generation on every owner admission |
 | Source revision | the selected bytes | `SourceSnapshot::revision()` (content-addressed) | any selected byte, mode, kind or explicit input |
 | Mutation receipt revision | the journal's resolved intent | `MutationReceipt::revision` | per applied intent, over the applied files only |
@@ -306,7 +306,7 @@ gate-configuration edit and an in-flight acceptance edit until the gates
 re-run; a reused task name in a later run cannot collect the late result and
 has no evidence of its own; the cockpit's Complete action refuses in words and,
 with current evidence, completes naming `step:verify` while the finalize report
-separates the recovered failure from outstanding ones; `roadmap_set_status`
+separates the recovered failure from outstanding ones; `plan_set_status`
 cannot reach `done` and a foreign-scoped goal is refused.
 
 The CLI `application_boundary` integration suite checks Cargo declarations,
@@ -329,14 +329,14 @@ cargo test -p magistr-application --doc
 ```
 
 Formatting and every required gate in `.magistr/project.json` remain mandatory,
-including existing interface and architecture-index checks. This chunk changes
-no rendering, goldens, motion rules or roadmap export policy. The host supervisor
+including existing interface and architecture-index checks. This task changes
+no rendering, goldens, motion rules or plan export policy. The host supervisor
 now owns live headless and cockpit sessions. Native mutations run one
 implementation on every surface — the library's tool handler behind the MCP
 verb, reached through the admitted writer (see
 [one write path](project-authority.md#one-write-path)). Durable command
 admission, full setup consolidation and further host migration remain subsequent
-chunks; Magistr's own source writes go through the workspace pipeline and the
+tasks; Magistr's own source writes go through the workspace pipeline and the
 three process runners share one mechanism (`arch-14f2`, above); every
 client's capability, admission path and evidence, the ownership rules the
 `native-write-path` gate pins and the consistency model are the

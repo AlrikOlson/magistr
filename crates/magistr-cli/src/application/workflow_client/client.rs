@@ -54,7 +54,7 @@ impl EngineClient {
     /// names and open its engines. The configuration must carry the
     /// project's verification evidence capability — the host attaches it
     /// through its writer config — because a host records gates and
-    /// completes chunks, and neither may happen unbound from the source;
+    /// completes tasks, and neither may happen unbound from the source;
     /// a configuration without it is refused before any lease is taken.
     ///
     /// # Errors
@@ -132,7 +132,7 @@ impl EngineClient {
 
     /// Observe the project at `root` without admission: a reader for the
     /// seed, the feed and the re-seed timer, and no writer. The launcher and
-    /// the bare roadmap cockpit open this way, so they run beside a loop or
+    /// the bare plan cockpit open this way, so they run beside a loop or
     /// a `run` that holds the host lease.
     ///
     /// # Errors

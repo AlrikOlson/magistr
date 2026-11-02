@@ -1,6 +1,6 @@
 //! What an owner answers a command with.
 
-use magistr_workflow::roadmap::domain::Chunk;
+use magistr_workflow::plan::domain::Task;
 use magistr_workflow::run::domain::check::Check;
 use magistr_workflow::run::domain::progress::Progress;
 use magistr_workflow::run::domain::step::Step;
@@ -18,9 +18,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OwnerReply {
-    /// The chunk as it stands after the command. Boxed: a chunk is the
+    /// The task as it stands after the command. Boxed: a task is the
     /// one of the larger reply payloads.
-    Chunk(Box<Observed<Chunk>>),
+    Task(Box<Observed<Task>>),
     /// The step as it stands after the command.
     Step(Observed<Step>),
     /// The progress recorded.

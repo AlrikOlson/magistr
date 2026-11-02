@@ -21,6 +21,6 @@ a goal merely to validate. Inside `{{invoke}}next`, the verification step
 must be active and all required checks recorded before completion; follow the
 runtime contract's one-retry recovery if recording fails.
 
-Validation alone does not authorize repairs, formatting, a commit, roadmap
+Validation alone does not authorize repairs, formatting, a commit, plan
 completion, or a loop. If part of an already authorized fix, repair and rerun
 relevant gates within that step.

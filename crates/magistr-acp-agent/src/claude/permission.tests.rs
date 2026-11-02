@@ -52,8 +52,8 @@ fn the_ask_names_the_tool_call_it_follows() {
 fn an_mcp_tool_ask_keeps_its_full_mcp_name() {
     let ask = PermissionAsk::parse(&serde_json::json!({
         "subtype": "can_use_tool",
-        "tool_name": "mcp__magistr__roadmap_status",
-        "display_name": "Roadmap Status",
+        "tool_name": "mcp__magistr__plan_status",
+        "display_name": "Plan Status",
         "input": {},
         "tool_use_id": "toolu_1"
     }))
@@ -61,7 +61,7 @@ fn an_mcp_tool_ask_keeps_its_full_mcp_name() {
     let call = ask.tool_call();
     assert_eq!(
         call.fields.title.as_deref(),
-        Some("mcp__magistr__roadmap_status")
+        Some("mcp__magistr__plan_status")
     );
     assert_eq!(
         call.fields.kind,

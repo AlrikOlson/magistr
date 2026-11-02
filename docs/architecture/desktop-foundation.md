@@ -48,7 +48,7 @@ core idle CPU, 50 ms p95 input, 16.7 ms frame work at 60 Hz, and no lost/reorder
 updates. All are targets, not automatic release acceptance.
 
 Same Apple M5 Max (Mac17,6; 18 CPU/40 GPU cores, 48 GB), macOS 26.5.2
-(build 25F84), 1,728 × 1,117 logical display at 2×. Both retain 1,000 roadmap items,
+(build 25F84), 1,728 × 1,117 logical display at 2×. Both retain 1,000 plan items,
 160 nine-line rich messages and 8,000 diff lines. Eight independent Rust producers
 emit 1,250 updates each at 125 Hz. Long lists are virtualized; the complete
 corpus and stream text remain retained, and the selected live view shows three
@@ -103,7 +103,7 @@ native input, readers, packaging and process settlement were unavailable.
 The [Tauri journey](../evidence/desktop-foundation/journeys/tauri/journeys.json)
 passes 15 automated checks: multilingual multiline editing, exact copy and
 partial selection, Shift+Return, named workspace chooser, unsent-draft retention,
-keyboard switching/review, streaming/stop, request answer, roadmap evidence,
+keyboard switching/review, streaming/stop, request answer, plan evidence,
 themes and reduced-motion preference. Native Japanese conversion is retained
 as a separate observed result.
 The [GPUI journey](../evidence/desktop-foundation/journeys/gpui/journeys.json)
@@ -180,7 +180,7 @@ real approvals or persisted workflow evidence.
 | Start and stop work | Select a session → Start work changes status to Working; Stop becomes available. Stop reaches a settled result while other session controls remain available. | Existing session supervisor admits a turn, emits its status, routes cancellation and settles the provider. Frontend does not infer completion from quiet output. | Eight independent producers, live sequence counters and settled-stop check in journey JSON |
 | Answer a request | Waiting for you names the request, with Allow once and Deny next to it. Answer clears the request and retains the draft. | Existing permission decision service validates the correlated request; a stale response cannot apply to a different turn. | [Conversation/changes](../assets/desktop-foundation/tauri/changes.png), answer/draft record |
 | Review a diff | Changes or Cmd+D opens file context with exact source lines and explicit additions/removals. Conversation/composer remain adjacent. | Existing workspace/source service supplies paths and versioned bytes; proposed changes, apply receipts and check results belong to that owner. | 8,000-line virtualized [diff capture](../assets/desktop-foundation/tauri/changes.png); source-review model remains future work |
-| Inspect roadmap evidence | Roadmap or Cmd+R → select a named item → read requirements and recorded check/source evidence in the same column. | Native engine supplies typed snapshots/events; roadmap/run/think mutations enter the admitted native writer. Current state is read back after a mutation. | 1,000-item [roadmap capture](../assets/desktop-foundation/tauri/roadmap.png), selected-item/evidence record |
+| Inspect plan evidence | Plan or Cmd+R → select a named item → read requirements and recorded check/source evidence in the same column. | Native engine supplies typed snapshots/events; plan/run/think mutations enter the admitted native writer. Current state is read back after a mutation. | 1,000-item [plan capture](../assets/desktop-foundation/tauri/plan.png), selected-item/evidence record |
 
 Pointer and keyboard sequences were exercised in actual windows. Status uses
 words as well as color. Foreground/focus contrast, the existing Magistr icon and
@@ -191,7 +191,7 @@ renderer presents semantic documents rather than maintaining a second history.
 
 ## Owners and coherent cutover
 
-| Behavior | Current owner and verified defect | Required target and native roadmap owner |
+| Behavior | Current owner and verified defect | Required target and native plan owner |
 | --- | --- | --- |
 | Project/working-copy selection | Rust `SessionRegistry` admits and retains hosts; `ProjectWindow` selects a subscription in [project_window.rs](../../crates/magistr-cli/src/application/project_window.rs) | Repair existing application workspace authority in `rust-gui-workspace-authority`; selection is presentation, admission is application behavior |
 | Resident sessions and cancellation | Application `SessionRegistry` / admitted [interactive host](../../crates/magistr-cli/src/application/interactive_host.rs); addressed subscriptions separate selection from provider lifetime | Keep application-owned sessions alive independently of the selected view in `rust-gui-session-lifetime`; typed events and correlated controls reach the actual session |

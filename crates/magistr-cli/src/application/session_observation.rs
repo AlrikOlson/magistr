@@ -177,7 +177,7 @@ impl SessionSnapshot {
                 | Msg::Agent(AgentEvent::PromptRejected { .. })
                 | Msg::CommandFailed {
                     cmd: magistr_cockpit::cockpit::Cmd::Prompt(_)
-                        | magistr_cockpit::cockpit::Cmd::RoadmapPrompt(_),
+                        | magistr_cockpit::cockpit::Cmd::PlanPrompt(_),
                     ..
                 }
         );
@@ -189,7 +189,7 @@ impl SessionSnapshot {
             | Msg::CommandFailed {
                 cmd:
                     magistr_cockpit::cockpit::Cmd::Prompt(input)
-                    | magistr_cockpit::cockpit::Cmd::RoadmapPrompt(input),
+                    | magistr_cockpit::cockpit::Cmd::PlanPrompt(input),
                 ..
             } => Some((input.receipt(), false)),
             _ => None,
@@ -260,7 +260,7 @@ impl SessionSnapshot {
             | Msg::CommandFailed {
                 cmd:
                     magistr_cockpit::cockpit::Cmd::Prompt(input)
-                    | magistr_cockpit::cockpit::Cmd::RoadmapPrompt(input),
+                    | magistr_cockpit::cockpit::Cmd::PlanPrompt(input),
                 ..
             } if self.seed.draft.as_ref().is_none_or(String::is_empty)
                 && self.attachments.is_empty() =>

@@ -159,6 +159,13 @@ impl<'a> AdminService<'a> {
         if let Err(failure) = self.revalidate(change) {
             return ApplyOutcome::Failed(failure);
         }
+        // A recognized older document moved to its current name keeps its
+        // original under the upgrade backups, as a replaced one does.
+        if let Err(error) = backup_upgrade(self.dir, change) {
+            return ApplyOutcome::Failed(ApplyFailure::Io {
+                cause: error.to_string(),
+            });
+        }
         let root = match super::target_root::target_root(self.dir, &change.path) {
             Ok(root) => root,
             Err(error) => {

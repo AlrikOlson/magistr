@@ -4,7 +4,7 @@ use super::WorkflowMutationError;
 use super::native_engines::NativeEngines;
 use super::owner_command::OwnerCommand;
 use super::owner_reply::OwnerReply;
-use super::roadmap_command::RoadmapCommand;
+use super::plan_command::PlanCommand;
 use super::run_command::RunCommand;
 use super::signal_command::SignalCommand;
 use super::think_command::ThinkCommand;
@@ -18,20 +18,20 @@ impl NativeEngines {
     /// The verb's own refusal, in the engine's words.
     pub fn apply(&self, command: OwnerCommand) -> Result<OwnerReply, WorkflowMutationError> {
         match command {
-            OwnerCommand::Roadmap(command) => self.apply_roadmap(command),
+            OwnerCommand::Plan(command) => self.apply_plan(command),
             OwnerCommand::Think(command) => self.apply_think(command),
             OwnerCommand::Run(command) => self.apply_run(command),
             OwnerCommand::Signal(command) => self.apply_signal(command),
         }
     }
 
-    fn apply_roadmap(&self, command: RoadmapCommand) -> Result<OwnerReply, WorkflowMutationError> {
-        let chunk = match command {
-            RoadmapCommand::StartChunk { id } => self.roadmap_start_chunk(&id),
-            RoadmapCommand::CompleteChunk { id, step_ref } => {
-                self.roadmap_complete_chunk(&id, step_ref.as_deref())
+    fn apply_plan(&self, command: PlanCommand) -> Result<OwnerReply, WorkflowMutationError> {
+        let task = match command {
+            PlanCommand::StartTask { id } => self.plan_start_task(&id),
+            PlanCommand::CompleteTask { id, step_ref } => {
+                self.plan_complete_task(&id, step_ref.as_deref())
             }
-            RoadmapCommand::AddChunk {
+            PlanCommand::AddTask {
                 id,
                 title,
                 name,
@@ -41,8 +41,8 @@ impl NativeEngines {
                 acceptance,
                 deps,
                 content,
-                group,
-            } => self.roadmap_add_chunk(
+                feature,
+            } => self.plan_add_task(
                 id,
                 title,
                 name,
@@ -52,9 +52,9 @@ impl NativeEngines {
                 acceptance,
                 deps,
                 content,
-                group,
+                feature,
             ),
-            RoadmapCommand::UpdateChunk {
+            PlanCommand::UpdateTask {
                 id,
                 title,
                 priority,
@@ -62,56 +62,48 @@ impl NativeEngines {
                 acceptance,
                 deps,
                 content,
-            } => self.roadmap_update_chunk(
-                &id,
-                title,
-                priority,
-                description,
-                acceptance,
-                deps,
-                content,
-            ),
-            RoadmapCommand::ClearBlockedBy { id } => self.roadmap_clear_blocked_by(&id),
-            RoadmapCommand::SetBlockedBy {
+            } => {
+                self.plan_update_task(&id, title, priority, description, acceptance, deps, content)
+            }
+            PlanCommand::ClearWaitingOn { id } => self.plan_clear_waiting_on(&id),
+            PlanCommand::SetWaitingOn {
                 id,
                 kind,
                 reason,
                 evidence,
-            } => self.roadmap_set_blocked_by(&id, kind, reason, evidence),
-            RoadmapCommand::SetStatus { id, to } => self.roadmap_set_status(&id, to),
-            RoadmapCommand::ObsoleteChunk { id, reason } => {
-                self.roadmap_obsolete_chunk(&id, reason)
-            }
-            RoadmapCommand::Reprioritize {
+            } => self.plan_set_waiting_on(&id, kind, reason, evidence),
+            PlanCommand::SetStatus { id, to } => self.plan_set_status(&id, to),
+            PlanCommand::RetireTask { id, reason } => self.plan_retire_task(&id, reason),
+            PlanCommand::Reprioritize {
                 id,
                 suggested_priority,
                 reason,
-            } => self.roadmap_reprioritize(&id, suggested_priority, reason),
-            RoadmapCommand::ProposeTitle {
+            } => self.plan_reprioritize(&id, suggested_priority, reason),
+            PlanCommand::ProposeTitle {
                 id,
                 suggested_title,
                 reason,
                 source,
-            } => self.roadmap_propose_title(&id, suggested_title, reason, source),
-            RoadmapCommand::ProposeStatus {
+            } => self.plan_propose_title(&id, suggested_title, reason, source),
+            PlanCommand::ProposeStatus {
                 id,
                 suggested_status,
                 reason,
                 source,
-            } => self.roadmap_propose_status(&id, suggested_status, reason, source),
-            RoadmapCommand::Link { id, cross_ref } => self.roadmap_link(&id, &cross_ref),
-            RoadmapCommand::SetGroup { id, group } => self.roadmap_set_group(&id, group),
-            RoadmapCommand::ResolveTitleProposal { id, accept } => {
-                self.roadmap_resolve_title_proposal(&id, accept)
+            } => self.plan_propose_status(&id, suggested_status, reason, source),
+            PlanCommand::Link { id, cross_ref } => self.plan_link(&id, &cross_ref),
+            PlanCommand::SetFeature { id, feature } => self.plan_set_feature(&id, feature),
+            PlanCommand::ResolveTitleProposal { id, accept } => {
+                self.plan_resolve_title_proposal(&id, accept)
             }
-            RoadmapCommand::ResolveStatusProposal { id, accept } => {
-                self.roadmap_resolve_status_proposal(&id, accept)
+            PlanCommand::ResolveStatusProposal { id, accept } => {
+                self.plan_resolve_status_proposal(&id, accept)
             }
-            RoadmapCommand::ResolveReprioritize { id, accept } => {
-                self.roadmap_resolve_reprioritize(&id, accept)
+            PlanCommand::ResolveReprioritize { id, accept } => {
+                self.plan_resolve_reprioritize(&id, accept)
             }
         }?;
-        Ok(OwnerReply::Chunk(Box::new(chunk)))
+        Ok(OwnerReply::Task(Box::new(task)))
     }
 
     fn apply_think(&self, command: ThinkCommand) -> Result<OwnerReply, WorkflowMutationError> {

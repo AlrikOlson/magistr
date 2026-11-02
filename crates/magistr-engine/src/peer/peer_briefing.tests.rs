@@ -4,7 +4,7 @@ use super::*;
 fn altered_evidence_or_context_cannot_reuse_a_plan_reference() {
     let original = briefing();
     let bytes = original.to_json().unwrap();
-    for field in ["roadmap", "code", "routing_history"] {
+    for field in ["plan", "code", "routing_history"] {
         let mut wire: Value = serde_json::from_slice(&bytes).unwrap();
         wire["evidence"][field] = "different evidence".into();
         assert!(PeerBriefing::from_json(&serde_json::to_vec(&wire).unwrap(), &contract()).is_err());
@@ -13,7 +13,7 @@ fn altered_evidence_or_context_cannot_reuse_a_plan_reference() {
         let mut changed = evidence();
         let mut plan = original.revision().body().clone();
         match field {
-            0 => changed.roadmap.push('x'),
+            0 => changed.plan.push('x'),
             1 => changed.code.push('x'),
             2 => changed.routing_history.push('x'),
             _ => plan.context.constraints.push("another constraint".into()),
@@ -73,7 +73,7 @@ fn evidence_is_nonblank_bounded_and_separates_content_roles() {
     for field in 0..4 {
         let mut evidence = evidence();
         match field {
-            0 => evidence.roadmap.clear(),
+            0 => evidence.plan.clear(),
             1 => evidence.code = " ".into(),
             2 => evidence.routing_history.clear(),
             _ => evidence.code = "x".repeat(PeerBriefing::MAX_JSON_BYTES),
@@ -83,12 +83,12 @@ fn evidence_is_nonblank_bounded_and_separates_content_roles() {
         assert!(PeerBriefing::new(contract(), plan, evidence).is_err());
     }
     let evidence = PeerEvidence {
-        roadmap: "same".into(),
+        plan: "same".into(),
         code: "same".into(),
         routing_history: "same".into(),
     };
     let context = evidence.context(vec![]);
-    assert_ne!(context.roadmap_revision, context.code_revision);
+    assert_ne!(context.plan_revision, context.code_revision);
     assert_ne!(context.code_revision, context.routing_history_revision);
 }
 

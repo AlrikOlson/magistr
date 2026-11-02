@@ -39,7 +39,7 @@ pub enum LoopEvent {
     Paused(String),
     /// The loop ended, and why.
     Ended(String),
-    /// The judge's verdict on the iteration's chunk — already reconciled
+    /// The judge's verdict on the iteration's task — already reconciled
     /// by the driver against the real gates, so what follows it (a
     /// completion, another iteration, a blocker card, the loop's end)
     /// is the driver's doing; the cockpit only shows the verdict.

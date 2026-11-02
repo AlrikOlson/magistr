@@ -22,7 +22,7 @@
 //!   and conclusions worth pinning. Answers *why*.
 //! - `run_*` — the run history. Goals, steps, progress, checks,
 //!   artifacts. Answers *what was actually done*.
-//! - `roadmap_*` — the long-horizon plan the other two serve. Chunks of work
+//! - `plan_*` — the long-horizon plan the other two serve. Tasks of work
 //!   with dependencies, statuses and priorities. It claims a second prefix,
 //!   `tracker_*`, for mirroring that plan into an issue tracker through a
 //!   provider-agnostic port — the same family, a different namespace.
@@ -45,9 +45,9 @@
 //! The composed server is [`mcp::unified::UnifiedService`], and which families
 //! it exposes is decided once at startup by [`mcp::unified::FamilySelection`].
 //! Each family is also usable on its own — [`think::ThinkService`],
-//! [`run::RunService`], [`roadmap::RoadmapService`],
+//! [`run::RunService`], [`plan::PlanService`],
 //! [`signal::SignalService`] — and each wraps a plain engine you can drive
-//! without any MCP wire at all, such as [`roadmap::RoadmapEngine`] and
+//! without any MCP wire at all, such as [`plan::PlanEngine`] and
 //! [`signal::SignalEngine`].
 //!
 //! State is off by default and opt-in with `MAGISTR_WORKFLOW_PERSIST=true`; see
@@ -66,7 +66,7 @@ pub mod otel;
 pub mod otel_live;
 pub mod otel_logs;
 pub mod otlp_config;
-pub mod roadmap;
+pub mod plan;
 pub mod run;
 pub mod signal;
 pub mod telemetry;

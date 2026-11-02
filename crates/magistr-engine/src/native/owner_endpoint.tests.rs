@@ -8,9 +8,9 @@ use crate::native::owner_wire::Greeting;
 use crate::native::{
     AttachError, AttachKind, AttachRefusal, BuildIdentity, CallerIdentity, NativeConfig,
     NativeReader, OWNER_PROTOCOL_VERSION, OwnerClient, OwnerCommand, OwnerIdentity, OwnerLiveness,
-    OwnerProbe, OwnerReply, ProjectAuthority, RoadmapCommand, WriterRole, owner_socket_path,
+    OwnerProbe, OwnerReply, PlanCommand, ProjectAuthority, WriterRole, owner_socket_path,
 };
-use magistr_workflow::roadmap::domain::ChunkStatus;
+use magistr_workflow::plan::domain::TaskStatus;
 
 const DEADLINE: Duration = Duration::from_secs(2);
 
@@ -55,11 +55,11 @@ async fn project_attachment_uses_the_same_captured_identity_as_its_owner() {
     assert_eq!(attached.path(), endpoint.path());
     assert_eq!(attached.generation(), endpoint.generation());
     attached
-        .command(add_chunk("captured-attachment"))
+        .command(add_task("captured-attachment"))
         .expect("owner command");
     assert!(
         NativeReader::open(&cfg)
-            .roadmap_chunk("captured-attachment")
+            .plan_task("captured-attachment")
             .unwrap()
             .is_some()
     );
@@ -85,24 +85,24 @@ fn client(cfg: &NativeConfig) -> Result<OwnerClient, AttachError> {
     )
 }
 
-fn add_chunk(id: &str) -> OwnerCommand {
-    OwnerCommand::Roadmap(RoadmapCommand::AddChunk {
+fn add_task(id: &str) -> OwnerCommand {
+    OwnerCommand::Plan(PlanCommand::AddTask {
         id: id.into(),
-        title: format!("Chunk {id}"),
+        title: format!("Task {id}"),
         name: String::new(),
-        status: ChunkStatus::Pending,
+        status: TaskStatus::ToDo,
         priority: 100,
         description: String::new(),
         acceptance: vec![],
         deps: vec![],
         content: None,
-        group: None,
+        feature: None,
     })
 }
 
-fn chunk_ids(cfg: &NativeConfig) -> Vec<String> {
+fn task_ids(cfg: &NativeConfig) -> Vec<String> {
     NativeReader::open_for_project(cfg, "lease".into())
-        .roadmap_chunks()
+        .plan_tasks()
         .unwrap()
         .into_iter()
         .map(|c| c.id)
@@ -154,15 +154,15 @@ async fn an_occupied_host_is_reached_through_its_endpoint_and_takes_no_second_le
     assert_eq!(attached.generation(), endpoint.generation());
     assert_eq!(attached.owner_pid(), std::process::id());
     assert_eq!(attached.path(), endpoint.path());
-    let reply = attached.command(add_chunk("via-client")).expect("command");
-    let OwnerReply::Chunk(chunk) = reply else {
-        panic!("a chunk comes back, got {reply:?}");
+    let reply = attached.command(add_task("via-client")).expect("command");
+    let OwnerReply::Task(task) = reply else {
+        panic!("a task comes back, got {reply:?}");
     };
-    assert_eq!(chunk.value.id, "via-client");
-    assert_eq!(chunk_ids(&cfg), vec!["via-client".to_owned()]);
+    assert_eq!(task.value.id, "via-client");
+    assert_eq!(task_ids(&cfg), vec!["via-client".to_owned()]);
     // The owner's own verbs refuse the same way over the wire.
     let refused = attached
-        .command(add_chunk("via-client"))
+        .command(add_task("via-client"))
         .expect_err("duplicate id");
     assert!(matches!(refused, AttachError::Engine(_)), "{refused}");
     assert!(attached.is_attached(), "an engine refusal keeps the link");
@@ -200,17 +200,17 @@ async fn a_stale_generation_is_refused_until_the_client_reconnects() {
     let g2 = second_endpoint.generation();
     assert!(g2 > g1, "{g2} > {g1}");
 
-    let gone = attached.command(add_chunk("late")).expect_err("hung up");
+    let gone = attached.command(add_task("late")).expect_err("hung up");
     assert!(matches!(gone, AttachError::OwnerGone), "{gone}");
     assert!(!attached.is_attached());
     assert!(matches!(
-        attached.command(add_chunk("late")).expect_err("detached"),
+        attached.command(add_task("late")).expect_err("detached"),
         AttachError::Detached
     ));
 
     assert_eq!(attached.reconnect().expect("reconnect"), g2);
     let stale = attached
-        .command_as(g1, add_chunk("stale"))
+        .command_as(g1, add_task("stale"))
         .expect_err("stale generation");
     assert!(
         matches!(stale, AttachError::StaleGeneration { current } if current == g2),
@@ -221,9 +221,9 @@ async fn a_stale_generation_is_refused_until_the_client_reconnects() {
         "a refusal is an answer, not a hang-up"
     );
     attached
-        .command(add_chunk("fresh"))
+        .command(add_task("fresh"))
         .expect("current generation");
-    assert_eq!(chunk_ids(&cfg), vec!["fresh".to_owned()]);
+    assert_eq!(task_ids(&cfg), vec!["fresh".to_owned()]);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -234,17 +234,16 @@ async fn detaching_one_client_cancels_nothing_for_the_owner_or_another() {
     let _endpoint = OwnerEndpoint::serve(owner.clone()).await.expect("endpoint");
     let mut a = client(&cfg).expect("a");
     let mut b = client(&cfg).expect("b");
-    a.command(add_chunk("from-a")).expect("a writes");
+    a.command(add_task("from-a")).expect("a writes");
     a.detach();
     assert!(!a.is_attached());
-    b.command(add_chunk("from-b")).expect("b still writes");
+    b.command(add_task("from-b")).expect("b still writes");
     owner
-        .roadmap_start_chunk("from-a")
+        .plan_start_task("from-a")
         .expect("the owner still writes");
     a.reconnect().expect("a comes back");
-    a.command(add_chunk("from-a-again"))
-        .expect("a writes again");
-    let mut ids = chunk_ids(&cfg);
+    a.command(add_task("from-a-again")).expect("a writes again");
+    let mut ids = task_ids(&cfg);
     ids.sort();
     assert_eq!(ids, vec!["from-a", "from-a-again", "from-b"]);
 }
@@ -287,7 +286,7 @@ async fn a_silent_owner_trips_the_command_deadline_and_the_client_can_reconnect(
     .expect("welcomed");
     assert_eq!(attached.generation().get(), 7);
     let started = std::time::Instant::now();
-    let timed_out = attached.command(add_chunk("never")).expect_err("deadline");
+    let timed_out = attached.command(add_task("never")).expect_err("deadline");
     assert!(
         matches!(timed_out, AttachError::Deadline(limit) if limit == deadline),
         "{timed_out}"
@@ -372,7 +371,7 @@ async fn the_handshake_is_validated_before_anything_is_served() {
     // And the typed client still gets through.
     let welcomed = client(&cfg).expect("welcomed");
     assert!(welcomed.is_attached());
-    assert!(chunk_ids(&cfg).is_empty(), "refusals wrote nothing");
+    assert!(task_ids(&cfg).is_empty(), "refusals wrote nothing");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -439,7 +438,7 @@ async fn equal_package_versions_from_other_builds_are_refused_with_both_identiti
         ),
         "an equal build attaches"
     );
-    assert!(chunk_ids(&cfg).is_empty(), "refusals wrote nothing");
+    assert!(task_ids(&cfg).is_empty(), "refusals wrote nothing");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -480,7 +479,7 @@ async fn owner_shutdown_leaves_an_attached_client_without_a_writer() {
     let owner = host(&cfg);
     let endpoint = OwnerEndpoint::serve(owner.clone()).await.expect("endpoint");
     let mut attached = client(&cfg).expect("attached");
-    attached.command(add_chunk("before")).expect("writes");
+    attached.command(add_task("before")).expect("writes");
     let path = endpoint.path().to_path_buf();
 
     // The owner stops accepting work and releases ownership.
@@ -488,19 +487,19 @@ async fn owner_shutdown_leaves_an_attached_client_without_a_writer() {
     drop(owner);
     assert!(!path.exists(), "the endpoint unlinks its socket");
 
-    let gone = attached.command(add_chunk("after")).expect_err("hung up");
+    let gone = attached.command(add_task("after")).expect_err("hung up");
     assert!(matches!(gone, AttachError::OwnerGone), "{gone}");
     let nobody = attached.reconnect().expect_err("nothing to attach to");
     assert!(matches!(nobody, AttachError::Unavailable(_)), "{nobody}");
     assert!(matches!(
         attached
-            .command(add_chunk("after"))
+            .command(add_task("after"))
             .expect_err("still detached"),
         AttachError::Detached
     ));
     // The client opened no writer of its own: the role is free.
     let fresh = admit_host(&cfg).expect("free");
-    assert_eq!(chunk_ids(&cfg), vec!["before".to_owned()]);
+    assert_eq!(task_ids(&cfg), vec!["before".to_owned()]);
     drop(fresh);
 }
 
@@ -552,8 +551,8 @@ async fn an_mcp_attachment_hands_the_socket_to_the_acceptor_after_the_welcome() 
     assert_eq!(line.trim_end(), "echo:ping");
     // Typed commands are served on the same endpoint.
     let mut typed = client(&cfg).expect("commands");
-    typed.command(add_chunk("beside-mcp")).expect("writes");
-    assert_eq!(chunk_ids(&cfg), vec!["beside-mcp".to_owned()]);
+    typed.command(add_task("beside-mcp")).expect("writes");
+    assert_eq!(task_ids(&cfg), vec!["beside-mcp".to_owned()]);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -671,5 +670,5 @@ async fn a_probe_is_answered_with_a_report_and_refused_like_any_other_build() {
     assert_eq!(report.attached(AttachKind::Commands), 1);
     assert_eq!(report.connections[0].caller.surface, "test");
     attached.detach();
-    assert!(chunk_ids(&cfg).is_empty(), "a probe writes nothing");
+    assert!(task_ids(&cfg).is_empty(), "a probe writes nothing");
 }

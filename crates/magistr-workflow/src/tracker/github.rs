@@ -8,7 +8,7 @@
 //!
 //! There is deliberately no credential here and no way to supply one. Credential
 //! custody is its own subsystem: tokens need encryption at rest, rotation, and a
-//! guarantee they never reach the roadmap store or a git-mirrored partition, and
+//! guarantee they never reach the plan store or a git-mirrored partition, and
 //! smuggling an environment variable in now would create exactly the call site
 //! that work has to unpick. The adapter therefore takes an `api_base` and is
 //! exercised against an in-process mock server. Every request shape below is
@@ -304,7 +304,7 @@ impl GithubTracker {
 }
 
 /// GitHub's issue state vocabulary, plus the `state_reason` that distinguishes
-/// "done" from "cancelled" — without it, an obsoleted chunk and a finished one
+/// "done" from "cancelled" — without it, an retired task and a finished one
 /// look identical upstream.
 fn state_fields(state: WorkItemState) -> (&'static str, Option<&'static str>) {
     match state {
@@ -445,7 +445,7 @@ impl TrackerPort for GithubTracker {
                 Some(WorkItem {
                     // Reading an item back does not resolve its container: the
                     // projector authors grouping, it never learns it from upstream.
-                    group: None,
+                    feature: None,
                     external_id: Some(self.external_id_for(number)),
                     title: row.get("title")?.as_str().unwrap_or_default().to_string(),
                     body: row
@@ -487,16 +487,16 @@ impl TrackerPort for GithubTracker {
     async fn relate_items(
         &self,
         from: &ExternalId,
-        blocked_by: &[ExternalId],
+        waiting_on: &[ExternalId],
     ) -> Result<(), TrackerError> {
         let number = self.number_of(from)?;
 
-        // Converge, don't append: the port's contract is that `blocked_by` is
+        // Converge, don't append: the port's contract is that `waiting_on` is
         // the full set. Read what is declared, then add and remove the
         // difference — re-POSTing an existing dependency is a 422.
         self.charge_rest(1)?;
         let url = format!(
-            "{}/repos/{}/{}/issues/{number}/dependencies/blocked_by",
+            "{}/repos/{}/{}/issues/{number}/dependencies/waiting_on",
             self.api_base, self.owner, self.repo
         );
         let resp = self
@@ -515,7 +515,7 @@ impl TrackerPort for GithubTracker {
             .unwrap_or_default();
 
         let mut wanted = Vec::new();
-        for dep in blocked_by {
+        for dep in waiting_on {
             wanted.push(self.database_id(self.number_of(dep)?).await?);
         }
 
@@ -569,7 +569,7 @@ mod tests {
         assert!(gh.number_of("owner/repo").is_err());
     }
 
-    /// An obsoleted chunk and a finished one must not look identical upstream.
+    /// An retired task and a finished one must not look identical upstream.
     #[test]
     fn cancelled_and_done_are_distinguishable_states() {
         assert_eq!(

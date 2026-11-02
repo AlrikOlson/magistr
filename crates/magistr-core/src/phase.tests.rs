@@ -13,7 +13,7 @@ fn phase_labels_are_nonempty() {
         Phase::Cancelling,
         Phase::Done,
         Phase::Error("test".into()),
-        Phase::Roadmap,
+        Phase::Plan,
     ];
     for phase in &phases {
         assert!(

@@ -20,6 +20,8 @@ impl ToolInput {
         for field in required.iter().filter_map(Value::as_str) {
             let present = request.arguments.as_ref().is_some_and(|args| {
                 args.contains_key(field)
+                    // signal_link still spells its reference `cross_ref`
+                    // until the request family takes the glossary's words.
                     || (field == "cross_ref"
                         && (args.contains_key("ref") || args.contains_key("crossref")))
             });

@@ -110,7 +110,7 @@ fn removal_uses_recorded_bytes_for_all_emitters_and_obsolete_claude_files() {
         ".claude/skills/retired/SKILL.md",
         "CLAUDE.md",
         "AGENTS.md",
-        "ROADMAP.md",
+        "PLAN.md",
         "src/user.rs",
     ]);
     record_files(dir, &paths);
@@ -124,7 +124,7 @@ fn removal_uses_recorded_bytes_for_all_emitters_and_obsolete_claude_files() {
     {
         assert!(!dir.join(path).exists(), "{path}");
     }
-    for path in ["CLAUDE.md", "AGENTS.md", "ROADMAP.md", "src/user.rs"] {
+    for path in ["CLAUDE.md", "AGENTS.md", "PLAN.md", "src/user.rs"] {
         assert_eq!(
             std::fs::read_to_string(dir.join(path)).unwrap(),
             "generated",

@@ -35,9 +35,9 @@ async fn controls_address_the_resident_run_across_conversation_changes_and_rejec
     assert!(client.control_work(&target, LoopCmd::Pause).await.is_err());
     let mut work = WorkRun {
         id: id.clone(),
-        mode: RunMode::ChunkLoop,
+        mode: RunMode::TaskLoop,
         track: None,
-        chunk: None,
+        task: None,
         iteration: 1,
         limit: 10,
         phase: WorkPhase::Running,

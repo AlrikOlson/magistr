@@ -107,7 +107,7 @@ fn make_validation_result(check: bool, test: bool, lint: bool) -> ValidationResu
 fn make_guard_context() -> GuardContext {
     GuardContext::new(
         "/tmp/project",
-        "/tmp/project/ROADMAP.md",
+        "/tmp/project/PLAN.md",
         magistr_engine::RunGuardState::default(),
     )
 }

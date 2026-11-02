@@ -7,7 +7,7 @@ use crate::config::inputs::ProjectInputs;
 /// What a source-writing host got when it tried to own the checkout for its
 /// run — the one composition every such host shares (`magistr start` on the
 /// cockpit, headless and plain, the cockpit, plain and headless loops, the
-/// roadmap generator and the init interview). Either this process admitted
+/// plan generator and the init interview). Either this process admitted
 /// the workspace and the session's authorized writes take its pipeline, or
 /// it holds the reason and the session's writes are refused. There is no
 /// direct-write fallback: a held lock, a marker that needs migration, a

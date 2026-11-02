@@ -1,7 +1,7 @@
 //! The native goal loop's judge — the pure core (goal-judge-core).
 //!
 //! After an iteration `magistr next` asks a *fresh* model whether the
-//! chunk is done. What the model sees is a [`JudgeInput`]: the chunk's
+//! task is done. What the model sees is a [`JudgeInput`]: the task's
 //! whole acceptance list, unabridged, and the real gate outcomes as
 //! [`GateEvidence`] — never a transcript's retelling of them. What it
 //! answers is a [`Verdict`] in Claude Code's own three shapes, so a

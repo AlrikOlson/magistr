@@ -185,7 +185,7 @@ fn the_objective_is_canonical_under_the_cap_and_names_the_check() {
         objective.chars().count() <= AgentGoal::OBJECTIVE_CAP,
         "{objective}"
     );
-    assert!(objective.starts_with("Done means: roadmap chunk `acp-goal-extension-vendor` is complete (Delegating the loop to the agent's own /goal)"), "{objective}");
+    assert!(objective.starts_with("Done means: plan task `acp-goal-extension-vendor` is complete (Delegating the loop to the agent's own /goal)"), "{objective}");
     assert!(objective.contains("/next"), "{objective}");
     assert!(
         objective.contains("print its verdict line in the transcript"),
@@ -199,7 +199,7 @@ fn the_objective_is_canonical_under_the_cap_and_names_the_check() {
 #[test]
 fn a_long_title_is_trimmed_so_the_objective_stays_under_the_cap() {
     let long = "x".repeat(2_000);
-    let objective = AgentGoal::compile_objective(Some(("chunk", &long)));
+    let objective = AgentGoal::compile_objective(Some(("task", &long)));
     assert!(
         objective.chars().count() <= AgentGoal::OBJECTIVE_CAP,
         "{}",
@@ -209,7 +209,7 @@ fn a_long_title_is_trimmed_so_the_objective_stays_under_the_cap() {
     assert!(objective.ends_with("committed."), "{objective}");
     let none = AgentGoal::compile_objective(None);
     assert!(
-        none.starts_with("Done means: the next roadmap item is complete —"),
+        none.starts_with("Done means: the next plan item is complete —"),
         "{none}"
     );
     assert!(none.chars().count() <= AgentGoal::OBJECTIVE_CAP);

@@ -18,22 +18,22 @@ fn choosing_a_feature_reprompts_for_invalid_input_and_keeps_the_stored_name() {
 
 #[test]
 fn picker_lists_only_current_authored_names_and_global_selection() {
-    use magistr_engine::native::{Chunk, ChunkStatus, workstream_catalog};
+    use magistr_engine::native::{Task, TaskStatus, workstream_catalog};
 
-    let chunk = |id: &str, status: ChunkStatus, group: Option<&str>| -> Chunk {
+    let task = |id: &str, status: TaskStatus, feature: Option<&str>| -> Task {
         serde_json::from_value(serde_json::json!({
             "id": id, "name": id, "title": format!("Work {id}"),
-            "status": status, "priority": 10, "group": group,
+            "status": status, "priority": 10, "feature": feature,
             "description": "", "notes": "", "acceptance": [], "deps": [],
-            "cross_refs": [], "shared": false,
+            "refs": [], "shared": false,
             "created_at": "2026-10-14T00:00:00Z", "updated_at": "2026-10-14T00:00:00Z"
         }))
         .unwrap()
     };
-    let current = chunk("current", ChunkStatus::Pending, Some("Current"));
-    let closed = chunk("closed", ChunkStatus::Obsoleted, Some("Closed"));
-    let ungrouped = chunk("ungrouped", ChunkStatus::Pending, None);
-    let catalog = workstream_catalog(&[current, closed, ungrouped]);
+    let current = task("current", TaskStatus::ToDo, Some("Current"));
+    let closed = task("closed", TaskStatus::Retired, Some("Closed"));
+    let unassigned = task("unassigned", TaskStatus::ToDo, None);
+    let catalog = workstream_catalog(&[current, closed, unassigned]);
     let mut output = Vec::new();
     let selected = choose(
         &catalog.current_names(),
@@ -46,7 +46,7 @@ fn picker_lists_only_current_authored_names_and_global_selection() {
     assert!(output.contains("1. Current"));
     assert!(output.contains("0. All features"));
     assert!(!output.contains("Closed"));
-    assert!(!output.contains("Ungrouped"));
+    assert!(!output.contains("Unassigned"));
 }
 
 #[test]

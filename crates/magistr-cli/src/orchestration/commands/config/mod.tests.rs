@@ -36,7 +36,7 @@ fn sample_project_json(name: &str) -> serde_json::Value {
             "extensions": [".rs"]
         },
         "spec": {
-            "file": "ROADMAP.md",
+            "file": "PLAN.md",
             "unchecked_pattern": "- [ ]"
         },
         "testing": {

@@ -1,9 +1,9 @@
 use std::fmt;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use magistr_workflow::roadmap::RoadmapEngine;
-use magistr_workflow::roadmap::domain::{
-    Chunk, FocusState, Roadmap, WorkstreamCatalog, WorkstreamFrontier, WorkstreamResolution,
+use magistr_workflow::plan::PlanEngine;
+use magistr_workflow::plan::domain::{
+    FocusState, Plan, Task, WorkstreamCatalog, WorkstreamFrontier, WorkstreamResolution,
     next_ready, workstream_catalog, workstream_frontier,
 };
 use magistr_workflow::run::domain::check_result::CheckResult;
@@ -17,10 +17,10 @@ use magistr_workflow::think::engine::ReasoningServer;
 
 use super::native_config::NativeConfig;
 use super::open_engines::open_engines;
-use super::snapshot::NativeRoadmapSnapshot;
-use crate::roadmap::RoadmapProgress;
+use super::snapshot::NativePlanSnapshot;
+use crate::plan::PlanProgress;
 use magistr_workflow_contracts::{
-    NativeSnapshot, Observed, ReadError, RoadmapData, RunData, ThinkData,
+    NativeSnapshot, Observed, PlanData, ReadError, RunData, ThinkData,
 };
 
 /// Validated queries over the four workflow owners.
@@ -33,7 +33,7 @@ pub struct NativeReader {
     /// Captured configuration used to open these owners; each observation
     /// obtains its source from the owner that performed the read.
     config: NativeConfig,
-    roadmap: Arc<Mutex<RoadmapEngine>>,
+    plan: Arc<Mutex<PlanEngine>>,
     think: Arc<Mutex<ReasoningServer>>,
     run: Arc<Mutex<RunEngine>>,
     signal: Arc<Mutex<SignalEngine>>,
@@ -43,8 +43,8 @@ pub struct NativeReader {
 fn require_current_track(catalog: &WorkstreamCatalog, track: &str) -> Result<(), String> {
     let refusal = match catalog.focus_state(Some(track)) {
         FocusState::Current { .. } => return Ok(()),
-        FocusState::Closed { group } => WorkstreamResolution::Closed {
-            group,
+        FocusState::Closed { feature } => WorkstreamResolution::Closed {
+            feature,
             choices: catalog.current_names(),
         },
         FocusState::Missing { .. } | FocusState::Unset => WorkstreamResolution::Unknown {
@@ -79,8 +79,8 @@ impl NativeReader {
     pub fn open_for_project(config: &NativeConfig, project_id: String) -> Self {
         // Event publication belongs to the admitted project writer. An
         // observer opens no publisher and never acquires a write lease.
-        let (think, run, roadmap, signal) = open_engines(config, project_id.clone(), None);
-        Self::from_engines(project_id, config.clone(), think, run, roadmap, signal)
+        let (think, run, plan, signal) = open_engines(config, project_id.clone(), None);
+        Self::from_engines(project_id, config.clone(), think, run, plan, signal)
     }
 
     pub(crate) fn from_engines(
@@ -88,7 +88,7 @@ impl NativeReader {
         config: NativeConfig,
         think: ReasoningServer,
         run: RunEngine,
-        roadmap: RoadmapEngine,
+        plan: PlanEngine,
         signal: SignalEngine,
     ) -> Self {
         Self::from_shared(
@@ -96,7 +96,7 @@ impl NativeReader {
             config,
             Arc::new(Mutex::new(think)),
             Arc::new(Mutex::new(run)),
-            Arc::new(Mutex::new(roadmap)),
+            Arc::new(Mutex::new(plan)),
             Arc::new(Mutex::new(signal)),
         )
     }
@@ -109,13 +109,13 @@ impl NativeReader {
         config: NativeConfig,
         think: Arc<Mutex<ReasoningServer>>,
         run: Arc<Mutex<RunEngine>>,
-        roadmap: Arc<Mutex<RoadmapEngine>>,
+        plan: Arc<Mutex<PlanEngine>>,
         signal: Arc<Mutex<SignalEngine>>,
     ) -> Self {
         Self {
             project_id,
             config,
-            roadmap,
+            plan,
             think,
             run,
             signal,
@@ -138,19 +138,19 @@ impl NativeReader {
     /// Observe and update the retained family state while holding its owner
     /// lock. A racing clone therefore cannot replace a newer observation with
     /// an older result after the owner lock has been released.
-    fn observe_roadmap(&self) -> Result<Observed<Roadmap>, ReadError> {
+    fn observe_plan(&self) -> Result<Observed<Plan>, ReadError> {
         super::WorkflowUpgrade::ready(&self.config, &self.project_id)?;
-        let engine = lock(&self.roadmap);
+        let engine = lock(&self.plan);
         let result = engine.observe();
         let view = result.as_ref().map(|observed| Observed {
-            value: RoadmapData {
-                chunks: observed.value.chunks.clone(),
-                progress: super::progress::progress_from_chunks(&observed.value.chunks),
+            value: PlanData {
+                tasks: observed.value.tasks.clone(),
+                progress: super::progress::progress_from_tasks(&observed.value.tasks),
             },
             source: observed.source,
         });
         lock(&self.observations)
-            .roadmap
+            .plan
             .record(view.map_err(Clone::clone));
         result
     }
@@ -189,7 +189,7 @@ impl NativeReader {
     /// state, retaining only successfully observed records from this reader.
     #[must_use]
     pub fn snapshot(&self) -> NativeSnapshot {
-        let _ = self.observe_roadmap();
+        let _ = self.observe_plan();
         let _ = self.observe_run();
         let _ = self.observe_signal();
         let _ = self.observe_think();
@@ -222,122 +222,116 @@ impl NativeReader {
             .map_err(|error| error.to_string())
     }
 
-    // ── Roadmap ────────────────────────────────────────────────────────
+    // ── Plan ────────────────────────────────────────────────────────
 
-    /// Counts, next ready chunk, current workstreams, history and progress.
-    pub fn roadmap_snapshot(&self) -> Result<NativeRoadmapSnapshot, String> {
-        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
-        Ok(NativeRoadmapSnapshot::from_chunks(
+    /// Counts, next ready task, current workstreams, history and progress.
+    pub fn plan_snapshot(&self) -> Result<NativePlanSnapshot, String> {
+        let observed = self.observe_plan().map_err(|error| error.to_string())?;
+        Ok(NativePlanSnapshot::from_tasks(
             &self.project_id,
-            &observed.value.chunks,
+            &observed.value.tasks,
         ))
     }
 
-    /// The progress derived from one validated roadmap observation.
-    pub fn roadmap_progress(&self) -> Result<RoadmapProgress, String> {
-        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
-        Ok(super::progress::progress_from_chunks(
-            &observed.value.chunks,
-        ))
+    /// The progress derived from one validated plan observation.
+    pub fn plan_progress(&self) -> Result<PlanProgress, String> {
+        let observed = self.observe_plan().map_err(|error| error.to_string())?;
+        Ok(super::progress::progress_from_tasks(&observed.value.tasks))
     }
 
-    /// The next ready chunk, including ungrouped work.
-    pub fn roadmap_next(&self) -> Result<Option<Chunk>, String> {
-        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
-        let chunks = &observed.value.chunks;
+    /// The next ready task, including unassigned work.
+    pub fn plan_next(&self) -> Result<Option<Task>, String> {
+        let observed = self.observe_plan().map_err(|error| error.to_string())?;
+        let tasks = &observed.value.tasks;
         Ok(next_ready(
-            chunks,
-            |chunk| {
-                chunk
-                    .readiness(|id| {
-                        chunks
-                            .iter()
-                            .find(|candidate| candidate.id == id)
-                            .map(|candidate| candidate.status)
-                    })
-                    .is_ready()
+            tasks,
+            |task| {
+                task.readiness(|id| {
+                    tasks
+                        .iter()
+                        .find(|candidate| candidate.id == id)
+                        .map(|candidate| candidate.status)
+                })
+                .is_ready()
             },
-            |chunk| chunk.priority,
+            |task| task.priority,
         )
         .cloned())
     }
 
-    /// The next ready chunk in an exactly named current workstream.
+    /// The next ready task in an exactly named current workstream.
     /// Closed or missing saved names never select similarly named work.
-    pub fn roadmap_next_in_track(&self, track: &str) -> Result<Option<Chunk>, String> {
-        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
-        let chunks = &observed.value.chunks;
-        require_current_track(&workstream_catalog(chunks), track)?;
+    pub fn plan_next_in_track(&self, track: &str) -> Result<Option<Task>, String> {
+        let observed = self.observe_plan().map_err(|error| error.to_string())?;
+        let tasks = &observed.value.tasks;
+        require_current_track(&workstream_catalog(tasks), track)?;
         Ok(next_ready(
-            chunks,
-            |chunk| {
-                chunk.group.as_deref() == Some(track)
-                    && chunk
+            tasks,
+            |task| {
+                task.feature.as_deref() == Some(track)
+                    && task
                         .readiness(|id| {
-                            chunks
+                            tasks
                                 .iter()
                                 .find(|candidate| candidate.id == id)
                                 .map(|candidate| candidate.status)
                         })
                         .is_ready()
             },
-            |chunk| chunk.priority,
+            |task| task.priority,
         )
         .cloned())
     }
 
-    /// Current workstreams, authored history and ungrouped work from one read.
-    pub fn roadmap_workstreams(&self) -> Result<WorkstreamCatalog, String> {
-        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
-        Ok(workstream_catalog(&observed.value.chunks))
+    /// Current workstreams, authored history and unassigned work from one read.
+    pub fn plan_workstreams(&self) -> Result<WorkstreamCatalog, String> {
+        let observed = self.observe_plan().map_err(|error| error.to_string())?;
+        Ok(workstream_catalog(&observed.value.tasks))
     }
 
-    /// Current work in an exact workstream; None selects ungrouped work.
-    pub fn roadmap_frontier(&self, group: Option<&str>) -> Result<WorkstreamFrontier, String> {
-        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
-        let chunks = &observed.value.chunks;
-        if let Some(group) = group {
-            require_current_track(&workstream_catalog(chunks), group)?;
+    /// Current work in an exact workstream; None selects unassigned work.
+    pub fn plan_frontier(&self, feature: Option<&str>) -> Result<WorkstreamFrontier, String> {
+        let observed = self.observe_plan().map_err(|error| error.to_string())?;
+        let tasks = &observed.value.tasks;
+        if let Some(feature) = feature {
+            require_current_track(&workstream_catalog(tasks), feature)?;
         }
-        Ok(workstream_frontier(chunks, group))
+        Ok(workstream_frontier(tasks, feature))
     }
 
     /// Resolve an explicit current name or unambiguous fragment without writing.
     /// An exact authored closed name is a refusal before fragment matching.
-    pub fn roadmap_resolve_track(&self, query: &str) -> Result<String, String> {
-        match self.roadmap_workstreams()?.resolve_current(query) {
-            WorkstreamResolution::Current { group } => Ok(group),
+    pub fn plan_resolve_track(&self, query: &str) -> Result<String, String> {
+        match self.plan_workstreams()?.resolve_current(query) {
+            WorkstreamResolution::Current { feature } => Ok(feature),
             refusal => Err(refusal.explain(query)),
         }
     }
 
-    /// One current chunk by id.
-    pub fn roadmap_chunk(&self, id: &str) -> Result<Option<Chunk>, String> {
-        Ok(self
-            .roadmap_chunks()?
-            .into_iter()
-            .find(|chunk| chunk.id == id))
+    /// One current task by id.
+    pub fn plan_task(&self, id: &str) -> Result<Option<Task>, String> {
+        Ok(self.plan_tasks()?.into_iter().find(|task| task.id == id))
     }
 
-    /// Every chunk in stored order, after a successful observation.
-    pub fn roadmap_chunks(&self) -> Result<Vec<Chunk>, String> {
+    /// Every task in stored order, after a successful observation.
+    pub fn plan_tasks(&self) -> Result<Vec<Task>, String> {
         Ok(self
-            .observe_roadmap()
+            .observe_plan()
             .map_err(|error| error.to_string())?
             .value
-            .chunks)
+            .tasks)
     }
 
     /// The owner's bounded status projection of validated records.
-    pub fn roadmap_status(&self) -> Result<serde_json::Value, String> {
-        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
-        Ok(RoadmapEngine::status_of(&observed.value))
+    pub fn plan_status(&self) -> Result<serde_json::Value, String> {
+        let observed = self.observe_plan().map_err(|error| error.to_string())?;
+        Ok(PlanEngine::status_of(&observed.value))
     }
 
     /// The owner's markdown or JSON projection of validated records.
-    pub fn roadmap_export(&self, format: &str) -> Result<String, String> {
-        let observed = self.observe_roadmap().map_err(|error| error.to_string())?;
-        Ok(RoadmapEngine::export_of(&observed.value, format))
+    pub fn plan_export(&self, format: &str) -> Result<String, String> {
+        let observed = self.observe_plan().map_err(|error| error.to_string())?;
+        Ok(PlanEngine::export_of(&observed.value, format))
     }
 
     // ── Run ───────────────────────────────────────────────────────────

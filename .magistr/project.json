@@ -80,7 +80,7 @@
 	"hints": [],
 	"project": {
 		"id": "magistr-5a5bc6",
-		"description": "Roadmap and workflow management for coding agents.",
+		"description": "Plan and workflow management for coding agents.",
 		"name": "magistr-cli",
 		"type": "cli"
 	},
@@ -96,7 +96,7 @@
 		"https://github.com/mre/idiomatic-rust",
 		"https://github.com/modelcontextprotocol/rust-sdk"
 	],
-	"roadmap_exports": false,
+	"plan_exports": false,
 	"stack": {
 		"formatter": "rustfmt",
 		"framework": "none",
@@ -177,8 +177,8 @@
 					".magistr",
 					".claude/settings.json",
 					".codex/config.toml",
-					"ROADMAP.md",
-					"ROADMAP.json"
+					"PLAN.md",
+					"PLAN.json"
 				],
 				"reuse": false,
 				"timeout_secs": 60,

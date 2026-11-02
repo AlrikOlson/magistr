@@ -22,7 +22,7 @@ def seed(journey):
             "description": "Exercise the work owner in an isolated project.",
             "acceptance": ["The sample function is reviewed."], "priority": 1}
         result = rpc.request("tools/call", {"name": "execute", "arguments": {
-            "source": "return magistr.call('roadmap_add_chunk', " + json.dumps(args) + ");"}})
+            "source": "return magistr.call('plan_add_task', " + json.dumps(args) + ");"}})
         assert not result.get("isError"), result
 
 

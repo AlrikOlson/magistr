@@ -1,13 +1,13 @@
 //! `UnifiedService` — the single MCP server that exposes every tool family.
 //!
 //! Routes an incoming `tools/call` to the family that CLAIMS its name prefix:
-//! [`ThinkService`], [`RunService`], [`RoadmapService`] or [`SignalService`].
+//! [`ThinkService`], [`RunService`], [`PlanService`] or [`SignalService`].
 //! Which of them a given deployment actually serves is decided once at startup
 //! by [`FamilySelection`]; this layer only dispatches.
 //!
-//! A family may claim more than one prefix. [`Family::Roadmap`] claims
-//! `tracker_*` as well as `roadmap_*`, because mirroring the plan into an issue
-//! tracker moves roadmap state through a provider-agnostic port
+//! A family may claim more than one prefix. [`Family::Plan`] claims
+//! `tracker_*` as well as `plan_*`, because mirroring the plan into an issue
+//! tracker moves plan state through a provider-agnostic port
 //! ([`crate::tracker`]) rather than being a family of its own.
 //!
 //! [`Family::ALL`] and [`Family::prefixes`] are the one table of families and
@@ -34,24 +34,24 @@ use rmcp::{
 use super::cache::{catalog, live_state};
 use super::progress::Heartbeat;
 use super::resources::{
-    DIGEST_DEFAULT_URI, DIGEST_PREFIX, MARKDOWN, PINNED_URI, ROADMAP_URI, digest_markdown,
+    DIGEST_DEFAULT_URI, DIGEST_PREFIX, MARKDOWN, PINNED_URI, PLAN_URI, digest_markdown,
     parse_window, pinned_markdown,
 };
 use super::tasks::{Eligibility, HeartbeatSeed};
 
-use crate::roadmap::RoadmapService;
+use crate::plan::PlanService;
 use crate::run::RunService;
 use crate::signal::SignalService;
 use crate::think::ThinkService;
 use crate::usage::CallCounter;
 
-const SERVER_INSTRUCTIONS: &str = r#"magistr — unified MCP server for roadmap-driven reasoning + execution.
+const SERVER_INSTRUCTIONS: &str = r#"magistr — unified MCP server for plan-driven reasoning + execution.
 
-Four tool families share one server. roadmap_* claims a second prefix, tracker_*,
+Four tool families share one server. plan_* claims a second prefix, tracker_*,
 for the namespace it mirrors itself through:
 
-  roadmap_* (17 tools)   the long-horizon plan-of-plans (drives the project)
-  tracker_* (2 tools)    roadmap's mirroring namespace — project the plan into an
+  plan_* (17 tools)   the long-horizon plan-of-plans (drives the project)
+  tracker_* (2 tools)    plan's mirroring namespace — project the plan into an
                          issue tracker through one provider-agnostic port
   think_*   (13 tools)   reasoning trace
   run_*      (7 tools)  run history: open a run, read its status, finish it
@@ -59,20 +59,20 @@ for the namespace it mirrors itself through:
   step verbs (5 tools)  arrange_steps, start_step, record_progress, check_step, finish_step
   signal_*  (10 tools)   stakeholder signals (capture/research/surface/promote + inbox verbs)
 
-roadmap_* sits above run_*: a roadmap chunk is realized by a run, which is
+plan_* sits above run_*: a plan task is realized by a run, which is
 motivated by think reasoning. Link reasoning to a run through execution_ref on
 think_record_step (e.g. "step:auth-refactor"), and progress back to reasoning
 through the think_step field on record_progress. All families resolve the same
 project identity from the working directory so their records correlate.
 "#;
 
-/// Single MCP server exposing the `think_*`, `run_*`, `roadmap_*`, and
+/// Single MCP server exposing the `think_*`, `run_*`, `plan_*`, and
 /// `signal_*` families.
 #[derive(Clone)]
 pub struct UnifiedService {
     think: Arc<ThinkService>,
     run: Arc<RunService>,
-    roadmap: Arc<RoadmapService>,
+    plan: Arc<PlanService>,
     signal: Arc<SignalService>,
     /// The last `traceparent` written to the otel partition. A tool call is a
     /// hot path and the adopted context is usually unchanged from the previous
@@ -98,7 +98,7 @@ impl UnifiedService {
     pub fn new(
         think: ThinkService,
         run: RunService,
-        roadmap: RoadmapService,
+        plan: PlanService,
         signal: SignalService,
     ) -> Self {
         // Every tool name this binary registers, taken from the families
@@ -109,14 +109,14 @@ impl UnifiedService {
             .list_tools_view()
             .into_iter()
             .chain(run.list_tools_view())
-            .chain(roadmap.list_tools_view())
+            .chain(plan.list_tools_view())
             .chain(signal.list_tools_view())
             .map(|t| t.name.to_string())
             .collect();
         Self {
             think: Arc::new(think),
             run: Arc::new(run),
-            roadmap: Arc::new(roadmap),
+            plan: Arc::new(plan),
             signal: Arc::new(signal),
             last_traceparent: Arc::new(Mutex::new(None)),
             tasks: TaskManager::new(),
@@ -252,11 +252,11 @@ impl UnifiedService {
             let outcome = match Self::route_of(&request.name) {
                 Some(Family::Think) => self.think.call_tool(request, context).await,
                 Some(Family::Run) => self.run.call_tool(request, context).await,
-                Some(Family::Roadmap) => self.roadmap.call_tool(request, context).await,
+                Some(Family::Plan) => self.plan.call_tool(request, context).await,
                 Some(Family::Signal) => self.signal.call_tool(request, context).await,
                 None => Err(ErrorData::invalid_params(
                     format!(
-                        "unknown tool '{}'; expected a think_*, run_*, roadmap_*, or signal_* \
+                        "unknown tool '{}'; expected a think_*, run_*, plan_*, or signal_* \
                          name",
                         request.name
                     ),
@@ -356,8 +356,8 @@ impl UnifiedService {
         if self.families.contains(Family::Run) {
             tools.extend(self.run.list_tools_view());
         }
-        if self.families.contains(Family::Roadmap) {
-            tools.extend(self.roadmap.list_tools_view());
+        if self.families.contains(Family::Plan) {
+            tools.extend(self.plan.list_tools_view());
         }
         if self.families.contains(Family::Signal) {
             tools.extend(self.signal.list_tools_view());
@@ -386,7 +386,7 @@ impl UnifiedService {
 pub enum Family {
     Think,
     Run,
-    Roadmap,
+    Plan,
     Signal,
 }
 
@@ -394,7 +394,7 @@ impl Family {
     /// Every family this server serves. Callers that describe the surface —
     /// the instructions block, the generated CLAUDE.md — iterate this instead
     /// of hand-listing families, so adding a fifth can't leave a doc behind.
-    pub const ALL: [Family; 4] = [Family::Think, Family::Run, Family::Roadmap, Family::Signal];
+    pub const ALL: [Family; 4] = [Family::Think, Family::Run, Family::Plan, Family::Signal];
 
     /// Every tool-name prefix this family CLAIMS, without trailing
     /// underscores, canonical one first.
@@ -406,18 +406,18 @@ impl Family {
     ///
     /// # Why a family may claim more than one
     ///
-    /// `tracker_*` is the mirroring namespace of [`Family::Roadmap`], not a
+    /// `tracker_*` is the mirroring namespace of [`Family::Plan`], not a
     /// fifth family. The subsystem behind it is large — a provider-agnostic port
     /// with adapters for GitHub Issues, GitHub Projects and Linear — but the
-    /// state it moves is roadmap state: the opt-ins live on the `Roadmap` and
-    /// the handlers hang off `RoadmapService`, so the family that owns the plan
+    /// state it moves is plan state: the opt-ins live on the `Plan` and
+    /// the handlers hang off `PlanService`, so the family that owns the plan
     /// owns the namespace that mirrors it. Giving that fact a slot in the table
     /// is what lets every caller derive from it rather than special-case it.
     pub fn prefixes(self) -> &'static [&'static str] {
         match self {
             Family::Think => &["think"],
             Family::Run => &["run", "approval"],
-            Family::Roadmap => &["roadmap", "tracker"],
+            Family::Plan => &["plan", "tracker"],
             Family::Signal => &["signal"],
         }
     }
@@ -444,7 +444,7 @@ impl Family {
     pub fn verbs(self) -> &'static [&'static str] {
         match self {
             Family::Run => &crate::run::mcp::STEP_VERBS,
-            Family::Think | Family::Roadmap | Family::Signal => &[],
+            Family::Think | Family::Plan | Family::Signal => &[],
         }
     }
 
@@ -462,7 +462,7 @@ impl Family {
     /// Parse an operator-written family token (case- and space-insensitive).
     ///
     /// Any prefix a family claims is a spelling of it, so an operator who writes
-    /// `tracker` reaches [`Family::Roadmap`] — the same structural fact
+    /// `tracker` reaches [`Family::Plan`] — the same structural fact
     /// [`UnifiedService::route_of`] derives, read from the same table rather
     /// than restated where a human types it.
     pub fn parse(token: &str) -> Option<Family> {
@@ -507,7 +507,7 @@ impl Family {
 pub struct FamilySelection {
     think: bool,
     run: bool,
-    roadmap: bool,
+    plan: bool,
     signal: bool,
 }
 
@@ -555,12 +555,12 @@ pub const SCHEMA_EXEMPT: &[(&str, &str)] = &[
         "output shape is format-dependent (markdown | console | json); no single schema can describe it",
     ),
     (
-        "roadmap_focus_get",
-        "a schema is describable but not affordable: measured at +1,096 B for the pair even with both rich fields as bare Values, against 370 B of headroom under a ceiling a human had just moved for this chunk. Shapes are documented in the description instead. Payable once the duplicated signal_* schemas are reclaimed — see roadmap::output_schemas",
+        "plan_focus_get",
+        "a schema is describable but not affordable: measured at +1,096 B for the pair even with both rich fields as bare Values, against 370 B of headroom under a ceiling a human had just moved for this task. Shapes are documented in the description instead. Payable once the duplicated signal_* schemas are reclaimed — see plan::output_schemas",
     ),
     (
-        "roadmap_focus_set",
-        "same measured budget refusal as roadmap_focus_get; the pair shares one response shape",
+        "plan_focus_set",
+        "same measured budget refusal as plan_focus_get; the pair shares one response shape",
     ),
 ];
 
@@ -603,7 +603,7 @@ impl FamilySelection {
         Self {
             think: true,
             run: true,
-            roadmap: true,
+            plan: true,
             signal: true,
         }
     }
@@ -614,7 +614,7 @@ impl FamilySelection {
         let mut sel = Self {
             think: false,
             run: false,
-            roadmap: false,
+            plan: false,
             signal: false,
         };
         for token in raw.split(',').map(str::trim).filter(|t| !t.is_empty()) {
@@ -646,7 +646,7 @@ impl FamilySelection {
         match family {
             Family::Think => self.think = true,
             Family::Run => self.run = true,
-            Family::Roadmap => self.roadmap = true,
+            Family::Plan => self.plan = true,
             Family::Signal => self.signal = true,
         }
     }
@@ -657,7 +657,7 @@ impl FamilySelection {
         match family {
             Family::Think => self.think,
             Family::Run => self.run,
-            Family::Roadmap => self.roadmap,
+            Family::Plan => self.plan,
             Family::Signal => self.signal,
         }
     }
@@ -695,9 +695,9 @@ impl UnifiedService {
         };
         vec![
             entry(
-                ROADMAP_URI,
-                "Roadmap",
-                "The project roadmap (generated markdown view of native chunk state).",
+                PLAN_URI,
+                "Plan",
+                "The project plan (generated markdown view of native task state).",
             ),
             entry(
                 PINNED_URI,
@@ -707,7 +707,7 @@ impl UnifiedService {
             entry(
                 DIGEST_DEFAULT_URI,
                 "Digest (last 24h)",
-                "Recent activity: reasoning steps recorded and roadmap chunks that moved.",
+                "Recent activity: reasoning steps recorded and plan tasks that moved.",
             ),
         ]
     }
@@ -800,8 +800,8 @@ impl ServerHandler for UnifiedService {
         _context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, ErrorData> {
         let uri = request.uri.as_str();
-        if uri == ROADMAP_URI {
-            let engine = self.roadmap.engine();
+        if uri == PLAN_URI {
+            let engine = self.plan.engine();
             let mut guard = engine.lock().map_err(|_| Self::lock_poisoned())?;
             guard
                 .refresh_if_stale()
@@ -828,22 +828,22 @@ impl ServerHandler for UnifiedService {
                 let guard = engine.lock().map_err(|_| Self::lock_poisoned())?;
                 guard.history().steps.clone()
             };
-            let chunks = {
-                let engine = self.roadmap.engine();
+            let tasks = {
+                let engine = self.plan.engine();
                 let mut guard = engine.lock().map_err(|_| Self::lock_poisoned())?;
                 guard
                     .refresh_if_stale()
                     .map_err(|error| ErrorData::internal_error(error, None))?;
-                guard.roadmap().chunks.clone()
+                guard.plan().tasks.clone()
             };
             return Ok(Self::text_resource(
                 uri,
-                digest_markdown(&steps, &chunks, chrono::Utc::now(), window),
+                digest_markdown(&steps, &tasks, chrono::Utc::now(), window),
             ));
         }
         Err(ErrorData::resource_not_found(
             format!(
-                "unknown resource '{uri}'; available: {ROADMAP_URI}, {PINNED_URI}, {DIGEST_PREFIX}<n>h|<n>d"
+                "unknown resource '{uri}'; available: {PLAN_URI}, {PINNED_URI}, {DIGEST_PREFIX}<n>h|<n>d"
             ),
             None,
         ))
@@ -928,8 +928,8 @@ mod tests {
 
     fn service() -> UnifiedService {
         let run = RunService::new(crate::run::engine::RunEngine::new("p".into()));
-        let roadmap = RoadmapService::new(
-            crate::roadmap::engine::RoadmapEngine::new("p".into()),
+        let plan = PlanService::new(
+            crate::plan::engine::PlanEngine::new("p".into()),
             run.use_cases(),
         );
         UnifiedService::new(
@@ -937,7 +937,7 @@ mod tests {
                 crate::think::config::ThinkConfig::default(),
             )),
             run,
-            roadmap,
+            plan,
             SignalService::new(crate::signal::engine::SignalEngine::new("p".into())),
         )
     }
@@ -963,8 +963,8 @@ mod tests {
         );
         assert_eq!(UnifiedService::route_of("run_open"), Some(Family::Run));
         assert_eq!(
-            UnifiedService::route_of("roadmap_add_chunk"),
-            Some(Family::Roadmap)
+            UnifiedService::route_of("plan_add_task"),
+            Some(Family::Plan)
         );
         assert_eq!(
             UnifiedService::route_of("signal_capture"),
@@ -972,9 +972,9 @@ mod tests {
         );
         assert_eq!(
             UnifiedService::route_of("tracker_setup"),
-            Some(Family::Roadmap),
-            "tracker_* is the Roadmap family's mirroring namespace, because the \
-             opt-ins it moves are roadmap state"
+            Some(Family::Plan),
+            "tracker_* is the Plan family's mirroring namespace, because the \
+             opt-ins it moves are plan state"
         );
     }
 
@@ -1026,12 +1026,15 @@ mod tests {
         for retired in [
             "ship_status",
             "ship_check",
-            "plan_work",
             "check_work",
             "ship_ship",
+            "roadmap_status",
+            "roadmap_add_chunk",
         ] {
             assert_eq!(UnifiedService::route_of(retired), None, "{retired}");
         }
+        // `plan_` belongs to the plan family, which serves no `plan_work`.
+        assert_eq!(UnifiedService::route_of("plan_work"), Some(Family::Plan));
     }
 
     /// Every prefix a family claims must route back to that family, and must be
@@ -1147,7 +1150,7 @@ mod tests {
     #[test]
     fn the_initialize_block_gate_names_a_prefix_no_family_claims() {
         let forged = "Five tool families share one server:\n\n  \
-                      roadmap_* the plan\n  audit_* nothing claims this one\n";
+                      plan_* the plan\n  audit_* nothing claims this one\n";
         let unclaimed: Vec<&str> = advertised_prefixes(forged)
             .into_iter()
             .filter(|stem| Family::parse(stem).is_none())
@@ -1161,7 +1164,7 @@ mod tests {
     }
 
     /// The refusal must list the same families the table holds, aliases
-    /// included — an operator who is told `roadmap` and then finds `tracker`
+    /// included — an operator who is told `plan` and then finds `tracker`
     /// works has been given a list that is not the list.
     #[test]
     fn the_unknown_family_refusal_lists_every_prefix_in_the_table() {
@@ -1194,7 +1197,7 @@ mod tests {
     /// The doc comment at the top of `lib.rs` is what docs.rs renders as the
     /// crate's front page, and what crates.io links to by default. It is the
     /// most-read prose this project publishes. It spent two releases claiming
-    /// the server had two tool families, because `roadmap_*` and `signal_*`
+    /// the server had two tool families, because `plan_*` and `signal_*`
     /// arrived and nothing pointed back at that paragraph.
     ///
     /// [`Family::ALL`] already carried the guarantee — its own doc says callers

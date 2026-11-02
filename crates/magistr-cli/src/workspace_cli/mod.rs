@@ -1,4 +1,4 @@
-//! The operational workspace verbs (chunk arch-14c10b): `magistr workspace
+//! The operational workspace verbs (task arch-14c10b): `magistr workspace
 //! doctor [bundle|config]`, `journal`, `key rotate`, `init` and
 //! `snapshot`, the CLI host
 //! over the native diagnostics beside the MCP host in `workspace_mcp`.

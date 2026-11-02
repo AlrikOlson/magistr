@@ -72,8 +72,8 @@
       "type": "array",
       "items": { "$ref": "#/$defs/Enrichment" }
     },
-    "cross_refs": {
-      "description": "Typed cross-references into the think/run/roadmap graph, in the existing `prefix:value` wire form (infra/cross_ref.rs), extended with the `signal:` variant (Phase 29b). Bidirectional: promoting a signal writes `chunk:<id>` here and `signal:<id>` onto the chunk.",
+    "refs": {
+      "description": "Typed cross-references into the think/run/plan graph, in the existing `prefix:value` wire form (infra/cross_ref.rs), extended with the `signal:` variant (Phase 29b). Bidirectional: promoting a signal writes `task:<id>` here and `signal:<id>` onto the task.",
       "type": "array",
       "items": { "$ref": "#/$defs/CrossRef" }
     }
@@ -157,9 +157,9 @@
       }
     },
     "CrossRef": {
-      "description": "A cross-reference in the existing wire form `prefix:value`. `prefix` is one of the think/run/roadmap families plus `signal`. Mirrors infra/cross_ref.rs::CrossRef::from_wire so the same parser accepts it.",
+      "description": "A cross-reference in the existing wire form `prefix:value`. `prefix` is one of the think/run/plan families plus `signal`. Mirrors infra/cross_ref.rs::CrossRef::from_wire so the same parser accepts it.",
       "type": "string",
-      "pattern": "^(think|task|action|check|chunk|signal):.+$"
+      "pattern": "^(think|task|action|check|task|signal):.+$"
     }
   },
   "examples": [
@@ -169,7 +169,7 @@
       "tenant_id": "think-and-ship-676f38",
       "kind": "feedback",
       "from": "dana@acme.example",
-      "body": "The roadmap export drops sub-bullets when a chunk has nested acceptance notes.",
+      "body": "The plan export drops sub-bullets when a task has nested acceptance notes.",
       "status": "new",
       "created": "2026-06-08T01:10:00Z",
       "idempotency_key": "9f2c1b7a4e6d8c0f3a5b9e1d7c2f4a6b8d0e2c4f6a8b0d2e4c6f8a0b2d4e6c8f",
@@ -189,14 +189,14 @@
           "think_step": 867,
           "sources": [
             "https://github.com/cursor/agent-trace",
-            "sym-…roadmap::export::export_markdown"
+            "sym-…plan::export::export_markdown"
           ],
-          "summary": "Confirmed: export_markdown renders acceptance[] flat; nested notes are not modeled on Chunk. Maps to the done richer-roadmap-export chunk.",
+          "summary": "Confirmed: export_markdown renders acceptance[] flat; nested notes are not modeled on Task. Maps to the done richer-roadmap-export task.",
           "confidence": 0.82,
           "at": "2026-06-08T01:12:00Z"
         }
       ],
-      "cross_refs": ["think:867", "chunk:richer-roadmap-export"]
+      "refs": ["think:867", "task:richer-roadmap-export"]
     }
   ]
 }

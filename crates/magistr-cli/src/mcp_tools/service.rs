@@ -48,12 +48,12 @@ use rmcp::{ErrorData, ServerHandler};
 use serde_json::{Value, json};
 
 use super::gate::{GateSpec, gate_json, resolve_gates};
-use super::roadmap_export::RoadmapExport;
+use super::plan_export::PlanExport;
 
 const INSTRUCTIONS: &str = "magistr — project workflow server. \
 `magistr_*` tools run quality gates (magistr_gate, recorded through check_step), \
 formatting, phase transitions, hooks and safe file operations for this project. \
-The think_*/run_*/roadmap_*/signal_* families below are magistr, served \
+The think_*/run_*/plan_*/signal_* families below are magistr, served \
 in-process on the same store as Magistr's own views.";
 
 /// The rmcp server behind `magistr mcp`: the `magistr_*` tools plus the
@@ -69,7 +69,7 @@ pub struct MagistrService {
     /// call from the agent. Cloning a service shares it; the lease releases
     /// with the last clone.
     pub(super) engines: NativeEngines,
-    roadmap_export: RoadmapExport,
+    plan_export: PlanExport,
     context: Arc<super::view_context::ContextState>,
     /// The admission this service runs under: the project identity, the
     /// service-role lease, and the live-feed socket the engines broadcast on
@@ -107,7 +107,7 @@ impl MagistrService {
         let project_root = engines.config().project_root().to_path_buf();
         let unified = ProjectAuthority::mcp_service(&engines);
         Self {
-            roadmap_export: RoadmapExport::new(&project_root),
+            plan_export: PlanExport::new(&project_root),
             context: Arc::default(),
             tools: Arc::new(super::build_server(project_root.clone())),
             project_root,
@@ -357,7 +357,7 @@ impl MagistrService {
                 Ok(None) => {}
             }
         }
-        // A gate this server runs is live on the feed socket: every chunk
+        // A gate this server runs is live on the feed socket: every task
         // goes out on the host's own family as a typed gate-output frame
         // keyed by the gate, the event the cockpit's engine feed folds into
         // its terminal store. A frame nobody is attached for is dropped,
@@ -602,8 +602,8 @@ impl ServerHandler for MagistrService {
         let mut tools = self.magistr_tools();
         tools.push(super::view_context::tool());
         tools.extend(self.unified.list_tools(request, context).await?.tools);
-        if let Some(tool) = tools.iter_mut().find(|tool| tool.name == "roadmap_export") {
-            *tool = RoadmapExport::tool();
+        if let Some(tool) = tools.iter_mut().find(|tool| tool.name == "plan_export") {
+            *tool = PlanExport::tool();
         }
         Ok(ListToolsResult::with_all_items(tools))
     }
@@ -616,11 +616,8 @@ impl ServerHandler for MagistrService {
         if request.name.starts_with("magistr_") {
             return self.call_magistr(request).await.map(Into::into);
         }
-        if request.name == "roadmap_export" {
-            return self
-                .roadmap_export
-                .call(&self.unified, request, context)
-                .await;
+        if request.name == "plan_export" {
+            return self.plan_export.call(&self.unified, request, context).await;
         }
         self.unified.call_tool(request, context).await
     }

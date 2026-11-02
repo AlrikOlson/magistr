@@ -5,8 +5,8 @@
 use std::sync::{Arc, Mutex};
 
 use crate::cloud::client::{CloudClient, CloudError};
-use crate::roadmap::RoadmapEngine;
-use crate::roadmap::domain::{Chunk, TrackerLink, TrackerOptIn};
+use crate::plan::PlanEngine;
+use crate::plan::domain::{Task, TrackerLink, TrackerOptIn};
 use crate::signal::SignalEngine;
 use crate::signal::domain::Signal;
 use crate::think::domain::ThinkStep;
@@ -87,32 +87,32 @@ struct TrackerSidecar {
     opt_ins: Vec<TrackerOptIn>,
 }
 
-/// Commit each chunk with its tracker state in one owner transaction.
-pub fn apply_roadmap_records(
-    engine: &mut RoadmapEngine,
+/// Commit each task with its tracker state in one owner transaction.
+pub fn apply_plan_records(
+    engine: &mut PlanEngine,
     envelopes: &[serde_json::Value],
 ) -> Result<usize, CloudError> {
-    let records = local_records::<Chunk>(envelopes, engine.project_id())?
+    let records = local_records::<Task>(envelopes, engine.project_id())?
         .into_iter()
-        .map(|(chunk, record)| {
+        .map(|(task, record)| {
             let sidecar = record
                 .get(crate::cloud::build::TRACKER_SIDECAR)
                 .map(|value| serde_json::from_value::<TrackerSidecar>(value.clone()))
                 .transpose()
                 .map_err(invalid_record)?
                 .unwrap_or_default();
-            Ok((chunk, sidecar))
+            Ok((task, sidecar))
         })
         .collect::<Result<Vec<_>, CloudError>>()?;
     let mut saved = 0;
-    for (chunk, sidecar) in records {
+    for (task, sidecar) in records {
         let observed = engine
-            .upsert_chunk_with_tracker(chunk, sidecar.links, sidecar.opt_ins)
+            .upsert_task_with_tracker(task, sidecar.links, sidecar.opt_ins)
             .map_err(|error| {
                 let message = error.to_string();
                 let store = match error {
-                    crate::roadmap::engine::RoadmapMutationError::Store(error) => Some(error),
-                    crate::roadmap::engine::RoadmapMutationError::Rejected(_) => None,
+                    crate::plan::engine::PlanMutationError::Store(error) => Some(error),
+                    crate::plan::engine::PlanMutationError::Rejected(_) => None,
                 };
                 CloudError::Local {
                     saved,
@@ -181,7 +181,7 @@ pub async fn reconcile_think(
 pub async fn reconcile_all(
     client: &CloudClient,
     think: &Arc<Mutex<ReasoningServer>>,
-    roadmap: &Arc<Mutex<RoadmapEngine>>,
+    plan: &Arc<Mutex<PlanEngine>>,
     signal: &Arc<Mutex<SignalEngine>>,
 ) -> (
     Result<usize, CloudError>,
@@ -195,11 +195,11 @@ pub async fn reconcile_all(
             .and_then(|mut engine| apply_think_records(&mut engine, &envelopes)),
         Err(error) => Err(error),
     };
-    let roadmap_result = match fetch_family(client, "roadmap").await {
-        Ok(envelopes) => roadmap
+    let plan_result = match fetch_family(client, "plan").await {
+        Ok(envelopes) => plan
             .lock()
             .map_err(invalid_record)
-            .and_then(|mut engine| apply_roadmap_records(&mut engine, &envelopes)),
+            .and_then(|mut engine| apply_plan_records(&mut engine, &envelopes)),
         Err(error) => Err(error),
     };
     let signal_result = match fetch_family(client, "signal").await {
@@ -209,15 +209,15 @@ pub async fn reconcile_all(
             .and_then(|mut engine| apply_signal_records(&mut engine, &envelopes)),
         Err(error) => Err(error),
     };
-    (think_result, roadmap_result, signal_result)
+    (think_result, plan_result, signal_result)
 }
 
-pub async fn reconcile_roadmap(
+pub async fn reconcile_plan(
     client: &CloudClient,
-    engine: &mut RoadmapEngine,
+    engine: &mut PlanEngine,
 ) -> Result<usize, CloudError> {
-    let envelopes = fetch_family(client, "roadmap").await?;
-    apply_roadmap_records(engine, &envelopes)
+    let envelopes = fetch_family(client, "plan").await?;
+    apply_plan_records(engine, &envelopes)
 }
 
 pub async fn reconcile_signals(

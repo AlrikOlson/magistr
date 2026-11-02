@@ -38,7 +38,7 @@ use crate::types::ProjectConfig;
 use crate::validate;
 
 /// Spec file assumed when project.json declares no `spec` block.
-const DEFAULT_SPEC_FILE: &str = "ROADMAP.md";
+const DEFAULT_SPEC_FILE: &str = "PLAN.md";
 
 /// Configuration for a workflow run.
 #[derive(Debug, Clone)]
@@ -58,8 +58,8 @@ pub struct WorkflowConfig {
 impl WorkflowConfig {
     /// Load workflow configuration from a project directory.
     ///
-    /// If `spec.file` in project.json points to `ROADMAP.md` but that file
-    /// doesn't exist, falls back to `.magistr-roadmap.yml` (the new canonical path).
+    /// If `spec.file` in project.json points to `PLAN.md` but that file
+    /// doesn't exist, falls back to `.magistr-plan.yml` (the new canonical path).
     /// A magistr project declares no `spec` block at all; the path is
     /// then a placeholder that nothing reads.
     pub fn load(project_dir: &Path) -> Result<Self> {
@@ -71,10 +71,10 @@ impl WorkflowConfig {
         let mut spec_path = project_dir.join(spec_file);
 
         // A magistr project needs no spec file at all.
-        if !project_config.roadmap_backend.is_native() && !spec_path.is_file() {
-            // Transparent migration: old project.json still says "ROADMAP.md"
+        if !project_config.plan_backend.is_native() && !spec_path.is_file() {
+            // Transparent migration: old project.json still says "PLAN.md"
             // but the YAML canonical file exists at the new path.
-            let yaml_path = crate::roadmap::yaml_path(project_dir);
+            let yaml_path = crate::plan::yaml_path(project_dir);
             if yaml_path.is_file() {
                 spec_path = yaml_path;
             } else {
@@ -93,10 +93,10 @@ impl WorkflowConfig {
         })
     }
 
-    /// Whether the project runs the magistr roadmap.
+    /// Whether the project runs the magistr plan.
     #[must_use]
     pub fn is_native(&self) -> bool {
-        self.project_config.roadmap_backend.is_native()
+        self.project_config.plan_backend.is_native()
     }
 
     /// Use a reader a caller already opened (before entering raw mode) for
@@ -123,7 +123,7 @@ impl WorkflowConfig {
 
     /// Progress as a spec summary.
     ///
-    /// Native projects read chunk progress from the engines and
+    /// Native projects read task progress from the engines and
     /// never open `spec.file`; yaml projects prefer the YAML store and fall
     /// back to markdown parsing for non-magistr projects.
     pub fn spec_summary(&self) -> Result<spec::SpecSummary> {

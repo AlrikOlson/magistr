@@ -1,5 +1,5 @@
 //! `SignalService` — the rmcp `ServerHandler` for the `signal_*` family,
-//! mirroring `RoadmapService`. A brand-new family with NO deprecated aliases.
+//! mirroring `PlanService`. A brand-new family with NO deprecated aliases.
 
 use std::sync::{Arc, Mutex};
 
@@ -14,7 +14,7 @@ use rmcp::{
 };
 
 use crate::mcp::cache::catalog;
-use crate::roadmap::engine::RoadmapEngine;
+use crate::plan::engine::PlanEngine;
 use crate::signal::application::{SignalError, SignalUseCases};
 use crate::signal::engine::SignalEngine;
 
@@ -24,17 +24,17 @@ When to call which tool:
   - Record a new stakeholder signal       → signal_capture
   - Reconstruct the inbox / get counts     → signal_status
   - Read one signal by id                  → signal_get
-  - Attach a cross-ref (think:/chunk:/…)   → signal_link
+  - Attach a cross-ref (think:/task:/…)   → signal_link
   - Churn on a signal (enrich + advance)   → signal_research
   - What's ready to raise (earned)         → signal_pending
   - Raise one to the human                 → signal_surface
   - Defer one (snooze) / drop it (ignore)  → signal_snooze / signal_ignore
-  - Promote a validated signal to a chunk  → signal_promote
+  - Promote a validated signal to a task  → signal_promote
 
 Lifecycle: new → triaged → researched → surfaced → promoted; any non-terminal
 state may be dismissed. Illegal transitions are rejected. signal_promote turns
-a researched/surfaced signal into a backlog roadmap chunk and writes
-bidirectional cross-refs (chunk:X onto the signal, signal:X onto the chunk);
+a researched/surfaced signal into a plan idea and writes
+bidirectional cross-refs (task:X onto the signal, signal:X onto the task);
 promoting twice is idempotent."#;
 
 #[derive(Clone)]
@@ -56,16 +56,16 @@ impl SignalService {
         }
     }
 
-    /// Wire the roadmap engine so `signal_promote` can create chunks. Called by
-    /// the host's composition root with the same handle the `RoadmapService` holds.
-    pub fn with_roadmap(mut self, roadmap: Arc<Mutex<RoadmapEngine>>) -> Self {
-        self.application = self.application.with_roadmap(roadmap);
+    /// Wire the plan engine so `signal_promote` can create tasks. Called by
+    /// the host's composition root with the same handle the `PlanService` holds.
+    pub fn with_plan(mut self, plan: Arc<Mutex<PlanEngine>>) -> Self {
+        self.application = self.application.with_plan(plan);
         self
     }
 
     /// Hand out a clone of the shared signal engine handle so the
-    /// `RoadmapService` can compose a pending-signal count into `roadmap_status`
-    /// at the wire layer — without coupling the `RoadmapEngine` to
+    /// `PlanService` can compose a pending-signal count into `plan_status`
+    /// at the wire layer — without coupling the `PlanEngine` to
     /// the `SignalEngine`.
     pub fn engine(&self) -> Arc<Mutex<SignalEngine>> {
         self.application.engine()

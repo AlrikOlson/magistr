@@ -4,16 +4,25 @@ use serde_json::{Value, json};
 
 impl Persistence {
     /// Convert a saved run document once: version 1 gains its execution
-    /// identities, and versions 1 and 2 take the run vocabulary (goal, steps,
-    /// progress, waiting, done, finished). Current readers stay strict and
+    /// identities, versions 1 and 2 take the run vocabulary (goal, steps,
+    /// progress, waiting, done, finished), and versions 1 to 3 name plan
+    /// tasks `task:` instead of `chunk:`. Current readers stay strict and
     /// never invent identities. The caller holds the owner/document locks and
     /// retains the original bytes.
     pub fn upgrade_document(bytes: &[u8], project_id: &str) -> Result<Vec<u8>, ReadError> {
         let mut value: Value = serde_json::from_slice(bytes).map_err(schema)?;
         let version = value["schema_version"].as_u64();
         match version {
-            Some(1 | 2) => {
-                rename_document_words(&mut value)?;
+            Some(1..=3) => {
+                // Run documents never stored run references as strings, so only
+                // the plan task prefix changes here, whatever the version.
+                crate::infra::CrossRef::upgrade_stored_refs(
+                    &mut value,
+                    crate::infra::StoredRefWords::BeforePlanWords,
+                );
+                if version != Some(3) {
+                    rename_document_words(&mut value)?;
+                }
                 if version == Some(1) {
                     upgrade_cycle(&mut value, project_id)?;
                     let object = value
@@ -29,8 +38,8 @@ impl Persistence {
                         }
                     }
                 }
-                value["schema_version"] = json!(SCHEMA_VERSION);
-                let bytes = serde_json::to_vec(&value).map_err(schema)?;
+                let bytes =
+                    crate::infra::versioned_document(value, SCHEMA_VERSION).map_err(schema)?;
                 Self::validate_document(&bytes, project_id)?;
                 Ok(bytes)
             }

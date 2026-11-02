@@ -138,7 +138,7 @@ impl SessionPermissionPolicy {
 
     /// Resolve the agent's relative paths against `root` (the session's
     /// working directory) before matching them to the protected entries —
-    /// `ROADMAP.md` is `/project/ROADMAP.md` once the policy knows where
+    /// `PLAN.md` is `/project/PLAN.md` once the policy knows where
     /// the session lives.
     #[must_use]
     pub fn rooted_at(mut self, root: Option<PathBuf>) -> Self {
@@ -518,7 +518,7 @@ impl SessionPolicy for SessionPermissionPolicy {
 /// climbing through `..`, or via a symlinked root — cannot slip past an
 /// absolute protected entry. Without a root a relative target is matched
 /// by its trailing path *components* (`Path::ends_with`), never by a
-/// string suffix, so `OLDROADMAP.md` is not `ROADMAP.md`.
+/// string suffix, so `OLDPLAN.md` is not `PLAN.md`.
 fn is_write_to_protected_file(
     tool_name: &str,
     paths: &[String],

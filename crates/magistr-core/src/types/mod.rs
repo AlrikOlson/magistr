@@ -30,7 +30,7 @@ pub use formatter::Formatter;
 pub use framework::Framework;
 pub use language::Language;
 pub use linter::Linter;
-pub use magistr_engine::native::RoadmapBackend;
+pub use magistr_engine::native::PlanBackend;
 pub use marker::StackMarker;
 pub use package_manager::PackageManager;
 pub use preset::{

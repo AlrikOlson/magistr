@@ -8,7 +8,7 @@ fn project(dir: &Path, lint_cmd: &str) {
                   "test_framework": "cargo-nextest", "linter": "clippy", "formatter": "rustfmt"},
         "quality_gate": {"check": "cargo check", "test": "cargo test", "lint": lint_cmd},
         "format": {"command": "cargo fmt", "extensions": ["rs"]},
-        "spec": {"file": "ROADMAP.md", "unchecked_pattern": "^- \\\\[ \\\\]"},
+        "spec": {"file": "PLAN.md", "unchecked_pattern": "^- \\\\[ \\\\]"},
         "state_prefix": "t",
         "reference_repos": [],
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"}

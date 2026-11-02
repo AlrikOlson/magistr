@@ -1,6 +1,6 @@
 > vitest run
 
-src/lib/stores/chunks.svelte.ts:42:7: error: 'snapshot' is never reassigned. Use 'const' instead. (prefer-const)
+src/lib/stores/tasks.svelte.ts:42:7: error: 'snapshot' is never reassigned. Use 'const' instead. (prefer-const)
 src/lib/components/GateResultsBar.svelte:88:11: warning: Unexpected console statement (no-console)
 src/routes/+page.svelte(12,5): error TS2322: Type 'string' is not assignable to type 'number'.
 tests/test_models.py:57: AssertionError: expected 3 items, got 2

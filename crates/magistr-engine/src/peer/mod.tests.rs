@@ -16,7 +16,7 @@ mod shared_context;
 fn revision_v1_has_a_frozen_digest() {
     assert_eq!(
         agreement().revision().reference().digest,
-        "e590113a38b7bcd987f3cb48817d4e383d9ce33063d9ff74483c4f2479a14acc"
+        "37f5d9d7a0bf016970dbbd69d3f0a4df9c908b58bf3dd2b1773cac705d62ab1e"
     );
 }
 
@@ -122,7 +122,7 @@ fn body() -> PlanBody {
     PlanBody {
         scope: vec!["engine/src/peer".into()],
         context: PlanContext {
-            roadmap_revision: "roadmap:42".into(),
+            plan_revision: "plan:42".into(),
             code_revision: "git:abc".into(),
             constraints: vec!["preserve user changes".into()],
             routing_history_revision: "history:0".into(),
@@ -325,7 +325,7 @@ fn digest_binds_all_consent_bearing_fields() {
         let mut next = body();
         match field {
             0 => next.scope.push("docs".into()),
-            1 => next.context.roadmap_revision.push('x'),
+            1 => next.context.plan_revision.push('x'),
             2 => next.context.code_revision.push('x'),
             3 => next.context.constraints.push("extra".into()),
             4 => next.context.routing_history_revision.push('x'),

@@ -14,7 +14,7 @@ fn version_one_work_keeps_content_and_gets_stable_execution_identities() {
     let bytes = Persistence::upgrade_document(OLD, "saved-project").unwrap();
     let old: Value = serde_json::from_slice(OLD).unwrap();
     let new: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(new["schema_version"], 3);
+    assert_eq!(new["schema_version"], 4);
     assert_eq!(new["project_id"], old["project_id"]);
     assert_eq!(new["goal"], old["objective"]);
     assert_eq!(new["next_progress_id"], old["next_action_id"]);
@@ -46,7 +46,7 @@ fn version_two_work_takes_the_run_words_once() {
     let bytes = Persistence::upgrade_document(V2, "magistr-5a5bc6").unwrap();
     let old: Value = serde_json::from_slice(V2).unwrap();
     let new: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(new["schema_version"], 3);
+    assert_eq!(new["schema_version"], 4);
     for retired in ["objective", "tasks", "next_action_id"] {
         assert!(new.get(retired).is_none(), "{retired}");
     }
@@ -198,5 +198,23 @@ fn malformed_steps_and_conflicting_reasoning_links_are_refused_without_panicking
     old["tasks"][0]["actions"][0]["think_step"] = json!(8);
     assert!(
         Persistence::upgrade_document(&serde_json::to_vec(&old).unwrap(), "saved-project").is_err()
+    );
+}
+
+#[test]
+fn version_three_work_names_plan_tasks_with_the_task_prefix_once() {
+    let current = Persistence::upgrade_document(V2, "magistr-5a5bc6").unwrap();
+    let mut v3: Value = serde_json::from_slice(&current).unwrap();
+    v3["schema_version"] = json!(3);
+    v3["goal"]["scope"] = json!("chunk:saved-chunk");
+    let upgraded =
+        Persistence::upgrade_document(&serde_json::to_vec(&v3).unwrap(), "magistr-5a5bc6").unwrap();
+    let new: Value = serde_json::from_slice(&upgraded).unwrap();
+    assert_eq!(new["schema_version"], 4);
+    assert_eq!(new["goal"]["scope"], "task:saved-chunk");
+    assert_eq!(
+        Persistence::upgrade_document(&upgraded, "magistr-5a5bc6").unwrap(),
+        upgraded,
+        "a current document is unchanged"
     );
 }

@@ -3,7 +3,7 @@ import {paintSurface} from "./work_surface_paint.mjs";
 import {routeSurface} from "./work_surface_routes.mjs";
 import {bindSurfaceInput} from "./work_surface_input.mjs";
 const action=(label,fn,text=label)=>{const button=element("button",text);button.type="button";button.setAttribute("aria-label",label);button.title=label;button.onclick=fn;return button;};
-// The camera and manual placement are desktop view state, never roadmap order or workflow state.
+// The camera and manual placement are desktop view state, never plan order or workflow state.
 export class WorkSurface{
   constructor(label){
     this.root=element("section","","work-surface");this.root.setAttribute("aria-label",label);

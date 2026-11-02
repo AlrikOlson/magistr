@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub enum OperationKind {
     /// An attempt slot claimed by the run's own checkpoint.
     Reservation,
-    /// A mutation of the native workflow store (roadmap, run, signal, think).
+    /// A mutation of the native workflow store (plan, run, signal, think).
     NativeMutation,
     /// A check result recorded as evidence on a scoped step.
     CheckResult,

@@ -116,7 +116,11 @@ def acp(root):
 
 
 def main():
-    with tempfile.TemporaryDirectory(prefix="magistr-desktop-roles-") as directory:
+    # The children admit a project; they must never read or upgrade the
+    # developer's own saved work.
+    with tempfile.TemporaryDirectory(prefix="magistr-desktop-store-") as store, \
+            tempfile.TemporaryDirectory(prefix="magistr-desktop-roles-") as directory:
+        ENVIRONMENT["MAGISTR_WORKFLOW_DATA_DIR"] = store
         root = Path(directory)
         for args, code in [(["--help"], 0), (["--workspace-worker", "extra"], 2)]:
             result = subprocess.run([BINARY, *args], cwd=root, capture_output=True, timeout=15)

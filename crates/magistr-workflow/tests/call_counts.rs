@@ -23,7 +23,7 @@
 use magistr_workflow::infra::{Domain, Persistence, PersistenceConfig};
 use magistr_workflow::mcp::UnifiedService;
 use magistr_workflow::mcp::unified::{Family, FamilySelection};
-use magistr_workflow::roadmap::{RoadmapEngine, RoadmapService};
+use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::engine::RunEngine;
 use magistr_workflow::signal::{SignalEngine, SignalService};
@@ -61,12 +61,12 @@ fn build_unified(cfg: &PersistenceConfig, families: FamilySelection) -> UnifiedS
     dcfg.display.color_output = false;
     let think = ThinkService::new(ReasoningServer::new(dcfg));
     let run = RunService::new(RunEngine::new("test-abc123".into()));
-    let roadmap = RoadmapService::new(RoadmapEngine::new("test-abc123".into()), run.use_cases());
+    let plan = PlanService::new(PlanEngine::new("test-abc123".into()), run.use_cases());
     let signal = SignalService::new(SignalEngine::new("test-abc123".into()));
 
     // Every registered name, taken the same way the service does — so the
     // counter under test knows exactly the names a real deployment knows.
-    let svc = UnifiedService::new(think, run, roadmap, signal);
+    let svc = UnifiedService::new(think, run, plan, signal);
     let known: Vec<String> = svc
         .list_tools_view()
         .into_iter()
@@ -115,13 +115,13 @@ async fn n_calls_over_the_wire_reads_n() {
     let cfg = scratch("exact");
     let (client, server) = pair(build_unified(&cfg, FamilySelection::all())).await;
 
-    // 5 successful roadmap_status calls and 2 think_engine_status calls.
+    // 5 successful plan_status calls and 2 think_engine_status calls.
     for _ in 0..5 {
         client
             .peer()
-            .call_tool(CallToolRequestParams::new("roadmap_status"))
+            .call_tool(CallToolRequestParams::new("plan_status"))
             .await
-            .expect("roadmap_status succeeds");
+            .expect("plan_status succeeds");
     }
     for _ in 0..2 {
         client
@@ -133,7 +133,7 @@ async fn n_calls_over_the_wire_reads_n() {
 
     let got = read_as_the_cli_would(&cfg);
     assert_eq!(
-        got.counts.get("roadmap_status"),
+        got.counts.get("plan_status"),
         Some(&5),
         "5 calls must read 5, not 'roughly 5' and not 0 — counts: {:?}",
         got.counts
@@ -157,12 +157,12 @@ async fn errors_count() {
     let cfg = scratch("errors");
     let (client, server) = pair(build_unified(&cfg, FamilySelection::all())).await;
 
-    // `roadmap_start_chunk` requires an `id`; omitting it is a real, rejected
+    // `plan_start_task` requires an `id`; omitting it is a real, rejected
     // call — the shape of "this verb is always misused".
     for _ in 0..3 {
         let outcome = client
             .peer()
-            .call_tool(CallToolRequestParams::new("roadmap_start_chunk"))
+            .call_tool(CallToolRequestParams::new("plan_start_task"))
             .await;
         assert!(
             outcome.is_err() || outcome.is_ok_and(|r| r.is_error.unwrap_or(false)),
@@ -172,7 +172,7 @@ async fn errors_count() {
 
     let got = read_as_the_cli_would(&cfg);
     assert_eq!(
-        got.counts.get("roadmap_start_chunk"),
+        got.counts.get("plan_start_task"),
         Some(&3),
         "3 failed calls must read 3: {:?}",
         got.counts
@@ -188,9 +188,9 @@ async fn errors_count() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn refused_families_still_count() {
     let cfg = scratch("refused");
-    let only_roadmap = FamilySelection::parse("roadmap").expect("roadmap is a family");
-    assert!(!only_roadmap.contains(Family::Signal));
-    let (client, server) = pair(build_unified(&cfg, only_roadmap)).await;
+    let only_plan = FamilySelection::parse("plan").expect("plan is a family");
+    assert!(!only_plan.contains(Family::Signal));
+    let (client, server) = pair(build_unified(&cfg, only_plan)).await;
 
     let err = client
         .peer()
@@ -260,9 +260,9 @@ async fn a_days_traffic_is_not_a_soak_and_licenses_no_retirement() {
     for _ in 0..12 {
         client
             .peer()
-            .call_tool(CallToolRequestParams::new("roadmap_status"))
+            .call_tool(CallToolRequestParams::new("plan_status"))
             .await
-            .expect("roadmap_status succeeds");
+            .expect("plan_status succeeds");
     }
 
     let got = read_as_the_cli_would(&cfg);
@@ -286,7 +286,7 @@ async fn a_days_traffic_is_not_a_soak_and_licenses_no_retirement() {
         soak.missing
     );
 
-    // The verb the parent chunk actually wants an answer about. It reads zero
+    // The verb the parent task actually wants an answer about. It reads zero
     // here, and zero is not yet an answer.
     match got.verdict("signal_research") {
         Verdict::SoakTooShort(_) => {}
@@ -296,7 +296,7 @@ async fn a_days_traffic_is_not_a_soak_and_licenses_no_retirement() {
         ),
     }
     // And a verb that DID run reads as used regardless of the window.
-    assert_eq!(got.verdict("roadmap_status"), Verdict::Used(12));
+    assert_eq!(got.verdict("plan_status"), Verdict::Used(12));
 
     client.cancel().await.ok();
     server.abort();

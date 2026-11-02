@@ -50,7 +50,7 @@ pub(crate) struct HostedWork {
     engines: EngineClient,
     observation: Option<Arc<crate::application::session_observation::SessionObservation>>,
     /// The engine feed, tapped beside the inbox: a running driver counts the
-    /// chunks its iteration completes from it; between runs it is drained.
+    /// tasks its iteration completes from it; between runs it is drained.
     feed: UnboundedReceiver<Msg>,
     backend: Backend,
     judge: Box<JudgeSource>,
@@ -286,7 +286,7 @@ fn prepare(
             .to_owned()
     })?;
     let lease = Arc::new(LoopLease::acquire(dir).map_err(|error| error.to_string())?);
-    let native = magistr_core::roadmap::backend_for(dir)
+    let native = magistr_core::plan::backend_for(dir)
         .map_err(|error| error.to_string())?
         .is_native()
         .then_some(writer);
@@ -300,7 +300,7 @@ fn prepare(
                 .map_err(|error| error.to_string())?
                 .all_done()
             {
-                return Err("Every roadmap item is complete. There is nothing to start.".into());
+                return Err("Every plan item is complete. There is nothing to start.".into());
             }
             let mut iter_loop = IterationLoop::start_or_recover(
                 dir,
@@ -309,13 +309,13 @@ fn prepare(
                 native.as_ref().map(NativeEngines::reader),
             )
             .map_err(|error| error.to_string())?;
-            if iter_loop.is_recovered() && iter_loop.run_state().mode != RunMode::OneChunk {
+            if iter_loop.is_recovered() && iter_loop.run_state().mode != RunMode::OneTask {
                 return Err(
                     "A longer work run is unfinished. Continue that run before starting one item."
                         .into(),
                 );
             }
-            iter_loop = iter_loop.with_run_mode(RunMode::OneChunk);
+            iter_loop = iter_loop.with_run_mode(RunMode::OneTask);
             if let Some(selection) = selection {
                 iter_loop
                     .bind_session_selection(selection.clone())
@@ -338,7 +338,7 @@ fn prepare(
                 native.as_ref().map(NativeEngines::reader),
             )
             .map_err(|error| error.to_string())?;
-            if iter_loop.is_recovered() && iter_loop.run_state().mode != RunMode::ChunkLoop {
+            if iter_loop.is_recovered() && iter_loop.run_state().mode != RunMode::TaskLoop {
                 return Err("A single work item is unfinished. Continue that item before starting a longer run.".into());
             }
             iter_loop

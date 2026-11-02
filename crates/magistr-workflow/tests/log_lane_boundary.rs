@@ -88,7 +88,7 @@ const OPERATIONAL: &[&str] = &[
     "think/engine/numbering.rs",
     "run/persistence.rs",
     "run/engine/mod.rs",
-    "roadmap/engine/mod.rs",
+    "plan/engine/mod.rs",
     "signal/engine.rs",
     "mcp/elicit.rs",
     "mcp/tasks.rs",

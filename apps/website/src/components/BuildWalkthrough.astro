@@ -37,14 +37,14 @@ const asset=(file)=>publicAssetUrl("demo/tic-tac-toe/"+file);
         <h3 data-action-title>{explanation.title}</h3>
         <div data-action-explanation set:html={explanationHTML(explanation)} />
         <div data-action-facts></div>
-        <button class="annotation-open" type="button" data-open-action aria-haspopup="dialog" hidden>Open the roadmap <span aria-hidden="true">↗</span></button>
+        <button class="annotation-open" type="button" data-open-action aria-haspopup="dialog" hidden>Open the plan <span aria-hidden="true">↗</span></button>
         <nav class="build-views" aria-label="Explore the project at this point" hidden>
-          {["Roadmap","Reasoning","Work","Checks"].map(label=><button type="button" data-view={label.toLowerCase()} aria-expanded="false" aria-haspopup="dialog" aria-controls="build-details">{label}</button>)}
+          {["Plan","Reasoning","Work","Checks"].map(label=><button type="button" data-view={label.toLowerCase()} aria-expanded="false" aria-haspopup="dialog" aria-controls="build-details">{label}</button>)}
         </nav>
       </aside>
     </div>
     <dialog id="build-details" class="build-details" aria-labelledby="build-detail-title">
-      <header><h3 id="build-detail-title">Roadmap</h3><button type="button" data-close-details aria-label="Close details">Close <span aria-hidden="true">×</span></button></header>
+      <header><h3 id="build-detail-title">Plan</h3><button type="button" data-close-details aria-label="Close details">Close <span aria-hidden="true">×</span></button></header>
       <div id="build-panel" class="build-panel" tabindex="-1"><div data-record-view></div></div>
     </dialog>
   </div>
@@ -53,7 +53,7 @@ const asset=(file)=>publicAssetUrl("demo/tic-tac-toe/"+file);
   <div class="build-result">
     <figure><img src={asset("desktop-result.png")} alt="The finished tic-tac-toe board in the browser: X and O marks on nine squares, the computer's winning column highlighted, the running score, and a Play again button." width="720" height="700" loading="lazy" decoding="async" /><figcaption>The finished game, Bevy 0.20.0 in the browser</figcaption></figure>
     <div class="build-result-copy">
-      <p><strong>This is the Codex session that built the example on this page.</strong> Recorded on {new Date(recording.project.recorded+"T12:00:00Z").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric",timeZone:"UTC"})}: {minutes(recording,end)} minutes from the first request to the finished game, with every roadmap change, decision, file write and check as Magistr saved it. The same session then published this site; those replies are in the full session, not in the walkthrough.</p>
+      <p><strong>This is the Codex session that built the example on this page.</strong> Recorded on {new Date(recording.project.recorded+"T12:00:00Z").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric",timeZone:"UTC"})}: {minutes(recording,end)} minutes from the first request to the finished game, with every plan change, decision, file write and check as Magistr saved it. The same session then published this site; those replies are in the full session, not in the walkthrough.</p>
       <div class="build-downloads"><button type="button" data-open-transcript aria-haspopup="dialog" hidden>Read the full session</button><a href={asset("source.zip")} download>Download the game source</a><a href={asset("recording.json")} download>Recording data</a></div>
     </div>
   </div>

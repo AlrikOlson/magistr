@@ -14,12 +14,12 @@ pub use magistr_engine::spec::SpecSummary;
 /// Build a [`SpecSummary`] from the YAML store if available, falling back to markdown parsing.
 ///
 /// This is the preferred entry point for workflow code. It reads directly
-/// from `.magistr/roadmap.yaml` (via [`RoadmapIndex::to_spec_summary`]) so the
+/// from `.magistr/plan.yaml` (via [`PlanIndex::to_spec_summary`]) so the
 /// numbers always match the YAML store. Falls back to markdown for
 /// non-magistr projects or when the YAML file doesn't exist.
 pub fn spec_summary_from_project(project_dir: &Path, spec_path: &Path) -> Result<SpecSummary> {
-    let yaml_path = crate::roadmap::yaml_path(project_dir);
-    if let Ok(store) = crate::roadmap::YamlStore::load(&yaml_path) {
+    let yaml_path = crate::plan::yaml_path(project_dir);
+    if let Ok(store) = crate::plan::YamlStore::load(&yaml_path) {
         return Ok(store.index().to_spec_summary());
     }
     // Fallback for non-magistr projects or missing YAML

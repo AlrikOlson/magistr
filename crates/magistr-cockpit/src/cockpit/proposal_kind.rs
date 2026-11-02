@@ -1,8 +1,8 @@
-//! Which field of a chunk an open proposal wants to change.
+//! Which field of a task an open proposal wants to change.
 
-use magistr_workflow_contracts::Chunk;
+use magistr_workflow_contracts::Task;
 
-/// The kind of an open roadmap proposal on a chunk, mirroring the three
+/// The kind of an open plan proposal on a task, mirroring the three
 /// the engine records: re-prioritization, status, title.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ProposalKind {
@@ -15,23 +15,23 @@ pub enum ProposalKind {
 }
 
 impl ProposalKind {
-    /// Every kind, in the order the engine's chunk record carries them.
+    /// Every kind, in the order the engine's task record carries them.
     pub const ALL: [Self; 3] = [Self::Reprioritize, Self::Status, Self::Title];
 
-    /// The open proposal of this kind on `chunk`, as the card shows it:
+    /// The open proposal of this kind on `task`, as the card shows it:
     /// the suggested value in words and the reason the proposer gave.
     #[must_use]
-    pub fn on(self, chunk: &Chunk) -> Option<(String, String)> {
+    pub fn on(self, task: &Task) -> Option<(String, String)> {
         match self {
-            Self::Reprioritize => chunk
+            Self::Reprioritize => task
                 .reprioritize
                 .as_ref()
                 .map(|p| (p.suggested_priority.to_string(), p.reason.clone())),
-            Self::Status => chunk
+            Self::Status => task
                 .status_proposal
                 .as_ref()
                 .map(|p| (p.suggested_status.as_wire().to_owned(), p.reason.clone())),
-            Self::Title => chunk
+            Self::Title => task
                 .title_proposal
                 .as_ref()
                 .map(|p| (p.suggested_title.clone(), p.reason.clone())),

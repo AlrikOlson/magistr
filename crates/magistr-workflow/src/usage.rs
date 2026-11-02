@@ -3,7 +3,7 @@
 //! # The gap this closes
 //!
 //! Nothing in this system recorded that a tool was *invoked*. `corpus` records
-//! artifacts (chunks, think steps, signals); the roadmap records plan state;
+//! artifacts (tasks, think steps, signals); the plan records plan state;
 //! the run trace records what an agent said it did. None of them answer "which
 //! verbs are actually hot?" — a question the tool-surface work needs before it
 //! can retire anything.
@@ -98,7 +98,7 @@
 //! - [`SOAK_MIN_ACTIVE_DAYS`] = 14. Under this project's actual rhythm, 14
 //!   active days spans several calendar weeks, which is where the Azure
 //!   30-day convention lands once it is re-expressed in days that count.
-//!   Weekly-cadence workflows — signal churn, roadmap refresh, the business
+//!   Weekly-cadence workflows — signal churn, plan refresh, the business
 //!   review — cannot be reached by a window of one to three days at all.
 //!
 //! Both are required because each catches a different lie. Volume alone is
@@ -109,7 +109,7 @@
 //! ## The family qualifier — the hole the two numbers do not close
 //!
 //! A soak can be long, broad, and still blind: fourteen active days of nothing
-//! but `/roadmap` is no evidence at all about `signal_*`. So a per-verb reading
+//! but `/plan` is no evidence at all about `signal_*`. So a per-verb reading
 //! is qualified by its family. If a verb reads 0 and **its whole family reads
 //! 0**, the honest verdict is not "cold" but *"that workflow was never run"* —
 //! see [`CallCounts::verdict`], which returns that distinction as a value rather
@@ -195,7 +195,7 @@ pub enum Verdict {
     /// Zero, and every other verb in its family is zero too — so the workflow
     /// that would use it was never run. Not evidence about this verb.
     FamilyUnexercised {
-        /// The family prefix (`signal`, `roadmap`, …) that read zero.
+        /// The family prefix (`signal`, `plan`, …) that read zero.
         family: String,
     },
 }
@@ -529,12 +529,12 @@ mod tests {
     #[test]
     fn counts_survive_the_process_boundary() {
         let cfg = scratch("boundary");
-        let c = counter(&cfg, &["roadmap_status"]);
-        c.record("roadmap_status", "2026-07-28T00:00:00Z");
+        let c = counter(&cfg, &["plan_status"]);
+        c.record("plan_status", "2026-07-28T00:00:00Z");
 
         let reader = Persistence::new(&cfg, Domain::Usage);
         let got = load_from(&reader, "proj-usage").expect("a later process must see the counts");
-        assert_eq!(got.counts.get("roadmap_status"), Some(&1));
+        assert_eq!(got.counts.get("plan_status"), Some(&1));
         assert!(
             load_from(&reader, "proj-other").is_none(),
             "counts must not bleed across projects"
@@ -590,7 +590,7 @@ mod tests {
         }
     }
 
-    /// The whole chunk in one assertion: on day one every verb reads zero, and
+    /// The whole task in one assertion: on day one every verb reads zero, and
     /// none of them may be called cold.
     #[test]
     fn day_one_zero_is_never_cold() {
@@ -611,7 +611,7 @@ mod tests {
     /// Volume alone is not enough — an afternoon of hammering one workflow.
     #[test]
     fn volume_without_spread_does_not_meet_the_soak() {
-        let soak = soaked("roadmap_status", SOAK_MIN_CALLS * 4, 2).soak();
+        let soak = soaked("plan_status", SOAK_MIN_CALLS * 4, 2).soak();
         assert!(!soak.met, "4x the call volume over 2 days must not qualify");
         assert_eq!(soak.missing.len(), 1, "only the day threshold is unmet");
         assert!(soak.missing[0].contains("active day"));
@@ -621,17 +621,17 @@ mod tests {
     /// noise.
     #[test]
     fn spread_without_volume_does_not_meet_the_soak() {
-        let soak = soaked("roadmap_status", 30, SOAK_MIN_ACTIVE_DAYS * 3).soak();
+        let soak = soaked("plan_status", 30, SOAK_MIN_ACTIVE_DAYS * 3).soak();
         assert!(!soak.met, "30 calls over 6 weeks must not qualify");
         assert_eq!(soak.missing.len(), 1);
         assert!(soak.missing[0].contains("call"));
     }
 
     /// The hole the two numbers do not close: a met soak made entirely of
-    /// `/roadmap` says nothing about `signal_*`.
+    /// `/plan` says nothing about `signal_*`.
     #[test]
     fn a_met_soak_still_refuses_a_verb_whose_family_never_ran() {
-        let counts = soaked("roadmap_status", SOAK_MIN_CALLS, SOAK_MIN_ACTIVE_DAYS);
+        let counts = soaked("plan_status", SOAK_MIN_CALLS, SOAK_MIN_ACTIVE_DAYS);
         assert!(counts.soak().met, "precondition: the window itself is met");
         assert_eq!(
             counts.verdict("signal_research"),
@@ -658,7 +658,7 @@ mod tests {
         counts.counts.insert("signal_capture".to_string(), 0);
         counts
             .counts
-            .insert("roadmap_status".to_string(), SOAK_MIN_CALLS);
+            .insert("plan_status".to_string(), SOAK_MIN_CALLS);
         assert_ne!(
             counts.verdict("signal_research"),
             Verdict::Cold,
@@ -670,9 +670,9 @@ mod tests {
     /// must not shorten a window another spent two weeks accumulating.
     #[test]
     fn merge_unions_active_days_rather_than_replacing_them() {
-        let disk = soaked("roadmap_status", 5, 10);
+        let disk = soaked("plan_status", 5, 10);
         let delta = CallCounts {
-            counts: BTreeMap::from([("roadmap_status".to_string(), 1)]),
+            counts: BTreeMap::from([("plan_status".to_string(), 1)]),
             updated_at: "2026-07-28T00:00:00Z".to_string(),
             active_days: BTreeSet::from(["2026-07-28".to_string()]),
         };
@@ -687,10 +687,10 @@ mod tests {
     #[test]
     fn recorded_calls_populate_the_observation_window() {
         let cfg = scratch("window");
-        let c = counter(&cfg, &["roadmap_status"]);
-        c.record("roadmap_status", "2026-07-28T01:00:00Z");
-        c.record("roadmap_status", "2026-07-28T09:00:00Z");
-        c.record("roadmap_status", "2026-07-29T01:00:00Z");
+        let c = counter(&cfg, &["plan_status"]);
+        c.record("plan_status", "2026-07-28T01:00:00Z");
+        c.record("plan_status", "2026-07-28T09:00:00Z");
+        c.record("plan_status", "2026-07-29T01:00:00Z");
         let got = c.snapshot();
         assert_eq!(got.total(), 3);
         assert_eq!(
@@ -721,10 +721,10 @@ mod tests {
     #[test]
     fn a_malformed_stamp_costs_the_day_not_the_count() {
         let cfg = scratch("badstamp");
-        let c = counter(&cfg, &["roadmap_status"]);
-        c.record("roadmap_status", "not-a-timestamp");
+        let c = counter(&cfg, &["plan_status"]);
+        c.record("plan_status", "not-a-timestamp");
         let got = c.snapshot();
-        assert_eq!(got.counts.get("roadmap_status"), Some(&1));
+        assert_eq!(got.counts.get("plan_status"), Some(&1));
         assert!(got.active_days.is_empty());
     }
 

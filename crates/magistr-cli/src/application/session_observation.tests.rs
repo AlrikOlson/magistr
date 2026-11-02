@@ -565,9 +565,9 @@ fn workflow_snapshots_survive_separately_without_evicting_conversation_or_drafts
         plan: None,
     }));
     let before = owner.snapshot();
-    let mut chunk = fixtures::chunk("selected-record");
-    chunk.description = "x".repeat(MAX_BYTES + 1);
-    let snapshot = fixtures::snapshot(vec![chunk], Vec::new());
+    let mut task = fixtures::task("selected-record");
+    task.description = "x".repeat(MAX_BYTES + 1);
+    let snapshot = fixtures::snapshot(vec![task], Vec::new());
     owner.send(Msg::Engine(EngineEvent::Seed(snapshot.clone())));
     let revision = owner.snapshot().workflow_revision;
     assert_eq!(revision, before.workflow_revision + 1);
@@ -601,19 +601,16 @@ fn workflow_snapshots_survive_separately_without_evicting_conversation_or_drafts
     assert_eq!(owner.snapshot().workflow_revision, after.workflow_revision);
     owner.activate_context("one").unwrap();
     assert_eq!(owner.snapshot().workflow_revision, after.workflow_revision);
-    assert!(matches!(
-        after.seed.snapshot.roadmap,
-        ReadState::Stale { .. }
-    ));
+    assert!(matches!(after.seed.snapshot.plan, ReadState::Stale { .. }));
     assert_eq!(
         after
             .seed
             .snapshot
-            .roadmap
+            .plan
             .last_successful()
             .unwrap()
             .value
-            .chunks[0]
+            .tasks[0]
             .id,
         "selected-record"
     );
@@ -628,7 +625,7 @@ fn workflow_snapshots_survive_separately_without_evicting_conversation_or_drafts
 #[tokio::test]
 async fn duplicate_events_do_not_advance_sequence_or_freshness_and_close_refresh_returns() {
     use magistr_cockpit::{engine::EngineEvent, harness::fixtures};
-    use magistr_engine::{Delivery, NativeConfig, NativeEvent, NativeReader, RoadmapFrame};
+    use magistr_engine::{Delivery, NativeConfig, NativeEvent, NativeReader, PlanFrame};
     let temp = tempfile::tempdir().unwrap();
     let config = NativeConfig::from_lookup(temp.path().to_owned(), |_| None)
         .with_data_dir(temp.path().join("data"));
@@ -639,11 +636,11 @@ async fn duplicate_events_do_not_advance_sequence_or_freshness_and_close_refresh
     let owner = std::sync::Arc::new(SessionObservation::new(address()));
     owner.set_reader(reads, super::super::workflow_client::FeedLink::new());
     owner.send(Msg::Engine(EngineEvent::Seed(fixtures::snapshot(
-        vec![fixtures::chunk("selected")],
+        vec![fixtures::task("selected")],
         vec![],
     ))));
-    let event = NativeEvent::Roadmap(RoadmapFrame::ChunkChanged {
-        chunk: fixtures::chunk("other"),
+    let event = NativeEvent::Plan(PlanFrame::TaskChanged {
+        task: fixtures::task("other"),
     });
     owner.send(Msg::Engine(EngineEvent::Event {
         event: event.clone(),
@@ -662,7 +659,7 @@ async fn duplicate_events_do_not_advance_sequence_or_freshness_and_close_refresh
         .unwrap()
         .unwrap();
     assert!(snapshot.closed);
-    assert!(snapshot.seed.snapshot.roadmap.current().is_err());
+    assert!(snapshot.seed.snapshot.plan.current().is_err());
 }
 
 #[test]
@@ -676,9 +673,9 @@ fn actual_work_and_launch_refusal_survive_pruning_reseed_and_conversation_switch
     bind(&owner);
     let mut run = WorkRun {
         id: RunId::new(ProjectId::new("project").unwrap(), "run-one").unwrap(),
-        mode: RunMode::ChunkLoop,
+        mode: RunMode::TaskLoop,
         track: None,
-        chunk: Some("item".into()),
+        task: Some("item".into()),
         iteration: 1,
         limit: 10,
         phase: WorkPhase::Starting,

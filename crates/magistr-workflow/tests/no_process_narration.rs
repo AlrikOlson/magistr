@@ -14,7 +14,7 @@
 //!
 //! Deliberately NOT gated, because each has a legitimate meaning here:
 //! `SEP-<n>` (public MCP Spec Enhancement Proposals — citations, like RFCs),
-//! `chunk` (the roadmap domain term), `this run` (the current push/sweep
+//! `task` (the plan domain term), `this run` (the current push/sweep
 //! execution), `api.linear.app` and `linear.app/oauth` (product endpoints),
 //! and small-number wire-format fixtures such as `ext:linear/THI-1`.
 

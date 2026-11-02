@@ -263,7 +263,7 @@ fn setup_rejects_symlinked_codex_and_shared_skill_ancestors_before_writing() {
 
 #[test]
 fn native_only_denials_and_unrelated_server_preserve_user_values() {
-    for original_denials in ["['custom_guard']", "['custom_guard', 'roadmap_export']"] {
+    for original_denials in ["['custom_guard']", "['custom_guard', 'plan_export']"] {
         let tmp = tempfile::tempdir().unwrap();
         let dir = tmp.path();
         let project = serde_json::json!({
@@ -272,7 +272,7 @@ fn native_only_denials_and_unrelated_server_preserve_user_values() {
     "quality_gate": {"check": "true", "test": "true", "lint": "true"},
     "format": {"command": "", "extensions": []},
     "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
-    "reference_repos": [], "state_prefix": "settings-test", "roadmap_exports": false
+    "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false
 }).to_string();
         write(dir, ".magistr/project.json", &project);
         let original = format!(
@@ -298,7 +298,7 @@ fn native_only_denials_and_unrelated_server_preserve_user_values() {
         assert_eq!(
             denied
                 .iter()
-                .filter(|value| value.as_str() == Some("roadmap_export"))
+                .filter(|value| value.as_str() == Some("plan_export"))
                 .count(),
             1
         );
@@ -308,8 +308,8 @@ fn native_only_denials_and_unrelated_server_preserve_user_values() {
                 .any(|value| value.as_str() == Some("custom_guard"))
         );
         assert_eq!(read(dir, ".magistr/project.json"), project);
-        assert!(!dir.join("ROADMAP.md").exists());
-        assert!(!dir.join("ROADMAP.json").exists());
+        assert!(!dir.join("PLAN.md").exists());
+        assert!(!dir.join("PLAN.json").exists());
         CodexSetup::remove_target(dir).unwrap();
         let after: toml::Value = toml::from_str(&read(dir, CONFIG)).unwrap();
         let before: toml::Value = toml::from_str(&original).unwrap();

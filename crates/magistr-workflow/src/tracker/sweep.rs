@@ -14,7 +14,7 @@
 //! # What it deliberately does NOT do
 //!
 //! It does not apply anything. Whether a remote retitle should win, whether a
-//! closed ticket becomes a proposal on the chunk, which fields we own and which
+//! closed ticket becomes a proposal on the task, which fields we own and which
 //! the team owns — that is the conflict policy, and it is its own subsystem.
 //! A sweep that applied changes would be that policy written badly, in the
 //! wrong place, by a component whose job is detection. [`SweepReport`] is the
@@ -52,7 +52,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::roadmap::engine::RoadmapEngine;
+use crate::plan::engine::PlanEngine;
 use crate::tracker::domain::WorkItem;
 use crate::tracker::echo::{Verdict, classify};
 use crate::tracker::port::{TrackerError, TrackerPort};
@@ -123,7 +123,7 @@ pub fn record(
                     // from ours — and byte order disagrees with time order
                     // across them.
                     Some(theirs) => {
-                        if crate::roadmap::domain::rfc3339_newer(ours_at, theirs) {
+                        if crate::plan::domain::rfc3339_newer(ours_at, theirs) {
                             ours_at.clone()
                         } else {
                             theirs.clone()
@@ -166,7 +166,7 @@ pub struct SweepReport {
 /// The watermark advances only on success. An error leaves it untouched and
 /// returns the error, so the next run redoes the window rather than skipping it.
 pub async fn reconcile(
-    engine: &RoadmapEngine,
+    engine: &PlanEngine,
     tracker: &dyn TrackerPort,
     data_dir: &Path,
     run_start: &str,

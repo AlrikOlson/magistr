@@ -17,7 +17,7 @@ const PROJECT_SKILLS: [&str; 9] = [
     "init",
     "next",
     "next-loop",
-    "roadmap",
+    "plan",
     "roadmap-refresh",
     "signals",
     "validate",

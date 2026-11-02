@@ -25,9 +25,9 @@ pub(super) fn observe(snapshot: &mut Arc<NativeSnapshot>, event: EngineEvent) ->
                 invalidate_all(snapshot);
             } else {
                 match event {
-                    NativeEvent::Roadmap(_) => {
-                        if matches!(&snapshot.roadmap, ReadState::Current(_)) {
-                            invalidate(&mut Arc::make_mut(snapshot).roadmap);
+                    NativeEvent::Plan(_) => {
+                        if matches!(&snapshot.plan, ReadState::Current(_)) {
+                            invalidate(&mut Arc::make_mut(snapshot).plan);
                         }
                     }
                     NativeEvent::Run(_) => {
@@ -74,13 +74,13 @@ fn invalidate_think(snapshot: &mut Arc<NativeSnapshot>) {
 }
 
 fn invalidate_all(snapshot: &mut Arc<NativeSnapshot>) {
-    let current = matches!(&snapshot.roadmap, ReadState::Current(_))
+    let current = matches!(&snapshot.plan, ReadState::Current(_))
         || matches!(&snapshot.run, ReadState::Current(_))
         || matches!(&snapshot.signals, ReadState::Current(_))
         || matches!(&snapshot.think, ReadState::Current(_));
     if current {
         let snapshot = Arc::make_mut(snapshot);
-        invalidate(&mut snapshot.roadmap);
+        invalidate(&mut snapshot.plan);
         invalidate(&mut snapshot.run);
         invalidate(&mut snapshot.signals);
         invalidate(&mut snapshot.think);

@@ -7,8 +7,8 @@ Magistr is a source preview; installation requires repository access.
 2. [Connect Codex, Claude Code, or another agent](https://magistr.dev/docs/agents).
 3. [Complete a first task](https://magistr.dev/docs/workflow).
 
-For ongoing work, see [planning](https://magistr.dev/docs/roadmap),
-[chunks](https://magistr.dev/docs/chunks),
+For ongoing work, see [planning](https://magistr.dev/docs/plan),
+[tasks](https://magistr.dev/docs/tasks),
 [verification](https://magistr.dev/docs/verification), and
 [resuming sessions](https://magistr.dev/docs/sessions).
 

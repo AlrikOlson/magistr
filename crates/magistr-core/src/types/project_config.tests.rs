@@ -34,7 +34,7 @@ fn sample_config() -> ProjectConfig {
             exclusions: vec![],
         },
         spec: Some(SpecConfig {
-            file: "ROADMAP.md".to_string(),
+            file: "PLAN.md".to_string(),
             unchecked_pattern: "^\\s*- \\[ \\]".to_string(),
         }),
         testing: TestingConfig {
@@ -47,8 +47,8 @@ fn sample_config() -> ProjectConfig {
         guards: Default::default(),
         hints: vec!["Use the magistr MCP server".to_string()],
         lifecycle_hooks: vec![],
-        roadmap_backend: Default::default(),
-        roadmap_exports: true,
+        plan_backend: Default::default(),
+        plan_exports: true,
         archetypes: vec![],
         topology: None,
         relationships: vec![],
@@ -64,20 +64,18 @@ fn serde_roundtrip() {
 }
 
 #[test]
-fn roadmap_exports_default_true_and_false_survives_config_roundtrip() {
+fn plan_exports_default_true_and_false_survives_config_roundtrip() {
     let mut json = serde_json::to_value(sample_config()).expect("config");
-    json.as_object_mut()
-        .expect("object")
-        .remove("roadmap_exports");
+    json.as_object_mut().expect("object").remove("plan_exports");
     let mut config: ProjectConfig = serde_json::from_value(json).expect("legacy config");
-    assert!(config.roadmap_exports);
-    config.roadmap_exports = false;
+    assert!(config.plan_exports);
+    config.plan_exports = false;
     let json = serde_json::to_value(&config).expect("config");
-    assert_eq!(json["roadmap_exports"], false);
+    assert_eq!(json["plan_exports"], false);
     assert!(
         !serde_json::from_value::<ProjectConfig>(json)
             .expect("roundtrip")
-            .roadmap_exports
+            .plan_exports
     );
 }
 
@@ -96,7 +94,7 @@ fn deserializes_from_real_project_json() {
         "stack": {"language": "python", "framework": "django", "package_manager": "pip", "test_framework": "pytest", "linter": "ruff", "formatter": "black"},
         "quality_gate": {"check": "python -m py_compile .", "test": "pytest", "lint": "ruff check"},
         "format": {"command": "black .", "extensions": ["py"]},
-        "spec": {"file": "ROADMAP.md", "unchecked_pattern": "- \\[ \\]"},
+        "spec": {"file": "PLAN.md", "unchecked_pattern": "- \\[ \\]"},
         "testing": {"companion_pattern": "test_{name}.py", "test_dir": "tests"},
         "reference_repos": [],
         "state_prefix": "foo"
@@ -116,24 +114,24 @@ fn stack_config_fields() {
 }
 
 #[test]
-fn roadmap_backend_defaults_to_workflow_and_is_written() {
+fn plan_backend_defaults_to_workflow_and_is_written() {
     let config = sample_config();
-    assert_eq!(config.roadmap_backend, RoadmapBackend::Native);
+    assert_eq!(config.plan_backend, PlanBackend::Native);
     let json = serde_json::to_string(&config).expect("serialize");
     assert!(
-        json.contains("\"roadmap_backend\":\"native\""),
+        json.contains("\"plan_backend\":\"native\""),
         "the backend is always written: {json}"
     );
 }
 
 #[test]
-fn roadmap_backend_yaml_round_trips() {
+fn plan_backend_yaml_round_trips() {
     let mut config = sample_config();
-    config.roadmap_backend = RoadmapBackend::Yaml;
+    config.plan_backend = PlanBackend::Yaml;
     let json = serde_json::to_string(&config).expect("serialize");
-    assert!(json.contains("\"roadmap_backend\":\"yaml\""), "{json}");
+    assert!(json.contains("\"plan_backend\":\"yaml\""), "{json}");
     let back: ProjectConfig = serde_json::from_str(&json).expect("deserialize");
-    assert!(!back.roadmap_backend.is_native());
+    assert!(!back.plan_backend.is_native());
 }
 
 #[test]
@@ -148,11 +146,11 @@ fn deserializes_without_spec_block() {
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [],
         "state_prefix": "foo",
-        "roadmap_backend": "native"
+        "plan_backend": "native"
     }"#;
     let config: ProjectConfig = serde_json::from_str(json).expect("spec is optional");
     assert!(config.spec.is_none());
-    assert!(config.roadmap_backend.is_native());
+    assert!(config.plan_backend.is_native());
 }
 
 #[test]

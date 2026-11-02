@@ -96,12 +96,12 @@ cannot accumulate token payloads. Navigation intentions are monotonic at both
 ends. Late subscriptions and frames cannot replace the selected session.
 Each conversation snapshot retains at most 512 source records within a one MiB
 payload budget. Each record has its first observation identity and latest
-revision. Text chunks amend their original record; tool updates merge by call
+revision. Text tasks amend their original record; tool updates merge by call
 identity into complete tool facts, including the original input and later
 results. Revising an existing tool or receiving ancillary observations does not
 split a streamed reply; a new tool call separates subsequent content. Whole-record
 pruning reports a dropped count, including an oversized record that cannot fit.
-An evicted active stream keeps only its identity and kind; its remaining chunks
+An evicted active stream keeps only its identity and kind; its remaining tasks
 are suppressed until a real role/content boundary, so no arbitrary source suffix
 is presented as a complete reply.
 Tool input/output/text also retain the application's existing 64 KiB tool-record
@@ -158,7 +158,7 @@ only a validated URL and never an application or path. The lockfile adds 21
 packages: parser/unicase, opener/open and platform detection, plus Linux DBus
 and supporting packages. Existing locked versions are unchanged.
 
-Roadmap detail reads resolve prerequisites and dependents from the same complete native graph. Shared workflow policy supplies readiness, including missing and cross-track requirements. Local navigation retains at most 64 item identities and reading positions, then returns to the originating track; it stores no second roadmap.
+Plan detail reads resolve prerequisites and dependents from the same complete native graph. Shared workflow policy supplies readiness, including missing and cross-track requirements. Local navigation retains at most 64 item identities and reading positions, then returns to the originating track; it stores no second plan.
 
 ## Interface
 
@@ -171,13 +171,13 @@ Code documents offer horizontal reading or wrapping while preserving original by
 
 The desktop frame gives the conversation a broad reading surface and a compact composer. The left rail groups conversations under their projects, with project opening, new conversations, saved history and Settings outside its scrolling list. RecentProject exposes the same NativeConfig-resolved identity used by session admission; grouping never infers identity from a display name or working-copy path. Stable row nodes keep focus, disclosure state and scroll through catalog updates. Each row has one actions disclosure; unavailable Stop and Reconnect controls do not clutter the list. Project marks derive from their actual names, and branch lines connect their conversations. Filled rows with a violet edge identify selection; light and dark appearances use the same semantic roles. Details starts closed to give reading and editing the available width. Attachment images open an ephemeral full-size inspection dialog from their existing preview URL. Fit, actual-size and bounded 25–400% zoom views preserve image proportions. A filename-labeled vertical contact sheet (horizontal in compact windows) and arrow navigation resolve the current images from the existing AttachmentList; they do not retain another file collection. The inspection background can be checked, light or dark; metadata uses actual file and decoded-image facts, and removal closes the matching inspection. Sent files form a contact sheet with image dimensions and text excerpts derived from the retained previews. No file read or new attachment registry is introduced.
 
-The integrated composer includes file attachment and an agent-settings shortcut. Expand turns the same textarea into a larger writing surface with a centered manuscript measure, a document margin, anchored actions and source-derived Unicode character and line counts, preserving selection, caret and the current draft owner. Escape returns to the compact composer; hidden conversation content is inert while writing is expanded. Application appearance and motion live in a separate Settings dialog using the existing preferences owner. A labeled Details control shows requests and planned work before agent settings and the working copy. One persistent project bar owns the project name, working-copy access and Conversation, Work, Roadmap, Reasoning, Feedback and Sources destinations. Conversation title and current controls occupy a single row below it. Compact windows retain the same destinations in one project row. A persistent toolbar exposes the current work state and waiting requests while Details is closed; WorkPanel supplies the same presentation to both surfaces. Conversation actions live beside the title. Rename keeps its captured ConversationTarget, prevents duplicate pending saves, preserves refused text and waits for the existing command acknowledgement; the title still comes from owner observations. Above 1100 CSS pixels it controls an adjacent pane; at narrower widths it switches between the same conversation and details nodes. No subscription or session is restarted by changing layout. Escape returns from Details to its toggle, and resizing preserves focus in the active surface. Latest reply has its own row so it cannot cover conversation text.
+The integrated composer includes file attachment and an agent-settings shortcut. Expand turns the same textarea into a larger writing surface with a centered manuscript measure, a document margin, anchored actions and source-derived Unicode character and line counts, preserving selection, caret and the current draft owner. Escape returns to the compact composer; hidden conversation content is inert while writing is expanded. Application appearance and motion live in a separate Settings dialog using the existing preferences owner. A labeled Details control shows requests and planned work before agent settings and the working copy. One persistent project bar owns the project name, working-copy access and Conversation, Work, Plan, Reasoning, Feedback and Sources destinations. Conversation title and current controls occupy a single row below it. Compact windows retain the same destinations in one project row. A persistent toolbar exposes the current work state and waiting requests while Details is closed; WorkPanel supplies the same presentation to both surfaces. Conversation actions live beside the title. Rename keeps its captured ConversationTarget, prevents duplicate pending saves, preserves refused text and waits for the existing command acknowledgement; the title still comes from owner observations. Above 1100 CSS pixels it controls an adjacent pane; at narrower widths it switches between the same conversation and details nodes. No subscription or session is restarted by changing layout. Escape returns from Details to its toggle, and resizing preserves focus in the active surface. Latest reply has its own row so it cannot cover conversation text.
 
 At 900 CSS pixels and below, ProjectRailLayout turns the rail's application actions into a compact top bar. Projects switches between the same navigation and main nodes; it does not create an overlay, another project registry or a new session. The native minimum is read from the window configuration and verified in dark and light captures. Escape, F6 and committed conversation selection reveal the intended surface. A failed selection save reveals the retained draft and its error. Background requests keep a visible count in Projects and the existing polite announcement. Above the threshold the usual rail and conversation are both visible. Short-window spacing keeps source, draft and action controls usable. At the 760-by-550 native minimum, the conversation retains at least 200 pixels of reading height with an ordinary title and draft; long titles clamp to two lines and expose their full text through the native title tooltip. Compact project browsing uses two columns where they fit. At 1600 pixels and above the rail widens to 264 pixels, the reading measure to 800 pixels and an open details pane to 356 pixels.
 
 The opening activity overview derives mutually exclusive working, waiting, idle and disconnected counts from the accepted catalog, excluding closed residents. Compact labeled counts and a proportional strip show the same observations without another activity registry.
 
-The directory and rail reuse projectGroups over the recent-project overview and live session catalog. Keyed rows show actual working folders, open conversations and pending answers. Counts update on accepted catalog observations; closing a conversation removes it from the open count. The alternate project map projects at most eight projects and six conversations per project into the shared WorkSurface. Readable project and conversation pieces use orthogonal membership lines without dependency arrows. Project pieces open the existing resident workspace, or use normal admission when no resident exists; conversation pieces select through the same draft-flush and subscription owner. View controls, keyboard navigation and local arrangement are shared with roadmap and reasoning. Explicit overflow pieces and the complete list keep omitted catalog entries reachable. Saved history uses a compact catalog beside a reading document. Permission sheets retain the exact request and choices. Opening, setup review and appearance dialogs retain their existing writers. The [workspace interaction contract](../design/desktop-workspace.md) and [current iteration archive](https://github.com/AlrikOlson/magistr-evidence/blob/main/2026-10-15-restart/README.md) describe the current composition and verification scope. The [desktop identity](../design/desktop-identity.md) is the design contract the identity cutover moves this composition to.
+The directory and rail reuse projectGroups over the recent-project overview and live session catalog. Keyed rows show actual working folders, open conversations and pending answers. Counts update on accepted catalog observations; closing a conversation removes it from the open count. The alternate project map projects at most eight projects and six conversations per project into the shared WorkSurface. Readable project and conversation pieces use orthogonal membership lines without dependency arrows. Project pieces open the existing resident workspace, or use normal admission when no resident exists; conversation pieces select through the same draft-flush and subscription owner. View controls, keyboard navigation and local arrangement are shared with plan and reasoning. Explicit overflow pieces and the complete list keep omitted catalog entries reachable. Saved history uses a compact catalog beside a reading document. Permission sheets retain the exact request and choices. Opening, setup review and appearance dialogs retain their existing writers. The [workspace interaction contract](../design/desktop-workspace.md) and [current iteration archive](https://github.com/AlrikOlson/magistr-evidence/blob/main/2026-10-15-restart/README.md) describe the current composition and verification scope. The [desktop identity](../design/desktop-identity.md) is the design contract the identity cutover moves this composition to.
 
 Find a conversation filters the existing catalog by name, project and working-copy path and selects through the same draft-flush/navigation path. Results group by canonical project identity, showing a shared working folder once or explicit row paths for multiple copies. Its ordinary search field and result buttons support arrow-key browsing, preserve recoverable save errors and return focus to a surviving trigger. Platform shortcut labels are shown in the rail and Settings. F6 and Shift F6 visit projects, messages, composer and Details; compact layout changes reveal the intended region. Global navigation shortcuts ignore composition and open modal dialogs.
 
@@ -325,9 +325,9 @@ reply. A queued launch has its own pending state until the owner admits or
 refuses it. Navigation and reseeding project these facts without inventing a
 second execution state.
 
-Project Work, Roadmap and Reasoning open as full workspace destinations from the
+Project Work, Plan and Reasoning open as full workspace destinations from the
 project rail and directory through Open workspace, then a persistent project tab
-bar shared with Conversation, Work, Roadmap, Reasoning, Feedback and Sources.
+bar shared with Conversation, Work, Plan, Reasoning, Feedback and Sources.
 They reuse the selected
 project's resident session without admitting another provider. Returning restores
 the same conversation and draft. The project rail remains available, marks the
@@ -356,8 +356,8 @@ Task activity preserves owner action order, complete outcomes and produced
 artifact references. Files and tools mentioned by an agent remain authored
 claims. Web references use the existing native link policy; local references
 are selectable and copyable without inventing a filesystem-opening command.
-The Roadmap view uses workstream_catalog and workstream_frontier from the shared
-workflow contracts against the same complete roadmap. Counts and readiness
+The Plan view uses workstream_catalog and workstream_frontier from the shared
+workflow contracts against the same complete plan. Counts and readiness
 arrive with preserved ReadState. The desktop lays out prerequisites beside their
 consumers, marks the owner's next-ready item and retains authored checklist
 progress. Each primary page contains at most 50 items; the visible neighborhood
@@ -366,7 +366,7 @@ policy. A persistent inspector retains complete records while the graph stays
 visible. Returning restores the originating item and focus. Track selection
 keeps closed, ungrouped and missing tracks distinct. Keyboard tabs retain focus
 outside refreshed content. Selected item reads map the same owner ReadState to
-an optional complete Chunk plus disposable Document trees. Removed records stay
+an optional complete Task plus disposable Document trees. Removed records stay
 distinct from read failures. The existing Markdown renderer supplies semantic
 text, safe links and complete-source fallback when presentation limits are hit.
 The reader retains item identity, text selection, track return position and
@@ -380,7 +380,7 @@ matching entries and retain original task positions and receipt identities; a
 failed attempt is not removed by a later pass. The check and activity indexes
 reuse the same renderers as task details.
 
-Roadmap search includes open, completed and retired records across tracks. Details
+Plan search includes open, completed and retired records across tracks. Details
 show prerequisites, dependents and proposed values beside actual saved values;
 viewing a suggestion never applies it. Reasoning reads complete default and named
 histories, investigation membership, dependencies and revisions, with project-wide
@@ -400,7 +400,7 @@ Selected decisions remain beside the map with complete selectable evidence and
 exact copying. Investigation origin/conclusion links preserve the filtered map
 and exact focus on return.
 Feedback includes full authored context, append-only research and sources, kind
-and status filters, and exact references to roadmap, reasoning and other feedback.
+and status filters, and exact references to plan, reasoning and other feedback.
 An ambiguous unqualified execution reference remains explicitly unresolved.
 
 Record status presents each owner's independent observation, complete counts and
@@ -411,21 +411,21 @@ owned by their existing stores.
 
 Manual tab changes retain selected records and at most five transient reading
 bookmarks: scroll, disclosure identities and stamped text-selection coordinates.
-No authored text is stored in those bookmarks. The roadmap reader suspends pending
+No authored text is stored in those bookmarks. The plan reader suspends pending
 application while hidden, retains its own selected identity and return trail,
 and rereads on return. Address and navigation generations reject late responses
 and restores. Changed selected text fails its stamp check rather than selecting
-substitute text. Roadmap and reasoning filters remain available beside contextual
+substitute text. Plan and reasoning filters remain available beside contextual
 inspection. At compact sizes the inspector overlays part of the canvas; Back
 restores the exact originating control. Unavailable histories clear stale detail
 content. Short windows retain a useful reading area.
 
-The [thirty-chunk delivery index](../evidence/desktop-layout/desktop-roadmap-delivery.md)
+The [thirty-task delivery index](../evidence/desktop-layout/desktop-roadmap-delivery.md)
 records the delivered scope, commits and verification limits.
 
 The desktop opens conversations, reads current goals and tasks, starts planned work and prepares projects. The CLI retains
 headless runs, initialization, validation and administrative commands; MCP
-roles serve workflow and source tools. Roadmap editing and browsing arbitrary working-copy changes remain later desktop work.
+roles serve workflow and source tools. Plan editing and browsing arbitrary working-copy changes remain later desktop work.
 
 ## Verification
 

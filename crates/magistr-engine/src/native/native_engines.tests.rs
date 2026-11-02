@@ -3,7 +3,7 @@ use crate::native::{
     EvidencePort, GateContract, NativeConfig, NativeReader, NativeSnapshot, ProjectAuthority,
     SourceFreshness, SourceObservation, SourceWitness, WriterRole,
 };
-use magistr_workflow::roadmap::domain::{BlockerKind, ChunkStatus};
+use magistr_workflow::plan::domain::{TaskStatus, WaitingReason};
 use magistr_workflow::run::domain::check::{Check, CheckType};
 use magistr_workflow::run::domain::progress::ProgressType;
 use magistr_workflow::run::domain::step::StepType;
@@ -12,7 +12,7 @@ use magistr_workflow::think::domain::ThinkStep;
 
 /// A source that never moves and a project that configures no gates: the
 /// evidence capability every writer here is admitted with, so a recorded
-/// gate certifies a source and a chunk can complete on it.
+/// gate certifies a source and a task can complete on it.
 struct Fixed;
 
 impl SourceWitness for Fixed {
@@ -74,13 +74,13 @@ fn reader(cfg: &NativeConfig, project_id: &str) -> NativeReader {
     NativeReader::open_for_project(cfg, project_id.into())
 }
 
-fn add_chunk(engines: &NativeEngines, id: &str, priority: u32, deps: &[&str]) {
+fn add_task(engines: &NativeEngines, id: &str, priority: u32, deps: &[&str]) {
     engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             id.into(),
-            format!("Chunk {id}"),
+            format!("Task {id}"),
             String::new(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             priority,
             String::new(),
             vec![],
@@ -88,7 +88,7 @@ fn add_chunk(engines: &NativeEngines, id: &str, priority: u32, deps: &[&str]) {
             None,
             None,
         )
-        .expect("add chunk");
+        .expect("add task");
 }
 
 fn step(n: u32, purpose: &str) -> ThinkStep {
@@ -297,10 +297,10 @@ fn round_trip_through_a_temp_store() {
     {
         let engines = host(&cfg, "round-trip");
         assert_eq!(engines.project_id(), "round-trip");
-        add_chunk(&engines, "base", 100, &[]);
-        add_chunk(&engines, "next", 200, &["base"]);
-        let started = engines.roadmap_start_chunk("base").expect("start");
-        assert_eq!(started.value.status, ChunkStatus::InProgress);
+        add_task(&engines, "base", 100, &[]);
+        add_task(&engines, "next", 200, &["base"]);
+        let started = engines.plan_start_task("base").expect("start");
+        assert_eq!(started.value.status, TaskStatus::InProgress);
 
         assert!(engines.think_record_step(step(1, "open")).is_ok());
         // Returns the prior pinned state; a fresh step was not pinned.
@@ -308,7 +308,7 @@ fn round_trip_through_a_temp_store() {
 
         assert_eq!(
             engines
-                .run_open("obj".into(), vec![], vec![], "chunk:base".into())
+                .run_open("obj".into(), vec![], vec![], "task:base".into())
                 .expect("goal")
                 .value,
             0
@@ -350,7 +350,7 @@ fn round_trip_through_a_temp_store() {
         // is re-run green; then it is a recovered failure, not an
         // outstanding one.
         let refused = engines
-            .roadmap_complete_chunk("base", Some("step:t1"))
+            .plan_complete_task("base", Some("step:t1"))
             .expect_err("a failed required gate refuses completion");
         assert!(
             refused
@@ -368,9 +368,9 @@ fn round_trip_through_a_temp_store() {
             .expect("capture");
         assert_eq!(sig.value.body, "make it faster");
         let done = engines
-            .roadmap_complete_chunk("base", Some("step:t1"))
-            .expect("complete chunk");
-        assert_eq!(done.value.status, ChunkStatus::Done);
+            .plan_complete_task("base", Some("step:t1"))
+            .expect("complete task");
+        assert_eq!(done.value.status, TaskStatus::Done);
         let report = engines
             .run_finish(vec![], Some("done".into()))
             .expect("finalize");
@@ -380,15 +380,12 @@ fn round_trip_through_a_temp_store() {
 
     // A second process on the same store sees everything.
     let reopened = reader(&cfg, "round-trip");
-    let snap = reopened.roadmap_snapshot().unwrap();
+    let snap = reopened.plan_snapshot().unwrap();
     assert_eq!(snap.count("done"), 1);
     assert_eq!(snap.next_ready.as_deref(), Some("next"));
-    assert_eq!(reopened.roadmap_progress().unwrap().checked_tasks, 1);
+    assert_eq!(reopened.plan_progress().unwrap().checked_tasks, 1);
     assert_eq!(
-        reopened
-            .roadmap_chunk("base")
-            .unwrap()
-            .map(|c| c.cross_refs),
+        reopened.plan_task("base").unwrap().map(|c| c.refs),
         Some(vec!["step:t1".to_string()])
     );
     let pinned = reopened
@@ -407,7 +404,7 @@ fn round_trip_through_a_temp_store() {
     assert_eq!(reopened.signal_status().unwrap()["counts"]["new"], 1);
 
     // Every family wrote under its own partition of the one data dir.
-    for family in ["roadmap", "think", "run", "signal"] {
+    for family in ["plan", "think", "run", "signal"] {
         let base = tmp.path().join("data").join(family);
         let base = if family == "run" {
             base.join("executions").join(cfg.execution_context().key())
@@ -432,50 +429,45 @@ fn two_writers_merge_without_data_loss() {
     let a = host(&cfg, "shared");
     let b = a.clone();
 
-    add_chunk(&a, "from-a", 100, &[]);
-    add_chunk(&b, "from-b", 200, &[]);
+    add_task(&a, "from-a", 100, &[]);
+    add_task(&b, "from-b", 200, &[]);
     // B wrote last from stale memory (it never saw from-a). A plain
     // overwrite would have erased from-a; the locked merge keeps both.
     let c = reader(&cfg, "shared");
-    let ids: Vec<String> = c
-        .roadmap_chunks()
-        .unwrap()
-        .into_iter()
-        .map(|c| c.id)
-        .collect();
+    let ids: Vec<String> = c.plan_tasks().unwrap().into_iter().map(|c| c.id).collect();
     assert!(
         ids.contains(&"from-a".to_string()),
-        "A's chunk survived: {ids:?}"
+        "A's task survived: {ids:?}"
     );
     assert!(
         ids.contains(&"from-b".to_string()),
-        "B's chunk survived: {ids:?}"
+        "B's task survived: {ids:?}"
     );
 
     // The merge lands on disk and in the writer's memory: B's own save
-    // handed it the merged file, so B answers A's chunk without a reload,
-    // and A's next query observes B's chunk the same way.
+    // handed it the merged file, so B answers A's task without a reload,
+    // and A's next query observes B's task the same way.
     assert!(
-        b.roadmap_chunk("from-a").unwrap().is_some(),
+        b.plan_task("from-a").unwrap().is_some(),
         "B's memory is the merged file after its own write"
     );
     assert!(
-        a.roadmap_chunk("from-b").unwrap().is_some(),
+        a.plan_task("from-b").unwrap().is_some(),
         "A's query re-read the moved store"
     );
-    b.roadmap_start_chunk("from-b").expect("start");
+    b.plan_start_task("from-b").expect("start");
     assert_eq!(
-        a.roadmap_chunk("from-b").unwrap().map(|c| c.status),
-        Some(ChunkStatus::InProgress),
+        a.plan_task("from-b").unwrap().map(|c| c.status),
+        Some(TaskStatus::InProgress),
         "A observes B's transition on its next query"
     );
     let d = reader(&cfg, "shared");
-    assert_eq!(d.roadmap_snapshot().unwrap().count("in_progress"), 1);
-    assert_eq!(d.roadmap_snapshot().unwrap().count("pending"), 1);
+    assert_eq!(d.plan_snapshot().unwrap().count("in_progress"), 1);
+    assert_eq!(d.plan_snapshot().unwrap().count("to_do"), 1);
     // A snapshot read on the writer that never reloaded is the current
     // store too, family by family.
     let snapshot = a.snapshot();
-    assert_eq!(snapshot.roadmap.current().unwrap().value.chunks.len(), 2);
+    assert_eq!(snapshot.plan.current().unwrap().value.tasks.len(), 2);
 }
 
 #[test]
@@ -505,24 +497,24 @@ fn persistence_off_writes_nothing() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp).persist(false);
     let engines = host(&cfg, "ephemeral");
-    add_chunk(&engines, "a", 1, &[]);
-    assert!(!tmp.path().join("data").join("roadmap").exists());
+    add_task(&engines, "a", 1, &[]);
+    assert!(!tmp.path().join("data").join("plan").exists());
     let again = reader(&cfg, "ephemeral");
-    assert!(again.roadmap_chunks().unwrap().is_empty());
+    assert!(again.plan_tasks().unwrap().is_empty());
 }
 
 #[test]
-fn roadmap_mutation_wrappers_round_trip() {
+fn plan_mutation_wrappers_round_trip() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
     let engines = host(&cfg, "mutations");
 
     let added = engines
-        .roadmap_add_chunk(
+        .plan_add_task(
             "auth".into(),
             "Authenticate users".into(),
             String::new(),
-            ChunkStatus::Pending,
+            TaskStatus::ToDo,
             200,
             "desc".into(),
             vec!["logs in".into()],
@@ -531,11 +523,11 @@ fn roadmap_mutation_wrappers_round_trip() {
             Some("Identity".into()),
         )
         .expect("add");
-    assert_eq!(added.value.group.as_deref(), Some("Identity"));
+    assert_eq!(added.value.feature.as_deref(), Some("Identity"));
     assert!(!added.value.name.is_empty(), "name is derived from the id");
 
     let updated = engines
-        .roadmap_update_chunk(
+        .plan_update_task(
             "auth",
             Some("Authenticate every user".into()),
             Some(100),
@@ -550,7 +542,7 @@ fn roadmap_mutation_wrappers_round_trip() {
     assert_eq!(updated.value.acceptance.len(), 2);
 
     let proposed = engines
-        .roadmap_reprioritize("auth", 300, "less urgent".into())
+        .plan_reprioritize("auth", 300, "less urgent".into())
         .expect("propose");
     assert_eq!(proposed.value.priority, 100, "a proposal never reorders");
     assert_eq!(
@@ -562,33 +554,33 @@ fn roadmap_mutation_wrappers_round_trip() {
         Some(300)
     );
 
-    let linked = engines.roadmap_link("auth", "think:7").expect("link");
-    assert!(linked.value.cross_refs.contains(&"think:7".to_string()));
+    let linked = engines.plan_link("auth", "think:7").expect("link");
+    assert!(linked.value.refs.contains(&"think:7".to_string()));
 
     let regrouped = engines
-        .roadmap_set_group("auth", Some("Accounts".into()))
-        .expect("set group");
-    assert_eq!(regrouped.value.group.as_deref(), Some("Accounts"));
+        .plan_set_feature("auth", Some("Accounts".into()))
+        .expect("set feature");
+    assert_eq!(regrouped.value.feature.as_deref(), Some("Accounts"));
 
-    let backlogged = engines
-        .roadmap_set_status("auth", ChunkStatus::Backlog)
+    let idea = engines
+        .plan_set_status("auth", TaskStatus::Idea)
         .expect("set status");
-    assert_eq!(backlogged.value.status, ChunkStatus::Backlog);
+    assert_eq!(idea.value.status, TaskStatus::Idea);
     let refused = engines
-        .roadmap_set_status("auth", ChunkStatus::Done)
+        .plan_set_status("auth", TaskStatus::Done)
         .expect_err("done is never set by name");
     assert!(
-        refused.to_string().contains("roadmap_complete_chunk"),
+        refused.to_string().contains("plan_complete_task"),
         "{refused}"
     );
 
     let gone = engines
-        .roadmap_obsolete_chunk("auth", "superseded".into())
+        .plan_retire_task("auth", "superseded".into())
         .expect("obsolete");
-    assert_eq!(gone.value.status, ChunkStatus::Obsoleted);
-    assert_eq!(gone.value.obsoleted_reason.as_deref(), Some("superseded"));
+    assert_eq!(gone.value.status, TaskStatus::Retired);
+    assert_eq!(gone.value.retired_reason.as_deref(), Some("superseded"));
 
-    assert!(engines.roadmap_link("missing", "think:1").is_err());
+    assert!(engines.plan_link("missing", "think:1").is_err());
 }
 
 #[test]
@@ -599,9 +591,9 @@ fn repeated_validated_reads_pick_up_another_writers_changes() {
     let server = service(&cfg, "reload");
     assert_eq!(host.config(), &cfg);
 
-    add_chunk(&server, "only-on-disk", 100, &[]);
+    add_task(&server, "only-on-disk", 100, &[]);
     server
-        .run_open("obj".into(), vec![], vec![], "chunk:only-on-disk".into())
+        .run_open("obj".into(), vec![], vec![], "task:only-on-disk".into())
         .expect("goal");
     server
         .add_step("t1".into(), "step".into(), StepType::Implement, None)
@@ -609,19 +601,19 @@ fn repeated_validated_reads_pick_up_another_writers_changes() {
 
     // The host opened before those writes; every query observes durable truth.
     assert_eq!(
-        host.roadmap_next().unwrap().map(|c| c.id).as_deref(),
+        host.plan_next().unwrap().map(|c| c.id).as_deref(),
         Some("only-on-disk")
     );
     assert_eq!(host.run_snapshot().unwrap().steps().len(), 1);
 
     assert_eq!(
-        host.roadmap_next().unwrap().map(|c| c.id).as_deref(),
+        host.plan_next().unwrap().map(|c| c.id).as_deref(),
         Some("only-on-disk")
     );
     assert_eq!(host.run_snapshot().unwrap().steps().len(), 1);
     assert_eq!(
         host.run_snapshot().unwrap().goal().unwrap().scope,
-        "chunk:only-on-disk"
+        "task:only-on-disk"
     );
 }
 
@@ -699,33 +691,33 @@ fn signal_triage_wrappers_round_trip() {
     let promoted = engines.signal_promote(&a.value.id).expect("promote");
     assert_eq!(promoted.signal.value.status, SignalStatus::Promoted);
     // The reciprocal half the MCP verb has always done: promotion creates
-    // the backlog chunk and links the two both ways.
-    let chunk_id = format!("signal-{}", a.value.id);
+    // the idea task and links the two both ways.
+    let task_id = format!("signal-{}", a.value.id);
     assert!(
         promoted
             .signal
             .value
-            .cross_refs
-            .contains(&format!("chunk:{chunk_id}")),
+            .refs
+            .contains(&format!("task:{task_id}")),
         "{:?}",
-        promoted.signal.value.cross_refs
+        promoted.signal.value.refs
     );
-    let chunk = engines
-        .roadmap_chunk(&chunk_id)
+    let task = engines
+        .plan_task(&task_id)
         .unwrap()
-        .expect("promotion created the backlog chunk");
-    assert_eq!(chunk.status, ChunkStatus::Backlog);
-    assert_eq!(chunk.title, "[idea] faster");
-    assert!(chunk.cross_refs.contains(&format!("signal:{}", a.value.id)));
-    // Promoting again is idempotent: the same chunk, still one of it.
+        .expect("promotion created the idea task");
+    assert_eq!(task.status, TaskStatus::Idea);
+    assert_eq!(task.title, "[idea] faster");
+    assert!(task.refs.contains(&format!("signal:{}", a.value.id)));
+    // Promoting again is idempotent: the same task, still one of it.
     let again = engines.signal_promote(&a.value.id).expect("promote again");
     assert_eq!(again.signal.value.status, SignalStatus::Promoted);
     assert_eq!(
         engines
-            .roadmap_chunks()
+            .plan_tasks()
             .unwrap()
             .iter()
-            .filter(|c| c.id == chunk_id)
+            .filter(|c| c.id == task_id)
             .count(),
         1
     );
@@ -749,99 +741,95 @@ fn proposal_resolution_wrappers_round_trip() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
     let engines = host(&cfg, "proposals");
-    add_chunk(&engines, "a", 100, &[]);
+    add_task(&engines, "a", 100, &[]);
 
     // Title: accept adopts the suggestion, reject keeps the plan's title.
     let proposed = engines
-        .roadmap_propose_title("a", "Better title".into(), "why".into(), "tracker".into())
+        .plan_propose_title("a", "Better title".into(), "why".into(), "tracker".into())
         .expect("propose title");
-    assert_eq!(proposed.value.title, "Chunk a", "a proposal never renames");
+    assert_eq!(proposed.value.title, "Task a", "a proposal never renames");
     assert!(proposed.value.title_proposal.is_some());
     let rejected = engines
-        .roadmap_resolve_title_proposal("a", false)
+        .plan_resolve_title_proposal("a", false)
         .expect("reject title");
-    assert_eq!(rejected.value.title, "Chunk a");
+    assert_eq!(rejected.value.title, "Task a");
     assert!(rejected.value.title_proposal.is_none());
     engines
-        .roadmap_propose_title("a", "Better title".into(), "why".into(), "tracker".into())
+        .plan_propose_title("a", "Better title".into(), "why".into(), "tracker".into())
         .expect("propose title again");
     let accepted = engines
-        .roadmap_resolve_title_proposal("a", true)
+        .plan_resolve_title_proposal("a", true)
         .expect("accept title");
     assert_eq!(accepted.value.title, "Better title");
-    assert!(engines.roadmap_resolve_title_proposal("a", true).is_err());
+    assert!(engines.plan_resolve_title_proposal("a", true).is_err());
 
     // Status: accept takes the suggested transition, reject keeps the
     // current status — either act disposes the proposal.
     let proposed = engines
-        .roadmap_propose_status(
+        .plan_propose_status(
             "a",
-            ChunkStatus::InProgress,
+            TaskStatus::InProgress,
             "started remotely".into(),
             "tracker".into(),
         )
         .expect("propose status");
     assert_eq!(
         proposed.value.status,
-        ChunkStatus::Pending,
+        TaskStatus::ToDo,
         "a proposal never moves"
     );
     let kept = engines
-        .roadmap_resolve_status_proposal("a", false)
+        .plan_resolve_status_proposal("a", false)
         .expect("reject status");
-    assert_eq!(kept.value.status, ChunkStatus::Pending);
+    assert_eq!(kept.value.status, TaskStatus::ToDo);
     assert!(kept.value.status_proposal.is_none());
     engines
-        .roadmap_propose_status(
+        .plan_propose_status(
             "a",
-            ChunkStatus::InProgress,
+            TaskStatus::InProgress,
             "started remotely".into(),
             "tracker".into(),
         )
         .expect("propose status again");
     let moved = engines
-        .roadmap_resolve_status_proposal("a", true)
+        .plan_resolve_status_proposal("a", true)
         .expect("accept status");
-    assert_eq!(moved.value.status, ChunkStatus::InProgress);
+    assert_eq!(moved.value.status, TaskStatus::InProgress);
     assert!(moved.value.status_proposal.is_none());
-    assert!(engines.roadmap_resolve_status_proposal("a", true).is_err());
+    assert!(engines.plan_resolve_status_proposal("a", true).is_err());
 
     // Reprioritize: accept takes the suggested priority, reject keeps the
     // current one; the proposal is disposed either way — including when
     // the suggestion equals the current priority.
     engines
-        .roadmap_reprioritize("a", 300, "later".into())
+        .plan_reprioritize("a", 300, "later".into())
         .expect("propose reprioritize");
     let kept = engines
-        .roadmap_resolve_reprioritize("a", false)
+        .plan_resolve_reprioritize("a", false)
         .expect("reject reprioritize");
     assert_eq!(kept.value.priority, 100);
     assert!(kept.value.reprioritize.is_none());
     engines
-        .roadmap_reprioritize("a", 300, "later".into())
+        .plan_reprioritize("a", 300, "later".into())
         .expect("propose reprioritize again");
     let moved = engines
-        .roadmap_resolve_reprioritize("a", true)
+        .plan_resolve_reprioritize("a", true)
         .expect("accept reprioritize");
     assert_eq!(moved.value.priority, 300);
     assert!(moved.value.reprioritize.is_none());
     engines
-        .roadmap_reprioritize("a", 300, "no-op suggestion".into())
+        .plan_reprioritize("a", 300, "no-op suggestion".into())
         .expect("propose the current priority");
     let same = engines
-        .roadmap_resolve_reprioritize("a", true)
+        .plan_resolve_reprioritize("a", true)
         .expect("accept the no-op");
     assert_eq!(same.value.priority, 300);
     assert!(
         same.value.reprioritize.is_none(),
         "disposed even when identical"
     );
-    assert!(engines.roadmap_resolve_reprioritize("a", true).is_err());
-    assert!(
-        engines
-            .roadmap_resolve_reprioritize("missing", true)
-            .is_err()
-    );
+    assert!(engines.plan_resolve_reprioritize("a", true).is_err());
+    assert!(engines.plan_resolve_reprioritize("missing", true).is_err());
 }
 
 #[test]
@@ -878,24 +866,24 @@ fn family_observations_identify_missing_file_and_memory_sources() {
     let cfg = temp_config(&tmp);
     let engines = host(&cfg, "stamped");
     assert_eq!(
-        engines.snapshot().roadmap.current().unwrap().source,
+        engines.snapshot().plan.current().unwrap().source,
         ReadSource::Missing
     );
 
-    add_chunk(&engines, "base", 100, &[]);
-    let first = engines.snapshot().roadmap.current().unwrap().source;
+    add_task(&engines, "base", 100, &[]);
+    let first = engines.snapshot().plan.current().unwrap().source;
     assert!(matches!(first, ReadSource::File(_)));
     assert_eq!(
-        engines.clone().snapshot().roadmap.current().unwrap().source,
+        engines.clone().snapshot().plan.current().unwrap().source,
         first
     );
-    add_chunk(&engines, "next", 200, &["base"]);
-    assert_ne!(engines.snapshot().roadmap.current().unwrap().source, first);
+    add_task(&engines, "next", 200, &["base"]);
+    assert_ne!(engines.snapshot().plan.current().unwrap().source, first);
 
     let off = reader(&cfg.persist(false), "stamped");
     let memory = off.snapshot();
-    assert_eq!(memory.roadmap.current().unwrap().source, ReadSource::Memory);
-    assert!(memory.roadmap.current().unwrap().value.chunks.is_empty());
+    assert_eq!(memory.plan.current().unwrap().source, ReadSource::Memory);
+    assert!(memory.plan.current().unwrap().value.tasks.is_empty());
 }
 
 /// Each family supplies whole validated records and its own source.
@@ -908,7 +896,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
     let empty = engines.snapshot();
     assert!(!empty.needs_retry());
     assert_eq!(
-        empty.roadmap.current().unwrap().source,
+        empty.plan.current().unwrap().source,
         crate::native::ReadSource::Missing
     );
     assert_eq!(
@@ -929,15 +917,15 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
         "known empty is not unobserved"
     );
 
-    add_chunk(&engines, "base", 100, &[]);
-    add_chunk(&engines, "next", 200, &["base"]);
-    engines.roadmap_start_chunk("base").expect("start");
+    add_task(&engines, "base", 100, &[]);
+    add_task(&engines, "next", 200, &["base"]);
+    engines.plan_start_task("base").expect("start");
     engines
         .run_open(
             "run the snapshot".into(),
             vec![],
             vec![],
-            "chunk:base".into(),
+            "task:base".into(),
         )
         .expect("goal");
     engines
@@ -973,7 +961,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
     let snapshot = engines.snapshot();
     assert!(!snapshot.needs_retry());
     assert!(matches!(
-        snapshot.roadmap.current().unwrap().source,
+        snapshot.plan.current().unwrap().source,
         crate::native::ReadSource::File(_)
     ));
     assert!(matches!(
@@ -997,7 +985,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
             .goal()
             .as_ref()
             .map(|o| o.scope.as_str()),
-        Some("chunk:base")
+        Some("task:base")
     );
     assert_eq!(snapshot.run.current().unwrap().value.steps().len(), 1);
     assert_eq!(
@@ -1020,27 +1008,21 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
         "the exit code run_status would have dropped"
     );
     let ids: Vec<&str> = snapshot
-        .roadmap
+        .plan
         .current()
         .unwrap()
         .value
-        .chunks
+        .tasks
         .iter()
         .map(|c| c.id.as_str())
         .collect();
     assert_eq!(ids, vec!["base", "next"], "stored order");
     assert_eq!(
-        snapshot.roadmap.current().unwrap().value.chunks[0].status,
-        ChunkStatus::InProgress
+        snapshot.plan.current().unwrap().value.tasks[0].status,
+        TaskStatus::InProgress
     );
     assert_eq!(
-        snapshot
-            .roadmap
-            .current()
-            .unwrap()
-            .value
-            .progress
-            .total_tasks,
+        snapshot.plan.current().unwrap().value.progress.total_tasks,
         2
     );
     assert_eq!(snapshot.signals.current().unwrap().value.len(), 1);
@@ -1082,39 +1064,39 @@ fn a_blocker_is_cleared_through_the_wrapper_and_erring_is_loud() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
     let engines = host(&cfg, "blockers");
-    add_chunk(&engines, "stuck", 100, &[]);
+    add_task(&engines, "stuck", 100, &[]);
 
     // Nothing to clear yet: the library errs rather than answer a no-op,
     // and the wrapper passes that through — a caller who believes there
     // is a blocker is working from a stale picture.
-    assert!(engines.roadmap_clear_blocked_by("stuck").is_err());
+    assert!(engines.plan_clear_waiting_on("stuck").is_err());
 
     // A blocker the dock would raise a card for, set the way the MCP
     // verb sets it (validate, then store).
     engines
-        .roadmap_set_blocked_by(
+        .plan_set_waiting_on(
             "stuck",
-            BlockerKind::AwaitingHuman,
+            WaitingReason::Person,
             "needs a person to pick the palette".into(),
             None,
         )
         .expect("set");
     assert!(
         engines
-            .roadmap_chunk("stuck")
+            .plan_task("stuck")
             .unwrap()
-            .expect("chunk")
-            .blocked_by
+            .expect("task")
+            .waiting_on
             .is_some()
     );
 
-    let cleared = engines.roadmap_clear_blocked_by("stuck").expect("clear");
+    let cleared = engines.plan_clear_waiting_on("stuck").expect("clear");
     assert!(
-        cleared.value.blocked_by.is_none(),
+        cleared.value.waiting_on.is_none(),
         "the card's blocker is lifted"
     );
-    assert!(engines.roadmap_clear_blocked_by("stuck").is_err());
-    assert!(engines.roadmap_clear_blocked_by("missing").is_err());
+    assert!(engines.plan_clear_waiting_on("stuck").is_err());
+    assert!(engines.plan_clear_waiting_on("missing").is_err());
 }
 
 #[test]
@@ -1122,46 +1104,46 @@ fn a_blocker_is_set_through_the_wrapper_the_way_the_verb_sets_it() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = temp_config(&tmp);
     let engines = host(&cfg, "blockers-set");
-    add_chunk(&engines, "stuck", 100, &[]);
+    add_task(&engines, "stuck", 100, &[]);
 
     let blocked = engines
-        .roadmap_set_blocked_by(
+        .plan_set_waiting_on(
             "stuck",
-            BlockerKind::AwaitingHuman,
+            WaitingReason::Person,
             "the judge says the acceptance cannot be met as written".into(),
             Some("think:345".into()),
         )
         .expect("set");
     let blocker = blocked
         .value
-        .blocked_by
-        .expect("the blocker is on the chunk");
-    assert_eq!(blocker.kind, BlockerKind::AwaitingHuman);
+        .waiting_on
+        .expect("the blocker is on the task");
+    assert_eq!(blocker.kind, WaitingReason::Person);
     assert!(blocker.reason.contains("cannot be met"));
     assert_eq!(blocker.evidence.as_deref(), Some("think:345"));
     // Stored, not only answered: a fresh read sees it, and the clear
     // wrapper lifts exactly this.
     assert!(
         engines
-            .roadmap_chunk("stuck")
+            .plan_task("stuck")
             .unwrap()
-            .expect("chunk")
-            .blocked_by
+            .expect("task")
+            .waiting_on
             .is_some()
     );
-    assert!(engines.roadmap_clear_blocked_by("stuck").is_ok());
+    assert!(engines.plan_clear_waiting_on("stuck").is_ok());
 
-    // An unknown chunk and an empty reason are refused, not stored.
+    // An unknown task and an empty reason are refused, not stored.
     assert!(
         engines
-            .roadmap_set_blocked_by("missing", BlockerKind::AwaitingHuman, "why".into(), None)
+            .plan_set_waiting_on("missing", WaitingReason::Person, "why".into(), None)
             .is_err()
     );
     assert!(
         engines
-            .roadmap_set_blocked_by("stuck", BlockerKind::AwaitingHuman, String::new(), None)
+            .plan_set_waiting_on("stuck", WaitingReason::Person, String::new(), None)
             .is_err(),
-        "a blocker needs a reason"
+        "a waiting reason needs a sentence"
     );
 }
 
@@ -1383,10 +1365,10 @@ fn the_handlers_refusals_are_the_writers_refusals() {
         .expect_err("a blank summary is refused");
     assert_eq!(blank.to_string(), "research summary is empty");
 
-    add_chunk(&engines, "c", 100, &[]);
+    add_task(&engines, "c", 100, &[]);
     let done = engines
-        .roadmap_complete_chunk("c", None)
-        .expect_err("no goal certifies the chunk");
+        .plan_complete_task("c", None)
+        .expect_err("no goal certifies the task");
     assert!(
         done.to_string()
             .starts_with("completion refused: no run goal is set"),

@@ -11,13 +11,13 @@ pub enum Capability {
     ManageTeam,
     /// Promote members to Owner or demote Owners.
     TransferOwnership,
-    /// Modify the roadmap: complete, add, or update chunks.
-    EditRoadmap,
+    /// Modify the plan: complete, add, or update tasks.
+    EditPlan,
     /// Answer permission prompts for agent tool calls.
     ApprovePermissions,
     /// Start and drive agent sessions.
     RunSessions,
-    /// Read sessions, the roadmap, and audit views.
+    /// Read sessions, the plan, and audit views.
     View,
 }
 
@@ -26,7 +26,7 @@ impl Capability {
     pub const ALL: [Capability; 6] = [
         Capability::ManageTeam,
         Capability::TransferOwnership,
-        Capability::EditRoadmap,
+        Capability::EditPlan,
         Capability::ApprovePermissions,
         Capability::RunSessions,
         Capability::View,
@@ -38,7 +38,7 @@ impl Capability {
         match self {
             Capability::ManageTeam => "manage team",
             Capability::TransferOwnership => "transfer ownership",
-            Capability::EditRoadmap => "edit roadmap",
+            Capability::EditPlan => "edit plan",
             Capability::ApprovePermissions => "approve permissions",
             Capability::RunSessions => "run sessions",
             Capability::View => "view",

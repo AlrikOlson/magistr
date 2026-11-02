@@ -157,7 +157,7 @@ impl SessionClient {
     }
 
     pub async fn command(&self, address: &ConversationTarget, command: Cmd) -> Result<(), String> {
-        if let Cmd::Prompt(input) | Cmd::RoadmapPrompt(input) = &command {
+        if let Cmd::Prompt(input) | Cmd::PlanPrompt(input) = &command {
             input.validate(true)?;
             if input.is_empty() {
                 return Err("Write a message or attach a file before sending.".into());
@@ -1090,7 +1090,7 @@ impl<H: Settle> Serving<H> {
         if matches!(command, Cmd::Loop(_)) {
             return Err("Work controls must name the current work run.".into());
         }
-        if let Cmd::Prompt(input) | Cmd::RoadmapPrompt(input) = &command {
+        if let Cmd::Prompt(input) | Cmd::PlanPrompt(input) = &command {
             input.validate(true)?;
             if input.is_empty() {
                 return Err("Write a message or attach a file before sending.".into());
@@ -1102,7 +1102,7 @@ impl<H: Settle> Serving<H> {
         let resident = self.sessions.get_mut(&address.address).ok_or_else(gone)?;
         resident.observation.validate_active(address)?;
         if resident.preparing.as_deref() == Some(&address.conversation)
-            && matches!(command, Cmd::Prompt(_) | Cmd::RoadmapPrompt(_))
+            && matches!(command, Cmd::Prompt(_) | Cmd::PlanPrompt(_))
         {
             return Err("Your message is still being checked. Wait before sending again.".into());
         }

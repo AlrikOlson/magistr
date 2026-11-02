@@ -27,7 +27,7 @@ and the [workspace owner](workspace-owner.md):
 | Workflow MCP | One Service writer when admitted, otherwise attachment to the current authority | Lock-free evidence for gates | MagistrService and mcp_bridge; mcp_project_owner and mcp_service_owner |
 | Source operations through `magistr mcp` | None | One WorkspaceService when admitted, otherwise an attached bridge | HostedWorkspace; workspace_attachment and workspace_cli_verbs |
 | Workspace journal, snapshot and doctor | Read-only checkpoint inspection | Lock-free source readers | Workspace CLI; workspace_cli_verbs |
-| Roadmap queries and guard | NativeReader | None | Native workflow reader; main/system-contract and command suites |
+| Plan queries and guard | NativeReader | None | Native workflow reader; main/system-contract and command suites |
 
 Provider, workspace worker and MCP children are dispatched by the CLI and desktop
 executables before opening a window. Every control carries the admitted session
@@ -37,7 +37,7 @@ parallel writer, catalog or provider registry.
 
 ## Workflow consistency model
 
-One project writer owns the shared roadmap, reasoning and signals. Its registry
+One project writer owns the shared plan, reasoning and signals. Its registry
 owns run engines per canonical working-copy root and execution id. Identical
 live contexts share handles; different contexts retain their own selected
 goal, tasks, checks and receipts. Persistence reopens the same context
@@ -91,7 +91,7 @@ receipt's revision stay three facts (see the
 
 The audit is of Magistr's current binaries. A direct edit of a store file or a
 deleted lock file is outside admission. Read-through is per family: there is no
-transaction across roadmap, execution, signal and reasoning owners. Each owning
+transaction across plan, execution, signal and reasoning owners. Each owning
 mutation locks and validates current data before applying its change, then
 acknowledges its committed source. Cross-family promotion explicitly reports a
 partial commit and resumes by the existing record identity. [Projections](projections.md)

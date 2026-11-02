@@ -6,8 +6,8 @@
 //! and still loop if the system feeds it the wrong values, so the load-bearing
 //! assertion here is a write count that stops growing.
 
-use magistr_workflow::roadmap::domain::ChunkStatus;
-use magistr_workflow::roadmap::engine::RoadmapEngine;
+use magistr_workflow::plan::domain::TaskStatus;
+use magistr_workflow::plan::engine::PlanEngine;
 use magistr_workflow::tracker::echo::{Verdict, classify};
 use magistr_workflow::tracker::fake::FakeTracker;
 use magistr_workflow::tracker::port::TrackerPort;
@@ -15,33 +15,33 @@ use magistr_workflow::tracker::project::project_all;
 
 const PROVIDER: &str = "fake";
 
-fn engine() -> RoadmapEngine {
-    RoadmapEngine::new("proj".into())
+fn engine() -> PlanEngine {
+    PlanEngine::new("proj".into())
 }
 
-fn add(e: &mut RoadmapEngine, id: &str) {
-    e.add_chunk(
+fn add(e: &mut PlanEngine, id: &str) {
+    e.add_task(
         id.into(),
-        format!("Chunk {id}"),
-        ChunkStatus::Pending,
+        format!("Task {id}"),
+        TaskStatus::ToDo,
         10,
         format!("why {id} exists"),
         vec![format!("{id} works")],
         vec![],
         false,
     )
-    .expect("add chunk");
+    .expect("add task");
     e.set_tracker_opt_in(id, PROVIDER, true).expect("opt in");
 }
 
 /// One full cycle of the loop we are trying to prevent: project, then let the
 /// tracker deliver what it now holds back to us as if by webhook, and classify
 /// it. Returns the verdict the inbound path would reach.
-async fn round_trip(e: &mut RoadmapEngine, tracker: &FakeTracker, chunk: &str) -> Verdict {
+async fn round_trip(e: &mut PlanEngine, tracker: &FakeTracker, task: &str) -> Verdict {
     project_all(e, tracker, None).await.expect("project");
 
     let link = e
-        .tracker_link(chunk, PROVIDER)
+        .tracker_link(task, PROVIDER)
         .expect("projection must have recorded a link")
         .clone();
     let delivered = tracker
@@ -115,10 +115,10 @@ async fn a_real_remote_edit_still_gets_through_after_convergence() {
     );
 }
 
-/// Several chunks converge independently. A fence that keys on anything coarser
-/// than (chunk, provider) would let one item's write suppress another's.
+/// Several tasks converge independently. A fence that keys on anything coarser
+/// than (task, provider) would let one item's write suppress another's.
 #[tokio::test]
-async fn many_chunks_converge_without_interfering() {
+async fn many_tasks_converge_without_interfering() {
     let mut e = engine();
     for id in ["c1", "c2", "c3"] {
         add(&mut e, id);
@@ -126,14 +126,14 @@ async fn many_chunks_converge_without_interfering() {
     let tracker = FakeTracker::new(PROVIDER);
 
     project_all(&mut e, &tracker, None).await.expect("project");
-    assert_eq!(tracker.writes(), 3, "one write per chunk on the first pass");
+    assert_eq!(tracker.writes(), 3, "one write per task on the first pass");
 
     for round in 2..=5 {
         for id in ["c1", "c2", "c3"] {
             let verdict = round_trip(&mut e, &tracker, id).await;
             assert!(
                 verdict.is_echo(),
-                "round {round} chunk {id} read as {verdict:?}"
+                "round {round} task {id} read as {verdict:?}"
             );
         }
         assert_eq!(tracker.writes(), 3, "round {round} wrote again");
@@ -231,7 +231,7 @@ async fn the_classifier_alone_authorizes_no_further_writes() {
 }
 
 /// The falsification. If the classifier were replaced by the naive rule this
-/// chunk rejects — trust the actor, and our own actor means ignore — the human
+/// task rejects — trust the actor, and our own actor means ignore — the human
 /// edit in `a_real_remote_edit_still_gets_through_after_convergence` would be
 /// dropped. This asserts the classifier's answer differs from that rule on
 /// exactly the case that distinguishes them, so a future rewrite to the cheap

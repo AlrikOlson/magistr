@@ -116,7 +116,7 @@ pub const DEFAULT_PERMISSIONS: &[Permission] = &[
     Permission {
         key: "issues",
         level: "write",
-        why: "the projector creates and updates issues from roadmap chunks — the adapter's whole job",
+        why: "the projector creates and updates issues from plan tasks — the adapter's whole job",
     },
     Permission {
         key: "metadata",
@@ -126,7 +126,7 @@ pub const DEFAULT_PERMISSIONS: &[Permission] = &[
     Permission {
         key: "organization_projects",
         level: "write",
-        why: "the board lane writes a chunk's lifecycle onto a Projects v2 board. NOTE the key: the docs display this as 'projects'; the schema spells it 'organization_projects', and the display name is rejected",
+        why: "the board lane writes a task's lifecycle onto a Projects v2 board. NOTE the key: the docs display this as 'projects'; the schema spells it 'organization_projects', and the display name is rejected",
     },
 ];
 
@@ -153,7 +153,7 @@ pub const EXCLUDED_PERMISSIONS: &[(&str, &str)] = &[
     ),
     (
         "pull_requests",
-        "the tracker projects chunks onto issues, never onto pull requests",
+        "the tracker projects tasks onto issues, never onto pull requests",
     ),
     (
         "members",
@@ -201,7 +201,7 @@ impl AppManifest {
             url: homepage.trim().to_string(),
             hook_url: hook_url.trim().to_string(),
             redirect_url: redirect_url.trim().to_string(),
-            description: "Mirrors a magistr roadmap onto GitHub Issues and a Projects v2 \
+            description: "Mirrors a magistr plan onto GitHub Issues and a Projects v2 \
                           board."
                 .into(),
             public: false,

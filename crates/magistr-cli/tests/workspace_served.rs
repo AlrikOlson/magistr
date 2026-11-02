@@ -1,5 +1,5 @@
 //! The native workspace tools over a real rmcp client on an in-memory duplex
-//! (chunk arch-14c10): the retained served contract in disposable
+//! (task arch-14c10): the retained served contract in disposable
 //! workspaces — initialize identity, the tool list with schemas verbatim,
 //! envelope negotiation and schema validity on every answer, the index
 //! build as a pollable task, byte-identical status across fresh owners,

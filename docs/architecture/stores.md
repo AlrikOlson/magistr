@@ -32,9 +32,9 @@ Today that runtime is SQLite 3.53.2 (`rusqlite` 0.40.2, `libsqlite3-sys`
 Not SQLite: the cost ledger is a JSON file rewritten whole by
 `cost::append_entry` during shared session settlement; each logical conversation
 has one entry with its latest cumulative reported USD amount, or an unknown price.
-Native workflow state (roadmap, reasoning, execution,
+Native workflow state (plan, reasoning, execution,
 signals) is the workflow engine's own store; `.magistr/loop-state.json` is a
-JSON checkpoint. A `.magistr/roadmap.db` left by the retired standalone
+JSON checkpoint. A `.magistr/plan.db` left by the retired standalone
 workflow server is not opened by any current code.
 
 ## Guarantees and their evidence

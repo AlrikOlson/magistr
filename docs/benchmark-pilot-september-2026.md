@@ -97,7 +97,7 @@ and the external verdict. No Magistr completion claim substitutes for that
 verdict.
 
 This tests the generated Codex integration. It does not measure terminal or
-desktop rendering, multi-session roadmap recovery, or every Magistr provider.
+desktop rendering, multi-session plan recovery, or every Magistr provider.
 
 ## Fixed protocol
 
@@ -147,7 +147,7 @@ linters/formatters to ESLint/Prettier, and no lockfile to npm; the scaffold
 loads language-preset quality commands. This is a product setup finding:
 observed tooling and suggested defaults need distinct treatment.
 
-The owning fix was recorded in the native roadmap as
+The owning fix was recorded in the native plan as
 `setup-evidence-backed-project-checks`. The earlier empty-file finding was
 linked to the existing `workspace-empty-text-content` item. The evaluated
 session-window and ontology agents independently hit that same empty-file
@@ -182,7 +182,7 @@ after observing a result.
 
 1. Fix new-file population in the workspace write pipeline, and make project
    setup distinguish detected tools from optional defaults. These are owning
-   product changes recorded on the roadmap, not benchmark-specific patches.
+   product changes recorded on the plan, not benchmark-specific patches.
 2. Correct the adapter's setup environment and deadline message. Run a new
    experiment with more time and an otherwise idle host; retain this pilot as
    recorded rather than replacing its failures with selective reruns.

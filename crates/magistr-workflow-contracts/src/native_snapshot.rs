@@ -3,17 +3,17 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::roadmap::{Chunk, WorkstreamCatalog, workstream_catalog};
+use crate::plan::{Task, WorkstreamCatalog, workstream_catalog};
 use crate::run::{Goal, Step, StepStatus};
 use crate::signal::Signal;
 use crate::think::ThinkHistory;
-use crate::{ReadError, ReadState, RoadmapProgress};
+use crate::{PlanProgress, ReadError, ReadState};
 
-/// Roadmap records and progress derived from the same validated observation.
+/// Plan records and progress derived from the same validated observation.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct RoadmapData {
-    pub chunks: Vec<Chunk>,
-    pub progress: RoadmapProgress,
+pub struct PlanData {
+    pub tasks: Vec<Task>,
+    pub progress: PlanProgress,
 }
 
 /// A complete authored execution, addressed independently of reusable local step names.
@@ -80,23 +80,22 @@ impl ThinkData {
 /// A failed family retains its last successful data explicitly as stale.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct NativeSnapshot {
-    pub roadmap: ReadState<RoadmapData>,
+    pub plan: ReadState<PlanData>,
     pub run: ReadState<RunData>,
     pub signals: ReadState<Vec<Signal>>,
     pub think: ReadState<ThinkData>,
 }
 
 impl NativeSnapshot {
-    /// Derivation preserves the roadmap's read state and provenance.
+    /// Derivation preserves the plan's read state and provenance.
     #[must_use]
     pub fn workstreams(&self) -> ReadState<WorkstreamCatalog> {
-        self.roadmap
-            .map(|roadmap| workstream_catalog(&roadmap.chunks))
+        self.plan.map(|plan| workstream_catalog(&plan.tasks))
     }
 
     #[must_use]
     pub fn needs_retry(&self) -> bool {
-        self.roadmap.needs_retry()
+        self.plan.needs_retry()
             || self.run.needs_retry()
             || self.signals.needs_retry()
             || self.think.needs_retry()
@@ -106,7 +105,7 @@ impl NativeSnapshot {
     /// Successful values remain visible as stale; unread families stay unavailable.
     #[must_use]
     pub fn failed(mut self, error: ReadError) -> Self {
-        self.roadmap.record(Err(error.clone()));
+        self.plan.record(Err(error.clone()));
         self.run.record(Err(error.clone()));
         self.signals.record(Err(error.clone()));
         self.think.record(Err(error));

@@ -102,15 +102,15 @@ def main() -> int:
             ready, _, _ = select.select([fd], [], [], 0.25)
             if ready:
                 try:
-                    chunk = os.read(fd, 65536)
+                    task = os.read(fd, 65536)
                 except OSError as err:
                     if err.errno == errno.EIO:
-                        chunk = b""
+                        task = b""
                     else:
                         raise
-                if not chunk:
+                if not task:
                     break
-                screen.write(chunk)
+                screen.write(task)
                 screen.flush()
             done, code = os.waitpid(pid, os.WNOHANG)
             if done:
