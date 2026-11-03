@@ -5,13 +5,13 @@
 //! `receipts/` to `check_results/`), then the plan store from `roadmap/` to
 //! `plan/`, then the decision store from `think/` to `decisions/`, then the
 //! request store from `signal/` to `requests/`. Each project's plan,
-//! decision and request documents then convert through their
-//! own codecs, which decide what is old from the document's version, never
-//! from its references: after the plan words `task:` names a plan task, while
-//! before the run words it named a run step. This module
-//! only owns where saved work lives and the order of the moves. Admission
-//! finishes them before any engine opens; readers refuse while one is
-//! unfinished.
+//! decision, request and run documents then convert through their own
+//! codecs (a run document's check results first), which decide what is old
+//! from the document's version, never from its references: after the plan
+//! words `task:` names a plan task, while before the run words it named a
+//! run step. This module only owns where saved work lives and the order of
+//! the moves. Admission finishes them before any engine opens; readers
+//! refuse while one is unfinished.
 
 use super::NativeConfig;
 use magistr_workflow_contracts::{ReadError, ReadErrorKind};
@@ -26,9 +26,13 @@ pub struct StoreWordsUpgrade;
 
 const LOCK: &str = "store-words-upgrade.lock";
 
-/// The words of the latest in-place document conversion. A document converted
-/// in place keeps its original under `backups/before-<words>/`, one folder per
-/// conversion, so an installation upgraded through several keeps each original.
+/// The words of each family's latest in-place document conversion. A
+/// document converted in place keeps its original under
+/// `backups/before-<words>/`, one folder per conversion, so an installation
+/// upgraded through several keeps each original. The check words converted
+/// run documents and their check results; the team words were the last to
+/// convert the other families.
+const RUN_DOCUMENT_WORDS: &str = "check-words";
 const DOCUMENT_WORDS: &str = "team-words";
 
 /// One family store directory that moves to its new name.
@@ -209,6 +213,14 @@ impl Family {
             Head::Version(version) => version < self.current_version(),
             Head::Unversioned => matches!(self, Self::Plan | Self::Request),
             Head::Unknown => false,
+        }
+    }
+
+    /// The words of this family's latest in-place conversion.
+    fn document_words(self) -> &'static str {
+        match self {
+            Self::Run => RUN_DOCUMENT_WORDS,
+            Self::Plan | Self::Decision | Self::Request => DOCUMENT_WORDS,
         }
     }
 
@@ -518,6 +530,12 @@ fn convert_project(config: &NativeConfig, project_id: &str) -> io::Result<()> {
             .truncate(false)
             .open(path.with_extension("json.lock"))?;
         lock.lock()?;
+        if matches!(family, Family::Run) {
+            // The document's version says its check results are current, so
+            // they convert first: an interrupted attempt leaves the document
+            // older and the next admission finishes them.
+            convert_check_results(root, &path, project_id)?;
+        }
         let converted = match family {
             Family::Plan => {
                 magistr_workflow::plan::PlanEngine::upgrade_document(&bytes, project_id)
@@ -552,9 +570,51 @@ fn convert_project(config: &NativeConfig, project_id: &str) -> io::Result<()> {
             .and_then(|sessions| sessions.strip_prefix(root).ok())
             .unwrap_or_else(|| Path::new("workflow"));
         let backup = root
-            .join(format!("backups/before-{DOCUMENT_WORDS}"))
+            .join(format!("backups/before-{}", family.document_words()))
             .join(place)
             .join(name);
+        if !backup.exists() {
+            publish(&backup, &bytes, false)?;
+        }
+        publish(&path, &converted, true)?;
+    }
+    Ok(())
+}
+
+/// Convert the check results beside one run document through the run codec,
+/// keeping each original under the backups first. They live in the
+/// document's store as `check_results/<project>/`.
+fn convert_check_results(root: &Path, document: &Path, project_id: &str) -> io::Result<()> {
+    let Some(store) = document.parent().and_then(Path::parent) else {
+        return Ok(());
+    };
+    let directory = store.join("check_results").join(project_id);
+    let records = match fs::read_dir(&directory) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error),
+    };
+    let mut paths: Vec<PathBuf> = records
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.extension()
+                .is_some_and(|extension| extension == "json")
+        })
+        .collect();
+    paths.sort();
+    for path in paths {
+        let bytes = fs::read(&path)?;
+        let converted =
+            magistr_workflow::run::persistence::Persistence::upgrade_check_result(&bytes)
+                .map_err(|error| invalid(&path, error))?;
+        if converted == bytes {
+            continue;
+        }
+        let place = path.strip_prefix(root).unwrap_or(&path);
+        let backup = root
+            .join(format!("backups/before-{RUN_DOCUMENT_WORDS}"))
+            .join(place);
         if !backup.exists() {
             publish(&backup, &bytes, false)?;
         }

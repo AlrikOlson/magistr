@@ -9,7 +9,7 @@ pub async fn cmd_validate(dir: &std::path::Path) -> eyre::Result<()> {
         .map_err(|e| error::MagistrError::io(dir, e))
         .suggest()?;
 
-    eprintln!("{}\n", fmt::info("Running quality gates..."));
+    eprintln!("{}\n", fmt::info("Running checks..."));
 
     let result = ProjectValidation::run(&dir).await.suggest()?;
 
@@ -30,7 +30,7 @@ pub async fn cmd_validate(dir: &std::path::Path) -> eyre::Result<()> {
         }
     }
 
-    // The org's required-gate policy, on top of the run's own verdict.
+    // The org's required-check policy, on top of the run's own verdict.
     let policy = crate::people::PeopleConfig::governance_for(&dir);
     let unmet = result.policy_violations(&policy);
     if !unmet.is_empty() {
@@ -45,7 +45,7 @@ pub async fn cmd_validate(dir: &std::path::Path) -> eyre::Result<()> {
         eprintln!(
             "  {}",
             fmt::info(
-                "configure the gate in .magistr/project.json, or ask an Owner to relax .magistr/people.json"
+                "configure the check in .magistr/project.json, or ask an Owner to relax .magistr/people.json"
             )
         );
         std::process::exit(1);
@@ -56,7 +56,7 @@ pub async fn cmd_validate(dir: &std::path::Path) -> eyre::Result<()> {
         eprintln!(
             "{}",
             fmt::success(&format!(
-                "All gates passed ({:.1}s)",
+                "All checks passed ({:.1}s)",
                 result.total_duration().as_secs_f64()
             ))
         );
@@ -65,7 +65,7 @@ pub async fn cmd_validate(dir: &std::path::Path) -> eyre::Result<()> {
         eprintln!(
             "{}",
             fmt::error(&format!(
-                "{}/{} gates failed",
+                "{}/{} checks failed",
                 result.failed_count(),
                 result.results.len()
             ))

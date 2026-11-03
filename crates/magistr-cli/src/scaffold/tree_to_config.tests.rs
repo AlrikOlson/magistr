@@ -61,7 +61,7 @@ fn single_project_produces_one_archetype() {
     assert!(result.archetypes[0].framework.is_none());
     assert_eq!(result.archetypes[0].role, ProjectRole::Backend);
     assert_eq!(result.archetypes[0].root, PathBuf::from("."));
-    assert!(result.archetypes[0].quality_gate.check.is_empty());
+    assert!(result.archetypes[0].checks.check.is_empty());
 }
 
 #[test]
@@ -141,7 +141,7 @@ fn root_project_with_no_name_uses_default() {
 }
 
 #[test]
-fn manifest_populates_builtin_quality_gate() {
+fn manifest_populates_builtin_checks() {
     let tmp = tempfile::tempdir().unwrap();
     std::fs::write(
         tmp.path().join("Cargo.toml"),
@@ -152,7 +152,7 @@ fn manifest_populates_builtin_quality_gate() {
     tree.root = tmp.path().into();
     let result = tree_to_archetypes(&tree, None);
 
-    let qg = &result.archetypes[0].quality_gate;
+    let qg = &result.archetypes[0].checks;
     assert!(
         qg.check.contains("cargo"),
         "check should use cargo: {}",
@@ -225,9 +225,9 @@ fn dual_stack_root_gets_language_suffixed_id_and_real_commands() {
     // The twin is distinguished by its language, not a numeric suffix.
     assert_eq!(result.archetypes[1].id, "myapp-typescript");
     // Real commands: the repo's package manager is bun, not npm's defaults…
-    assert!(result.archetypes[1].quality_gate.test.is_empty());
+    assert!(result.archetypes[1].checks.test.is_empty());
     assert_eq!(
-        result.archetypes[1].quality_gate.lint,
+        result.archetypes[1].checks.lint,
         "./node_modules/.bin/biome check ."
     );
     // …and its formatter is biome — handing it prettier would rewrite the repo.
@@ -249,6 +249,6 @@ fn a_repo_without_tool_evidence_leaves_commands_unconfigured() {
         vec![],
     );
     let result = tree_to_archetypes(&tree, None);
-    assert!(result.archetypes[0].quality_gate.test.is_empty());
+    assert!(result.archetypes[0].checks.test.is_empty());
     assert!(result.archetypes[0].format.command.is_empty());
 }

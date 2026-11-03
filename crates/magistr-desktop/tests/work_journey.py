@@ -99,7 +99,7 @@ def main():
         # Keep each fixture attempt progressing so step tests reach another boundary.
         path = journey.first / ".magistr/project.json"
         config = json.loads(path.read_text())
-        config["quality_gate"]["check"] = "git -c user.name=Journey -c user.email=journey@example.invalid -c commit.gpgsign=false commit --allow-empty -qm work"
+        config["checks"]["check"] = "git -c user.name=Journey -c user.email=journey@example.invalid -c commit.gpgsign=false commit --allow-empty -qm work"
         path.write_text(json.dumps(config))
         journey.env["MAGISTR_GOAL"] = "off"
         try:

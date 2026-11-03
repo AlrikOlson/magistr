@@ -563,7 +563,7 @@ mod tests {
     /// to a live `Broadcaster` must also wait for the accept loop to
     /// register it.
     ///
-    /// This gate exists because deleting the wait at a CALL SITE is
+    /// This check exists because deleting the wait at a CALL SITE is
     /// invisible to every behavioural test here. The wait's absence does
     /// not produce a failure, it produces a *probability* of one — green
     /// on an idle laptop, red 93% of the time on a contended runner.
@@ -585,7 +585,7 @@ mod tests {
             manifest.join("src/infra/broadcast.rs"),
             manifest.join("tests/decision_broadcast.rs"),
         ];
-        // Split so this gate's own source does not match its own needle —
+        // Split so this check's own source does not match its own needle —
         // it scans the file it lives in, and the first run counted itself.
         let connect_call = concat!("UnixStream", "::connect");
         let mut total_connects = 0usize;
@@ -593,7 +593,7 @@ mod tests {
         for path in &files {
             let src = std::fs::read_to_string(path).unwrap_or_else(|e| {
                 panic!(
-                    "gate window unreadable: {} ({e}) — a source gate that \
+                    "check window unreadable: {} ({e}) — a source check that \
                      cannot read its input covers nothing",
                     path.display(),
                 )
@@ -630,7 +630,7 @@ mod tests {
         assert_eq!(
             total_connects, 6,
             "expected 6 live in-process connect sites, including failed-save publication; \
-             found {total_connects}. If a file moved or was renamed this gate stopped \
+             found {total_connects}. If a file moved or was renamed this check stopped \
              covering it — fix the window, do not adjust the count to match.",
         );
     }
@@ -645,16 +645,16 @@ mod tests {
     /// pushing left all six behavioural tests green: the window it opens is a few
     /// instructions wide, so it fails probabilistically — which is
     /// exactly the property that made the original bug a CI-only flake.
-    /// A comment saying "after the push" is not a gate; this is.
+    /// A comment saying "after the push" is not a check; this is.
     ///
-    /// This is a text gate, not a semantic one. It proves the two
+    /// This is a text check, not a semantic one. It proves the two
     /// statements appear in the right order, not that no future refactor
     /// could reintroduce the gap by other means.
     #[test]
     fn the_accept_loop_publishes_the_count_only_after_the_client_is_reachable() {
         let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         let accept_loops = [manifest.join("src/infra/broadcast.rs")];
-        // Split so this gate's own source cannot satisfy its own needles.
+        // Split so this check's own source cannot satisfy its own needles.
         let push_call = concat!("guard.push", "(stream)");
         let publish_call = concat!("subscribers", ".send(");
 
@@ -662,7 +662,7 @@ mod tests {
         for path in &accept_loops {
             let src = std::fs::read_to_string(path).unwrap_or_else(|e| {
                 panic!(
-                    "gate window unreadable: {} ({e}) — a source gate that \
+                    "check window unreadable: {} ({e}) — a source check that \
                      cannot read its input covers nothing",
                     path.display(),
                 )
@@ -674,7 +674,7 @@ mod tests {
                 .unwrap_or_else(|| {
                     panic!(
                         "no accept_loop found in {} — the window moved and this \
-                         gate stopped covering it",
+                         check stopped covering it",
                         path.display(),
                     )
                 })

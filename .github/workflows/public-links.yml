@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   public-links:
-    name: Anonymous public endpoint gate
+    name: Anonymous public endpoint check
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -29,5 +29,5 @@ jobs:
       - name: Probe configured public URLs
         env:
           # Scheduled runs check the deployed guides; manual and tag runs require the published registries too.
-          PUBLIC_GATE_STAGE: ${{ github.event_name == 'schedule' && 'website' || 'release' }}
-        run: ./scripts/public-link-check.sh --stage "$PUBLIC_GATE_STAGE" --out target/public-release-readiness.json
+          PUBLIC_CHECK_STAGE: ${{ github.event_name == 'schedule' && 'website' || 'release' }}
+        run: ./scripts/public-link-check.sh --stage "$PUBLIC_CHECK_STAGE" --out target/public-release-readiness.json

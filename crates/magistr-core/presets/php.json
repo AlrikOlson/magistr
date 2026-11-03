@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "php -l $(find src -name '*.php' | head -50)",
     "test": "vendor/bin/phpunit",
     "lint": "vendor/bin/phpstan analyse --no-progress"

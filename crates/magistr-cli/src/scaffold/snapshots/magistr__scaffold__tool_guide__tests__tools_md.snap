@@ -31,7 +31,7 @@ return magistr.call("plan_status", {});
 ```
 
 The same catalog includes plan, reasoning (`decision_*`), feedback (`request_*`),
-runs and resumption (`run_*`), quality gates (`magistr_gate`), and all
+runs and resumption (`run_*`), checks (`magistr_check`), and all
 workspace operations: `map`, `files`, `command`, `undo`, `script`, health and indexing.
 Discover each operation before using it; do not guess argument names. Direct
 tools and composed calls use the same authorization, confirmation and source checks.
@@ -55,7 +55,7 @@ Keep run steps in `arrange_steps` and the plan in native state. Respect the proj
 `plan_exports` setting; when false, never generate PLAN.md or PLAN.json.
 Set `verification: "focused"` when opening a run for a bounded change.
 Run relevant formatting, crate and interface checks through `check_step` with
-`command`, or a named `magistr_gate`. A full suite requires an explicit request
+`command`, or a named `magistr_check`. A full suite requires an explicit request
 or a stated cross-cutting risk. Inspect actual results before `finish_step`,
 then use `run_finish` to finish the run. Setup never authorizes implementation.
 

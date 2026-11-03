@@ -1,12 +1,12 @@
 //! Automatic rollback on catastrophic failure.
 //!
-//! Detects when quality gates go from passing to failing during a workflow
+//! Detects when checks go from passing to failing during a workflow
 //! iteration and rolls back changes using `git stash` (safe, reversible).
 //!
 //! The rollback flow:
-//! 1. Before each iteration, capture baseline gate status (pass/fail)
-//! 2. After agent makes changes, run gates again
-//! 3. If gates went from passing → failing, stash all changes
+//! 1. Before each iteration, capture baseline check status (pass/fail)
+//! 2. After agent makes changes, run checks again
+//! 3. If checks went from passing → failing, stash all changes
 //! 4. Report the rollback with details on what failed
 
 use std::path::{Path, PathBuf};
@@ -14,12 +14,12 @@ use std::process::Command;
 
 use crate::workflow::rollback_result::RollbackResult;
 
-/// Tracks quality gate health across an iteration for rollback detection.
+/// Tracks check health across an iteration for rollback detection.
 #[derive(Debug, Clone)]
 pub struct RollbackGuard {
     /// Project directory.
     project_dir: PathBuf,
-    /// Whether quality gates were passing at the start of this iteration.
+    /// Whether checks were passing at the start of this iteration.
     baseline_passing: bool,
     /// Git HEAD at the start of the iteration (for commit-level rollback).
     pub baseline_head: Option<String>,
@@ -30,7 +30,7 @@ pub struct RollbackGuard {
 impl RollbackGuard {
     /// Create a new rollback guard for a project directory.
     ///
-    /// Captures the current HEAD sha and baseline gate status.
+    /// Captures the current HEAD sha and baseline check status.
     pub fn new(project_dir: &Path, baseline_passing: bool) -> Self {
         let baseline_head = git_head(project_dir);
         Self {
@@ -41,7 +41,7 @@ impl RollbackGuard {
         }
     }
 
-    /// Whether the baseline gates were passing when this guard was created.
+    /// Whether the baseline checks were passing when this guard was created.
     pub fn baseline_passing(&self) -> bool {
         self.baseline_passing
     }
@@ -54,12 +54,12 @@ impl RollbackGuard {
     /// Check if a catastrophic failure occurred and roll back if needed.
     ///
     /// A catastrophic failure is when:
-    /// - Quality gates were passing at baseline (`baseline_passing == true`)
-    /// - Quality gates are now failing (`current_passing == false`)
+    /// - Checks were passing at baseline (`baseline_passing == true`)
+    /// - Checks are now failing (`current_passing == false`)
     ///
     /// If detected, performs `git stash` to save and revert all working tree changes.
     pub fn check_and_rollback(&mut self, current_passing: bool) -> RollbackResult {
-        // Only roll back if gates went from passing → failing
+        // Only roll back if checks went from passing → failing
         if !self.baseline_passing || current_passing || self.rolled_back {
             return RollbackResult::NotNeeded;
         }
@@ -77,7 +77,7 @@ impl RollbackGuard {
                 RollbackResult::Stashed {
                     stash_ref,
                     files_affected,
-                    failure_reason: "Quality gates went from passing to failing".to_string(),
+                    failure_reason: "Checks went from passing to failing".to_string(),
                 }
             }
             Err(e) => RollbackResult::Failed(e),
@@ -122,7 +122,7 @@ fn git_stash(project_dir: &Path) -> Result<String, String> {
             "push",
             "-u",
             "-m",
-            "magistr: automatic rollback — quality gates failed",
+            "magistr: automatic rollback — checks failed",
         ])
         .current_dir(project_dir)
         .output()

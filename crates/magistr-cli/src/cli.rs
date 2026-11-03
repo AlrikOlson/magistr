@@ -64,7 +64,7 @@ pub enum Command {
         #[arg(long, conflicts_with_all = ["dry_run"])]
         from: Option<String>,
 
-        /// Generate CI workflow file (.github/workflows/quality-gates.yml) from detected stack
+        /// Generate CI workflow file (.github/workflows/checks.yml) from detected stack
         #[arg(long, conflicts_with_all = ["dry_run", "from"])]
         ci: bool,
 
@@ -115,7 +115,7 @@ pub enum Command {
         dir: PathBuf,
     },
 
-    /// Run standard and required custom quality gates from .magistr/project.json
+    /// Run standard and required custom checks from .magistr/project.json
     Validate {
         /// Project directory (defaults to current directory)
         #[arg(default_value = ".")]
@@ -125,7 +125,7 @@ pub enum Command {
         #[arg(long)]
         ci: bool,
 
-        /// Emit GitHub Actions annotations (::error, ::warning) for gate failures
+        /// Emit GitHub Actions annotations (::error, ::warning) for check failures
         #[arg(long)]
         annotations: bool,
     },
@@ -160,7 +160,7 @@ pub enum Command {
     },
 
     /// Implement the next spec items (research-plan-execute-verify cycle)
-    #[group(id = "headless_output", args = ["headless", "gate_only"], multiple = true)]
+    #[group(id = "headless_output", args = ["headless", "check_only"], multiple = true)]
     Next {
         #[command(flatten)]
         agent: crate::workflow_agent_options::WorkflowAgentOptions,
@@ -184,9 +184,9 @@ pub enum Command {
         #[arg(long, default_value = "plain", requires = "headless_output")]
         format: HeadlessFormat,
 
-        /// Run quality gates only, without an AI iteration
+        /// Run checks only, without an AI iteration
         #[arg(long, conflicts_with_all = ["continue", "agent", "model", "effort", "show_config"])]
-        gate_only: bool,
+        check_only: bool,
     },
 
     /// Run ready plan work in fresh agent sessions
@@ -804,7 +804,7 @@ pub enum PolicyAction {
 
     /// Ask the policy what it would do about one act
     Check {
-        /// Tool name, e.g. Bash or mcp__magistr__gate
+        /// Tool name, e.g. Bash or mcp__magistr__check
         #[arg(long, short = 't')]
         tool: Option<String>,
 
@@ -937,7 +937,7 @@ pub enum PresetAction {
         output: Option<PathBuf>,
     },
 
-    /// Validate a preset by checking schema and dry-running gate commands
+    /// Validate a preset by checking schema and dry-running check commands
     Test {
         /// Path to the preset file to test
         file: PathBuf,
@@ -1176,7 +1176,7 @@ pub enum GuardEvent {
     /// plan task must be closed; unrelated worktree changes are preserved.
     Stop,
     /// A Bash tool call (PreToolUse hook): `git commit` needs green, verified
-    /// gates, and grep, rg, find or sed over the workspace is routed to
+    /// checks, and grep, rg, find or sed over the workspace is routed to
     /// magistr when the project declares it.
     Commit,
     /// A file-editing tool call (PreToolUse hook on Edit/Write/MultiEdit/

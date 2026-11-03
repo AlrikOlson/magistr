@@ -193,7 +193,7 @@ mod tests {
         }
     }
 
-    /// ACCEPTANCE (connection-is-a-first-class-object), and the gate whose
+    /// ACCEPTANCE (connection-is-a-first-class-object), and the check whose
     /// absence let this run: with an EMPTY environment, a recorded connection
     /// plus a stored token is enough to build a client.
     ///
@@ -290,7 +290,7 @@ mod tests {
     /// unconnected, and made a write to the wrong client destroy a connection
     /// instead of misrouting it.
     ///
-    /// So the boundary is the gate. Migration is a `cli` verb that reads a config
+    /// So the boundary is the check. Migration is a `cli` verb that reads a config
     /// ONCE and leaves a record; resolution takes three plain values and owns no
     /// filesystem. Doc links across the boundary are fine and are excluded —
     /// what may not exist is code.

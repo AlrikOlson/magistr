@@ -1,5 +1,5 @@
 //! The legacy-GUI ratchet (`scripts/legacy-gui-ratchet.sh`, the `legacy-gui`
-//! quality gate): the tree named by `.magistr/legacy-gui-ratchet.json` may
+//! check): the tree named by `.magistr/legacy-gui-ratchet.json` may
 //! only shrink.
 //!
 //! The measure is what git tracks, not what is on disk — `crates/magistr-gui`
@@ -42,7 +42,7 @@ fn track(dir: &Path) {
     git(dir, &["add", "-A"]);
 }
 
-/// The script the way the gate runs it: through `sh -c`, which follows
+/// The script the way the check runs it: through `sh -c`, which follows
 /// its shebang to bash on every platform (on Windows, Git's).
 fn shell(args: &[&str]) -> Command {
     let script = script().to_string_lossy().replace('\\', "/");
@@ -203,7 +203,7 @@ fn update_records_a_lower_baseline_and_keeps_the_declaration() {
         "{baseline}"
     );
     assert!(baseline.contains("\"legacy-gui\""), "{baseline}");
-    // And the gate is green again at the new baseline.
+    // And the check is green again at the new baseline.
     let out = run(tmp.path(), &[]);
     assert!(out.status.success(), "{}", text(&out));
 }
@@ -233,7 +233,7 @@ fn update_preserves_the_replacement_note() {
 }
 
 #[test]
-fn projects_without_a_declaration_are_not_gated() {
+fn projects_without_a_declaration_are_not_checkd() {
     let tmp = TempDir::new().expect("tempdir");
     git(tmp.path(), &["init", "-q"]);
     write(tmp.path(), "crates/legacy/a.ts", "export const a = 1;\n");
@@ -242,7 +242,7 @@ fn projects_without_a_declaration_are_not_gated() {
     assert!(out.status.success(), "{}", text(&out));
 }
 
-/// A declared freeze the gate cannot measure is a failure, not a pass — the
+/// A declared freeze the check cannot measure is a failure, not a pass — the
 /// one place this ratchet is stricter than the src/tui one it descends from.
 #[test]
 fn a_declaration_outside_a_git_work_tree_fails_loudly() {
@@ -258,7 +258,7 @@ fn a_declaration_outside_a_git_work_tree_fails_loudly() {
     assert!(text(&out).contains("git"), "{}", text(&out));
 }
 
-/// The gate this repo actually runs: the checked-in declaration names the
+/// The check this repo actually runs: the checked-in declaration names the
 /// Tauri GUI and its recorded baseline is the tree's current size.
 #[test]
 fn this_repo_freezes_the_tauri_gui_at_its_recorded_baseline() {

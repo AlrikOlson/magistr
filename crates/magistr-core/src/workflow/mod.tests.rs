@@ -5,7 +5,7 @@ fn project_json(backend: &str, spec_file: &str) -> String {
         "project": {"name": "fixture", "description": "", "type": "cli"},
         "stack": {"language": "rust", "framework": "none", "package_manager": "cargo",
                   "test_framework": "cargo-nextest", "linter": "clippy", "formatter": "rustfmt"},
-        "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+        "checks": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "true", "extensions": ["rs"]},
         "spec": {"file": spec_file, "unchecked_pattern": "^\\s*- \\[ \\]"},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},

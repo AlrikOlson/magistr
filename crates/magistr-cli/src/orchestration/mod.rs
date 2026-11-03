@@ -1,6 +1,6 @@
 //! Orchestration domain — workflow engine, plan management, and CLI commands.
 //!
-//! Contains the iteration lifecycle (plan → execute → verify), quality gate
+//! Contains the iteration lifecycle (plan → execute → verify), check
 //! runners, plan parsing/tracking, and all CLI command handlers.
 
 pub mod commands;

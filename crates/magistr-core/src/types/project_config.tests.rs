@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use super::*;
 use crate::types::{
-    Archetype, ArchetypeRelationship, FormatConfig, ProjectRole, QualityGate, RelationshipKind,
+    Archetype, ArchetypeRelationship, FormatConfig, ProjectRole, RelationshipKind, StandardChecks,
     TestingConfig, Topology,
 };
 
@@ -23,7 +23,7 @@ fn sample_config() -> ProjectConfig {
             linter: "clippy".to_string(),
             formatter: "rustfmt".to_string(),
         },
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: "cargo check".to_string(),
             test: "cargo nextest run".to_string(),
             lint: "cargo clippy -- -D warnings".to_string(),
@@ -43,7 +43,7 @@ fn sample_config() -> ProjectConfig {
         },
         reference_repos: vec!["https://github.com/example/repo".to_string()],
         state_prefix: "test-project".to_string(),
-        custom_gates: vec![],
+        custom_checks: vec![],
         guards: Default::default(),
         hints: vec!["Use the magistr MCP server".to_string()],
         lifecycle_hooks: vec![],
@@ -83,7 +83,7 @@ fn plan_exports_default_true_and_false_survives_config_roundtrip() {
 fn optional_fields_omitted_when_empty() {
     let config = sample_config();
     let json = serde_json::to_string(&config).unwrap();
-    assert!(!json.contains("custom_gates"));
+    assert!(!json.contains("custom_checks"));
     assert!(!json.contains("lifecycle_hooks"));
 }
 
@@ -92,7 +92,7 @@ fn deserializes_from_real_project_json() {
     let json = r#"{
         "project": {"name": "foo", "description": "", "type": "cli"},
         "stack": {"language": "python", "framework": "django", "package_manager": "pip", "test_framework": "pytest", "linter": "ruff", "formatter": "black"},
-        "quality_gate": {"check": "python -m py_compile .", "test": "pytest", "lint": "ruff check"},
+        "checks": {"check": "python -m py_compile .", "test": "pytest", "lint": "ruff check"},
         "format": {"command": "black .", "extensions": ["py"]},
         "spec": {"file": "PLAN.md", "unchecked_pattern": "- \\[ \\]"},
         "testing": {"companion_pattern": "test_{name}.py", "test_dir": "tests"},
@@ -103,7 +103,7 @@ fn deserializes_from_real_project_json() {
     assert_eq!(config.stack.language, "python");
     assert_eq!(config.stack.framework, "django");
     assert!(config.hints.is_empty());
-    assert!(config.custom_gates.is_empty());
+    assert!(config.custom_checks.is_empty());
 }
 
 #[test]
@@ -141,7 +141,7 @@ fn deserializes_without_spec_block() {
     let json = r#"{
         "project": {"name": "foo", "description": "", "type": "cli"},
         "stack": {"language": "rust", "framework": "none", "package_manager": "cargo", "test_framework": "cargo-nextest", "linter": "clippy", "formatter": "rustfmt"},
-        "quality_gate": {"check": "cargo check", "test": "cargo nextest run", "lint": "cargo clippy"},
+        "checks": {"check": "cargo check", "test": "cargo nextest run", "lint": "cargo clippy"},
         "format": {"command": "cargo fmt", "extensions": ["rs"]},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [],
@@ -173,7 +173,7 @@ fn make_archetype(id: &str, lang: &str, root: &str) -> Archetype {
         framework: None,
         root: PathBuf::from(root),
         role: ProjectRole::Library,
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: format!("{lang} check"),
             test: format!("{lang} test"),
             lint: format!("{lang} lint"),
@@ -205,7 +205,7 @@ fn effective_archetypes_synthesizes_from_legacy() {
     assert_eq!(effective[0].id, "default");
     assert_eq!(effective[0].language, "rust");
     assert!(effective[0].framework.is_none()); // "none" → None
-    assert_eq!(effective[0].quality_gate.check, "cargo check");
+    assert_eq!(effective[0].checks.check, "cargo check");
 }
 
 #[test]
@@ -261,7 +261,7 @@ fn omitted_archetypes_use_flat_project_fields() {
     let json = r#"{
         "project": {"name": "legacy", "description": "", "type": "cli"},
         "stack": {"language": "go", "framework": "none", "package_manager": "go", "test_framework": "go-test", "linter": "golangci-lint", "formatter": "gofmt"},
-        "quality_gate": {"check": "go build ./...", "test": "go test ./...", "lint": "golangci-lint run"},
+        "checks": {"check": "go build ./...", "test": "go test ./...", "lint": "golangci-lint run"},
         "format": {"command": "gofmt -w .", "extensions": ["go"]},
         "testing": {"companion_pattern": "{name}_test.go", "test_dir": "alongside"},
         "reference_repos": [],

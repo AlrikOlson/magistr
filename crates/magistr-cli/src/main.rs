@@ -203,10 +203,10 @@ async fn run_cli() -> eyre::Result<()> {
             backend,
             headless,
             format,
-            gate_only,
+            check_only,
         } => {
-            if gate_only {
-                commands::next::cmd_next_gate_only(&dir, format).await
+            if check_only {
+                commands::next::cmd_next_check_only(&dir, format).await
             } else {
                 let inputs = agent.prepare(&inputs.for_project(&dir), false, None, false)?;
                 if agent.show_config {

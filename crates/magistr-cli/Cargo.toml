@@ -63,7 +63,7 @@ shell-escape = "0.1"
 tempfile = "3"
 
 # The native workspace perf harness (task arch-14c10b): the retained
-# tier-0 / tier-1 / references / worker round-trip gates measured over the
+# tier-0 / tier-1 / references / worker round-trip checks measured over the
 # retained synthetic corpora against the shipping worker binary.
 # `cargo bench -p magistr-cli --bench workspace_bench -- --profile index`.
 [[bench]]

@@ -22,8 +22,8 @@ fn workflow_session_uses_selected_project_for_execution_and_context() {
         "project": {"name":"selected-project"},
         "stack": {"language":"rust", "framework":"none", "package_manager":"cargo",
             "test_framework":"cargo-test", "linter":"clippy", "formatter":"rustfmt"},
-        "quality_gate": {"check":"selected-check", "test":"selected-test", "lint":"selected-lint"},
-        "custom_gates":[{"name":"selected-custom","command":"selected-custom-command","required":true}],
+        "checks": {"check":"selected-check", "test":"selected-test", "lint":"selected-lint"},
+        "custom_checks":[{"name":"selected-custom","command":"selected-custom-command","required":true}],
         "format": {"command":"true", "extensions":[]},
         "testing": {"companion_pattern":"{name}.tests.{ext}", "test_dir":"alongside"},
         "reference_repos":[], "state_prefix":"selected-project"
@@ -43,7 +43,7 @@ fn workflow_session_uses_selected_project_for_execution_and_context() {
     assert_eq!(session.cwd, project.path());
     assert!(session.workflow_permissions);
     assert_eq!(
-        crate::commands::start::collect_gate_commands(project.path()),
+        crate::commands::start::collect_check_commands(project.path()),
         vec![
             "selected-check",
             "selected-test",

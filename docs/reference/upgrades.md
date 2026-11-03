@@ -17,12 +17,15 @@ other MCP servers, environment settings and agent preferences are preserved.
 | Existing data | Current location |
 | --- | --- |
 | `roadmap_backend` and `roadmap_exports` in `.magistr/project.json` | `plan_backend` and `plan_exports`; a `"think-and-ship"` backend becomes `"native"` |
+| `quality_gate`, `custom_gates`, `verification.gates`, `guards.quality_gate` and each archetype's `quality_gate` in `.magistr/project.json` | `checks`, `custom_checks`, `verification.checks`, `guards.checks` and the archetype's `checks`; lifecycle hooks on `on_gate_pass` / `on_gate_fail` fire on `on_check_pass` / `on_check_fail`, and a hook that called `magistr_gate` with `gate` calls `magistr_check` with `check` |
+| `required_gates` and `allow_gate_bypass` in `.magistr/people.json`'s policy | `required_checks` and `allow_check_bypass` |
 | `.magistr-roadmap.yml` (the YAML plan) | `.magistr-plan.yml`, with phase statuses `pending` and `blocked` written as `to_do` and `waiting`; comments and order are kept |
 | The run store `ship/` in the workflow data directory | `run/`, with check results under `check_results/` and records in the run words |
 | The plan store `roadmap/` in the workflow data directory | `plan/`, with records in the plan words: tasks, features, waiting reasons and retired tasks |
 | The decision store `think/` in the workflow data directory | `decisions/`, with records in the decision words: logs, notes and threads, and open threads stored as `open` |
 | The request store `signal/` in the workflow data directory | `requests/`, with records in the request words: kind `suggestion` for `idea`, status `raised` for `surfaced`, and `raised_at` for `surfaced_at` |
 | A saved focus's `lane` in the plan | `team` |
+| A stored check result's `gate` (the check's name) | `check`, converted with its run document |
 | Stored references `task:`, `action:`, `chunk:`, `think:` and `signal:` in plan, decision, request and run records | `step:`, `progress:`, `task:`, `decision:` and `request:`, chosen from each record's saved version |
 | A progress record's or a request enrichment's `think_step`, and a plan refresh's `think_steps` | `note` and `notes` |
 | Saved `magistr mcp-launch magistr …` registration | `magistr mcp --dir …`, preserving the directory and extra connection settings |
@@ -44,7 +47,10 @@ Original settings and the original YAML plan are saved under
 `backups/`, and each project's documents converted in place keep their
 originals under `backups/before-team-words/` (`before-request-words/`,
 `before-decision-words/` or `before-plan-words/` for an installation upgraded
-before the team, request or decision words). An interrupted store move
+before the team, request or decision words). Run documents and their check
+results converted for the check words keep theirs under
+`backups/before-check-words/`, and a roster converted for them keeps
+`.magistr/people.json.before-check-words`. An interrupted store move
 resumes where it stopped; readers wait until it has finished.
 The retired workspace configuration is archived under
 `.magistr/upgrades/workspace-config/`. The original `.workbench` journal and

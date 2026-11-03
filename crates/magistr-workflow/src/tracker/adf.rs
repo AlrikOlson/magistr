@@ -309,11 +309,11 @@ mod tests {
     /// change is deliberate and needs a live save to justify it.
     #[test]
     fn a_checklist_item_keeps_its_marker_as_literal_text() {
-        let doc = render_body("- [ ] three gates green");
+        let doc = render_body("- [ ] three checks green");
         let item = &doc["content"][0]["content"][0];
         assert_eq!(
             item["content"][0]["content"][0]["text"],
-            "[ ] three gates green"
+            "[ ] three checks green"
         );
     }
 
@@ -374,7 +374,7 @@ Sub 2 of 6, split from tracker-jira-adapter.
 ## Acceptance
 
 - [ ] the decision is made in writing
-- [ ] three Rust gates green
+- [ ] three Rust checks green
 
 <!-- magistr: {\"task\":\"jira-body-format\"} -->";
         let doc = render_body(body);
@@ -383,7 +383,7 @@ Sub 2 of 6, split from tracker-jira-adapter.
         assert!(text.contains("Sub 2 of 6, split from tracker-jira-adapter."));
         assert!(text.contains("Acceptance"));
         assert!(text.contains("[ ] the decision is made in writing"));
-        assert!(text.contains("[ ] three Rust gates green"));
+        assert!(text.contains("[ ] three Rust checks green"));
         assert!(
             text.contains("<!-- magistr: {\"task\":\"jira-body-format\"} -->"),
             "the footer did not survive the round trip: {text}"

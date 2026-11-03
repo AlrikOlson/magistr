@@ -109,7 +109,7 @@ contract: not routed, not journaled, observed by `SourceSnapshot` validation
 as changes. `crates/magistr-cli/tests/source_pipeline_routing.rs` proves the
 routed and the refused paths against real owners and the real port;
 `tests/effect_capabilities.rs` proves both through the real transport and
-session supervisor; the `native-write-path` gate's rule 12 forbids any direct
+session supervisor; the `native-write-path` check's rule 12 forbids any direct
 file write in `magistr-acp` production sources.
 
 ## Limits
@@ -138,6 +138,6 @@ missing write targets, and preserve remembered command refusals across explicit
 permission requests and direct effects. Temporary fixtures and subprocess markers establish
 whether an effect happened; a policy-only assertion does not prove enforcement.
 
-Formatting and every standard and required custom gate in `.magistr/project.json`
+Formatting and every standard and required custom check in `.magistr/project.json`
 remain required. Existing architecture, purity, contrast, icon, screenshot and
-latency gates retain their scope; no visual golden updates are part of this change.
+latency checks retain their scope; no visual golden updates are part of this change.

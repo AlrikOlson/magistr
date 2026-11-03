@@ -21,20 +21,20 @@ fn error_envelope_serializes() {
 
 #[test]
 fn validation_output_from_result() {
-    use crate::validate::{Gate, GateResult, ValidationResult};
+    use crate::validate::{StandardCheck, StandardCheckResult, ValidationResult};
     use std::time::Duration;
 
     let result = ValidationResult {
         results: vec![
-            GateResult {
-                gate: Gate::Check,
+            StandardCheckResult {
+                check: StandardCheck::Check,
                 passed: true,
                 duration: Duration::from_millis(150),
                 output: String::new(),
                 command: "cargo check".into(),
             },
-            GateResult {
-                gate: Gate::Test,
+            StandardCheckResult {
+                check: StandardCheck::Test,
                 passed: false,
                 duration: Duration::from_millis(300),
                 output: "test failed".into(),
@@ -45,9 +45,9 @@ fn validation_output_from_result() {
 
     let output = ValidationOutput::from(&result);
     assert!(!output.all_passed);
-    assert_eq!(output.gates.len(), 2);
-    assert!(output.gates[0].passed);
-    assert!(!output.gates[1].passed);
-    assert_eq!(output.gates[0].name, "check");
-    assert_eq!(output.gates[1].name, "test");
+    assert_eq!(output.checks.len(), 2);
+    assert!(output.checks[0].passed);
+    assert!(!output.checks[1].passed);
+    assert_eq!(output.checks[0].name, "check");
+    assert_eq!(output.checks[1].name, "test");
 }

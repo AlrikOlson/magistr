@@ -1,14 +1,14 @@
 //! Durable check check_results and evidence-governed completion.
 //!
 //! A fake evidence port stands in for the host's source capability: it
-//! answers a revision the test controls and the gate contracts the test
+//! answers a revision the test controls and the check contracts the test
 //! declares, so every rule of completion can be driven without a tree.
 
 use std::sync::{Arc, Mutex};
 
 use magistr_workflow::run::application::{
-    CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, CompletionRefusal, EvidencePort,
-    GateContract, RunUseCases, SourceFreshness, SourceObservation, SourceWitness,
+    CheckContract, CheckExecution, CheckOutcome, CheckRequest, CheckSettlement, CompletionRefusal,
+    EvidencePort, RunUseCases, SourceFreshness, SourceObservation, SourceWitness,
 };
 use magistr_workflow::run::domain::{check::CheckType, goal::VerificationMode, step::StepType};
 use magistr_workflow::run::engine::RunEngine;
@@ -30,10 +30,10 @@ struct Seen {
 
 /// The world as the fake port sees it: one mutable source revision, one
 /// external configuration, one selection policy, one owner generation and
-/// the gates the project requires.
+/// the checks the project requires.
 struct World {
     seen: Mutex<Seen>,
-    gates: Mutex<Vec<GateContract>>,
+    checks: Mutex<Vec<CheckContract>>,
     refuse: Mutex<Option<String>>,
 }
 
@@ -48,7 +48,7 @@ impl Default for World {
                 generation: Some(3),
                 bound: true,
             }),
-            gates: Mutex::new(Vec::new()),
+            checks: Mutex::new(Vec::new()),
             refuse: Mutex::new(None),
         }
     }
@@ -74,7 +74,7 @@ impl World {
         self.seen.lock().unwrap().clone()
     }
     fn require(&self, name: &str, command: &str) {
-        self.gates.lock().unwrap().push(GateContract {
+        self.checks.lock().unwrap().push(CheckContract {
             name: name.into(),
             command: command.into(),
             check_type: CheckType::Test,
@@ -142,14 +142,14 @@ impl EvidencePort for World {
         Ok(Box::new(Witness {
             world: Arc::new(World {
                 seen: Mutex::new(seen.clone()),
-                gates: Mutex::new(Vec::new()),
+                checks: Mutex::new(Vec::new()),
                 refuse: Mutex::new(None),
             }),
             seen,
         }))
     }
-    fn required_gates(&self) -> Result<Vec<GateContract>, String> {
-        Ok(self.gates.lock().unwrap().clone())
+    fn required_checks(&self) -> Result<Vec<CheckContract>, String> {
+        Ok(self.checks.lock().unwrap().clone())
     }
 }
 
@@ -170,8 +170,8 @@ impl EvidencePort for LivePort {
             seen: self.0.now(),
         }))
     }
-    fn required_gates(&self) -> Result<Vec<GateContract>, String> {
-        self.0.required_gates()
+    fn required_checks(&self) -> Result<Vec<CheckContract>, String> {
+        self.0.required_checks()
     }
 }
 
@@ -224,12 +224,12 @@ fn planned_focused(cases: &RunUseCases) {
     cases.start_step("verify").unwrap();
 }
 
-fn request(gate: &str, command: &str) -> CheckRequest {
+fn request(check: &str, command: &str) -> CheckRequest {
     CheckRequest {
         options: Default::default(),
         step_id: None,
         check_type: CheckType::Test,
-        name: gate.into(),
+        name: check.into(),
         passed: None,
         details: String::new(),
         required: true,
@@ -253,11 +253,11 @@ fn outcome(execution: CheckExecution, command: &str) -> CheckOutcome {
 
 fn run(
     cases: &RunUseCases,
-    gate: &str,
+    check: &str,
     command: &str,
     execution: CheckExecution,
 ) -> CheckSettlement {
-    let admission = cases.admit_check(request(gate, command)).unwrap().value;
+    let admission = cases.admit_check(request(check, command)).unwrap().value;
     cases
         .settle_check(admission, outcome(execution, command))
         .unwrap()
@@ -271,7 +271,7 @@ fn world() -> Arc<World> {
 }
 
 #[test]
-fn focused_goal_accepts_recorded_acceptance_checks_without_project_gates() {
+fn focused_goal_accepts_recorded_acceptance_checks_without_project_checks() {
     let temp = tempfile::tempdir().unwrap();
     let world = world();
     let cases = stored(temp.path(), &world);
@@ -290,7 +290,7 @@ fn focused_goal_accepts_recorded_acceptance_checks_without_project_gates() {
         evidence
             .accepted
             .iter()
-            .map(|check_result| check_result.gate.as_str())
+            .map(|check_result| check_result.check.as_str())
             .collect::<Vec<_>>(),
         vec!["docs"]
     );
@@ -368,7 +368,7 @@ fn admission_publishes_a_durable_check_result_and_settlement_completes_it() {
 }
 
 #[test]
-fn attempts_count_per_instance_and_gate_and_a_change_during_the_run_is_recorded() {
+fn attempts_count_per_instance_and_check_and_a_change_during_the_run_is_recorded() {
     let temp = tempfile::tempdir().unwrap();
     let world = world();
     let cases = stored(temp.path(), &world);
@@ -407,7 +407,7 @@ fn attempts_count_per_instance_and_gate_and_a_change_during_the_run_is_recorded(
     assert_eq!(
         lint.check_result().value.attempt,
         1,
-        "another gate counts on its own"
+        "another check counts on its own"
     );
 }
 
@@ -466,14 +466,14 @@ fn completion_accepts_current_evidence_and_separates_recovered_from_outstanding(
     let CompletionRefusal::Outstanding(evidence) = &refusal else {
         panic!("{refusal}");
     };
-    assert_eq!(evidence.outstanding[0].gate, "lint");
+    assert_eq!(evidence.outstanding[0].check, "lint");
     assert!(evidence.outstanding[0].reason.contains("no check_result"));
     assert_eq!(evidence.recovered.len(), 1);
     assert_eq!(evidence.recovered[0].outcome, "exit 1");
     assert!(
         refusal
             .to_string()
-            .contains("lint: required gate has no check_result")
+            .contains("lint: required check has no check_result")
     );
 
     run(
@@ -491,7 +491,7 @@ fn completion_accepts_current_evidence_and_separates_recovered_from_outstanding(
         evidence
             .accepted
             .iter()
-            .map(|a| (a.gate.as_str(), a.attempt))
+            .map(|a| (a.check.as_str(), a.attempt))
             .collect::<Vec<_>>(),
         vec![("test", 2), ("lint", 1)]
     );
@@ -523,13 +523,13 @@ fn completion_refuses_evidence_taken_under_another_source_or_acceptance_or_comma
     );
     assert!(cases.verify_completion("task:c1", None).is_ok());
 
-    // The source moved on after the gate ran.
+    // The source moved on after the check ran.
     world.set_revision("r2");
     let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(
         refusal
             .to_string()
-            .contains("source changed since the gate ran"),
+            .contains("source changed since the check ran"),
         "{refusal}"
     );
     world.set_revision("r1");
@@ -559,7 +559,7 @@ fn completion_refuses_evidence_taken_under_another_source_or_acceptance_or_comma
     assert!(cases.verify_completion("task:c1", None).is_ok());
 
     // The configured command changed.
-    world.gates.lock().unwrap()[0].command = "cargo nextest run".into();
+    world.checks.lock().unwrap()[0].command = "cargo nextest run".into();
     let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(
         refusal.to_string().contains("not the configured"),
@@ -580,7 +580,7 @@ fn completion_refuses_evidence_taken_under_another_source_or_acceptance_or_comma
 }
 
 #[test]
-fn a_self_reported_pass_never_certifies_a_configured_gate() {
+fn a_self_reported_pass_never_certifies_a_configured_check() {
     let temp = tempfile::tempdir().unwrap();
     let world = world();
     let cases = stored(temp.path(), &world);
@@ -854,7 +854,7 @@ async fn compaction_is_explicit_through_the_mcp_surface() {
 }
 
 #[test]
-fn an_external_layer_edited_while_the_gate_ran_is_named_and_the_latest_attempt_governs() {
+fn an_external_layer_edited_while_the_check_ran_is_named_and_the_latest_attempt_governs() {
     let temp = tempfile::tempdir().unwrap();
     let world = world();
     let cases = stored(temp.path(), &world);
@@ -882,7 +882,7 @@ fn an_external_layer_edited_while_the_gate_ran_is_named_and_the_latest_attempt_g
     assert!(
         refusal
             .to_string()
-            .contains("configuration changed while the gate ran: org-policy"),
+            .contains("configuration changed while the check ran: org-policy"),
         "{refusal}"
     );
 
@@ -910,7 +910,7 @@ fn an_external_layer_edited_while_the_gate_ran_is_named_and_the_latest_attempt_g
 }
 
 #[test]
-fn completion_names_the_identity_that_drifted_after_the_gate_and_ignores_the_owner_generation() {
+fn completion_names_the_identity_that_drifted_after_the_check_and_ignores_the_owner_generation() {
     let temp = tempfile::tempdir().unwrap();
     let world = world();
     let cases = stored(temp.path(), &world);
@@ -923,14 +923,14 @@ fn completion_names_the_identity_that_drifted_after_the_gate_and_ignores_the_own
     );
     assert!(cases.verify_completion("task:c1", None).is_ok());
 
-    // An external configuration layer changed after the gate, every
+    // An external configuration layer changed after the check, every
     // selected byte unchanged: the evidence no longer applies.
     world.set_config("c2");
     let refusal = cases.verify_completion("task:c1", None).unwrap_err();
     assert!(
         refusal
             .to_string()
-            .contains("the applicable external configuration changed since the gate ran"),
+            .contains("the applicable external configuration changed since the check ran"),
         "{refusal}"
     );
     world.set_config("c1");
@@ -942,7 +942,7 @@ fn completion_names_the_identity_that_drifted_after_the_gate_and_ignores_the_own
     assert!(
         refusal
             .to_string()
-            .contains("the selection policy changed since the gate ran"),
+            .contains("the selection policy changed since the check ran"),
         "{refusal}"
     );
     world.set_policy("p");
@@ -965,7 +965,7 @@ fn completion_names_the_identity_that_drifted_after_the_gate_and_ignores_the_own
     assert!(
         refusal
             .to_string()
-            .contains("the source changed since the gate ran"),
+            .contains("the source changed since the check ran"),
         "{refusal}"
     );
 }

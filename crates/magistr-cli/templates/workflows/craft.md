@@ -20,9 +20,9 @@ start an implementation loop by itself.
   acceptance criteria before implementing, preserve authorized scope, and
   record discoveries separately instead of silently expanding the step.
 - Track implementation with the native run lifecycle. Run the configured
-  gates, including required custom gates, and inspect recorded evidence.
+  checks, including required custom checks, and inspect recorded evidence.
   Verify acceptance criteria as well as compilation and tests. Format before
-  final gates. Report failures, omissions, and uncertainty accurately.
+  final checks. Report failures, omissions, and uncertainty accurately.
 - Commit completed tasks atomically with a conventional message. Preserve
   unrelated changes and the user's chosen checkout. Follow project commit
   conventions; do not invent model identity or attribute work to another host.
@@ -42,7 +42,7 @@ start an implementation loop by itself.
   archiving until after review. Use consistent view names, viewport, appearance, renderer, capture time,
   source hashes and review notes. Include the evidence in that iteration's commit.
   Preserve earlier captures; a final-only gallery does not satisfy this rule.
-- Visual review is a separate required gate. Follow the per-image review protocol
+- Visual review is a separate required check. Follow the per-image review protocol
   for each image: inspect composition and readable detail, record the user task,
   specific observations and a verdict, and judge relationship layout
   and routing as well as text and spacing. Keep a required `GUI visual review`

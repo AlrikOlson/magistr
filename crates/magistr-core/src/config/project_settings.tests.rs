@@ -34,7 +34,7 @@ fn current_settings_parse_defaults_and_refuse_invalid_declared_values() {
     let mut config = serde_json::json!({
         "project": {"name": "settings-test", "type": "cli"},
         "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
-        "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+        "checks": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "", "extensions": []},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false

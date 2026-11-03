@@ -18,15 +18,15 @@ pub enum WorkflowEvent {
         from: WorkflowPhase,
         to: WorkflowPhase,
     },
-    /// Quality gate passed.
-    GatePassed {
-        /// Gate name (e.g., "check", "test", "lint").
-        gate: String,
+    /// Check passed.
+    CheckPassed {
+        /// Check name (e.g., "check", "test", "lint").
+        check: String,
     },
-    /// Quality gate failed.
-    GateFailed {
-        /// Gate name.
-        gate: String,
+    /// Check failed.
+    CheckFailed {
+        /// Check name.
+        check: String,
         /// Error output.
         error: String,
     },

@@ -45,7 +45,7 @@ pub struct PeopleConfig {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub budgets: Vec<BudgetRule>,
     /// The guardrails this team enforces — approved tools, protected
-    /// paths, required gates, approved models.
+    /// paths, required checks, approved models.
     ///
     /// Like `budgets`, these live in the team artifact rather than a
     /// developer's own config, and for the same reason: enforcement
@@ -133,9 +133,11 @@ impl PeopleConfig {
     ///
     /// A project that still keeps its roster at the pre-glossary
     /// `.magistr/team.json` is upgraded first, once, by
-    /// [`upgrade_team_file`].
+    /// [`upgrade_team_file`], and a roster whose policy still names its
+    /// required checks "gates" is converted once by [`upgrade_policy_words`].
     pub fn load(dir: &Path) -> Result<Option<Self>, MagistrError> {
         upgrade_team_file(dir)?;
+        upgrade_policy_words(dir)?;
         let path = Self::path(dir);
         let text = match std::fs::read_to_string(&path) {
             Ok(text) => text,
@@ -295,6 +297,60 @@ fn upgrade_team_file(dir: &Path) -> Result<(), MagistrError> {
     std::fs::rename(&staging, &target).map_err(|e| MagistrError::io(&target, e))?;
     let backup = magistr_dir.join("team.json.backup");
     std::fs::rename(&legacy, &backup).map_err(|e| MagistrError::io(&backup, e))
+}
+
+/// Policy keys that named required checks "gates" before the check words.
+const POLICY_CHECK_KEYS: [(&str, &str); 2] = [
+    ("required_gates", "required_checks"),
+    ("allow_gate_bypass", "allow_check_bypass"),
+];
+
+/// Convert a roster whose governance policy uses the gate words, once.
+/// The policy ignores unknown keys, so an unconverted roster would silently
+/// drop its required checks; the original is kept beside it as
+/// `people.json.before-check-words`. Holding both spellings is refused.
+fn upgrade_policy_words(dir: &Path) -> Result<(), MagistrError> {
+    let path = PeopleConfig::path(dir);
+    let text = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(MagistrError::io(path, e)),
+    };
+    let mut roster: serde_json::Value = serde_json::from_str(&text)
+        .map_err(|e| MagistrError::parse("json", path.display().to_string(), e))?;
+    let Some(policy) = roster
+        .get_mut("policy")
+        .and_then(serde_json::Value::as_object_mut)
+    else {
+        return Ok(());
+    };
+    let mut changed = false;
+    for (old, new) in POLICY_CHECK_KEYS {
+        let Some(value) = policy.remove(old) else {
+            continue;
+        };
+        if policy.contains_key(new) {
+            return Err(MagistrError::Config(format!(
+                "{} holds both {old} and {new}; keep one and retry.",
+                path.display()
+            )));
+        }
+        policy.insert(new.to_owned(), value);
+        changed = true;
+    }
+    if !changed {
+        return Ok(());
+    }
+    let magistr_dir = crate::paths::magistr_dir(dir);
+    let backup = magistr_dir.join("people.json.before-check-words");
+    if !backup.exists() {
+        std::fs::write(&backup, &text).map_err(|e| MagistrError::io(&backup, e))?;
+    }
+    let mut upgraded = serde_json::to_string_pretty(&roster)?;
+    upgraded.push('\n');
+    let staging = magistr_dir.join("people.json.upgrading");
+    std::fs::write(&staging, upgraded).map_err(|e| MagistrError::io(&staging, e))?;
+    std::fs::rename(&staging, &path).map_err(|e| MagistrError::io(&path, e))
 }
 
 #[cfg(test)]

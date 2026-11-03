@@ -1,6 +1,6 @@
 //! `magistr mcp` over a real rmcp client on an in-memory duplex:
 //! one tool list carrying both the `magistr_*` tools and the magistr
-//! families, gates recorded through `check_step`, phases recorded on the
+//! families, checks recorded through `check_step`, phases recorded on the
 //! active task — all against a temporary store.
 
 use std::path::Path;
@@ -10,8 +10,8 @@ use rmcp::model::{CallToolRequestParams, CallToolResult};
 use rmcp::{ClientHandler, ServiceExt};
 use serde_json::{Value, json};
 
-#[path = "mcp_serve_integration/gate_source_receipts.rs"]
-mod gate_source_receipts;
+#[path = "mcp_serve_integration/check_source_receipts.rs"]
+mod check_source_receipts;
 
 #[derive(Clone)]
 struct TestClient;
@@ -19,11 +19,11 @@ impl ClientHandler for TestClient {}
 
 type Client = rmcp::service::RunningService<rmcp::RoleClient, TestClient>;
 
-/// The gate commands are written for two shells at once: magistr runs a
-/// gate through `sh -c`, and magistr's `check_step` (which runs a
-/// recorded gate itself) uses `cmd /C` on Windows, where any quote in
+/// The check commands are written for two shells at once: magistr runs a
+/// check through `sh -c`, and magistr's `check_step` (which runs a
+/// recorded check itself) uses `cmd /C` on Windows, where any quote in
 /// the command is mangled on the way in. So no quotes: a diagnostic that
-/// needs them lives in `diag.sh` and the gate is `sh <root>/diag.sh` —
+/// needs them lives in `diag.sh` and the check is `sh <root>/diag.sh` —
 /// by absolute path, since `check_step` runs in the server's own cwd.
 fn write_fixture(root: &Path) {
     std::fs::create_dir_all(root.join(".magistr")).expect("mkdir .magistr");
@@ -38,8 +38,8 @@ fn write_fixture(root: &Path) {
             "language": "rust", "framework": "none", "package_manager": "cargo",
             "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"
         },
-        "quality_gate": {"check": "true", "test": "true", "lint": "exit 3"},
-        "custom_gates": [{
+        "checks": {"check": "true", "test": "true", "lint": "exit 3"},
+        "custom_checks": [{
             "name": "diag",
             "command": format!("sh {}/diag.sh", root.to_string_lossy().replace('\\', "/")),
             "required": false
@@ -112,12 +112,12 @@ async fn check_keeps_its_admitted_run(tool: &str) {
     let config_path = root.join(".magistr/project.json");
     let mut config: Value =
         serde_json::from_slice(&std::fs::read(&config_path).expect("config")).expect("json");
-    config["quality_gate"]["check"] = json!(command);
+    config["checks"]["check"] = json!(command);
     std::fs::write(config_path, serde_json::to_vec(&config).expect("json")).expect("config");
     let (client, server) = pair(&root, &tmp.path().join("data")).await;
     begin_reused_task(&client, "first").await;
-    let args = if tool == "magistr_gate" {
-        json!({"gate": "check"})
+    let args = if tool == "magistr_check" {
+        json!({"check": "check"})
     } else {
         json!({"type": "test", "name": "slow", "command": command})
     };
@@ -132,12 +132,12 @@ async fn check_keeps_its_admitted_run(tool: &str) {
             begin_reused_task(&client, "second").await;
         })
         .await
-        .expect("workflow stays responsive while gate waits");
+        .expect("workflow stays responsive while check waits");
         std::fs::write(&release, "").expect("release command");
     };
     let (result, ()) = tokio::join!(running, rollover);
     let result = text_json(&result);
-    if tool == "magistr_gate" {
+    if tool == "magistr_check" {
         assert_eq!(result["passed"], true, "{result}");
         assert_eq!(result["recorded"], false, "{result}");
         assert_eq!(result["step_id"], "reused");
@@ -179,8 +179,8 @@ async fn begin_reused_task(client: &Client, goal: &str) {
 
 #[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn magistr_gate_cannot_land_on_a_reused_task_in_a_later_run() {
-    check_keeps_its_admitted_run("magistr_gate").await;
+async fn magistr_check_cannot_land_on_a_reused_task_in_a_later_run() {
+    check_keeps_its_admitted_run("magistr_check").await;
 }
 
 #[cfg(unix)]
@@ -364,7 +364,7 @@ async fn plan_export_never_follows_a_destination_symlink() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn one_server_serves_both_surfaces_and_records_gates_through_run() {
+async fn one_server_serves_both_surfaces_and_records_checks_through_run() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
@@ -376,7 +376,7 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_run() {
     let tools = client.peer().list_tools(None).await.expect("list_tools");
     let names: Vec<&str> = tools.tools.iter().map(|t| t.name.as_ref()).collect();
     for expected in [
-        "magistr_gate",
+        "magistr_check",
         "magistr_set_phase",
         "magistr_format",
         "decision_record",
@@ -397,42 +397,45 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_run() {
     assert_ne!(status.is_error, Some(true));
     assert_eq!(text_json(&status)["project_id"], "mcp-serve-fixture");
 
-    // Without an active task the gate still runs, and says it was not recorded.
-    let unrecorded = call(&client, "magistr_gate", json!({"gate": "check"})).await;
+    // Without an active task the check still runs, and says it was not recorded.
+    let unrecorded = call(&client, "magistr_check", json!({"check": "check"})).await;
     let body = text_json(&unrecorded);
     assert_eq!(body["passed"], true, "{body}");
     assert_eq!(body["recorded"], false, "{body}");
 
-    // Goal → plan → start, then the gate is recorded through check_step.
+    // Goal → plan → start, then the check is recorded through check_step.
     call(&client, "run_open", json!({"description": "ts2 duplex"})).await;
     call(
         &client,
         "arrange_steps",
-        json!({"action": "add", "step_id": "gate-task", "title": "run gates"}),
+        json!({"action": "add", "step_id": "check-task", "title": "run checks"}),
     )
     .await;
-    let started = call(&client, "start_step", json!({"step_id": "gate-task"})).await;
+    let started = call(&client, "start_step", json!({"step_id": "check-task"})).await;
     assert_ne!(started.is_error, Some(true), "{started:?}");
 
-    let recorded = call(&client, "magistr_gate", json!({"gate": "all"})).await;
+    let recorded = call(&client, "magistr_check", json!({"check": "all"})).await;
     let body = text_json(&recorded);
     assert_eq!(body["passed"], false, "lint exits 3: {body}");
-    let gates = body["gates"].as_array().expect("gates");
+    let ran = body["checks"].as_array().expect("checks");
     assert_eq!(
-        gates.len(),
+        ran.len(),
         3,
-        "check, test, lint — `all` is standard + *required* custom gates, and \
+        "check, test, lint — `all` is standard + *required* custom checks, and \
          `diag` is registered not-required: {body}"
     );
-    for gate in gates {
-        assert_eq!(gate["recorded"], true, "{gate}");
-        assert_eq!(gate["verified"], true, "{gate}");
-        assert!(gate["rows"].is_array(), "every gate carries rows: {gate}");
+    for check in ran {
+        assert_eq!(check["recorded"], true, "{check}");
+        assert_eq!(check["verified"], true, "{check}");
+        assert!(
+            check["rows"].is_array(),
+            "every check carries rows: {check}"
+        );
     }
-    let lint = gates
+    let lint = ran
         .iter()
-        .find(|g| g["gate"] == "lint")
-        .expect("lint gate");
+        .find(|g| g["check"] == "lint")
+        .expect("lint check");
     assert_eq!(lint["exit_code"], 3);
     assert_eq!(lint["passed"], false);
     assert_eq!(
@@ -441,10 +444,10 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_run() {
         "no parsable output"
     );
 
-    // wb3: a gate whose output is a rustc-style diagnostic answers with rows.
-    // Reached by its own name, which is where a not-required gate lives —
+    // wb3: a check whose output is a rustc-style diagnostic answers with rows.
+    // Reached by its own name, which is where a not-required check lives —
     // `all` no longer pays for a run whose red it would have to ignore.
-    let by_name = call(&client, "magistr_gate", json!({"gate": "diag"})).await;
+    let by_name = call(&client, "magistr_check", json!({"check": "diag"})).await;
     let diag = text_json(&by_name);
     assert_eq!(diag["recorded"], true, "{diag}");
     assert_eq!(diag["verified"], true, "{diag}");
@@ -468,14 +471,14 @@ async fn one_server_serves_both_surfaces_and_records_gates_through_run() {
     let run = text_json(&call(&client, "run_status", json!({})).await);
     let task = run["step_list"]
         .as_array()
-        .and_then(|t| t.iter().find(|t| t["id"] == "gate-task"))
+        .and_then(|t| t.iter().find(|t| t["id"] == "check-task"))
         .cloned()
         .unwrap_or(run.clone());
     let checks = run["checks"].as_array().cloned().unwrap_or_default();
     assert_eq!(checks.len(), 4, "four verified checks: {run}");
     assert!(checks.iter().all(|c| c["verified"] == true), "{checks:?}");
     // run_status summarises checks (name/passed/verified); the exit code was
-    // asserted on the gate response above.
+    // asserted on the check response above.
     assert!(
         checks
             .iter()
@@ -604,7 +607,7 @@ async fn a_modern_client_is_negotiated_down_and_tools_list_carries_no_result_typ
         .iter()
         .filter_map(|t| t["name"].as_str())
         .collect();
-    for expected in ["magistr_gate", "plan_next", "check_step"] {
+    for expected in ["magistr_check", "plan_next", "check_step"] {
         assert!(names.contains(&expected), "{expected} in {names:?}");
     }
 
@@ -708,7 +711,7 @@ async fn a_client_that_discovers_before_initialize_still_lists_tools() {
         .iter()
         .filter_map(|t| t["name"].as_str())
         .collect();
-    for expected in ["magistr_gate", "plan_next", "check_step"] {
+    for expected in ["magistr_check", "plan_next", "check_step"] {
         assert!(names.contains(&expected), "{expected} in {names:?}");
     }
     assert!(
@@ -725,17 +728,48 @@ fn write_green_fixture(root: &Path) {
     let path = root.join(".magistr/project.json");
     let mut config: Value =
         serde_json::from_str(&std::fs::read_to_string(&path).expect("project.json")).expect("json");
-    config["quality_gate"] = json!({"check": "true", "test": "true", "lint": "true"});
-    config["custom_gates"] = json!([{"name": "structure", "command": "true", "required": true}]);
+    config["checks"] = json!({"check": "true", "test": "true", "lint": "true"});
+    config["custom_checks"] = json!([{"name": "structure", "command": "true", "required": true}]);
     std::fs::write(&path, serde_json::to_string_pretty(&config).expect("json")).expect("write");
 }
 
-/// The acceptance of magistr-gate-forwards-run-check, verbatim: with an
-/// active task, a green `magistr_gate(all)` leaves one verified check per
-/// gate on that task, and `magistr_set_phase(done)` is open right after it
+/// The check words have no alias: the tool's name before them is an unknown
+/// tool, and its old argument names no check.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_check_tool_and_argument_before_the_check_words_are_refused() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("proj");
+    std::fs::create_dir_all(&root).expect("root");
+    write_green_fixture(&root);
+    let (client, server) = pair(&root, &tmp.path().join("data")).await;
+
+    let mut old = CallToolRequestParams::new("magistr_gate".to_owned());
+    old.arguments = json!({"gate": "all"}).as_object().cloned();
+    match client.peer().call_tool(old).await {
+        Err(error) => assert!(error.to_string().contains("magistr_gate"), "{error}"),
+        Ok(result) => assert_eq!(result.is_error, Some(true), "{result:?}"),
+    }
+    let tools = client.peer().list_all_tools().await.expect("tools/list");
+    assert!(tools.iter().any(|tool| tool.name == "magistr_check"));
+    assert!(!tools.iter().any(|tool| tool.name.contains("gate")));
+
+    let mut old_argument = CallToolRequestParams::new("magistr_check".to_owned());
+    old_argument.arguments = json!({"gate": "all"}).as_object().cloned();
+    match client.peer().call_tool(old_argument).await {
+        Err(error) => assert!(error.to_string().contains("'check'"), "{error}"),
+        Ok(result) => assert_eq!(result.is_error, Some(true), "{result:?}"),
+    }
+
+    drop(client);
+    server.abort();
+}
+
+/// The acceptance of magistr-check-forwards-run-check, verbatim: with an
+/// active task, a green `magistr_check(all)` leaves one verified check per
+/// check on that task, and `magistr_set_phase(done)` is open right after it
 /// with no manual `check_step`.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_green_gate_run_is_the_only_check_the_done_phase_needs() {
+async fn a_green_check_run_is_the_only_check_the_done_phase_needs() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
@@ -746,56 +780,56 @@ async fn a_green_gate_run_is_the_only_check_the_done_phase_needs() {
     call(
         &client,
         "run_open",
-        json!({"description": "gate → check_step"}),
+        json!({"description": "check → check_step"}),
     )
     .await;
     call(
         &client,
         "arrange_steps",
-        json!({"action": "add", "step_id": "gate-task", "title": "run gates"}),
+        json!({"action": "add", "step_id": "check-task", "title": "run checks"}),
     )
     .await;
-    let started = call(&client, "start_step", json!({"step_id": "gate-task"})).await;
+    let started = call(&client, "start_step", json!({"step_id": "check-task"})).await;
     assert_ne!(started.is_error, Some(true), "{started:?}");
 
-    // Before any gate ran, `done` is refused for want of a check.
+    // Before any check ran, `done` is refused for want of a check.
     let refused = call(&client, "magistr_set_phase", json!({"phase": "done"})).await;
     assert_eq!(refused.is_error, Some(true), "{refused:?}");
 
-    let recorded = call(&client, "magistr_gate", json!({"gate": "all"})).await;
+    let recorded = call(&client, "magistr_check", json!({"check": "all"})).await;
     let body = text_json(&recorded);
     assert_eq!(body["passed"], true, "{body}");
-    assert_eq!(body["recorded"], true, "every gate recorded: {body}");
-    let gates = body["gates"].as_array().expect("gates");
+    assert_eq!(body["recorded"], true, "every check recorded: {body}");
+    let ran = body["checks"].as_array().expect("checks");
     assert_eq!(
-        gates.len(),
+        ran.len(),
         4,
-        "check, test, lint + the required custom gate"
+        "check, test, lint + the required custom check"
     );
-    for gate in gates {
-        assert_eq!(gate["recorded"], true, "{gate}");
-        assert_eq!(gate["verified"], true, "{gate}");
-        assert_eq!(gate["exit_code"], 0, "{gate}");
+    for check in ran {
+        assert_eq!(check["recorded"], true, "{check}");
+        assert_eq!(check["verified"], true, "{check}");
+        assert_eq!(check["exit_code"], 0, "{check}");
     }
 
-    // One verified, command-run check per gate, all on the active task.
+    // One verified, command-run check per check, all on the active task.
     let run = text_json(&call(&client, "run_status", json!({})).await);
     let checks = run["checks"].as_array().cloned().unwrap_or_default();
-    assert_eq!(checks.len(), gates.len(), "{run}");
-    for gate in gates {
-        let name = gate["gate"].as_str().expect("gate name");
+    assert_eq!(checks.len(), ran.len(), "{run}");
+    for check in ran {
+        let name = check["check"].as_str().expect("check name");
         let matching: Vec<&Value> = checks.iter().filter(|c| c["name"] == name).collect();
         assert_eq!(matching.len(), 1, "one check for {name}: {checks:?}");
-        assert_eq!(matching[0]["step_id"], "gate-task", "{checks:?}");
+        assert_eq!(matching[0]["step_id"], "check-task", "{checks:?}");
         assert_eq!(matching[0]["verified"], true, "{checks:?}");
         assert_eq!(matching[0]["passed"], true, "{checks:?}");
     }
     let task = run["step_list"]
         .as_array()
-        .and_then(|t| t.iter().find(|t| t["id"] == "gate-task"))
+        .and_then(|t| t.iter().find(|t| t["id"] == "check-task"))
         .cloned()
-        .expect("gate-task");
-    assert_eq!(task["checks_count"], gates.len(), "{task}");
+        .expect("check-task");
+    assert_eq!(task["checks_count"], ran.len(), "{task}");
 
     // And `done` opens on those checks alone — no check_step by hand.
     let done = call(&client, "magistr_set_phase", json!({"phase": "done"})).await;
@@ -805,11 +839,11 @@ async fn a_green_gate_run_is_the_only_check_the_done_phase_needs() {
     server.abort();
 }
 
-/// When check_step refuses — here, no active step — the gate still runs, and
+/// When check_step refuses — here, no active step — the check still runs, and
 /// the result says why it was not recorded in check_step's own words rather
-/// than a guessed cause, at the gate and at the top of an `all` run.
+/// than a guessed cause, at the check and at the top of an `all` run.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_unrecorded_gate_names_run_checks_refusal() {
+async fn an_unrecorded_check_names_run_checks_refusal() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
@@ -817,7 +851,7 @@ async fn an_unrecorded_gate_names_run_checks_refusal() {
     let data_dir = tmp.path().join("data");
     let (client, server) = pair(&root, &data_dir).await;
 
-    let one = text_json(&call(&client, "magistr_gate", json!({"gate": "check"})).await);
+    let one = text_json(&call(&client, "magistr_check", json!({"check": "check"})).await);
     assert_eq!(one["passed"], true, "{one}");
     assert_eq!(one["recorded"], false, "{one}");
     let note = one["note"].as_str().expect("note");
@@ -827,20 +861,20 @@ async fn an_unrecorded_gate_names_run_checks_refusal() {
         "check_step's words: {note}"
     );
 
-    let all = text_json(&call(&client, "magistr_gate", json!({"gate": "all"})).await);
+    let all = text_json(&call(&client, "magistr_check", json!({"check": "all"})).await);
     assert_eq!(all["passed"], true, "{all}");
     assert_eq!(all["recorded"], false, "{all}");
     let note = all["note"].as_str().expect("top-level note");
     assert!(note.contains("no active step"), "{note}");
-    for gate in ["check", "test", "lint", "structure"] {
-        assert!(note.contains(gate), "names every unrecorded gate: {note}");
+    for check in ["check", "test", "lint", "structure"] {
+        assert!(note.contains(check), "names every unrecorded check: {note}");
     }
 
     let _ = client.cancel().await;
     server.abort();
 }
 
-/// A gate whose command counts its own runs, so "how many times did the gate
+/// A check whose command counts its own runs, so "how many times did the check
 /// actually execute" is a number rather than an inference.
 fn write_counting_fixture(root: &Path, counter: &Path) {
     write_fixture(root);
@@ -852,8 +886,8 @@ fn write_counting_fixture(root: &Path, counter: &Path) {
         "echo ran >> {}",
         counter.to_string_lossy().replace('\\', "/")
     );
-    config["quality_gate"] = json!({"check": tick, "test": "true", "lint": "true"});
-    config["custom_gates"] = json!([]);
+    config["checks"] = json!({"check": tick, "test": "true", "lint": "true"});
+    config["custom_checks"] = json!([]);
     std::fs::write(&path, serde_json::to_string_pretty(&config).expect("json")).expect("write");
 }
 
@@ -863,17 +897,17 @@ fn runs(counter: &Path) -> usize {
         .unwrap_or(0)
 }
 
-/// A gate command runs **once** per `magistr_gate` call, whether or not there
+/// A check command runs **once** per `magistr_check` call, whether or not there
 /// is a run task to record it on.
 ///
 /// The regression: `check_step` executes the command *before* it discovers it
-/// has nowhere to record the result, so forwarding a gate to it with no active
+/// has nowhere to record the result, so forwarding a check to it with no active
 /// task ran the command, threw the run away with a refusal, and left
-/// `magistr_gate` to run it a second time. Two `cargo nextest` runs, two
-/// clippy runs, two release builds per gate — and a timing or golden gate got
+/// `magistr_check` to run it a second time. Two `cargo nextest` runs, two
+/// clippy runs, two release builds per check — and a timing or golden check got
 /// two independent chances to fail while only the second was reported.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_gate_runs_its_command_exactly_once_with_or_without_a_task() {
+async fn a_check_runs_its_command_exactly_once_with_or_without_a_task() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
@@ -883,11 +917,11 @@ async fn a_gate_runs_its_command_exactly_once_with_or_without_a_task() {
     let (client, server) = pair(&root, &data_dir).await;
 
     // No goal, no plan, no active task: check_step has nowhere to put
-    // the result, and the gate must still run exactly once.
-    let one = text_json(&call(&client, "magistr_gate", json!({"gate": "check"})).await);
+    // the result, and the check must still run exactly once.
+    let one = text_json(&call(&client, "magistr_check", json!({"check": "check"})).await);
     assert_eq!(one["passed"], true, "{one}");
     assert_eq!(one["recorded"], false, "{one}");
-    assert_eq!(runs(&counter), 1, "unrecorded gate ran more than once");
+    assert_eq!(runs(&counter), 1, "unrecorded check ran more than once");
 
     // And once more with a task, where the run happens inside check_step.
     call(
@@ -899,26 +933,26 @@ async fn a_gate_runs_its_command_exactly_once_with_or_without_a_task() {
     call(
         &client,
         "arrange_steps",
-        json!({"action": "add", "step_id": "t1", "title": "gate"}),
+        json!({"action": "add", "step_id": "t1", "title": "check"}),
     )
     .await;
     call(&client, "start_step", json!({"step_id": "t1"})).await;
 
-    let two = text_json(&call(&client, "magistr_gate", json!({"gate": "check"})).await);
+    let two = text_json(&call(&client, "magistr_check", json!({"check": "check"})).await);
     assert_eq!(two["recorded"], true, "{two}");
-    assert_eq!(runs(&counter), 2, "recorded gate ran more than once");
+    assert_eq!(runs(&counter), 2, "recorded check ran more than once");
 
     let _ = client.cancel().await;
     server.abort();
 }
 
-/// The polyglot defect, end to end over the live gate path: a project whose
-/// archetypes carry two stacks resolves one `test` gate into both stacks'
+/// The polyglot defect, end to end over the live check path: a project whose
+/// archetypes carry two stacks resolves one `test` check into both stacks'
 /// commands — the second stack's suite runs before anything is called
 /// verified, and the workspace-wide command shared by several archetypes
 /// runs once, not raced against itself.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_polyglot_gate_runs_every_stack_once() {
+async fn a_polyglot_check_runs_every_stack_once() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = tmp.path().join("proj");
     std::fs::create_dir_all(&root).expect("root");
@@ -933,7 +967,7 @@ async fn a_polyglot_gate_runs_every_stack_once() {
         json!({
             "id": id, "name": id, "language": "rust", "root": arch_root,
             "role": "library",
-            "quality_gate": {"check": "true", "test": test, "lint": "true"},
+            "checks": {"check": "true", "test": test, "lint": "true"},
             "format": {"extensions": ["rs"], "command": "true"},
             "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
             "source_patterns": [], "test_patterns": []
@@ -949,20 +983,20 @@ async fn a_polyglot_gate_runs_every_stack_once() {
     let data_dir = tmp.path().join("data");
     let (client, server) = pair(&root, &data_dir).await;
 
-    let result = call(&client, "magistr_gate", json!({"gate": "test"})).await;
+    let result = call(&client, "magistr_check", json!({"check": "test"})).await;
     let body = text_json(&result);
     assert_eq!(body["passed"], true, "{body}");
-    let gates = body["gates"].as_array().expect("grouped shape");
-    let names: Vec<&str> = gates
+    let checks = body["checks"].as_array().expect("grouped shape");
+    let names: Vec<&str> = checks
         .iter()
-        .map(|g| g["gate"].as_str().unwrap_or_default())
+        .map(|g| g["check"].as_str().unwrap_or_default())
         .collect();
     assert_eq!(
         names,
         vec!["test", "test:app-typescript"],
         "one run for the shared command, one for the second stack"
     );
-    let ts = &gates[1];
+    let ts = &checks[1];
     assert!(
         ts["output"]
             .as_str()
@@ -975,13 +1009,13 @@ async fn a_polyglot_gate_runs_every_stack_once() {
     server.abort();
 }
 
-/// A gate `magistr mcp` runs directly is live on the feed socket the
+/// A check `magistr mcp` runs directly is live on the feed socket the
 /// cockpit attaches to: what the command writes goes out, raw, as
-/// `run`/`gate_output` frames keyed by the gate — on the pty the runner
+/// `run`/`check_bytes` frames keyed by the check — on the pty the runner
 /// spawns it on, so a line ends in the tty's `\r\n`.
 #[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_direct_gate_streams_its_bytes_on_the_feed_socket() {
+async fn a_direct_check_streams_its_bytes_on_the_feed_socket() {
     use std::time::{Duration, Instant};
 
     use tokio::io::{AsyncBufReadExt, BufReader};
@@ -1012,26 +1046,26 @@ async fn a_direct_gate_streams_its_bytes_on_the_feed_socket() {
     let mut lines = BufReader::new(stream).lines();
 
     // Connecting is not being registered: until the library's accept loop
-    // has run, a frame is dropped rather than queued. So the gate is run
+    // has run, a frame is dropped rather than queued. So the check is run
     // until its bytes arrive, under one deadline.
     let deadline = Instant::now() + Duration::from_secs(30);
     let mut bytes: Vec<u8> = Vec::new();
     while !bytes.windows(16).any(|w| w == b"mismatched types") {
         assert!(
             Instant::now() < deadline,
-            "no gate_output frame carried the diagnostic; got {:?}",
+            "no check_bytes frame carried the diagnostic; got {:?}",
             String::from_utf8_lossy(&bytes)
         );
         tokio::time::sleep(Duration::from_millis(100)).await;
-        let diag = text_json(&call(&client, "magistr_gate", json!({"gate": "diag"})).await);
+        let diag = text_json(&call(&client, "magistr_check", json!({"check": "diag"})).await);
         assert_eq!(diag["recorded"], false, "{diag}");
         assert_eq!(diag["exit_code"], 1, "{diag}");
         while let Ok(Ok(Some(line))) =
             tokio::time::timeout(Duration::from_millis(500), lines.next_line()).await
         {
             let frame: Value = serde_json::from_str(&line).expect("a json line");
-            if frame["family"] == "magistr" && frame["type"] == "gate_output" {
-                assert_eq!(frame["gate"], "diag", "{frame}");
+            if frame["family"] == "magistr" && frame["type"] == "check_bytes" {
+                assert_eq!(frame["check"], "diag", "{frame}");
                 let task: Vec<u8> =
                     serde_json::from_value(frame["bytes"].clone()).expect("a byte array");
                 bytes.extend(task);

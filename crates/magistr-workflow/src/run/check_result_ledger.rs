@@ -90,13 +90,13 @@ impl CheckResultLedger {
     pub fn admit(
         &self,
         target: &StepAdmission,
-        gate: &str,
+        check: &str,
         build: impl FnOnce(u64) -> CheckResult,
     ) -> Result<Observed<CheckResult>, RunError> {
         let make = |records: Vec<CheckResult>| -> Result<CheckResult, RunError> {
             let attempt = records
                 .iter()
-                .filter(|r| r.target.step_instance == target.step_instance && r.gate == gate)
+                .filter(|r| r.target.step_instance == target.step_instance && r.check == check)
                 .map(|r| r.attempt)
                 .max()
                 .unwrap_or(0)
@@ -105,7 +105,7 @@ impl CheckResultLedger {
             let check_result = build(attempt);
             validate_id(&check_result.id)?;
             if check_result.target != *target
-                || check_result.gate != gate
+                || check_result.check != check
                 || check_result.attempt != attempt
                 || check_result.stage != CheckResultStage::Admitted
             {
@@ -159,7 +159,7 @@ impl CheckResultLedger {
             if check_result.id != id
                 || check_result.target != original.target
                 || check_result.attempt != original.attempt
-                || check_result.gate != original.gate
+                || check_result.check != original.check
                 || check_result.acceptance_revision != original.acceptance_revision
             {
                 return Err("The check result changed its admission.".into());
@@ -597,7 +597,7 @@ fn sync_directory(_directory: &Path) -> Result<(), RunError> {
 }
 
 fn reuse_key(
-    gate: &str,
+    check: &str,
     check_type: &crate::run::domain::check::CheckType,
     command: Option<&str>,
     source: Option<&crate::run::application::SourceObservation>,
@@ -607,7 +607,7 @@ fn reuse_key(
         return None;
     }
     let key = serde_json::to_vec(&(
-        gate,
+        check,
         check_type,
         command?,
         &source.workspace_root,
@@ -621,7 +621,7 @@ fn reuse_key(
 
 fn check_result_reuse_key(check_result: &CheckResult) -> Option<String> {
     reuse_key(
-        &check_result.gate,
+        &check_result.check,
         &check_result.check_type,
         check_result.command.as_deref(),
         check_result.source.as_ref(),

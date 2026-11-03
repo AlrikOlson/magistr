@@ -24,7 +24,7 @@ and the [workspace owner](workspace-owner.md):
 | Plain and headless `magistr start` | The agent's connected MCP tools act through the project owner | WorkspaceAdmission, then the session's SourceRoute | AgentSession; source_pipeline_routing and effect_capabilities |
 | `magistr next`, `magistr next-loop` | NativeReader for progress; the agent's MCP tools use the project owner. IterationLoop owns no workflow lease. | Admitted workspace shared across attempts | Streamed/headless command composition; next_loop_recovery and mcp_project_owner suites |
 | Hosted work driver | Host supplies NativeEngines explicitly for mutations, judging and AdmittedCheck; IterationLoop receives its reader | The host's admitted source resource | HostedWork and loop_driver suites |
-| Workflow MCP | One Service writer when admitted, otherwise attachment to the current authority | Lock-free evidence for gates | MagistrService and mcp_bridge; mcp_project_owner and mcp_service_owner |
+| Workflow MCP | One Service writer when admitted, otherwise attachment to the current authority | Lock-free evidence for checks | MagistrService and mcp_bridge; mcp_project_owner and mcp_service_owner |
 | Source operations through `magistr mcp` | None | One WorkspaceService when admitted, otherwise an attached bridge | HostedWorkspace; workspace_attachment and workspace_cli_verbs |
 | Workspace journal, snapshot and doctor | Read-only checkpoint inspection | Lock-free source readers | Workspace CLI; workspace_cli_verbs |
 | Plan queries and guard | NativeReader | None | Native workflow reader; main/system-contract and command suites |
@@ -56,7 +56,7 @@ before answering. Changed stamps cause reads, unchanged stamps reuse memory.
 Derived readers share the writer's handles; lease-free external readers observe
 the persisted files. Snapshots are consistent per family, not across families.
 
-The project event feed has one shared sequence and epoch. Task and phase/gate
+The project event feed has one shared sequence and epoch. Task and phase/check
 events carry an execution key. A client advances its cursor for every decoded
 frame, then delivers execution-specific events only to the selected execution.
 Shared planning events reach every client. Reconnection requests a contextual

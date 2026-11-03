@@ -95,7 +95,7 @@ fn upsert_request_keeps_newer_local_lifecycle_progress() {
 /// project in the org shares one cloud tenant, so `apply_request_records` filters
 /// on the record's project stamp exactly as plan and decision do.
 ///
-/// This gate is here because it was NOT: neutralising `record_is_local` reddened
+/// This check is here because it was NOT: neutralising `record_is_local` reddened
 /// the plan and decision files and left this one entirely green, so the one line
 /// standing between the request store and every other project's requests could
 /// have been deleted to applause. The rule is per-FAMILY, and so is its proof.

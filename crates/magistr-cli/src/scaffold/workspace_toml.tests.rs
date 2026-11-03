@@ -29,7 +29,7 @@ fn vars() -> HashMap<String, String> {
 }
 
 #[test]
-fn seed_picks_the_four_gate_keys_and_skips_blanks() {
+fn seed_picks_the_four_check_keys_and_skips_blanks() {
     let mut v = vars();
     v.insert("lint_cmd".into(), "   ".into());
     let seed = WorkspaceSeed::from_template_vars(&v);
@@ -47,7 +47,7 @@ fn render_is_a_valid_commands_table() {
         Some("cargo check --all-targets")
     );
     assert_eq!(parsed["commands"]["format"].as_str(), Some("cargo fmt"));
-    assert!(rendered.contains("# project.json quality_gate.test"));
+    assert!(rendered.contains("# project.json checks.test"));
 }
 
 #[test]
@@ -141,7 +141,7 @@ fn apply_creates_the_file_and_never_rewrites_a_declared_table() {
     );
     assert!(
         !second.contains("cargo check"),
-        "no gate row was added back"
+        "no check row was added back"
     );
     // And once the confirm mode is there, a re-init writes nothing at all.
     assert!(!apply(&seed, tmp.path()).expect("apply a third time"));
@@ -169,9 +169,9 @@ fn project_config() -> magistr_core::types::ProjectConfig {
         "project": {"name": "t", "description": "", "type": "cli"},
         "stack": {"language": "rust", "framework": "none", "package_manager": "cargo",
                   "test_framework": "cargo-nextest", "linter": "clippy", "formatter": "rustfmt"},
-        "quality_gate": {"check": "cargo check --all-targets", "test": "cargo nextest run",
+        "checks": {"check": "cargo check --all-targets", "test": "cargo nextest run",
                          "lint": "cargo clippy -- -D warnings"},
-        "custom_gates": [{"name": "structure", "command": "./scripts/lint-structure.sh", "required": true}],
+        "custom_checks": [{"name": "structure", "command": "./scripts/lint-structure.sh", "required": true}],
         "format": {"command": "cargo fmt", "extensions": ["rs"]},
         "spec": {"file": "PLAN.md", "unchecked_pattern": "^- \\\\[ \\\\]"},
         "state_prefix": "t",
@@ -182,7 +182,7 @@ fn project_config() -> magistr_core::types::ProjectConfig {
 }
 
 #[test]
-fn seed_from_project_config_includes_custom_gates() {
+fn seed_from_project_config_includes_custom_checks() {
     let seed = WorkspaceSeed::from_project_config(&project_config());
     let keys: Vec<&str> = seed.commands.iter().map(|(k, _, _)| k.as_str()).collect();
     assert_eq!(keys, vec!["check", "test", "lint", "structure", "format"]);
@@ -201,7 +201,7 @@ fn drift_reports_missing_keys_and_changed_commands() {
     let body = "[commands]\n\
         \"check\" = \"cargo check\" # human edit\n\
         \"test\" = \"cargo nextest run\"\n\
-        \"lint\" = \"cargo clippy -- -D warnings\" # project.json quality_gate.lint\n\
+        \"lint\" = \"cargo clippy -- -D warnings\" # project.json checks.lint\n\
         \"format\" = \"cargo fmt\"\n";
     let findings = seed.drift(body);
     assert_eq!(findings.len(), 2, "{findings:?}");
@@ -218,7 +218,7 @@ fn drift_understands_quoted_escapes_and_bare_values() {
     seed.commands.push((
         "lint".into(),
         r#"eslint "src/**" --max-warnings 0"#.into(),
-        "project.json quality_gate.lint".into(),
+        "project.json checks.lint".into(),
     ));
     let body = "[commands]\n\"lint\" = \"eslint \\\"src/**\\\" --max-warnings 0\" # ok\n";
     assert!(seed.drift(body).is_empty(), "{:?}", seed.drift(body));
@@ -297,7 +297,7 @@ fn an_existing_commands_table_still_gets_the_confirm_mode() {
         commands: vec![(
             "check".to_owned(),
             "cargo check".to_owned(),
-            "gate".to_owned(),
+            "check".to_owned(),
         )],
     };
     assert!(apply(&seed, tmp.path()).expect("apply"));

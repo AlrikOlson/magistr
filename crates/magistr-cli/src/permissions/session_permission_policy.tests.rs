@@ -438,7 +438,7 @@ fn incomplete_shell_input_uses_profile_authority() {
 }
 
 #[test]
-fn a_gate_command_is_batch_approved_by_evaluate() {
+fn a_check_command_is_batch_approved_by_evaluate() {
     let mut policy = CockpitPolicy::new(
         PermissionProfile::Cautious,
         Vec::new(),
@@ -597,7 +597,7 @@ fn outside_workflow_other_servers_and_unknown_operations_use_the_profile() {
         "mcp__project_docs__read",
         "mcp__magistr_tools__read",
         "mcp__magistr__unknown_operation",
-        "magistr_gate",
+        "magistr_check",
         "magistr-read",
     ] {
         let mut policy = policy(PermissionProfile::Standard, false);

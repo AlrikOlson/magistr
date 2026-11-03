@@ -7,7 +7,7 @@ use color_eyre::eyre;
 
 /// `magistr init` as a plain shell interview: detection summary, archetype
 /// confirmation (including the polyglot project-tree confirmation),
-/// agent/MCP/hook choices and a quality-gate preview, then the scaffold.
+/// agent/MCP/hook choices and a check preview, then the scaffold.
 ///
 /// With `yes` every prompt is answered with its default, non-interactively —
 /// the same answer set an interview accepts when every prompt gets Enter.

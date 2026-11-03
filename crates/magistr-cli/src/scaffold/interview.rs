@@ -5,7 +5,7 @@
 //! 2. Collects project metadata (type, description)
 //! 3. Recommends AI agents and MCP servers based on the detected stack
 //! 4. Chooses whether to install the language's lifecycle-hook preset
-//! 5. Previews the quality-gate commands, with optional overrides
+//! 5. Previews the check commands, with optional overrides
 //! 6. Confirms selections before scaffolding
 //!
 //! Every prompt reads one line from an injectable `BufRead` and answers its
@@ -22,7 +22,7 @@ use crate::types::{Preset, Stack};
 use crate::utils::format as fmt;
 
 use super::registry;
-use super::research::RecommendedQualityGate;
+use super::research::RecommendedChecks;
 use super::selections::ScaffoldSelections;
 
 // ── Interview result ───────────────────────────────────────────────────
@@ -38,8 +38,8 @@ pub(crate) struct InterviewResult {
     pub selected_agents: Vec<String>,
     /// Additional MCP servers to include (beyond Magistr).
     pub selected_mcp_servers: Vec<String>,
-    /// Quality-gate command overrides from the gate preview (None = preset).
-    pub quality_gate: Option<RecommendedQualityGate>,
+    /// Check command overrides from the check preview (None = preset).
+    pub checks: Option<RecommendedChecks>,
     /// Whether to install the language's lifecycle-hook preset.
     pub include_hooks: bool,
 }
@@ -51,7 +51,7 @@ impl Default for InterviewResult {
             description: String::new(),
             selected_agents: default_agents(),
             selected_mcp_servers: Vec::new(),
-            quality_gate: None,
+            checks: None,
             include_hooks: true,
         }
     }
@@ -72,7 +72,7 @@ impl InterviewResult {
             description: self.description.clone(),
             selected_agents: self.selected_agents.clone(),
             selected_mcp_servers: self.selected_mcp_servers.clone(),
-            quality_gate: self.quality_gate.clone(),
+            checks: self.checks.clone(),
             lifecycle_hooks: (!self.include_hooks).then(Vec::new),
             ..ScaffoldSelections::default()
         }
@@ -239,26 +239,26 @@ pub(crate) fn run_interview(
             .collect()
     };
 
-    // Step 5: Hooks + quality-gate preview
+    // Step 5: Hooks + check preview
     eprintln!(
         "\n{}  {}",
         fmt::bold("Step 4/5"),
-        fmt::dim("Hooks & Quality Gates")
+        fmt::dim("Hooks & Checks")
     );
     eprintln!("{}", fmt::dim(&"─".repeat(40)));
     let include_hooks = prompt_yes_no(
         reader,
         &format!(
-            "Install the {} lifecycle-hook preset (auto-format, gate-on-stop)?",
+            "Install the {} lifecycle-hook preset (auto-format, check-on-stop)?",
             stack.language
         ),
         true,
     )?;
-    eprintln!("  Quality gate commands:");
+    eprintln!("  Check commands:");
     for (name, command) in [
-        ("check", &preset.quality_gate.check),
-        ("test", &preset.quality_gate.test),
-        ("lint", &preset.quality_gate.lint),
+        ("check", &preset.checks.check),
+        ("test", &preset.checks.test),
+        ("lint", &preset.checks.lint),
     ] {
         let display = if command.trim().is_empty() {
             "not configured"
@@ -267,11 +267,11 @@ pub(crate) fn run_interview(
         };
         eprintln!("    {name}: {}", fmt::cyan(display));
     }
-    let quality_gate = if prompt_yes_no(reader, "Customize gate commands?", false)? {
-        let check = prompt_text_default(reader, "check:", &preset.quality_gate.check)?;
-        let test = prompt_text_default(reader, "test:", &preset.quality_gate.test)?;
-        let lint = prompt_text_default(reader, "lint:", &preset.quality_gate.lint)?;
-        Some(RecommendedQualityGate {
+    let checks = if prompt_yes_no(reader, "Customize check commands?", false)? {
+        let check = prompt_text_default(reader, "check:", &preset.checks.check)?;
+        let test = prompt_text_default(reader, "test:", &preset.checks.test)?;
+        let lint = prompt_text_default(reader, "lint:", &preset.checks.lint)?;
+        Some(RecommendedChecks {
             check: Some(check),
             test: Some(test),
             lint: Some(lint),
@@ -298,8 +298,8 @@ pub(crate) fn run_interview(
         if include_hooks { "preset" } else { "none" }
     );
     eprintln!(
-        "  Gates:      {}",
-        if quality_gate.is_some() {
+        "  Checks:      {}",
+        if checks.is_some() {
             "customized"
         } else {
             "preset"
@@ -311,7 +311,7 @@ pub(crate) fn run_interview(
         description,
         selected_agents,
         selected_mcp_servers,
-        quality_gate,
+        checks,
         include_hooks,
     })
 }

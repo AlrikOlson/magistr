@@ -250,7 +250,7 @@ export function pane(E, m, width, handlers) {
       const check_result = d.check_result
       body.push(
         text('Check result', true),
-        text(check_result.gate),
+        text(check_result.check),
         text(check_result.command || 'No command recorded.'),
       )
       body.push(
@@ -407,7 +407,7 @@ export function pane(E, m, width, handlers) {
       for (const c of choices.filter((c) => c.commands.length).slice(0, 30)) {
         body.push(
           button(
-            'gate-' + c.key,
+            'check-' + c.key,
             {
               check: 'Check code',
               test: 'Run tests',
@@ -415,14 +415,14 @@ export function pane(E, m, width, handlers) {
               structure: 'Check file structure',
               'native-write-path': 'Check native ownership',
             }[c.key] || 'Run this check',
-            () => handlers.action('gate', c),
+            () => handlers.action('check', c),
           ),
         )
         body.push(text(c.commands.map((s) => s.command).join('; ')))
       }
     } else body.push(text('Start a chosen step to record checks against it.'))
-    if (m.detail?.gate) {
-      for (const g of (m.detail.gate.gates || [m.detail.gate]).slice(0, 30)) {
+    if (m.detail?.check) {
+      for (const g of (m.detail.check.checks || [m.detail.check]).slice(0, 30)) {
         body.push(
           text(
             (g.passed ? 'Passed' : 'Failed') +

@@ -123,7 +123,7 @@ pub fn build_project_tree(root: &Path) -> crate::error::Result<ProjectTree> {
 /// A directory carrying manifests for several stacks (`Cargo.toml` AND
 /// `package.json`) is a polyglot boundary, not a project of whichever stack
 /// the detection ladder reaches first: each evidenced language becomes its own
-/// project, primary language first, so no stack's gates are shadowed by
+/// project, primary language first, so no stack's checks are shadowed by
 /// another's. A directory with no evidenced language keeps today's single
 /// Unknown-language project.
 fn detect_projects_for_dir(

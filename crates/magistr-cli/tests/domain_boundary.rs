@@ -1,4 +1,4 @@
-//! The required workspace test gate enforces the domain's effect boundary.
+//! The required workspace test check enforces the domain's effect boundary.
 //! AST inspection complements `no_std`: it also sees inactive cfg branches,
 //! test sources and macro arguments. Cargo metadata closes dependency aliases,
 //! target-specific dependencies and transitive edges that source paths cannot.

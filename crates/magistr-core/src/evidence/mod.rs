@@ -2,16 +2,16 @@
 //!
 //! The workflow's run family asks its [`EvidencePort`](magistr_engine::native::EvidencePort)
 //! two things: what the workspace's selected source looks like now, and
-//! which gates the project requires. Magistr answers both from capabilities
+//! which checks the project requires. Magistr answers both from capabilities
 //! it already owns — the workspace crate's lock-free
 //! [`SourceSnapshot`](magistr_workspace::snapshot::SourceSnapshot) under its
 //! default selection policy (which hashes `.magistr/project.json` as a
-//! config input, so a gate-configuration edit moves the revision too), the
+//! config input, so a check-configuration edit moves the revision too), the
 //! workspace's [`ConfigDigest`](magistr_workspace::config::ConfigDigest) over
 //! captured external policy layers and the shared project's settings. A linked
 //! working copy resolves settings from its main project directory; changing
 //! them moves its configuration evidence with its source bytes unchanged.
-//! Gate contracts use the same settings path and resolver `magistr_gate all` runs. There is
+//! Check contracts use the same settings path and resolver `magistr_check all` runs. There is
 //! no second scanner: a receipt's source revision is the snapshot's and its
 //! configuration digest is the layers'.
 //!

@@ -209,7 +209,7 @@ fn native_mutation_outcome(engines: &NativeReader, target: &str) -> Option<Opera
     })
 }
 
-/// `gate:<name>@step:<id>` against the durable check_result the record names
+/// `check:<name>@step:<id>` against the durable check_result the record names
 /// (`check_result:<id>`), never against a same-named check on the step.
 ///
 /// A result is applied only at settlement, and the loop settles only after
@@ -217,14 +217,14 @@ fn native_mutation_outcome(engines: &NativeReader, target: &str) -> Option<Opera
 /// record with no id, or whose check_result the ledger never saw or never
 /// settled, had nothing applied: `Failed`, and the next set admits a new
 /// attempt. A settlement kept stale was not applied either. A check_result that
-/// names another gate or step than the record does is not this record's,
+/// names another check or step than the record does is not this record's,
 /// and the record stays open.
 fn check_result_outcome(
     engines: &NativeReader,
     record: &OperationRecord,
 ) -> Option<OperationOutcome> {
     use magistr_engine::native::CheckResultSettlement;
-    let (gate, step) = record.target.strip_prefix("gate:")?.split_once("@step:")?;
+    let (check, step) = record.target.strip_prefix("check:")?.split_once("@step:")?;
     let Some(id) = record
         .external
         .as_deref()
@@ -235,7 +235,7 @@ fn check_result_outcome(
     let Some(check_result) = engines.run_check_result(id).ok()? else {
         return Some(OperationOutcome::Failed);
     };
-    if check_result.gate != gate || check_result.target.step_id != step {
+    if check_result.check != check || check_result.target.step_id != step {
         return None;
     }
     Some(match check_result.settlement {

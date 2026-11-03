@@ -22,7 +22,7 @@ pub enum CompletionRefusal {
     NoCheckResults { run_id: String },
     /// The evidence capability could not answer.
     EvidenceUnavailable { reason: String },
-    /// At least one required gate has no current, passing check_result.
+    /// At least one required check has no current, passing check_result.
     Outstanding(Box<CompletionEvidence>),
 }
 
@@ -35,7 +35,7 @@ impl fmt::Display for CompletionRefusal {
             ),
             Self::NoGoal => write!(
                 f,
-                "completion refused: no run goal is set — run_open scoped to this task, run the gates on its verification step, then complete"
+                "completion refused: no run goal is set — run_open scoped to this task, run the checks on its verification step, then complete"
             ),
             Self::ForeignScope { expected, actual } => write!(
                 f,
@@ -43,11 +43,11 @@ impl fmt::Display for CompletionRefusal {
             ),
             Self::StepNotCurrent { step_id, reason } => write!(
                 f,
-                "completion refused: step `{step_id}` is not a step of the current run ({reason}) — name the verification step the gates were recorded on"
+                "completion refused: step `{step_id}` is not a step of the current run ({reason}) — name the verification step the checks were recorded on"
             ),
             Self::NoCheckResults { run_id } => write!(
                 f,
-                "completion refused: no check was recorded in run {run_id} — run every required gate on the verification step first"
+                "completion refused: no check was recorded in run {run_id} — run every required check on the verification step first"
             ),
             Self::EvidenceUnavailable { reason } => {
                 write!(f, "completion refused: evidence unavailable — {reason}")
@@ -55,17 +55,17 @@ impl fmt::Display for CompletionRefusal {
             Self::Outstanding(evidence) => {
                 write!(
                     f,
-                    "completion refused: {} required gate(s) lack current evidence on step `{}` (run {}):",
+                    "completion refused: {} required check(s) lack current evidence on step `{}` (run {}):",
                     evidence.outstanding.len(),
                     evidence.step_id,
                     evidence.run_id
                 )?;
-                for gate in &evidence.outstanding {
-                    write!(f, "\n  - {}: {}", gate.gate, gate.reason)?;
+                for check in &evidence.outstanding {
+                    write!(f, "\n  - {}: {}", check.check, check.reason)?;
                 }
                 write!(
                     f,
-                    "\nRe-run the outstanding gates on `{}` against the current tree and complete again.",
+                    "\nRe-run the outstanding checks on `{}` against the current tree and complete again.",
                     evidence.step_id
                 )
             }

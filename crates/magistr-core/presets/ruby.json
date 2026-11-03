@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "bundle check",
     "test": "bundle exec rspec",
     "lint": "bundle exec rubocop"

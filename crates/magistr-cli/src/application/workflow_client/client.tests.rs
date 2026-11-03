@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use magistr_engine::NativeConfig;
-use magistr_engine::native::{EvidencePort, GateContract, SourceWitness};
+use magistr_engine::native::{CheckContract, EvidencePort, SourceWitness};
 
 use super::*;
 
@@ -13,7 +13,7 @@ impl EvidencePort for NoEvidence {
     fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
         Err("not observed in this test".into())
     }
-    fn required_gates(&self) -> Result<Vec<GateContract>, String> {
+    fn required_checks(&self) -> Result<Vec<CheckContract>, String> {
         Ok(Vec::new())
     }
 }

@@ -78,7 +78,7 @@ impl RunService {
 
     /// Hand out a clone of the shared engine handle, as `PlanService::engine`
     /// does, so a host that mounts this family beside its own tools can record
-    /// on the same trace the wire writes to — a quality gate the host ran
+    /// on the same trace the wire writes to — a check the host ran
     /// itself (on its own pty, streamed live) recorded through
     /// `RunEngine::record_check_full` with its real exit code, rather than a
     /// second engine over the same store that the guards here cannot see.

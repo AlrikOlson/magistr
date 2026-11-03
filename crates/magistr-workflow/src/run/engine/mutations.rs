@@ -596,7 +596,7 @@ impl PersistedState {
             ));
         }
         if !unverified_required.is_empty() {
-            // Self-reported green gates are exactly how a non-compiling phase
+            // Self-reported green checks are exactly how a non-compiling phase
             // shipped with "tests pass". Surface them so a reviewer can tell a
             // run command apart from an agent's claim.
             warnings.push(format!(

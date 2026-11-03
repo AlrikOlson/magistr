@@ -197,7 +197,7 @@ fn unknown_agent_and_unused_agent_options_are_refused_before_work() {
     let dir = tempfile::tempdir().unwrap();
     for args in [
         vec!["next", "--agent", "unknown-agent", "--show-config"],
-        vec!["next", "--gate-only", "--model", "chosen"],
+        vec!["next", "--check-only", "--model", "chosen"],
     ] {
         assert!(!command(dir.path(), &args).status.success());
     }

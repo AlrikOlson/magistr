@@ -35,7 +35,7 @@ fn write_fixture(root: &Path) {
             "language": "rust", "framework": "none", "package_manager": "cargo",
             "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"
         },
-        "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+        "checks": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "true", "extensions": ["rs"]},
         "spec": {"file": "PLAN.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
@@ -224,12 +224,12 @@ async fn headless_iteration_is_guarded_on_run_state_and_cross_referenced() {
     )
     .await;
 
-    // ── Done needs a recorded check; verify is where the gates run ─────
+    // ── Done needs a recorded check; verify is where the checks run ─────
     phase_blocked(&client, "done", "check_step").await;
     phase_ok(&client, "verify").await;
-    let gates = ok(&client, "magistr_gate", json!({"gate": "all"})).await;
-    assert_eq!(gates["passed"], true, "{gates}");
-    let rows = gates["gates"].as_array().expect("gates");
+    let checks = ok(&client, "magistr_check", json!({"check": "all"})).await;
+    assert_eq!(checks["passed"], true, "{checks}");
+    let rows = checks["checks"].as_array().expect("checks");
     assert_eq!(rows.len(), 3);
     assert!(
         rows.iter()

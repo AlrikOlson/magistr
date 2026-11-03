@@ -13,7 +13,7 @@
 //! (Projects v2) and `linear`; Jira is scaffolded — its body format in
 //! [`adf`] and its credentials in [`credential::atlassian`] — but has no
 //! registration, so `--provider jira` is refused rather than half-served.
-//! [`registry::PROVIDERS`] is the truth, and the gate on this paragraph reads
+//! [`registry::PROVIDERS`] is the truth, and the check on this paragraph reads
 //! that table rather than trusting the sentence.
 //!
 //! Linear, Jira and GitHub Projects are where most teams' work actually lives.

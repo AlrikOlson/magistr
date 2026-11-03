@@ -10,7 +10,7 @@ fn make_archetype(id: &str, root: &str, lang: &str) -> Archetype {
         framework: None,
         root: PathBuf::from(root),
         role: ProjectRole::Library,
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: format!("{lang} check"),
             test: format!("{lang} test"),
             lint: format!("{lang} lint"),

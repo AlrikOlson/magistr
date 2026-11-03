@@ -335,7 +335,7 @@ async fn caps_clamp_downward_and_secrets_are_redacted_at_the_seal() {
 }
 
 #[tokio::test]
-async fn guest_failure_is_data_and_writes_go_through_the_confirm_gate() {
+async fn guest_failure_is_data_and_writes_go_through_the_confirm_check() {
     let mut fixture = rig();
     let (rows, notes) = ok(run(
         &mut fixture,

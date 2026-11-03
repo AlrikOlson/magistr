@@ -54,7 +54,7 @@ pub struct ProjectIdentity {
 ///
 /// `start` is a parameter rather than a read of the current directory because
 /// `env::current_dir` is process-global: a test that changed it would race every
-/// other test in the binary, and this lane has already shipped two gates that
+/// other test in the binary, and this lane has already shipped two checks that
 /// agreed with whoever ran them instead of testing anything.
 #[must_use]
 pub fn find_project_file(start: &Path) -> Option<std::path::PathBuf> {

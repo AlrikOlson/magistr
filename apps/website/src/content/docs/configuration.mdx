@@ -13,7 +13,7 @@ Run commands from that project's root unless you pass an explicit directory.
 
 | Location | What it controls |
 | --- | --- |
-| `.magistr/project.json` | Project identity, stack, check commands, custom gates, and verification policy. |
+| `.magistr/project.json` | Project identity, stack, check commands, custom checks, and verification policy. |
 | `.magistr/agents.toml` | Agent, model, and effort preferences for launches in this project. |
 | `~/.config/magistr/config.toml` | Personal Magistr preferences, unless `XDG_CONFIG_HOME` changes the config directory. |
 | `.magistr/conventions.md` | Shared project practices the agent should follow. |
@@ -67,7 +67,7 @@ complete project configuration. It assumes the npm scripts named here exist:
 
 ```json
 {
-  "quality_gate": {
+  "checks": {
     "check": "npm run typecheck",
     "test": "npm test",
     "lint": "npm run lint"
@@ -76,7 +76,7 @@ complete project configuration. It assumes the npm scripts named here exist:
     "command": "npm run format",
     "extensions": ["ts", "tsx"]
   },
-  "custom_gates": [
+  "custom_checks": [
     {
       "name": "docs",
       "command": "npm run test:docs",
@@ -86,7 +86,7 @@ complete project configuration. It assumes the npm scripts named here exist:
   "verification": {
     "timeout_secs": 900,
     "max_parallel": 4,
-    "gates": {
+    "checks": {
       "docs": {
         "inputs": ["docs", "scripts", "package.json", "package-lock.json"],
         "timeout_secs": 120,
@@ -98,7 +98,7 @@ complete project configuration. It assumes the npm scripts named here exist:
 }
 ```
 
-The standard gate names are `check`, `test`, and `lint`. Custom gates
+The standard check names are `check`, `test`, and `lint`. Custom checks
 have a name, command, and `required` flag; required defaults to true.
 Formatting is configured separately. These commands run in the project context.
 
@@ -107,7 +107,7 @@ Omit the list when that boundary is unknown. `resources: []` declares an
 independent command; shared tools such as Cargo must not race over one target
 directory. Reuse is appropriate only when the inputs fully describe the result.
 
-Timeout precedence is a check's explicit override, a named gate override,
+Timeout precedence is a check's explicit override, a named check override,
 the project setting, then the 900-second default. The accepted timeout range
 is 1–3600 seconds; parallelism is 1–16, with a default of four. Queue time
 counts toward the deadline.
@@ -121,7 +121,7 @@ magistr doctor .
 
 Syntax validation does not prove that a command exists or passes. Run the
 affected checks, and use `magistr validate` when you intend the full configured
-gate.
+check.
 
 ## Source-tool command declarations
 
@@ -129,7 +129,7 @@ The workspace command tool executes only commands declared in
 `.magistr/workspace.toml`. Setup seeds that list; `magistr workspace init .`
 can seed it when absent. Existing declarations are not silently replaced.
 
-A project owner must review changes to this allowlist. Declaring a quality gate
+A project owner must review changes to this allowlist. Declaring a check
 in `project.json` is not permission to bypass a refused workspace command.
 Inspect resolved source-tool settings with:
 

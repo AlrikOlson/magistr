@@ -32,8 +32,8 @@ fn loads_all_known_presets() {
             preset.err()
         );
         let preset = preset.unwrap();
-        assert!(!preset.quality_gate.check.is_empty());
-        assert!(!preset.quality_gate.test.is_empty());
+        assert!(!preset.checks.check.is_empty());
+        assert!(!preset.checks.test.is_empty());
         assert!(!preset.allowed_tools.is_empty());
     }
 }
@@ -55,8 +55,8 @@ fn nextjs_overlay_merges_onto_typescript() {
     let merged = load_preset_with_framework(Language::TypeScript, Framework::Next).unwrap();
 
     // Check command was overridden
-    assert_ne!(base.quality_gate.check, merged.quality_gate.check);
-    assert!(merged.quality_gate.check.contains("next lint"));
+    assert_ne!(base.checks.check, merged.checks.check);
+    assert!(merged.checks.check.contains("next lint"));
 
     // Format was not overridden — should match base
     assert_eq!(base.format.command, merged.format.command);
@@ -66,8 +66,8 @@ fn nextjs_overlay_merges_onto_typescript() {
 fn django_overlay_merges_onto_python() {
     let merged = load_preset_with_framework(Language::Python, Framework::Django).unwrap();
 
-    assert!(merged.quality_gate.check.contains("manage.py"));
-    assert!(merged.quality_gate.test.contains("manage.py"));
+    assert!(merged.checks.check.contains("manage.py"));
+    assert!(merged.checks.test.contains("manage.py"));
     assert!(merged.allowed_tools.iter().any(|t| t.contains("manage.py")));
 }
 
@@ -75,7 +75,7 @@ fn django_overlay_merges_onto_python() {
 fn axum_overlay_merges_onto_rust() {
     let merged = load_preset_with_framework(Language::Rust, Framework::Axum).unwrap();
 
-    assert!(merged.quality_gate.check.contains("--all-targets"));
+    assert!(merged.checks.check.contains("--all-targets"));
 }
 
 #[test]
@@ -161,16 +161,16 @@ fn all_overlays_parse_successfully() {
 fn rust_preset_uses_all_targets() {
     let preset = load_preset(Language::Rust).unwrap();
 
-    assert!(preset.quality_gate.check.contains("--all-targets"));
-    assert!(preset.quality_gate.lint.contains("--all-targets"));
+    assert!(preset.checks.check.contains("--all-targets"));
+    assert!(preset.checks.lint.contains("--all-targets"));
 }
 
 #[test]
 fn python_preset_mypy_excludes_venv() {
     let preset = load_preset(Language::Python).unwrap();
 
-    assert!(preset.quality_gate.check.contains("--exclude"));
-    assert!(preset.quality_gate.check.contains(".venv"));
+    assert!(preset.checks.check.contains("--exclude"));
+    assert!(preset.checks.check.contains(".venv"));
 }
 
 #[test]
@@ -187,7 +187,7 @@ fn typescript_preset_prettier_ignore_path() {
 fn ruby_preset_bundle_check() {
     let preset = load_preset(Language::Ruby).unwrap();
 
-    assert_eq!(preset.quality_gate.check, "bundle check");
+    assert_eq!(preset.checks.check, "bundle check");
     assert!(preset.format.command.contains("bundle exec"));
 }
 
@@ -195,24 +195,24 @@ fn ruby_preset_bundle_check() {
 fn go_preset_lint_timeout() {
     let preset = load_preset(Language::Go).unwrap();
 
-    assert!(preset.quality_gate.lint.contains("--timeout 5m"));
+    assert!(preset.checks.lint.contains("--timeout 5m"));
 }
 
 #[test]
 fn swift_preset_swiftlint_strict() {
     let preset = load_preset(Language::Swift).unwrap();
 
-    assert!(preset.quality_gate.lint.contains("--strict"));
+    assert!(preset.checks.lint.contains("--strict"));
 }
 
 #[test]
 fn cpp_preset_portable_lint_and_parallel_build() {
     let preset = load_preset(Language::Cpp).unwrap();
 
-    assert!(preset.quality_gate.lint.contains("find src"));
-    assert!(preset.quality_gate.lint.contains("xargs clang-tidy"));
-    assert!(!preset.quality_gate.lint.contains("src/**/*.cpp"));
-    assert!(preset.quality_gate.check.contains("--parallel"));
+    assert!(preset.checks.lint.contains("find src"));
+    assert!(preset.checks.lint.contains("xargs clang-tidy"));
+    assert!(!preset.checks.lint.contains("src/**/*.cpp"));
+    assert!(preset.checks.check.contains("--parallel"));
 }
 
 #[test]
@@ -220,9 +220,9 @@ fn gradle_pm_overlay_merges_onto_java() {
     let base = load_preset(Language::Java).unwrap();
     let merged = apply_package_manager_overlay(base, PackageManager::Gradle).unwrap();
 
-    assert!(merged.quality_gate.check.contains("gradlew"));
-    assert!(merged.quality_gate.test.contains("gradlew"));
-    assert!(merged.quality_gate.lint.contains("gradlew"));
+    assert!(merged.checks.check.contains("gradlew"));
+    assert!(merged.checks.test.contains("gradlew"));
+    assert!(merged.checks.lint.contains("gradlew"));
 }
 
 #[test]
@@ -237,7 +237,7 @@ fn maven_pm_returns_base_unchanged() {
 fn django_overlay_excludes_migrations() {
     let merged = load_preset_with_framework(Language::Python, Framework::Django).unwrap();
 
-    assert!(merged.quality_gate.check.contains("migrations"));
+    assert!(merged.checks.check.contains("migrations"));
     assert!(merged.format.exclusions.contains(&"migrations".to_string()));
 }
 
@@ -252,14 +252,14 @@ fn nextjs_overlay_excludes_dot_next() {
 fn vue_overlay_uses_vue_tsc() {
     let merged = load_preset_with_framework(Language::TypeScript, Framework::Vue).unwrap();
 
-    assert!(merged.quality_gate.check.contains("vue-tsc"));
+    assert!(merged.checks.check.contains("vue-tsc"));
 }
 
 #[test]
 fn sveltekit_overlay_uses_svelte_check() {
     let merged = load_preset_with_framework(Language::TypeScript, Framework::SvelteKit).unwrap();
 
-    assert!(merged.quality_gate.check.contains("svelte-check"));
+    assert!(merged.checks.check.contains("svelte-check"));
     assert!(
         merged
             .format
@@ -272,8 +272,8 @@ fn sveltekit_overlay_uses_svelte_check() {
 fn gin_overlay_uses_race_detector() {
     let merged = load_preset_with_framework(Language::Go, Framework::Gin).unwrap();
 
-    assert!(merged.quality_gate.test.contains("-race"));
-    assert!(merged.quality_gate.check.contains("go vet"));
+    assert!(merged.checks.test.contains("-race"));
+    assert!(merged.checks.check.contains("go vet"));
 }
 
 #[test]
@@ -295,7 +295,7 @@ fn vapor_overlay_excludes_dot_build() {
 fn aspnet_overlay_uses_warnaserror() {
     let merged = load_preset_with_framework(Language::CSharp, Framework::AspNet).unwrap();
 
-    assert!(merged.quality_gate.check.contains("--warnaserror"));
+    assert!(merged.checks.check.contains("--warnaserror"));
 }
 
 #[test]
@@ -315,7 +315,7 @@ fn tauri_overlay_excludes_node_modules() {
 fn flask_overlay_uses_pytest() {
     let merged = load_preset_with_framework(Language::Python, Framework::Flask).unwrap();
 
-    assert!(merged.quality_gate.test.contains("pytest"));
+    assert!(merged.checks.test.contains("pytest"));
     assert!(merged.allowed_tools.iter().any(|t| t.contains("flask")));
 }
 
@@ -325,8 +325,8 @@ fn flask_overlay_uses_pytest() {
 fn dart_preset_uses_dart_analyze() {
     let preset = load_preset(Language::Dart).unwrap();
 
-    assert!(preset.quality_gate.check.contains("dart analyze"));
-    assert!(preset.quality_gate.test.contains("dart test"));
+    assert!(preset.checks.check.contains("dart analyze"));
+    assert!(preset.checks.test.contains("dart test"));
     assert!(preset.format.extensions.contains(&"dart".to_string()));
 }
 
@@ -334,8 +334,8 @@ fn dart_preset_uses_dart_analyze() {
 fn php_preset_uses_phpunit() {
     let preset = load_preset(Language::Php).unwrap();
 
-    assert!(preset.quality_gate.test.contains("phpunit"));
-    assert!(preset.quality_gate.lint.contains("phpstan"));
+    assert!(preset.checks.test.contains("phpunit"));
+    assert!(preset.checks.lint.contains("phpstan"));
     assert!(preset.format.extensions.contains(&"php".to_string()));
 }
 
@@ -343,8 +343,8 @@ fn php_preset_uses_phpunit() {
 fn scala_preset_uses_sbt() {
     let preset = load_preset(Language::Scala).unwrap();
 
-    assert!(preset.quality_gate.check.contains("sbt compile"));
-    assert!(preset.quality_gate.test.contains("sbt test"));
+    assert!(preset.checks.check.contains("sbt compile"));
+    assert!(preset.checks.test.contains("sbt test"));
     assert!(preset.format.extensions.contains(&"scala".to_string()));
 }
 
@@ -354,59 +354,59 @@ fn scala_preset_uses_sbt() {
 fn flutter_overlay_uses_flutter_commands() {
     let merged = load_preset_with_framework(Language::Dart, Framework::Flutter).unwrap();
 
-    assert!(merged.quality_gate.check.contains("flutter analyze"));
-    assert!(merged.quality_gate.test.contains("flutter test"));
+    assert!(merged.checks.check.contains("flutter analyze"));
+    assert!(merged.checks.test.contains("flutter test"));
 }
 
 #[test]
 fn nestjs_overlay_uses_nest_build() {
     let merged = load_preset_with_framework(Language::TypeScript, Framework::NestJS).unwrap();
 
-    assert!(merged.quality_gate.check.contains("nest build"));
+    assert!(merged.checks.check.contains("nest build"));
 }
 
 #[test]
 fn laravel_overlay_uses_artisan_test() {
     let merged = load_preset_with_framework(Language::Php, Framework::Laravel).unwrap();
 
-    assert!(merged.quality_gate.test.contains("artisan test"));
+    assert!(merged.checks.test.contains("artisan test"));
 }
 
 #[test]
 fn ktor_overlay_uses_gradlew() {
     let merged = load_preset_with_framework(Language::Kotlin, Framework::Ktor).unwrap();
 
-    assert!(merged.quality_gate.check.contains("gradlew"));
-    assert!(merged.quality_gate.test.contains("gradlew"));
+    assert!(merged.checks.check.contains("gradlew"));
+    assert!(merged.checks.test.contains("gradlew"));
 }
 
 #[test]
 fn quarkus_overlay_uses_mvn() {
     let merged = load_preset_with_framework(Language::Java, Framework::Quarkus).unwrap();
 
-    assert!(merged.quality_gate.check.contains("mvn compile"));
-    assert!(merged.quality_gate.test.contains("mvn test"));
+    assert!(merged.checks.check.contains("mvn compile"));
+    assert!(merged.checks.test.contains("mvn test"));
 }
 
 #[test]
 fn micronaut_overlay_uses_mvn() {
     let merged = load_preset_with_framework(Language::Java, Framework::Micronaut).unwrap();
 
-    assert!(merged.quality_gate.check.contains("mvn compile"));
+    assert!(merged.checks.check.contains("mvn compile"));
 }
 
 #[test]
 fn blazor_overlay_uses_warnaserror() {
     let merged = load_preset_with_framework(Language::CSharp, Framework::Blazor).unwrap();
 
-    assert!(merged.quality_gate.check.contains("--warnaserror"));
+    assert!(merged.checks.check.contains("--warnaserror"));
 }
 
 #[test]
 fn react_native_overlay_uses_tsc() {
     let merged = load_preset_with_framework(Language::TypeScript, Framework::ReactNative).unwrap();
 
-    assert!(merged.quality_gate.check.contains("tsc"));
+    assert!(merged.checks.check.contains("tsc"));
     assert!(merged.format.exclusions.contains(&"android".to_string()));
     assert!(merged.format.exclusions.contains(&"ios".to_string()));
 }

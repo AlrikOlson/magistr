@@ -13,7 +13,7 @@ use super::{DecisionFrame, PlanFrame, RequestFrame, RunFrame};
 /// same values as JSON lines; [`NativeFrame::decode`](super::NativeFrame::decode)
 /// turns a line back into one of these at the edge, and nothing past that
 /// edge reads a family or a kind as a string. An in-process writer's own
-/// answer (a task the cockpit started, a gate the loop ran) is built as
+/// answer (a task the cockpit started, a check the loop ran) is built as
 /// one of these directly and never serialized on the way.
 ///
 /// Plan and request frames carry the whole record, so folding one is

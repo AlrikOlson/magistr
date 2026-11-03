@@ -26,20 +26,20 @@ use tokio::task::JoinHandle;
 use tokio::time::{Interval, MissedTickBehavior};
 use tokio_util::sync::CancellationToken;
 
+use super::check_job::check_job;
 use super::connector::Connector;
 use super::failure_brief::failure_brief;
-use super::gate_job::gate_job;
-use super::gate_outcome::GateOutcome;
 use super::iteration_metrics::IterationMetrics;
 use super::loop_end::LoopEnd;
 use super::loop_report::LoopReport;
 use crate::agent::{AgentConfig, Backend, ResolvedSessionSpec, ToolPermissions};
 use crate::application::AdmittedCheck;
 use crate::orchestration::goal::{
-    AgentGoal, Decision, Delegation, Delivery, DeliveryKind, GateEvidence, GoalMode, Judge,
+    AgentGoal, CheckEvidence, Decision, Delegation, Delivery, DeliveryKind, GoalMode, Judge,
     JudgeInput,
 };
 use crate::permissions::PermissionProfile;
+use crate::utils::check::CheckRun;
 
 use crate::workflow::WorkflowConfig;
 use crate::workflow::iteration::{
@@ -78,12 +78,12 @@ const CLEAR_GRACE: Duration = Duration::from_millis(300);
 /// runs it until the loop ends or the cockpit closes. Per iteration it
 /// checks the loop's preconditions, honours a pause / skip / abort the
 /// user asked for at the boundary, builds the prompt, connects the agent
-/// and runs the session until the turn ends, then runs the gates as
+/// and runs the session until the turn ends, then runs the checks as
 /// jobs, records the commit check and — by configuration — pauses on
-/// failed gates, and advances (persisting the loop's state when asked).
+/// failed checks, and advances (persisting the loop's state when asked).
 ///
 /// With a [`Judge`] ([`LoopDriver::goal`]) it is the native goal loop:
-/// after the gates it asks the judge about the iteration's
+/// after the checks it asks the judge about the iteration's
 /// task and acts on the reconciled [`Decision`] — completes the task
 /// through the engines, iterates with the reason on the stage, reports
 /// a disagreement, or blocks the task on a human and ends.
@@ -127,21 +127,21 @@ pub struct LoopDriver {
     /// recorded checks verified that part: the target itself is then still
     /// to do, and is not judged on the part's evidence.
     split_part: Option<String>,
-    /// The execution step this iteration's gates were recorded on — the
+    /// The execution step this iteration's checks were recorded on — the
     /// one active in the trace as the set began — so a completion the
     /// judge grants names the step its evidence sits on. `None` when the
-    /// trace had no step to record on (the gates then went unrecorded).
+    /// trace had no step to record on (the checks then went unrecorded).
     verification_step: Option<String>,
     /// Passing recorded checks revalidated against current source this iteration.
     recorded_verification: Vec<String>,
     /// The passing checks an item the agent completed this iteration was
     /// accepted on, read from its completion record rather than judged again.
     completed_checks: Vec<String>,
-    /// Why this iteration's gate set could not be resolved, when it could
+    /// Why this iteration's check set could not be resolved, when it could
     /// not: the iteration then failed, whatever ran. One-shot, read by the
     /// boundary that settles the set.
-    gates_unresolved: Option<String>,
-    /// What the last iteration's red gates left for the next prompt: the
+    checks_unresolved: Option<String>,
+    /// What the last iteration's red checks left for the next prompt: the
     /// failure rows themselves, not a sentence about them. One-shot —
     /// appended to the next prompt and cleared.
     carry: Option<String>,
@@ -164,7 +164,7 @@ pub struct LoopDriver {
     ledger: Option<JoinHandle<()>>,
 }
 
-/// One gate's admission and the operation record that will settle on it.
+/// One check's admission and the operation record that will settle on it.
 #[derive(Clone)]
 struct Recording {
     admission: AdmittedCheck,
@@ -195,10 +195,10 @@ enum Wake {
     /// A ledger verb was taken up on the driver's own port, off this
     /// step; its answer reaches the cockpit when it lands.
     Ledger,
-    /// A gate job returned.
-    Gate(GateOutcome),
-    /// Every gate job is gone without returning.
-    GatesGone,
+    /// A check job returned.
+    Check(CheckRun),
+    /// Every check job is gone without returning.
+    ChecksGone,
     /// The clock ticked.
     Tick,
     /// The cockpit is gone.
@@ -319,7 +319,7 @@ impl LoopDriver {
             verification_step: None,
             recorded_verification: Vec::new(),
             completed_checks: Vec::new(),
-            gates_unresolved: None,
+            checks_unresolved: None,
             transcript: String::new(),
             iterations: 0,
             metrics: Vec::new(),
@@ -346,7 +346,7 @@ impl LoopDriver {
     }
 
     /// The ledger the loop checkpoints on: one state per iteration
-    /// boundary, wearing that iteration's gate verdicts, plus whatever
+    /// boundary, wearing that iteration's check verdicts, plus whatever
     /// ledger verb the loop's cockpit asks for meanwhile. Without one
     /// the loop takes no checkpoints and the spine stays empty.
     #[must_use]
@@ -356,7 +356,7 @@ impl LoopDriver {
     }
 
     /// Who drives the goal loop: `mode` is what the cockpit is told, and
-    /// `judge`, when there is one, is asked after every iteration's gates
+    /// `judge`, when there is one, is asked after every iteration's checks
     /// on a native project. A delegated mode hands each iteration to the
     /// agent's own `/goal` (agent_goal.rs), confirmed per delivery by the
     /// optimistic echo; when no delivery confirms, the loop reports it
@@ -384,7 +384,7 @@ impl LoopDriver {
         match (self.goal, self.judge.is_some()) {
             (GoalMode::Off, _) => "goal loop: off — one iteration at a time, no judge".to_owned(),
             (GoalMode::Native, true) => {
-                format!("goal loop: {mode} — magistr's own judge decides after the gates")
+                format!("goal loop: {mode} — magistr's own judge decides after the checks")
             }
             (GoalMode::Native, false) => format!(
                 "goal loop: {mode} — no judge this loop (the project has no plan task to judge)"
@@ -439,7 +439,7 @@ impl LoopDriver {
         self
     }
 
-    /// Whether failed gates pause the loop at the next boundary.
+    /// Whether failed checks pause the loop at the next boundary.
     #[must_use]
     pub const fn auto_pause(mut self, auto_pause: bool) -> Self {
         self.auto_pause = auto_pause;
@@ -646,7 +646,7 @@ impl LoopDriver {
     }
 
     /// Follow-up sessions are outside the settled iteration: they cannot alter
-    /// its report, spend accounting, gates, judge evidence, or attempt number.
+    /// its report, spend accounting, checks, judge evidence, or attempt number.
     async fn interact(&mut self, first: Option<Cmd>, once: bool) -> bool {
         let config = self.agent_config("", &self.wf.project_dir);
         let session = crate::orchestration::interactive_session::session_with_checkpoints(
@@ -718,7 +718,7 @@ impl LoopDriver {
     }
 
     /// One iteration: the stage cleared, the prompt built, the agent
-    /// connected and run to the end of its turn, the gates run, the
+    /// connected and run to the end of its turn, the checks run, the
     /// commit check recorded.
     async fn iteration(&mut self) -> Result<Step, String> {
         let (display, max) = (
@@ -764,8 +764,8 @@ impl LoopDriver {
             .iter_loop
             .next_prompt(&self.wf.project_config)
             .map_err(|e| format!("failed to build the prompt: {e}"))?;
-        // What the last iteration's red gates measured, carried forward as
-        // the rows themselves. Before the gates kept their output there was
+        // What the last iteration's red checks measured, carried forward as
+        // the rows themselves. Before the checks kept their output there was
         // nothing here to carry but a sentence.
         let prompt = match self.carry.take() {
             Some(brief) => format!("{prompt}\n\n{brief}"),
@@ -780,7 +780,7 @@ impl LoopDriver {
         self.verification_step = None;
         self.recorded_verification.clear();
         self.completed_checks.clear();
-        self.gates_unresolved = None;
+        self.checks_unresolved = None;
         self.metrics.push(IterationMetrics::default());
         self.tokens_seen = None;
         let delegated = if self.delegating() {
@@ -795,7 +795,7 @@ impl LoopDriver {
         if !delegated {
             // The dispatch, written before the launch. An outcome already
             // established for this attempt (recovery saw the runtime's
-            // commit) means the provider's work is done: the gates and the
+            // commit) means the provider's work is done: the checks and the
             // judge still run over it, no second runtime is launched.
             let dispatch = match self.intend(OperationKind::ProviderDispatch, "dispatch") {
                 Intent::Attempt(attempt) => Some(attempt),
@@ -873,16 +873,16 @@ impl LoopDriver {
             m.turn = turn;
             m.tokens = tokens;
         });
-        let gates_at = Instant::now();
-        let Some(gates) = self.gates(started, &mut ticks).await else {
+        let checks_at = Instant::now();
+        let Some(checks) = self.checks(started, &mut ticks).await else {
             return Ok(Step::Closed);
         };
-        let gates_took = gates_at.elapsed();
-        self.measure(|m| m.gates = gates_took);
-        if !self.boundary_checkpoint(display, &gates).await {
+        let checks_took = checks_at.elapsed();
+        self.measure(|m| m.checks = checks_took);
+        if !self.boundary_checkpoint(display, &checks).await {
             return Ok(Step::Closed);
         }
-        if let Some(end) = self.settle(&gates) {
+        if let Some(end) = self.settle(&checks) {
             return Ok(Step::End(end));
         }
         if delegated {
@@ -892,7 +892,7 @@ impl LoopDriver {
             return Ok(Step::Next);
         }
         Ok(self
-            .judged(&gates, (display, max), started, &mut ticks)
+            .judged(&checks, (display, max), started, &mut ticks)
             .await)
     }
 
@@ -1010,7 +1010,7 @@ impl LoopDriver {
     }
 
     /// The boundary checkpoint: the iteration's state, taken once its
-    /// gates are in.
+    /// checks are in.
     ///
     /// The cockpit mints the row and asks for it back under that name;
     /// this step serves the ask on the port, off its own thread, and —
@@ -1021,15 +1021,15 @@ impl LoopDriver {
     /// sat on the delegated goal's echo deadline; here the two are
     /// sequential on one step, by construction. The checkpoint job is joined before the next iteration or owner release.
     /// Controls stay available while it settles. `false` when the cockpit closed.
-    async fn boundary_checkpoint(&mut self, iteration: u32, gates: &[GateOutcome]) -> bool {
+    async fn boundary_checkpoint(&mut self, iteration: u32, checks: &[CheckRun]) -> bool {
         if self.checkpoints.is_none() {
             return true;
         }
         self.post(LoopEvent::Boundary {
             iteration,
-            gates: gates
+            checks: checks
                 .iter()
-                .map(|gate| (gate.name.clone(), gate.passed()))
+                .map(|check| (check.name.clone(), check.passed()))
                 .chain(
                     self.recorded_verification
                         .iter()
@@ -1266,7 +1266,7 @@ impl LoopDriver {
                     Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
                         return Err(format!("the agent failed: {e}"));
                     }
-                    Wake::Tap(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Ledger => {}
+                    Wake::Tap(_) | Wake::Check(_) | Wake::ChecksGone | Wake::Ledger => {}
                 },
                 () = tokio::time::sleep_until(deadline) => break,
             }
@@ -1340,7 +1340,7 @@ impl LoopDriver {
                     Wake::Tap(Msg::Agent(AgentEvent::Error(e))) => {
                         return Err(format!("the agent failed: {e}"));
                     }
-                    Wake::Tap(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Ledger => {}
+                    Wake::Tap(_) | Wake::Check(_) | Wake::ChecksGone | Wake::Ledger => {}
                 },
                 () = tokio::time::sleep_until(echo_deadline) => break false,
             }
@@ -1397,7 +1397,7 @@ impl LoopDriver {
                         let _ = session.send(other);
                     }
                     Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
-                    Wake::Tap(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Ledger => {}
+                    Wake::Tap(_) | Wake::Check(_) | Wake::ChecksGone | Wake::Ledger => {}
                 },
             }
         }
@@ -1449,7 +1449,7 @@ impl LoopDriver {
     /// the reconciled decision carried out through the engines.
     async fn judged(
         &mut self,
-        gates: &[GateOutcome],
+        checks: &[CheckRun],
         iteration: (u32, u32),
         started: Instant,
         ticks: &mut Interval,
@@ -1517,12 +1517,12 @@ impl LoopDriver {
             }
             TaskStatus::Idea | TaskStatus::ToDo | TaskStatus::InProgress => {}
         }
-        let evidence: Vec<GateEvidence> = gates.iter().map(GateEvidence::from).collect();
+        let evidence: Vec<CheckEvidence> = checks.iter().map(CheckEvidence::from).collect();
         let input = JudgeInput {
             task: task.id.clone(),
             title: task.title.clone(),
             acceptance: task.acceptance.clone(),
-            gates: evidence.clone(),
+            checks: evidence.clone(),
             recorded_checks: self.recorded_verification.clone(),
             transcript_tail: std::mem::take(&mut self.transcript),
             iteration,
@@ -1540,8 +1540,8 @@ impl LoopDriver {
                     Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
                     Wake::Tap(_)
                     | Wake::Cmd(_)
-                    | Wake::Gate(_)
-                    | Wake::GatesGone
+                    | Wake::Check(_)
+                    | Wake::ChecksGone
                     | Wake::Ledger => {}
                 },
             }
@@ -1570,7 +1570,7 @@ impl LoopDriver {
             }
             Decision::Disagreement { reason, failed } => {
                 self.post(LoopEvent::Failed(format!(
-                    "the judge says {} is met ({reason}) but the gates disagree: {} failed — the task stays in progress",
+                    "the judge says {} is met ({reason}) but the checks disagree: {} failed — the task stays in progress",
                     task.id,
                     failed.join(", ")
                 )));
@@ -1589,7 +1589,7 @@ impl LoopDriver {
                 let names: Vec<&str> = evidence
                     .outstanding
                     .iter()
-                    .map(|gate| gate.gate.as_str())
+                    .map(|check| check.check.as_str())
                     .collect();
                 format!(
                     "The project's files changed after these checks ran, so they no longer prove this work: {}. Run them again, then continue.",
@@ -1714,7 +1714,7 @@ impl LoopDriver {
                 return;
             }
         }
-        // The proof-of-run reference: the step this iteration's gates were
+        // The proof-of-run reference: the step this iteration's checks were
         // recorded on. A completion with no such step carries none, and
         // says so in the record rather than inventing one.
         let step_ref = self
@@ -1892,20 +1892,20 @@ impl LoopDriver {
                 }
                 Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
                 Wake::Closed => return Turn::Closed,
-                Wake::Tap(_) | Wake::Gate(_) | Wake::GatesGone | Wake::Ledger => {}
+                Wake::Tap(_) | Wake::Check(_) | Wake::ChecksGone | Wake::Ledger => {}
             }
         }
     }
 
-    /// The gates as jobs, every one announced on the strip; `None` when
+    /// The checks as jobs, every one announced on the strip; `None` when
     /// the cockpit closed meanwhile — cancelling the jobs on the way
-    /// out, so no gate's process outlives the quit.
+    /// out, so no check's process outlives the quit.
     ///
     /// The set is the one native completion verifies: the contracts the
     /// project's evidence capability resolves for its root at this moment
     /// — one spec per archetype command in the archetype's directory, the
     /// project's own command once however many archetypes name it, and
-    /// the required custom gates — under the names and commands the
+    /// the required custom checks — under the names and commands the
     /// contracts carry, so a judged completion stands on these check_results.
     /// A set that cannot be resolved fails the iteration at the boundary:
     /// completion would refuse the same unreadable configuration, and an
@@ -1914,14 +1914,14 @@ impl LoopDriver {
     ///
     /// One at a time. `cargo check`, `cargo nextest` and `cargo clippy`
     /// contend for one build lock on one target directory, so racing them
-    /// buys no wall clock and costs the ability to say which gate spent
+    /// buys no wall clock and costs the ability to say which check spent
     /// which second. A required failure stops the set; another run needs
     /// diagnosis or a correction.
-    async fn gates(&mut self, started: Instant, ticks: &mut Interval) -> Option<Vec<GateOutcome>> {
+    async fn checks(&mut self, started: Instant, ticks: &mut Interval) -> Option<Vec<CheckRun>> {
         // The agent is gone and its feed with it (the socket is the
         // agent's own mcp's): the stage is what the cockpit shows
         // in its place.
-        self.post(LoopEvent::Stage(LoopStage::Gates));
+        self.post(LoopEvent::Stage(LoopStage::Checks));
         let cancel = CancellationToken::new();
         // Validate the selected execution before deciding which checks may run.
         let engines = self.native.as_ref().cloned();
@@ -1932,7 +1932,7 @@ impl LoopDriver {
         {
             Ok(goal) => goal.flatten(),
             Err(error) => {
-                self.gates_unresolved = Some(format!("Work records could not be read: {error}"));
+                self.checks_unresolved = Some(format!("Work records could not be read: {error}"));
                 return Some(Vec::new());
             }
         };
@@ -1946,7 +1946,7 @@ impl LoopDriver {
             let completed = match Self::completed_on_record(engines, &goal.scope) {
                 Ok(completed) => completed,
                 Err(error) => {
-                    self.gates_unresolved =
+                    self.checks_unresolved =
                         Some(format!("Work records could not be read: {error}"));
                     return Some(Vec::new());
                 }
@@ -1962,13 +1962,13 @@ impl LoopDriver {
                 let belongs = match self.is_iteration_work(engines, &goal) {
                     Ok(belongs) => belongs,
                     Err(error) => {
-                        self.gates_unresolved =
+                        self.checks_unresolved =
                             Some(format!("Work records could not be read: {error}"));
                         return Some(Vec::new());
                     }
                 };
                 if !belongs {
-                    self.gates_unresolved = Some(
+                    self.checks_unresolved = Some(
                         "The recorded checks belong to different work. Restore this item's verification step before continuing.".to_owned(),
                     );
                     return Some(Vec::new());
@@ -1992,21 +1992,21 @@ impl LoopDriver {
                             .map(str::to_owned);
                         self.verification_step = Some(evidence.step_id);
                         self.recorded_verification = evidence.accepted.into_iter()
-                            .map(|check_result| check_result.gate).collect();
+                            .map(|check_result| check_result.check).collect();
                     }
-                    Ok(_) => self.gates_unresolved = Some(
+                    Ok(_) => self.checks_unresolved = Some(
                         "No passing checks are recorded for this work. Run and record the relevant checks before continuing.".to_owned(),
                     ),
                     Err(why) => {
                         // The full refusal, with its identifiers, is for the log.
                         tracing::warn!(refusal = %why, "recorded checks were refused");
-                        self.gates_unresolved = Some(Self::plain_refusal(&why));
+                        self.checks_unresolved = Some(Self::plain_refusal(&why));
                     }
                 }
                 return Some(Vec::new());
             }
         }
-        // Named once for the set, before any gate runs: every record of
+        // Named once for the set, before any check runs: every record of
         // this set lands on this step, and the completion names it.
         let verification = engines
             .as_ref()
@@ -2029,14 +2029,13 @@ impl LoopDriver {
             .as_ref()
             .and_then(|engines| engines.authority().config().evidence())
         {
-            Some(port) => port.required_gates(),
-            None => WorkspaceEvidence::gate_contracts(&self.wf.project_dir),
+            Some(port) => port.required_checks(),
+            None => WorkspaceEvidence::check_contracts(&self.wf.project_dir),
         };
         let contracts = match resolved {
             Ok(contracts) => contracts,
             Err(why) => {
-                self.gates_unresolved =
-                    Some(format!("quality gates not resolved — nothing ran: {why}"));
+                self.checks_unresolved = Some(format!("checks not resolved — nothing ran: {why}"));
                 return Some(Vec::new());
             }
         };
@@ -2070,24 +2069,24 @@ impl LoopDriver {
                         continue;
                     }
                     Ok(Some(_)) | Err(_) => {
-                        self.gates_unresolved = Some("The saved check changed during verification. Review its check_result before continuing.".into());
+                        self.checks_unresolved = Some("The saved check changed during verification. Review its check_result before continuing.".into());
                         break;
                     }
                     Ok(None) => {}
                 }
             }
             let first = match self
-                .one_gate(&name, &command, &cancel, started, ticks)
+                .one_check(&name, &command, &cancel, started, ticks)
                 .await
             {
-                GateStep::Ran(outcome) => outcome,
-                GateStep::Gone => continue,
-                GateStep::Closed => {
+                CheckStep::Ran(outcome) => outcome,
+                CheckStep::Gone => continue,
+                CheckStep::Closed => {
                     cancel.cancel();
                     return None;
                 }
             };
-            self.record_gate(engines.as_ref(), &admission, &first, &mut said_why_not);
+            self.record_check(engines.as_ref(), &admission, &first, &mut said_why_not);
             let failed = first.required && !first.passed();
             outcomes.push(first);
             if failed {
@@ -2099,12 +2098,12 @@ impl LoopDriver {
         Some(outcomes)
     }
 
-    /// The record of one gate's check_result, written before the gate is
+    /// The record of one check's check_result, written before the check is
     /// admitted, and the admission itself once it is: `Recording.check_result`
     /// is the attempt whose handle names the durable check_result, `None` when
-    /// the intent could not be written (the gate is recorded anyway — its
+    /// the intent could not be written (the check is recorded anyway — its
     /// evidence is worth more than the record of recording it). An
-    /// `Established` intent means this attempt's check_result for the gate is
+    /// `Established` intent means this attempt's check_result for the check is
     /// already applied — recovery found it settled — and nothing is
     /// admitted: a second admission would leave an unsettled latest
     /// check_result in front of the applied one, and completion would refuse
@@ -2120,7 +2119,7 @@ impl LoopDriver {
         let step = target.step_id.clone();
         let check_result = match self.intend(
             OperationKind::CheckResult,
-            &format!("gate:{name}@step:{step}"),
+            &format!("check:{name}@step:{step}"),
         ) {
             Intent::Attempt(attempt) => Some(attempt),
             Intent::Established => {
@@ -2168,9 +2167,9 @@ impl LoopDriver {
         }
     }
 
-    /// Forward one gate to the run as a verified check, with
+    /// Forward one check to the run as a verified check, with
     /// its real exit code, its command and its captured output — the same
-    /// record `magistr_gate` writes for the agent's own gates, and which
+    /// record `magistr_check` writes for the agent's own checks, and which
     /// the driver's had no counterpart to at all: it ran three cargos
     /// between every iteration and wrote nothing about any of them.
     ///
@@ -2178,18 +2177,18 @@ impl LoopDriver {
     /// into the record additively; the exit code decides `passed`, never
     /// the report, and a missing file is "not parsed" rather than a
     /// failure. `said` keeps a set that cannot be recorded to one note on
-    /// the stage instead of one per gate.
-    fn record_gate(
+    /// the stage instead of one per check.
+    fn record_check(
         &mut self,
         engines: Option<&NativeEngines>,
         recording: &Result<Recording, String>,
-        gate: &GateOutcome,
+        check: &CheckRun,
         said: &mut bool,
     ) {
         let Some(engines) = engines else {
             if !*said {
                 *said = true;
-                self.note("gates not recorded: no workflow engines");
+                self.note("checks not recorded: no workflow engines");
             }
             return;
         };
@@ -2201,7 +2200,7 @@ impl LoopDriver {
             Err(why) => {
                 if !*said {
                     *said = true;
-                    self.note(format!("gates not recorded: {why}"));
+                    self.note(format!("checks not recorded: {why}"));
                 }
                 return;
             }
@@ -2210,12 +2209,12 @@ impl LoopDriver {
         // directory itself; the loop makes no promise about its own
         // working directory.
         let recorded = admission
-            .settle(engines, gate.execution(), gate.details())
+            .settle(engines, check.execution(), check.details())
             .map_err(|why| why.to_string())
             .and_then(|settled| match settled.settlement {
                 CheckSettlement::Applied { check, .. } => Ok(check),
                 CheckSettlement::Stale { admission, .. } => Err(format!(
-                    "check belongs to superseded run {} step {}; result remains in the loop gate outcome",
+                    "check belongs to superseded run {} step {}; result remains in the loop check outcome",
                     admission.target.run_id, admission.target.step_id,
                 )),
             });
@@ -2233,28 +2232,28 @@ impl LoopDriver {
             && !*said
         {
             *said = true;
-            self.note(format!("gates not recorded: {why}"));
+            self.note(format!("checks not recorded: {why}"));
         }
     }
 
-    /// One gate as a job, awaited to its outcome on a channel of its own
+    /// One check as a job, awaited to its outcome on a channel of its own
     /// — so a job that vanishes without reporting is still detected per
-    /// gate, the way one shared channel could only detect it for all.
-    async fn one_gate(
+    /// check, the way one shared channel could only detect it for all.
+    async fn one_check(
         &mut self,
         name: &str,
         command: &str,
         cancel: &CancellationToken,
         started: Instant,
         ticks: &mut Interval,
-    ) -> GateStep {
+    ) -> CheckStep {
         let (report, mut outcomes_rx) = unbounded_channel();
-        // The gate's own way out: a child of the driver's token, so the
-        // cockpit closing still ends it, and the held kill ends this gate alone — its process group, the way a
+        // The check's own way out: a child of the driver's token, so the
+        // cockpit closing still ends it, and the held kill ends this check alone — its process group, the way a
         // timeout would — and the run comes back cancelled.
         let own = cancel.child_token();
         let _cancel_on_drop = own.clone().drop_guard();
-        let gate = gate_job(
+        let check = check_job(
             name.to_owned(),
             command.to_owned(),
             self.wf.project_dir.clone(),
@@ -2265,34 +2264,34 @@ impl LoopDriver {
         let lease = self.lease.clone();
         let (job, completion) = self.jobs.spawn_owned_job(move || {
             let _lease = lease;
-            gate()
+            check()
         });
-        self.post(LoopEvent::GateStarted {
+        self.post(LoopEvent::CheckStarted {
             name: name.to_owned(),
             job,
         });
         let outcome = loop {
             match self.wake(Some(&mut outcomes_rx), Some(ticks)).await {
-                Wake::Gate(outcome) => break GateStep::Ran(outcome),
-                Wake::GatesGone => break GateStep::Gone,
+                Wake::Check(outcome) => break CheckStep::Ran(outcome),
+                Wake::ChecksGone => break CheckStep::Gone,
                 Wake::Cmd(Cmd::Loop(cmd)) => self.decide(cmd),
-                Wake::Cmd(Cmd::Kill(KillCmd::Gate(gate))) if gate == name => own.cancel(),
+                Wake::Cmd(Cmd::Kill(KillCmd::Check(check))) if check == name => own.cancel(),
                 Wake::Tick => self.post(LoopEvent::Elapsed(started.elapsed())),
-                Wake::Closed => break GateStep::Closed,
+                Wake::Closed => break CheckStep::Closed,
                 Wake::Tap(_) | Wake::Cmd(_) | Wake::Ledger => {}
             }
         };
-        if matches!(outcome, GateStep::Closed) {
+        if matches!(outcome, CheckStep::Closed) {
             own.cancel();
         }
         let _ = completion.await;
         outcome
     }
 
-    /// After the gates: the commit check, the tasks the feed saw
-    /// completed, the gates' verdict and the auto-pause; the reason to
+    /// After the checks: the commit check, the tasks the feed saw
+    /// completed, the checks' verdict and the auto-pause; the reason to
     /// stop, if there is one.
-    fn settle(&mut self, gates: &[GateOutcome]) -> Option<LoopEnd> {
+    fn settle(&mut self, checks: &[CheckRun]) -> Option<LoopEnd> {
         match self.iter_loop.post_iteration_check() {
             PostCheckResult::CommitMade { new_sha } => {
                 let short = new_sha.get(..7).unwrap_or(new_sha.as_str());
@@ -2312,12 +2311,12 @@ impl LoopDriver {
                 self.note(format!("completed task(s): {}", self.completed.join(", ")));
             }
         }
-        let failed: Vec<String> = gates
+        let failed: Vec<String> = checks
             .iter()
-            .filter(|gate| !gate.passed())
-            .map(|gate| format!("{} {}", gate.name, gate.verdict.label()))
+            .filter(|check| !check.passed())
+            .map(|check| format!("{} {}", check.name, check.verdict.label()))
             .collect();
-        if let Some(why) = self.gates_unresolved.take() {
+        if let Some(why) = self.checks_unresolved.take() {
             // Said once, by the end of the run; the pause only says it is one.
             if self.auto_pause {
                 self.control.pause();
@@ -2334,33 +2333,33 @@ impl LoopDriver {
                 "Recorded checks still verify this work: {}.",
                 self.recorded_verification.join(", ")
             ));
-        } else if gates.is_empty() {
-            self.note("no quality gates configured");
+        } else if checks.is_empty() {
+            self.note("no checks configured");
         } else if failed.is_empty() {
-            let secs: f64 = gates.iter().map(|g| g.duration.as_secs_f64()).sum();
-            self.note(format!("quality gates passed in {secs:.1}s"));
+            let secs: f64 = checks.iter().map(|g| g.duration.as_secs_f64()).sum();
+            self.note(format!("checks passed in {secs:.1}s"));
         } else {
             let names = failed.join(", ");
-            self.post(LoopEvent::Failed(format!("quality gates failed: {names}")));
+            self.post(LoopEvent::Failed(format!("checks failed: {names}")));
             if self.auto_pause {
                 self.control.pause();
-                self.post(LoopEvent::Paused(format!("quality gates failed: {names}")));
+                self.post(LoopEvent::Paused(format!("checks failed: {names}")));
             }
-            self.verify(gates);
+            self.verify(checks);
         }
         None
     }
 
     /// Apply actual required failures from this iteration's unfinished work.
     ///
-    /// Work accepted before gate selection is handled by its completion record
+    /// Work accepted before check selection is handled by its completion record
     /// and produces no new outcomes. If another writer completes an item while
     /// these checks are running, an actual failure reopens it before judging.
     /// Cancelled and optional checks cannot reopen work. Git is never changed.
-    fn verify(&mut self, gates: &[GateOutcome]) {
-        let red: Vec<&GateOutcome> = gates
+    fn verify(&mut self, checks: &[CheckRun]) {
+        let red: Vec<&CheckRun> = checks
             .iter()
-            .filter(|gate| gate.required && !gate.passed() && gate.verdict.is_evidence())
+            .filter(|check| check.required && !check.passed() && check.verdict.is_evidence())
             .collect();
         if red.is_empty() {
             return;
@@ -2393,7 +2392,7 @@ impl LoopDriver {
         {
             ids.push(target);
         }
-        let names: Vec<&str> = red.iter().map(|gate| gate.name.as_str()).collect();
+        let names: Vec<&str> = red.iter().map(|check| check.name.as_str()).collect();
         let names = names.join(", ");
         for id in ids {
             // Only a task that is actually done gets reopened: nothing
@@ -2438,18 +2437,18 @@ impl LoopDriver {
     }
 
     /// The next thing to act on: a tapped message (plan completions
-    /// counted on the way), a command, a gate outcome, a tick, or the
+    /// counted on the way), a command, a check outcome, a tick, or the
     /// cockpit gone.
     async fn wake(
         &mut self,
-        gates: Option<&mut UnboundedReceiver<GateOutcome>>,
+        checks: Option<&mut UnboundedReceiver<CheckRun>>,
         ticks: Option<&mut Interval>,
     ) -> Wake {
         let (tap, commands) = (&mut self.tap_rx, &mut self.commands);
         let wake = tokio::select! {
             msg = tap.recv() => msg.map_or(Wake::Closed, Wake::Tap),
             cmd = commands.next() => cmd.map_or(Wake::Closed, Wake::Cmd),
-            outcome = recv_gate(gates) => outcome.map_or(Wake::GatesGone, Wake::Gate),
+            outcome = recv_check(checks) => outcome.map_or(Wake::ChecksGone, Wake::Check),
             () = tick(ticks) => Wake::Tick,
         };
         self.dispatch(wake)
@@ -2596,18 +2595,18 @@ fn ticker() -> Interval {
     interval
 }
 
-/// What awaiting one gate ended in.
-enum GateStep {
-    /// The gate returned its run.
-    Ran(GateOutcome),
+/// What awaiting one check ended in.
+enum CheckStep {
+    /// The check returned its run.
+    Ran(CheckRun),
     /// The job is gone without reporting.
     Gone,
-    /// The cockpit closed mid-gate.
+    /// The cockpit closed mid-check.
     Closed,
 }
 
-/// The next gate outcome, or never when no gates run.
-async fn recv_gate(rx: Option<&mut UnboundedReceiver<GateOutcome>>) -> Option<GateOutcome> {
+/// The next check outcome, or never when no checks run.
+async fn recv_check(rx: Option<&mut UnboundedReceiver<CheckRun>>) -> Option<CheckRun> {
     match rx {
         Some(rx) => rx.recv().await,
         None => std::future::pending().await,

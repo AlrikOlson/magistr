@@ -242,7 +242,7 @@ fn the_policy_survives_a_save_and_reload() {
     let mut config = two_owner_team();
     config.policy = GovernancePolicy {
         tool_allowlist: vec!["Read".into(), "Write".into()],
-        required_gates: vec!["test".into()],
+        required_checks: vec!["test".into()],
         approved_models: vec!["claude-*".into()],
         fallback_model: Some("claude-sonnet-5".into()),
         ..GovernancePolicy::default()
@@ -321,4 +321,38 @@ fn people_file_wins_and_a_leftover_team_file_is_untouched() {
         std::fs::read_to_string(magistr.join("team.json")).unwrap(),
         "not json"
     );
+}
+
+#[test]
+fn a_policy_saved_before_the_check_words_takes_them_once_keeping_the_original() {
+    let tmp = tempfile::tempdir().unwrap();
+    let magistr = tmp.path().join(".magistr");
+    std::fs::create_dir_all(&magistr).unwrap();
+    let mut roster = legacy_roster();
+    roster["policy"]["required_gates"] = serde_json::json!(["test", "lint"]);
+    roster["policy"]["allow_gate_bypass"] = serde_json::json!(true);
+    let original = serde_json::to_string_pretty(&roster).unwrap();
+    std::fs::write(PeopleConfig::path(tmp.path()), &original).unwrap();
+
+    let loaded = PeopleConfig::load(tmp.path()).unwrap().expect("roster");
+    assert_eq!(loaded.policy.required_checks, vec!["test", "lint"]);
+    assert!(loaded.policy.allow_check_bypass);
+    let saved = std::fs::read_to_string(PeopleConfig::path(tmp.path())).unwrap();
+    assert!(!saved.contains("_gate"), "{saved}");
+    let backup = magistr.join("people.json.before-check-words");
+    assert_eq!(std::fs::read_to_string(&backup).unwrap(), original);
+
+    let again = PeopleConfig::load(tmp.path()).unwrap().expect("roster");
+    assert_eq!(again, loaded, "the conversion is idempotent");
+}
+
+#[test]
+fn a_policy_holding_both_check_spellings_is_refused() {
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(tmp.path().join(".magistr")).unwrap();
+    let mut roster = legacy_roster();
+    roster["policy"]["required_gates"] = serde_json::json!(["test"]);
+    roster["policy"]["required_checks"] = serde_json::json!(["lint"]);
+    std::fs::write(PeopleConfig::path(tmp.path()), roster.to_string()).unwrap();
+    assert!(PeopleConfig::load(tmp.path()).is_err());
 }

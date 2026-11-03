@@ -60,7 +60,7 @@ fn github(server: &MockServer) -> GithubTracker {
         .with_api_base(&server.uri())
 }
 
-/// THE promise of the consent gate: upgrading cannot fill anyone's tracker. With no
+/// THE promise of the consent check: upgrading cannot fill anyone's tracker. With no
 /// opt-in, the adapter is never asked to do anything at all.
 #[tokio::test]
 async fn a_default_configuration_emits_nothing() {

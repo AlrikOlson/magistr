@@ -4,7 +4,7 @@ use magistr_engine::native::{Check, CheckResult, CheckSettlement, SourceFreshnes
 
 /// One settled check: the workflow's settlement — `Applied` with the
 /// recorded check, or `Stale` with the admission and outcome intact when
-/// the run or step was superseded while the gate ran — and, either way,
+/// the run or step was superseded while the check ran — and, either way,
 /// the durable check_result settled under the admitted identity, carrying the
 /// execution, the timing and whether the source still matched.
 #[derive(Clone, Debug)]

@@ -6,13 +6,13 @@ use magistr_workflow::plan::PlanEngine;
 use magistr_workflow::plan::application::{PlanError, PlanUseCases, TaskDraft};
 use magistr_workflow::plan::domain::TaskStatus;
 use magistr_workflow::run::application::{
-    CheckExecution, CheckOutcome, CheckRequest, EvidencePort, GateContract, RunUseCases,
+    CheckContract, CheckExecution, CheckOutcome, CheckRequest, EvidencePort, RunUseCases,
     SourceFreshness, SourceObservation, SourceWitness,
 };
 use magistr_workflow::run::domain::{check::CheckType, step::StepType};
 use magistr_workflow::run::engine::RunEngine;
 
-/// A source that never moves while a gate runs: the revision it was
+/// A source that never moves while a check runs: the revision it was
 /// observed at is the revision it validates.
 struct Fixed(String);
 
@@ -38,7 +38,7 @@ impl SourceWitness for Fixed {
 }
 
 /// A fake evidence capability whose source revision the test moves between
-/// a gate and the completion that consults it.
+/// a check and the completion that consults it.
 struct Port {
     revision: Arc<Mutex<String>>,
 }
@@ -47,8 +47,8 @@ impl EvidencePort for Port {
     fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
         Ok(Box::new(Fixed(self.revision.lock().unwrap().clone())))
     }
-    fn required_gates(&self) -> Result<Vec<GateContract>, String> {
-        Ok(vec![GateContract {
+    fn required_checks(&self) -> Result<Vec<CheckContract>, String> {
+        Ok(vec![CheckContract {
             name: "test".into(),
             command: "cargo test".into(),
             check_type: CheckType::Test,
@@ -113,7 +113,7 @@ fn goal(run: &RunUseCases, scope: &str) {
     run.start_step("verify").unwrap();
 }
 
-fn gate(run: &RunUseCases, code: i32) {
+fn check(run: &RunUseCases, code: i32) {
     let admission = run
         .admit_check(CheckRequest {
             options: Default::default(),
@@ -156,7 +156,7 @@ fn completion_refuses_without_check_results_and_names_the_resolved_step_when_it_
         "{refusal}"
     );
 
-    gate(&run, 1);
+    check(&run, 1);
     let refusal = plan.complete_task("c1", Some("step:verify")).unwrap_err();
     let text = refusal.to_string();
     assert!(
@@ -164,7 +164,7 @@ fn completion_refuses_without_check_results_and_names_the_resolved_step_when_it_
         "{text}"
     );
     assert!(
-        text.contains("Re-run the outstanding gates on `verify`"),
+        text.contains("Re-run the outstanding checks on `verify`"),
         "{text}"
     );
     assert_eq!(
@@ -172,7 +172,7 @@ fn completion_refuses_without_check_results_and_names_the_resolved_step_when_it_
         TaskStatus::InProgress
     );
 
-    gate(&run, 0);
+    check(&run, 0);
     let done = plan.complete_task("c1", None).unwrap();
     assert_eq!(done.value.status, TaskStatus::Done);
     assert!(
@@ -186,7 +186,7 @@ fn completion_refuses_without_check_results_and_names_the_resolved_step_when_it_
 fn a_foreign_scope_or_step_is_refused_by_name() {
     let (plan, run) = composed();
     goal(&run, "task:other");
-    gate(&run, 0);
+    check(&run, 0);
     let refusal = plan.complete_task("c1", None).unwrap_err();
     assert!(
         refusal.to_string().contains("scoped to `task:other`"),
@@ -225,24 +225,24 @@ fn the_plain_status_routes_cannot_reach_done() {
 }
 
 #[test]
-fn stale_source_evidence_is_refused_until_the_gate_reruns() {
+fn stale_source_evidence_is_refused_until_the_check_reruns() {
     let (run, revision) = evidenced();
     let plan = plan_over(&run);
     goal(&run, "task:c1");
-    gate(&run, 0);
+    check(&run, 0);
     *revision.lock().unwrap() = "r2".into();
     let refusal = plan.complete_task("c1", None).unwrap_err();
     assert!(
         refusal
             .to_string()
-            .contains("the source changed since the gate ran"),
+            .contains("the source changed since the check ran"),
         "{refusal}"
     );
     assert_eq!(
         plan.engine().lock().unwrap().plan().tasks[0].status,
         TaskStatus::InProgress
     );
-    gate(&run, 0);
+    check(&run, 0);
     assert_eq!(
         plan.complete_task("c1", None).unwrap().value.status,
         TaskStatus::Done

@@ -326,6 +326,11 @@ The owner chose the skill set on 2 November 2026. The
 | `.magistr/project.json` `quality_gate` | `checks` |
 | `.magistr/project.json` `custom_gates` | `custom_checks` |
 | `.magistr/project.json` `verification.gates` | `verification.checks` |
+| `.magistr/project.json` `guards.quality_gate` | `guards.checks` |
+| Lifecycle hook events `on_gate_pass`, `on_gate_fail` | `on_check_pass`, `on_check_fail` |
+| `.magistr/people.json` policy `required_gates`, `allow_gate_bypass` | `required_checks`, `allow_check_bypass` |
+| Plugin kind `quality-gate` | `check` |
+| `magistr next --gate-only` | `magistr next --check-only` |
 | `.magistr/project.json` `roadmap_exports` | `plan_exports` |
 | `.magistr/team.json` | `.magistr/people.json` |
 | `ROADMAP.md`, `ROADMAP.json` | `PLAN.md`, `PLAN.json` |
@@ -357,9 +362,9 @@ screen, and no translation layer.
   `Task`, `ChunkStatus` → `TaskStatus`, ship `Task` → `Step`, `Objective` →
   `Goal`, `ShipRun` → `Run`, `ThinkStep` → `Note`, `Branch` → `Thread`,
   `CheckReceipt` → `CheckResult`, `Signal` → `Request`, `Lane` → `Team`,
-  `Workstream*` and `Group*` → `Feature*`, approval `Gate*` → `Approval*`.
-  Rename the ship `Task` types to `Step` before the plan `Chunk` types take
-  `Task`. Crate names do not change.
+  `Workstream*` and `Group*` → `Feature*`, approval `Gate*` → `Approval*`,
+  quality-gate `Gate*` → `Check*`. Rename the ship `Task` types to `Step`
+  before the plan `Chunk` types take `Task`. Crate names do not change.
 
 ## Copy
 
@@ -462,7 +467,30 @@ run in this order:
    checkpoint is refused).
 7. `vocab-checks`: gate. It was split from `vocab-teams-checks` on
    2 November 2026, because the gate words reach most of the code and meet the
-   run family's `Check*` names.
+   run family's `Check*` names. `magistr_gate` is `magistr_check`, and its
+   argument `gate` is `check`. The configuration owner converts
+   `project.json` once: `quality_gate` → `checks`, `custom_gates` →
+   `custom_checks`, `verification.gates` → `verification.checks`,
+   `guards.quality_gate` → `guards.checks`, each archetype's `quality_gate`,
+   and lifecycle hooks (`on_gate_pass` / `on_gate_fail` → `on_check_pass` /
+   `on_check_fail`, a `magistr_gate` hook tool → `magistr_check`). A roster's
+   governance policy converts `required_gates` → `required_checks` and
+   `allow_gate_bypass` → `allow_check_bypass` once, keeping
+   `people.json.before-check-words`. The run codec moves to version 7: a
+   stored check result names its check `check`, not `gate`, and the
+   execution's check results convert before its run document, with the
+   originals under `backups/before-check-words/`. Plugin manifests declare
+   kind `check`, and the plugin protocol's messages are `check_*`. Names that
+   would have met an existing `Check*` name took these instead: the three
+   standard checks are `StandardCheck` (with `StandardCheckResult`,
+   `standard_check_command`, `StandardCheckKind`, `StandardCheckOutcome`),
+   the display row is `CheckReport` with `CheckBrief`, a check's live status
+   is `CheckState`, a plugin's result and configuration are
+   `PluginCheckOutcome` and `CheckPluginConfig`, a running check's terminal
+   bytes are `CheckBytes`, `magistr validate --json` rows are
+   `ValidationCheckOutput`, and the engine admits a configured check by name
+   with `run_admit_configured_check`. The configured check scripts are
+   `scripts/*-check.*`.
 8. `vocab-copy-gate`: desktop, website and docs copy, plus a check that fails
    on a word from [Words the interface never shows](#words-the-interface-never-shows).
 9. `vocabulary-cutover`: ship the staged skills, then prove an end-to-end agent
@@ -490,8 +518,21 @@ These keep their spelling on purpose:
 - `receipt` in workspace writes (apply, mutation, source-write receipts) and in
   `execute` composition results is a different word from a check result and
   keeps its spelling here; `vocab-copy-gate` decides its public copy.
-- Words other families own stay until their task lands: the quality-gate words
-  `gate`, `magistr_gate` and `custom_gates` (checks).
+- `gate` in other senses than a check keeps its spelling here, and
+  `vocab-copy-gate` decides its public copy: the workspace's edit
+  confirmation gate (`confirm-gated`, the `commands::gate` module,
+  `GateInput`, `always_gated`, the MRTR gate), the elicitation and consent
+  gates behind an environment flag (`crates/magistr-workflow/src/mcp/elicit.rs`
+  and its tests), a resolver's boot gate and test barriers, plain English
+  "gated", "ungated" and "gating" (feature-gated code, an Okta-gated roster,
+  a commit the guard does not gate), and Apple's Gatekeeper. Task ids that
+  carry it keep it (`webapp-approval-gates`, `telemetry-consent-gate`,
+  `vocab-copy-gate`), as do the plan-name samples (`mill-race-gate`), the
+  peer revision test text whose version-1 digest is pinned, the
+  doc asset `docs/assets/fleet-scale/05-human-gate.png`, and the import
+  records `subsystems/*/PROVENANCE.md`, `subsystems/workspace/UPSTREAM_MANIFEST.json`,
+  `subsystems/workspace/NATIVE_IMPORTS.json` and
+  `subsystems/workspace/bench/results/`, which are history.
 - `lane` as a path or channel is not a team and keeps its spelling: the
   workspace's plugin, extension, language-pack and runner lanes, the
   OpenTelemetry span and log lanes, a tracker's companion lane, the cloud push

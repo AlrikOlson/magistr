@@ -60,14 +60,14 @@ magistr validate
 ```
 
 The first two commands start implementation. The third runs the full configured
-quality gate without implementing work.
+check without implementing work.
 
 | Command or option | Effect |
 | --- | --- |
 | `magistr start "YOUR REQUEST"` | Start an agent turn with the quoted request. |
 | `magistr next` | Run one plan iteration. |
 | `magistr next --continue` | Continue the selected unfinished goal and task plan. |
-| `magistr next --gate-only` | Run quality gates without an AI implementation iteration. |
+| `magistr next --check-only` | Run checks without an AI implementation iteration. |
 | `magistr next-loop --max-iterations 3` | Bound a run to three iterations, with fresh agent sessions. |
 | `--feature "FEATURE"` on `next-loop` | Limit selection to the named feature or an unambiguous fragment. |
 | `--agent`, `--model`, `--effort` | Override saved launch preferences; `--provider` aliases `--agent`, and `-m` aliases `--model`. |

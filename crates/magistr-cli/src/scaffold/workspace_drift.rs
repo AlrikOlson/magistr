@@ -1,4 +1,4 @@
-//! Drift between `.magistr/project.json`'s gates and `.magistr/workspace.toml
+//! Drift between `.magistr/project.json`'s checks and `.magistr/workspace.toml
 //! [commands]` — the allowlist workspace `command` executes from. `magistr init`
 //! seeds the table once and never touches it again, so a later edit to
 //! either side silently desynchronises the two; `magistr lint` and
@@ -24,7 +24,7 @@ pub(crate) fn workspace_drift(dir: &Path) -> Option<Vec<String>> {
 #[must_use]
 pub(crate) fn doctor_check(dir: &Path) -> DoctorCheck {
     let description =
-        ".magistr/workspace.toml [commands] matches the project.json gates".to_owned();
+        ".magistr/workspace.toml [commands] matches the project.json checks".to_owned();
     match workspace_drift(dir) {
         None if dir.join(".magistr/workspace.toml").is_file() => DoctorCheck {
             name: "workspace-commands",

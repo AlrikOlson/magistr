@@ -4,14 +4,14 @@ import { Preferences, effectiveMotion } from "../ui/preferences.mjs";
 const snapshot=(revision,theme="system",reduce_motion=false)=>({revision,preferences:{theme,reduce_motion}});
 const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
 test("preferences load and rapid changes persist the newest selection in order",async()=>{
-  const gate=deferred(),calls=[];
+  const check=deferred(),calls=[];
   const preferences=new Preferences(async(command,args)=>{
     if(command==="preferences")return snapshot(4);
-    calls.push(args);if(calls.length===1)await gate.promise;
+    calls.push(args);if(calls.length===1)await check.promise;
     return {revision:args.expectedRevision+1,preferences:args.preferences};
   });
   await preferences.load();preferences.change({theme:"dark",reduce_motion:false});
-  preferences.change({theme:"light",reduce_motion:true});gate.resolve();await preferences.flush();
+  preferences.change({theme:"light",reduce_motion:true});check.resolve();await preferences.flush();
   assert.deepEqual(calls.map(call=>call.expectedRevision),[4,5]);
   assert.deepEqual(preferences.value,{theme:"light",reduce_motion:true});
   assert.equal(preferences.snapshot.revision,6);

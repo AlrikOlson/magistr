@@ -74,7 +74,7 @@ fn read_only_tools_are_marked() {
     let read_only = [
         "run_status",
         "run_export",
-        // A gate poll reads the workspace and writes nothing.
+        // A check poll reads the workspace and writes nothing.
         "approval_wait",
     ];
     for tool in svc.list_tools_view() {

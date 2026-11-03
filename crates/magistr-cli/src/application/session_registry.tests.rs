@@ -170,7 +170,7 @@ pub(crate) fn projects() -> tempfile::TempDir {
             serde_json::json!({
  "project": {"name": "fixture", "type": "cli"},
  "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
- "quality_gate": {"check": "", "test": "", "lint": ""},
+ "checks": {"check": "", "test": "", "lint": ""},
  "format": {"command": "", "extensions": []},
  "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
  "reference_repos": [], "state_prefix": "fixture", "plan_exports": false
@@ -421,16 +421,16 @@ async fn opening_a_provider_does_not_block_controls_for_an_existing_session() {
     let log = Log::default();
     let mut normal = opener(log.clone());
     let release = Arc::new(Notify::new());
-    let gate = release.clone();
+    let check = release.clone();
     let mut count = 0;
     let open: Open<Hosted> = Box::new(move |opening| {
         count += 1;
         let opened = normal(opening);
-        let gate = gate.clone();
+        let check = check.clone();
         let waiting = count == 2;
         Box::pin(async move {
             if waiting {
-                gate.notified().await;
+                check.notified().await;
             }
             opened.await
         })
@@ -715,10 +715,10 @@ async fn catalog_keeps_closing_visible_until_the_addressed_owner_settles() {
         }
     }
     let release = Arc::new(Notify::new());
-    let gate = Arc::clone(&release);
+    let check = Arc::clone(&release);
     let registry = SessionRegistry::start_with(
         Box::new(move |opening| {
-            let release = Arc::clone(&gate);
+            let release = Arc::clone(&check);
             Box::pin(async move {
                 opening.observation.bind_context_for_test(
                     magistr_application::sessions::Conversation {

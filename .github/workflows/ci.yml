@@ -254,10 +254,10 @@ jobs:
           if-no-files-found: warn
 
   contracts:
-    name: Source gates and script suites
+    name: Source checks and script suites
     needs: plan
     if: needs.plan.outputs.contracts == 'true'
-    # Scripted gates need Cargo metadata and Node, not a macOS host.
+    # Scripted checks need Cargo metadata and Node, not a macOS host.
     runs-on: ubuntu-latest
     timeout-minutes: 8
     permissions:
@@ -295,9 +295,9 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
-          # The iteration archive the gate validates is the magistr-evidence submodule.
+          # The iteration archive the check validates is the magistr-evidence submodule.
           submodules: true
-      - run: python3 -B scripts/ci_timing.py --name visual-evidence --budget 120 -- bash scripts/screenshot-gate.sh
+      - run: python3 -B scripts/ci_timing.py --name visual-evidence --budget 120 -- bash scripts/screenshot-check.sh
       - name: Save timing evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -375,7 +375,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - name: Check deployment credentials
-        id: gate
+        id: check
         run: |
           if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
             echo "configured=true" >> "$GITHUB_OUTPUT"
@@ -384,24 +384,24 @@ jobs:
             echo "::notice::Website deploy skipped: add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID repository secrets to deploy from main."
           fi
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-        if: steps.gate.outputs.configured == 'true'
+        if: steps.check.outputs.configured == 'true'
         with:
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        if: steps.gate.outputs.configured == 'true'
+        if: steps.check.outputs.configured == 'true'
         with:
           node-version-file: .node-version
           # A deployment builds from scratch: no cache can shape what is published.
           package-manager-cache: false
       - name: Build the website
-        if: steps.gate.outputs.configured == 'true'
+        if: steps.check.outputs.configured == 'true'
         run: |
           npm ci --prefix scripts
           npm ci --prefix apps/website
           npm --prefix apps/website run build
       - name: Publish to Cloudflare Pages
-        if: steps.gate.outputs.configured == 'true'
+        if: steps.check.outputs.configured == 'true'
         run: npm exec --prefix scripts --no -- wrangler pages deploy apps/website/dist --project-name magistr --branch main --commit-hash "$GITHUB_SHA"
       - name: Verify the deployed launch pages
-        if: steps.gate.outputs.configured == 'true'
+        if: steps.check.outputs.configured == 'true'
         run: ./scripts/public-link-check.sh --stage website --out target/website-readiness.json

@@ -7,7 +7,7 @@ use crate::run::domain::check_result_settlement::CheckResultSettlement;
 use crate::run::domain::goal::VerificationMode;
 
 use super::{
-    AcceptedCheckResult, CompletionEvidence, CompletionRefusal, GateContract, OutstandingGate,
+    AcceptedCheckResult, CheckContract, CompletionEvidence, CompletionRefusal, OutstandingCheck,
     RecoveredFailure, RunUseCases, SourceFreshness, SourceObservation, StepAdmission,
 };
 
@@ -15,7 +15,7 @@ impl RunUseCases {
     /// Decide whether the task scoped as `scope` may complete on the
     /// evidence of the current run. The verification step is the explicit
     /// `step` when given (it must be a step of the current run), else the
-    /// instance the run's latest check_result was admitted on. Every gate the
+    /// instance the run's latest check_result was admitted on. Every check the
     /// host requires, and every required verified check_result on that
     /// instance, must have a latest check_result that was applied, passed,
     /// ran its configured command, saw the source and the applicable
@@ -23,7 +23,7 @@ impl RunUseCases {
     /// selection policy, source bytes, external configuration and
     /// acceptance revision current now (a new owner generation of the same
     /// bytes is not a change). A
-    /// focused goal intentionally omits project-wide gate contracts;
+    /// focused goal intentionally omits project-wide check contracts;
     /// its required acceptance-specific check_results still govern completion.
     /// Nothing here holds the engine lock while the source is observed.
     ///
@@ -84,7 +84,7 @@ impl RunUseCases {
         };
         let contracts = match goal.verification {
             VerificationMode::Full => {
-                port.required_gates()
+                port.required_checks()
                     .map_err(|reason| CompletionRefusal::EvidenceUnavailable {
                         reason: reason.to_string(),
                     })?
@@ -97,7 +97,7 @@ impl RunUseCases {
                 reason: reason.to_string(),
             })?
             .observation();
-        let by_gate = attempts_by_gate(&check_results, &target.step_instance);
+        let by_check = attempts_by_check(&check_results, &target.step_instance);
 
         let mut evidence = CompletionEvidence {
             run_id: snapshot.run_id.clone(),
@@ -114,12 +114,12 @@ impl RunUseCases {
         let mut judged: Vec<&str> = Vec::new();
         for contract in &contracts {
             judged.push(&contract.name);
-            match by_gate.get(contract.name.as_str()) {
-                None => evidence.outstanding.push(OutstandingGate {
-                    gate: contract.name.clone(),
+            match by_check.get(contract.name.as_str()) {
+                None => evidence.outstanding.push(OutstandingCheck {
+                    check: contract.name.clone(),
                     check_result_id: None,
                     reason: format!(
-                        "required gate has no check_result on step `{}` in this run (command: {})",
+                        "required check has no check_result on step `{}` in this run (command: {})",
                         target.step_id, contract.command
                     ),
                 }),
@@ -127,7 +127,7 @@ impl RunUseCases {
                     let current = observe_check_result(
                         port.as_ref(),
                         &mut observations,
-                        attempts.last().expect("gate attempts"),
+                        attempts.last().expect("check attempts"),
                     )?;
                     judge(
                         &mut evidence,
@@ -140,10 +140,10 @@ impl RunUseCases {
                 }
             }
         }
-        // Required checks the caller recorded beyond the configured gates
+        // Required checks the caller recorded beyond the configured checks
         // govern too: a failing acceptance-specific check is not evidence.
-        for (gate, attempts) in &by_gate {
-            if judged.contains(gate) {
+        for (check, attempts) in &by_check {
+            if judged.contains(check) {
                 continue;
             }
             let Some(latest) = attempts.last() else {
@@ -159,7 +159,7 @@ impl RunUseCases {
             let current = observe_check_result(port.as_ref(), &mut observations, latest)?;
             judge(
                 &mut evidence,
-                gate,
+                check,
                 attempts,
                 None,
                 &current,
@@ -174,34 +174,34 @@ impl RunUseCases {
     }
 }
 
-/// Each gate's check results on one step instance, oldest attempt first.
-fn attempts_by_gate<'a>(
+/// Each check's check results on one step instance, oldest attempt first.
+fn attempts_by_check<'a>(
     check_results: &'a [CheckResult],
     step_instance: &str,
 ) -> BTreeMap<&'a str, Vec<&'a CheckResult>> {
-    let mut by_gate: BTreeMap<&str, Vec<&CheckResult>> = BTreeMap::new();
+    let mut by_check: BTreeMap<&str, Vec<&CheckResult>> = BTreeMap::new();
     for check_result in check_results
         .iter()
         .filter(|check_result| check_result.target.step_instance == step_instance)
     {
-        by_gate
-            .entry(&check_result.gate)
+        by_check
+            .entry(&check_result.check)
             .or_default()
             .push(check_result);
     }
-    for attempts in by_gate.values_mut() {
+    for attempts in by_check.values_mut() {
         attempts.sort_by_key(|check_result| check_result.attempt);
     }
-    by_gate
+    by_check
 }
 
-/// Judge one gate's attempts on the verification step: the latest decides,
+/// Judge one check's attempts on the verification step: the latest decides,
 /// earlier failures under an accepted latest are recovered.
 fn judge(
     evidence: &mut CompletionEvidence,
-    gate: &str,
+    check: &str,
     attempts: &[&CheckResult],
-    contract: Option<&GateContract>,
+    contract: Option<&CheckContract>,
     current: &SourceObservation,
     acceptance_revision: &str,
 ) {
@@ -210,14 +210,14 @@ fn judge(
     };
     let refusal = reason_to_refuse(latest, contract, current, acceptance_revision);
     match refusal {
-        Some(reason) => evidence.outstanding.push(OutstandingGate {
-            gate: gate.to_owned(),
+        Some(reason) => evidence.outstanding.push(OutstandingCheck {
+            check: check.to_owned(),
             check_result_id: Some(latest.id.clone()),
             reason,
         }),
         None => {
             evidence.accepted.push(AcceptedCheckResult {
-                gate: gate.to_owned(),
+                check: check.to_owned(),
                 check_result_id: latest.id.clone(),
                 attempt: latest.attempt,
                 source_revision: latest.source.as_ref().map(|s| s.revision.clone()),
@@ -225,7 +225,7 @@ fn judge(
             for earlier in attempts.iter().filter(|r| r.attempt < latest.attempt) {
                 if earlier.settlement.is_some() && !earlier.passed() {
                     evidence.recovered.push(RecoveredFailure {
-                        gate: gate.to_owned(),
+                        check: check.to_owned(),
                         check_result_id: earlier.id.clone(),
                         attempt: earlier.attempt,
                         outcome: earlier
@@ -245,7 +245,7 @@ fn judge(
 /// generation is not judged.
 fn reason_to_refuse(
     latest: &CheckResult,
-    contract: Option<&GateContract>,
+    contract: Option<&CheckContract>,
     current: &SourceObservation,
     acceptance_revision: &str,
 ) -> Option<String> {
@@ -289,25 +289,25 @@ fn reason_to_refuse(
         Some(SourceFreshness::Unchanged) => {}
         Some(SourceFreshness::Changed { paths }) => {
             return Some(format!(
-                "the workspace changed while the gate ran: {}",
+                "the workspace changed while the check ran: {}",
                 paths.join(", ")
             ));
         }
         Some(SourceFreshness::Diverged { .. }) => {
-            return Some("the workspace changed while the gate ran".into());
+            return Some("the workspace changed while the check ran".into());
         }
         Some(SourceFreshness::Reconfigured { layers }) if layers.is_empty() => {
-            return Some("the applicable configuration changed while the gate ran".into());
+            return Some("the applicable configuration changed while the check ran".into());
         }
         Some(SourceFreshness::Reconfigured { layers }) => {
             return Some(format!(
-                "the applicable configuration changed while the gate ran: {}",
+                "the applicable configuration changed while the check ran: {}",
                 layers.join(", ")
             ));
         }
         Some(SourceFreshness::Unobserved { reason }) => {
             return Some(format!(
-                "the workspace could not be re-observed after the gate: {reason}"
+                "the workspace could not be re-observed after the check: {reason}"
             ));
         }
         None => return Some("the latest attempt recorded no source validation".into()),
@@ -316,7 +316,7 @@ fn reason_to_refuse(
         return Some(drift.to_string());
     }
     if latest.acceptance_revision != acceptance_revision {
-        return Some("the goal's acceptance changed since the gate ran".into());
+        return Some("the goal's acceptance changed since the check ran".into());
     }
     None
 }
@@ -331,7 +331,7 @@ fn observe_check_result(
         .as_ref()
         .map(|source| source.inputs.as_slice())
         .unwrap_or_default();
-    let key = (&check_result.gate, &check_result.command, inputs);
+    let key = (&check_result.check, &check_result.command, inputs);
     let key =
         serde_json::to_string(&key).map_err(|error| CompletionRefusal::EvidenceUnavailable {
             reason: error.to_string(),
@@ -340,7 +340,7 @@ fn observe_check_result(
         return Ok(Clone::clone(observed));
     }
     let observed = port
-        .observe_check(&check_result.gate, check_result.command.as_deref(), inputs)
+        .observe_check(&check_result.check, check_result.command.as_deref(), inputs)
         .map_err(|reason| CompletionRefusal::EvidenceUnavailable { reason })?
         .observation();
     observations.insert(key, observed.clone());

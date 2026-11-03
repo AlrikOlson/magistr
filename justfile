@@ -1,12 +1,12 @@
 # magistr — development recipes
 
 # All required project checks
-gate: check test lint structure
+checks: check test lint structure
     ./scripts/lint-duplication.sh
-    ./scripts/machete-gate.sh
-    ./scripts/screenshot-gate.sh
-    ./scripts/release-latency-gate.sh
-    ./scripts/nextest-config-gate.sh
+    ./scripts/machete-check.sh
+    ./scripts/screenshot-check.sh
+    ./scripts/release-latency-check.sh
+    ./scripts/nextest-config-check.sh
     ./scripts/legacy-gui-ratchet.sh
 
 # Compile check all targets

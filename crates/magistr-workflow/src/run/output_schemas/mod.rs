@@ -178,7 +178,7 @@ pub struct StructuredError {
     pub message: String,
 }
 
-/// `approval_open` — either the opened pending gate, or the immediate
+/// `approval_open` — either the opened pending check, or the immediate
 /// default resolution when no workspace could carry it (headless-safe).
 #[derive(Serialize, JsonSchema)]
 pub struct ApprovalOpenOutput {
@@ -203,7 +203,7 @@ pub struct ApprovalOpenOutput {
     pub hint: Option<String>,
 }
 
-/// `approval_wait` — the gate's resolution at this moment.
+/// `approval_wait` — the check's resolution at this moment.
 #[derive(Serialize, JsonSchema)]
 pub struct ApprovalWaitOutput {
     /// `answered` | `expired` | `pending`.

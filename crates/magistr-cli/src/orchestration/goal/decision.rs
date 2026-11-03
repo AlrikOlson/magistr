@@ -1,14 +1,14 @@
 //! What the loop does with a verdict.
 
-use super::gate_evidence::GateEvidence;
+use super::check_evidence::CheckEvidence;
 use super::verdict::Verdict;
 
 /// The loop's next move, reconciled from the judge's [`Verdict`] and the
-/// real gates. This is the one place the authority rule lives:
+/// real checks. This is the one place the authority rule lives:
 /// `check_step`'s exit codes complete a task, a verdict never does.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Decision {
-    /// The judge says met and every gate passed: complete the task.
+    /// The judge says met and every check passed: complete the task.
     Complete {
         /// The judge's reason.
         reason: String,
@@ -18,13 +18,13 @@ pub enum Decision {
         /// The judge's reason.
         reason: String,
     },
-    /// The judge says met but a gate is red: the task stays in
+    /// The judge says met but a check is red: the task stays in
     /// progress and the disagreement is reported — a bug in the
     /// condition or the evidence, never a completion.
     Disagreement {
         /// The judge's reason.
         reason: String,
-        /// The gates that failed, by name.
+        /// The checks that failed, by name.
         failed: Vec<String>,
     },
     /// The judge says the acceptance cannot be met as written: stop the
@@ -36,9 +36,9 @@ pub enum Decision {
 }
 
 impl Decision {
-    /// Reconcile `verdict` with `gates`.
+    /// Reconcile `verdict` with `checks`.
     #[must_use]
-    pub fn reconcile(verdict: &Verdict, gates: &[GateEvidence]) -> Self {
+    pub fn reconcile(verdict: &Verdict, checks: &[CheckEvidence]) -> Self {
         let reason = verdict.reason.clone();
         if verdict.impossible {
             return Self::Stop { reason };
@@ -46,10 +46,10 @@ impl Decision {
         if !verdict.ok {
             return Self::Continue { reason };
         }
-        let failed: Vec<String> = gates
+        let failed: Vec<String> = checks
             .iter()
-            .filter(|gate| !gate.passed)
-            .map(|gate| gate.name.clone())
+            .filter(|check| !check.passed)
+            .map(|check| check.name.clone())
             .collect();
         if failed.is_empty() {
             Self::Complete { reason }

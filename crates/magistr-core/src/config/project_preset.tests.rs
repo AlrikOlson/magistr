@@ -89,7 +89,7 @@ fn load_from_project_root() {
     std::fs::create_dir_all(&preset_dir).unwrap();
     std::fs::write(
         preset_dir.join("local.json"),
-        r#"{"quality_gate": {"check": "custom check"}}"#,
+        r#"{"checks": {"check": "custom check"}}"#,
     )
     .unwrap();
 
@@ -99,7 +99,7 @@ fn load_from_project_root() {
     assert_eq!(
         layers[0]
             .overrides
-            .quality_gate
+            .checks
             .as_ref()
             .unwrap()
             .check

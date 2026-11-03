@@ -1,4 +1,4 @@
-//! Integration tests for workflow lifecycle hooks and gate enforcement.
+//! Integration tests for workflow lifecycle hooks and check enforcement.
 
 use tempfile::TempDir;
 
@@ -19,7 +19,7 @@ fn project_config_with_format_command(
             "linter": "clippy",
             "formatter": "rustfmt"
         },
-        "quality_gate": { "check": "true", "test": "true", "lint": "true" },
+        "checks": { "check": "true", "test": "true", "lint": "true" },
         "format": { "extensions": ["rs"], "command": format_cmd, "exclusions": [] },
         "spec": { "file": "PLAN.md", "unchecked_pattern": "- \\[ \\]" },
         "testing": { "companion_pattern": "{name}.tests.rs", "test_dir": "tests" },
@@ -82,7 +82,7 @@ async fn lifecycle_hook_fail_fast_blocks() {
 
     let hooks = vec![
         LifecycleHook {
-            event: LifecycleEvent::OnGateFail,
+            event: LifecycleEvent::OnCheckFail,
             action: HookAction::McpTool {
                 tool: "magistr_format".into(),
                 arguments: serde_json::Value::Null,
@@ -91,7 +91,7 @@ async fn lifecycle_hook_fail_fast_blocks() {
             on_failure: OnFailure::FailFast,
         },
         LifecycleHook {
-            event: LifecycleEvent::OnGateFail,
+            event: LifecycleEvent::OnCheckFail,
             action: HookAction::McpTool {
                 tool: "magistr_format".into(),
                 arguments: serde_json::Value::Null,
@@ -101,7 +101,7 @@ async fn lifecycle_hook_fail_fast_blocks() {
         },
     ];
 
-    let resolved = HookResolver::resolve(&LifecycleEvent::OnGateFail, &hooks);
+    let resolved = HookResolver::resolve(&LifecycleEvent::OnCheckFail, &hooks);
     assert_eq!(resolved.len(), 2);
 
     // First hook will fail (command exits non-zero), second should not run.

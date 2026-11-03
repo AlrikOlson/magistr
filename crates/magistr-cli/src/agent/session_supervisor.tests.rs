@@ -124,14 +124,14 @@ impl Provider for ControlledProvider {
                     .acknowledge_cancel
                     .acquire()
                     .await
-                    .expect("ACK gate");
+                    .expect("ACK check");
                 permit.forget();
                 turn.message("last update before cancellation acknowledgement")?;
                 return Ok(StopReason::Cancelled);
             }
             if text.starts_with("hold") {
                 tokio::select! {
-                    permit = observed.finish.acquire() => permit.expect("finish gate").forget(),
+                    permit = observed.finish.acquire() => permit.expect("finish check").forget(),
                     () = turn.cancelled() => return Ok(StopReason::Cancelled),
                 }
             }
@@ -847,7 +847,7 @@ async fn late_permission_gets_cancelled_on_the_wire_and_fresh_turn_can_receive_a
                                 .await?;
                             let _ = outcome.send(response.outcome);
                             if first {
-                                acknowledge.acquire().await.expect("ACK gate").forget();
+                                acknowledge.acquire().await.expect("ACK check").forget();
                             }
                             responder.respond(PromptResponse::new(if first {
                                 StopReason::Cancelled

@@ -32,10 +32,10 @@ pub(crate) struct FrozenTree {
 /// One recorded quality check, reduced to what the guard looks at.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CheckSummary {
-    /// The gate's name (`check_step(name:)`); re-runs of a gate share it, and
+    /// The check's name (`check_step(name:)`); re-runs of a check share it, and
     /// only the latest result per name counts.
     pub(crate) name: String,
-    /// A required gate (the default for `check_step`).
+    /// A required check (the default for `check_step`).
     pub(crate) required: bool,
     /// Its recorded outcome.
     pub(crate) passed: bool,
@@ -161,8 +161,8 @@ fn evaluate_stop(input: &GuardInput) -> GuardVerdict {
     GuardVerdict::Allow(None)
 }
 
-/// Commit: a `git commit` while a required gate failed, or before any
-/// verified gate was recorded for the goal, is refused. Any other Bash
+/// Commit: a `git commit` while a required check failed, or before any
+/// verified check was recorded for the goal, is refused. Any other Bash
 /// command is only routed: grep, rg, find and sed aimed at the workspace
 /// are refused in favour of magistr when the project declares it.
 /// Projects without a goal pass.
@@ -183,11 +183,11 @@ fn evaluate_commit(input: &GuardInput) -> GuardVerdict {
             "the run is already finished; this commit is not gated".to_owned(),
         ));
     }
-    let latest = latest_check_per_gate(&input.checks);
+    let latest = latest_check_per_check(&input.checks);
     if latest.iter().any(|c| c.required && !c.passed) {
         return GuardVerdict::Block(
             "a required quality check is recorded as FAILED — fix it and re-run the \
-             affected checks (a named magistr_gate or check_step(command: …)) before \
+             affected checks (a named magistr_check or check_step(command: …)) before \
              git commit"
                 .to_owned(),
         );
@@ -196,7 +196,7 @@ fn evaluate_commit(input: &GuardInput) -> GuardVerdict {
     if !verified_pass && input.steps_total > 0 {
         return GuardVerdict::Block(
             "no verified quality check is recorded for this goal — run \
-             a named magistr_gate or check_step(command: …) (a real exit \
+             a named magistr_check or check_step(command: …) (a real exit \
              code, not a self-reported pass) before git commit"
                 .to_owned(),
         );
@@ -219,9 +219,9 @@ fn evaluate_routing(input: &GuardInput) -> GuardVerdict {
     }
 }
 
-/// The most recent result of each gate, in first-seen order. The run trace
-/// keeps every run; a gate that failed and was then re-run green is green.
-fn latest_check_per_gate(checks: &[CheckSummary]) -> Vec<&CheckSummary> {
+/// The most recent result of each check, in first-seen order. The run trace
+/// keeps every run; a check that failed and was then re-run green is green.
+fn latest_check_per_check(checks: &[CheckSummary]) -> Vec<&CheckSummary> {
     let mut latest: Vec<&CheckSummary> = Vec::new();
     for check in checks {
         match latest.iter_mut().find(|c| c.name == check.name) {

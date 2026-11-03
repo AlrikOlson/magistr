@@ -2,7 +2,7 @@ use super::*;
 
 use magistr_core::types::{
     Archetype, DetectedProject, FormatConfig, Language, ProjectMetadata, ProjectRole, ProjectTree,
-    QualityGate, TestingConfig, Topology, Workspace,
+    StandardChecks, TestingConfig, Topology, Workspace,
 };
 use std::path::PathBuf;
 
@@ -14,7 +14,7 @@ fn make_archetype(id: &str, language: &str, root: &str) -> Archetype {
         framework: None,
         root: PathBuf::from(root),
         role: ProjectRole::Backend,
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: "cargo check".into(),
             test: "cargo test".into(),
             lint: "cargo clippy".into(),

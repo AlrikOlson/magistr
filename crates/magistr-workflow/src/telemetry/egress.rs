@@ -1,6 +1,6 @@
 //! Consent-gated shape egress (`telemetry-egress-ingest`).
 //!
-//! The wire half over the shape extractor and the consent gate. Telemetry
+//! The wire half over the shape extractor and the consent check. Telemetry
 //! traffic is a SEPARATE path from sync: shapes go to a vendor ingest
 //! endpoint, never to the user's tenant — and only when
 //! [`consent::should_send`](crate::telemetry::consent::should_send) allows.
@@ -77,7 +77,7 @@ pub enum EgressError {
 }
 
 /// POST the report to `{endpoint}/v1/telemetry/shapes`. The caller is
-/// responsible for the consent gate ([`should_send`]) — this function only
+/// responsible for the consent check ([`should_send`]) — this function only
 /// moves bytes.
 ///
 /// [`should_send`]: crate::telemetry::consent::should_send

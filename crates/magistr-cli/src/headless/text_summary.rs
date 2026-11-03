@@ -34,17 +34,17 @@ fn format_duration(ms: u64) -> String {
 impl HeadlessRenderer for TextSummaryRenderer {
     fn emit(&self, w: &mut dyn Write, event: HeadlessEvent) -> std::io::Result<()> {
         match event {
-            HeadlessEvent::GateStart { name } => {
+            HeadlessEvent::CheckStart { name } => {
                 writeln!(w, "--- {name} ---")
             }
-            HeadlessEvent::GatePass { name, duration_ms } => {
+            HeadlessEvent::CheckPass { name, duration_ms } => {
                 writeln!(
                     w,
                     "  [PASS] {name} ({duration})",
                     duration = format_duration(duration_ms)
                 )
             }
-            HeadlessEvent::GateFail {
+            HeadlessEvent::CheckFail {
                 name,
                 duration_ms,
                 output,

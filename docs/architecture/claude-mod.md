@@ -26,7 +26,7 @@ The existing family query contracts supply work, plan and findings.
 an explicitly
 announced phase (nullable), bounded canonical step evidence, check results,
 and configured check choices resolved by the
-canonical gate resolver. Phase is an observation of this service's successful
+canonical check resolver. Phase is an observation of this service's successful
 `magistr_set_phase`, scoped to its goal creation time and active task.
 A new owner, changed goal/task, or a phase announced only through another
 writer means unknown; prose and timestamps are never used to infer a phase.

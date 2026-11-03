@@ -10,7 +10,7 @@ use super::{SnapshotError, workspace_identity::frame};
 /// (hidden files included, ignore files honored with or without a
 /// repository, `.git` and `.magistr/workspace` never entered, symlinks not
 /// followed but recorded). Explicit inputs are hashed even when ignored —
-/// gate configuration that ordinary selection would skip, or a built
+/// check configuration that ordinary selection would skip, or a built
 /// artifact a consumer certifies alongside the source.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SelectionPolicy {

@@ -44,7 +44,7 @@ fn hooks_are_planted_in_the_configuration() {
     let planted = seeds.project_json(&generated());
     let config: crate::types::ProjectConfig = serde_json::from_str(&planted).unwrap();
     assert_eq!(config.lifecycle_hooks, seeds.lifecycle_hooks);
-    assert_eq!(config.quality_gate.check, "cargo check");
+    assert_eq!(config.checks.check, "cargo check");
     assert!(planted.ends_with("}\n"));
 }
 

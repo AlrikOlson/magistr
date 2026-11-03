@@ -1,5 +1,5 @@
 /// What to start. The variant is the consumer's admission decision: a
-/// configured gate line and a caller's check command are shell lines, a
+/// configured check line and a caller's check command are shell lines, a
 /// workspace declared command is the argv its policy admitted. The
 /// mechanism never converts one into the other.
 #[derive(Debug, Clone, PartialEq, Eq)]

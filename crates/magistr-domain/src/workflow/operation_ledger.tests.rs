@@ -157,13 +157,13 @@ fn only_a_completed_outcome_deduplicates() {
 #[test]
 fn failed_and_cancelled_admit_the_next_attempt_number() {
     let mut ledger = OperationLedger::new();
-    let first = accepted(&mut ledger, "gate", OperationKind::CheckResult);
+    let first = accepted(&mut ledger, "check", OperationKind::CheckResult);
     ledger.settle(&first, OperationOutcome::Failed).unwrap();
-    let second = accepted(&mut ledger, "gate", OperationKind::CheckResult);
-    assert_eq!(second, attempt("gate", 2));
+    let second = accepted(&mut ledger, "check", OperationKind::CheckResult);
+    assert_eq!(second, attempt("check", 2));
     ledger.settle(&second, OperationOutcome::Cancelled).unwrap();
-    let third = accepted(&mut ledger, "gate", OperationKind::CheckResult);
-    assert_eq!(third, attempt("gate", 3));
+    let third = accepted(&mut ledger, "check", OperationKind::CheckResult);
+    assert_eq!(third, attempt("check", 3));
     assert_eq!(ledger.records().len(), 3);
     assert!(ledger.record(&first).unwrap().is_settled());
 }

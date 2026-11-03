@@ -58,7 +58,7 @@ impl SetupPlan {
             vars.entry(key.into()).or_default();
         }
         // Existing project settings remain the authority for generated instructions.
-        // Re-detection must not advertise preset commands while preserving different configured gates.
+        // Re-detection must not advertise preset commands while preserving different configured checks.
         if let Some(document) = super::CodexSetup::read(dir, PROJECT_JSON)? {
             let config: serde_json::Value = serde_json::from_str(&document)?;
             for (key, field) in [
@@ -66,7 +66,7 @@ impl SetupPlan {
                 ("test_cmd", "test"),
                 ("lint_cmd", "lint"),
             ] {
-                if let Some(command) = config["quality_gate"][field].as_str() {
+                if let Some(command) = config["checks"][field].as_str() {
                     vars.insert(key.into(), command.into());
                 }
             }
@@ -263,7 +263,7 @@ fn with_managed_section(change: &mut PlannedChange, render: impl FnOnce(&str) ->
     }
 }
 
-/// The `.magistr/workspace.toml` seed as a planned change: none when the gates seed
+/// The `.magistr/workspace.toml` seed as a planned change: none when the checks seed
 /// nothing, unchanged when the file already says everything, otherwise the
 /// body seeding writes.
 fn workspace_change(dir: &Path, vars: &HashMap<String, String>) -> Option<PlannedChange> {

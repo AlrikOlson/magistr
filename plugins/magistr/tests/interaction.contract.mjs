@@ -19,12 +19,12 @@ test('checks and feature choices read back their acknowledged results', async ()
   )
   assert.match(textOf(await h.render()), /Continue this step/)
   await h.press('tab-checks')
-  await h.press('gate-check')
+  await h.press('check-check')
   assert.match(textOf(await h.render()), /Check passed and was recorded/)
   assert.equal(mutations(h).at(-1).mutation.tool, 'mcp__magistr__execute')
   assert.equal(
     decodeRequest('execute', mutations(h).at(-1).mutation).tool,
-    'magistr_gate',
+    'magistr_check',
   )
   await h.press('tab-plan')
   await h.press('work-search')
@@ -346,7 +346,7 @@ test('confirmation cannot use a changed step, active step or configured command'
       await h.command('refresh')
       await h.press('tab-checks')
     } else await h.press('step-review')
-    const request = h.press(mode === 'command' ? 'gate-check' : 'start-step')
+    const request = h.press(mode === 'command' ? 'check-check' : 'start-step')
     await flush()
     if (mode === 'step') h.f.step.title = 'Changed step'
     if (mode === 'active')
@@ -463,13 +463,13 @@ test('check limits are reviewed exactly and invalid limits never submit', async 
     await (await input()).props.onInput(value)
     const calls = mutations(h).length
     const asks = h.asks.length
-    await h.press('gate-check')
+    await h.press('check-check')
     assert.equal(mutations(h).length, calls)
     assert.equal(h.asks.length, asks)
     assert.match(textOf(await h.render()), /from 1 to 1800 seconds/)
   }
   await (await input()).props.onInput('900')
-  await h.press('gate-check')
+  await h.press('check-check')
   assert.equal(
     decodeRequest('execute', mutations(h).at(-1).mutation).args.timeout_secs,
     900,
@@ -480,7 +480,7 @@ test('check limits are reviewed exactly and invalid limits never submit', async 
   await h.command('refresh')
   const calls = mutations(h).length
   const asks = h.asks.length
-  await h.press('gate-check')
+  await h.press('check-check')
   assert.equal(mutations(h).length, calls)
   assert.equal(h.asks.length, asks)
   assert.match(textOf(await h.render()), /too long to review/)

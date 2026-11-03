@@ -112,7 +112,7 @@ workspace's organization policy and user layer (the paths
 and policy without touching a byte inside the tree. `WorkspaceEvidence` also
 observes the shared project's `.magistr/project.json` as workspace configuration,
 resolved through `ProjectLocation` by the central settings path owner. A linked
-copy uses the main project's settings, including its gate commands and export
+copy uses the main project's settings, including its check commands and export
 policy. Settings readers, hook writes and setup use that same path. Invalid Git
 membership refuses resolution. `.magistr/workspace.toml` remains specific to each source
 copy. The snapshot also selects either configuration file when it is inside
@@ -135,7 +135,7 @@ layer names when a layer moved while the bytes did not.
 | Identity | Owner and meaning | Moves when | Judged at completion |
 | --- | --- | --- | --- |
 | Source revision (`SourceObservation::revision`) | The workspace snapshot's name for an observation: scheme, canonical root, owner generation, selection-policy digest and manifest digest. | Any of its parts moves, including a new owner of the same bytes. | Recorded and displayed, not compared: its parts are judged one by one. |
-| Source digest (`source_digest`) | The selected bytes under the policy (the manifest digest). | A selected file is added, removed or modified — `.magistr/project.json` and `.magistr/workspace.toml` included. | Yes — "the source changed since the gate ran". |
+| Source digest (`source_digest`) | The selected bytes under the policy (the manifest digest). | A selected file is added, removed or modified — `.magistr/project.json` and `.magistr/workspace.toml` included. | Yes — "the source changed since the check ran". |
 | Selection policy (`policy_digest`) | What the snapshot selects: version, ceiling, explicit inputs. | The policy is changed. | Yes — "the selection policy changed". |
 | Configuration digest (`config_digest`) | Applicable policy layers and shared project settings by content. | Organization policy, user configuration or shared project settings appear, disappear or change. | Yes — the applicable configuration changed. |
 | Acceptance revision (`CheckResult::acceptance_revision`) | The goal's description, acceptance criteria, constraints and scope. | An in-flight `run_open`. | Yes — "the goal's acceptance changed". |
@@ -147,15 +147,15 @@ layer names when a layer moved while the bytes did not.
 workspace, scheme, selection policy, source, configuration — and names the
 first identity that differs as a typed `ObservationDrift`; a receipt
 recorded before a digest was bound is `Unbound` and refused by name. The
-completion refusal prints the drift verbatim beside the gate, the
+completion refusal prints the drift verbatim beside the check, the
 cross-process settlement path (no witness in the settling process) maps it
 to `Unchanged`, `Diverged` (source digests) or `Reconfigured` (layers
-unknown), and the latest attempt of each gate still governs: re-running the
-gate under the current configuration completes.
+unknown), and the latest attempt of each check still governs: re-running the
+check under the current configuration completes.
 
 Limits: the digest covers the workspace's two external layers; Magistr's
 own per-user `config.toml`, presets, models and plugin settings do not
-change what a gate certifies and are not bound. The effective layer is
+change what a check certifies and are not bound. The effective layer is
 digested by bytes, so a comment-only edit moves the evidence.
 
 ## Project inputs
@@ -300,7 +300,7 @@ complete and a second plan over a freshly generated project applies nothing.
 
 `magistr init --ci` plans its one file the same way
 ([ci.rs](../../crates/magistr-cli/src/scaffold/ci.rs)): the rendered
-`.github/workflows/quality-gates.yml` is a create when nothing is there, the
+`.github/workflows/checks.yml` is a create when nothing is there, the
 user's preserved file when something is and `--force` is not given, an
 overwrite with its diff (or unchanged) under `--force`, and refused when the
 target is not a readable regular file. The plan is applied through the
@@ -331,7 +331,7 @@ administrative write is therefore always an explicit act for a named
 operation (setup, repair or removal) on a plan that was computed first; an
 agent session's source writes never reach it, because they take the
 admitted workspace's [source route](clients.md) or are refused, and the
-`native-write-path` gate (rule 13) keeps every other file under the scaffold
+`native-write-path` check (rule 13) keeps every other file under the scaffold
 module from writing the filesystem at all. Human-owned `.magistr/workspace.toml`
 `[commands]` tables, source policy, the `.magistr` state
 namespaces and the plan export denials are outside every plan and stay

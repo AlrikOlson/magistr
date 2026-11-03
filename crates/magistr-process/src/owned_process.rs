@@ -272,7 +272,7 @@ fn command_for(spec: &ProcessSpec) -> io::Result<Command> {
 }
 
 /// The platform command for a launch with the spec's environment. A line
-/// is written in POSIX shell — every declared command, gate and hook in
+/// is written in POSIX shell — every declared command, check and hook in
 /// this workspace is — so it runs under the POSIX shell found on PATH (Git
 /// for Windows'), with that shell's directory first on the child's PATH:
 /// a nested `bash` or an `env bash` shebang then resolves beside it and

@@ -1,6 +1,6 @@
 use super::*;
 use crate::config::preset_fragment::{FragmentLayerType, MergeStrategy, UserPresetFragment};
-use crate::types::QualityGateOverride;
+use crate::types::StandardChecksOverride;
 
 #[test]
 fn preset_test_valid_file() {
@@ -12,7 +12,7 @@ fn preset_test_valid_file() {
         layer_type: FragmentLayerType::ProjectLocal,
         extends: None,
         merge_strategy: MergeStrategy::Replace,
-        quality_gate: Some(QualityGateOverride {
+        checks: Some(StandardChecksOverride {
             check: Some("echo check".into()),
             test: Some("echo test".into()),
             lint: None,
@@ -35,7 +35,7 @@ fn preset_test_invalid_name() {
         &path,
         r#"
 name = ""
-[quality_gate]
+[checks]
 check = "echo ok"
 "#,
     )
@@ -55,7 +55,7 @@ fn preset_test_with_extends() {
 name = "my-rust"
 extends = "rust"
 
-[quality_gate]
+[checks]
 check = "cargo check --all-features"
 "#,
     )

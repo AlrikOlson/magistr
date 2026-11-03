@@ -8,7 +8,7 @@ fn test_config() -> WorkflowConfig {
     WorkflowConfig {
         project_dir: "/tmp/test".into(),
         spec_path: "PLAN.md".into(),
-        quality_gate: None,
+        checks: None,
         max_iterations: 10,
         lifecycle_hooks: vec![],
     }

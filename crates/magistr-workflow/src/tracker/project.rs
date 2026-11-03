@@ -251,14 +251,14 @@ pub enum PreviewVerdict {
     WouldCreate,
     /// The full content fence matches, so the projector's own cheap skip fires
     /// before it does any I/O. Certain, and it is certain because this is
-    /// literally the projector's first gate.
+    /// literally the projector's first check.
     Unchanged,
-    /// A field WE author changed. The projector's second gate cannot rescue
+    /// A field WE author changed. The projector's second check cannot rescue
     /// this, so a write really is pending.
     WouldUpdate,
     /// The only differences are in fields the ownership table gives the team.
     /// [`reconcile_fields`] replaces those with the tracker's values before
-    /// anything is sent, so the projector skips at its second gate — unless the
+    /// anything is sent, so the projector skips at its second check — unless the
     /// tracker's own record has moved since our write, which no preview can
     /// know without reading it.
     OnlyTrackerOwned,
@@ -303,9 +303,9 @@ impl PreviewVerdict {
 /// # Why this is a function and not four lines in the CLI
 ///
 /// It used to be four lines in the CLI, and they reimplemented the projector's
-/// FIRST skip gate only. The projector has two: the cheap one on the raw item,
+/// FIRST skip check only. The projector has two: the cheap one on the raw item,
 /// and — after `fetch_one` plus [`reconcile_fields`] — one on the reconciled
-/// item, which is also the hash it stores. Those two gates disagree on every
+/// item, which is also the hash it stores. Those two checks disagree on every
 /// task whose `state`, `labels` or `assignee` diverged from the plan, because
 /// the table gives those to the team while `content_hash` still covers them.
 /// One copy that both paths are tested against is the only shape in which the
@@ -327,7 +327,7 @@ pub fn preview_verdict(
     let Some(link) = link else {
         return PreviewVerdict::WouldCreate;
     };
-    // Gate 1, character for character the projector's cheap skip.
+    // Check 1, character for character the projector's cheap skip.
     if link.our_last_write_hash == item.content_hash() {
         return PreviewVerdict::Unchanged;
     }
@@ -442,9 +442,9 @@ fn relations_hash(external_ids: &[String]) -> String {
 /// A capability refusal is never a failure: it is reported and the run
 /// continues.
 ///
-/// The caller is responsible for the per-project consent gate
+/// The caller is responsible for the per-project consent check
 /// ([`crate::tracker::config::should_project`]); this function honours the
-/// per-task gate itself by projecting only [`PlanEngine::tasks_opted_in`].
+/// per-task check itself by projecting only [`PlanEngine::tasks_opted_in`].
 pub async fn project_all(
     engine: &mut PlanEngine,
     tracker: &dyn TrackerPort,
@@ -616,7 +616,7 @@ pub async fn project_all_with_policy(
             continue;
         }
 
-        // THE POLICY GATE. On a patch we read what the tracker currently holds
+        // THE POLICY CHECK. On a patch we read what the tracker currently holds
         // and merge under the ownership table, so a field the team owns is
         // never overwritten by a projection that simply did not know about it.
         // On a create there is nothing to conflict with.
@@ -644,7 +644,7 @@ pub async fn project_all_with_policy(
         let (existing, remote_moved) = match engine.tracker_link(&task.id, &provider) {
             Some(link) => {
                 let remote = tracker.fetch_one(&link.external_id).await.unwrap_or(None);
-                // THE FENCE — and it gates REPORTING, not merging.
+                // THE FENCE — and it checks REPORTING, not merging.
                 // If the provider's record has not moved since our write, the
                 // thing we fetched IS our own last write, so a difference is our
                 // pending change rather than a human's edit and raising it would
@@ -1302,7 +1302,7 @@ async fn send_reconciled(
 }
 
 #[cfg(test)]
-mod policy_gate_tests {
+mod policy_check_tests {
     /// THE structural criterion. `Reconciled` has a private field, so the only
     /// way to obtain one is `reconcile_fields`, which requires the policy. That
     /// makes `send_reconciled` — the module's single caller of `upsert_item` —
@@ -1318,7 +1318,7 @@ mod policy_gate_tests {
         // mention the call, and counting them would make it lie about itself.
         let whole = include_str!("project.rs");
         let src = whole
-            .split_once("mod policy_gate_tests")
+            .split_once("mod policy_check_tests")
             .map_or(whole, |(before, _)| before);
 
         let calls = src.matches("tracker.upsert_item(").count();

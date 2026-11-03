@@ -26,7 +26,7 @@ pub mod session_permission_policy;
 // ── Rules ──────────────────────────────────────────────────────────
 pub mod auto_allow_rule;
 pub mod rule_matcher;
-pub mod rules_from_quality_gates;
+pub mod rules_from_checks;
 
 // ── Config ─────────────────────────────────────────────────────────
 pub mod config_path;
@@ -114,7 +114,7 @@ pub use risk_level::RiskLevel;
 #[allow(unused_imports)]
 pub use rule_matcher::RuleMatcher;
 #[allow(unused_imports)]
-pub use rules_from_quality_gates::rules_from_quality_gates;
+pub use rules_from_checks::rules_from_checks;
 #[allow(unused_imports)]
 pub use save_config::save_config;
 #[allow(unused_imports)]

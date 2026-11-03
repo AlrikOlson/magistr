@@ -4,7 +4,7 @@
 use crate::workflow::guards::{GuardResult, WorkflowGuard};
 
 /// Steers the agent when it is about to execute without a recorded run
-/// plan, or to commit without a recorded quality gate.
+/// plan, or to commit without a recorded check.
 ///
 /// Reads `GuardContext::run` (a [`magistr_engine::RunGuardState`] read
 /// from `run_status`), so the guard is IO-free: whoever builds the context

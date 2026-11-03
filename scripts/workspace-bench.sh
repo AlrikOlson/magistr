@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Record the native workspace perf runs (task arch-14c10b): the retained
-# tier-0 / tier-1 / references-p95 / worker round-trip gates measured over
+# tier-0 / tier-1 / references-p95 / worker round-trip checks measured over
 # generated scratch corpora against the release worker binary, written as
 # workspace-bench/1 JSON under subsystems/workspace/bench/results/. Every
-# profile runs even when an earlier one misses its gate; the exit status is
+# profile runs even when an earlier one misses its check; the exit status is
 # the worst of them, and the JSON records the failure rather than hiding it.
 #
 # Usage: ./scripts/workspace-bench.sh [--loc N]
@@ -40,7 +40,7 @@ run_profile index "$RESULTS/index-$PROFILE.json" --loc "$LOC"
 run_profile refs "$RESULTS/refs-$PROFILE.json" --loc "$LOC"
 
 if [[ "$status" -ne 0 ]]; then
-    echo "FAIL: at least one perf gate missed — the JSON under $RESULTS records it"
+    echo "FAIL: at least one perf check missed — the JSON under $RESULTS records it"
     exit 1
 fi
-echo "OK: every perf gate held; results under $RESULTS"
+echo "OK: every perf check held; results under $RESULTS"

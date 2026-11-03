@@ -27,7 +27,7 @@ use super::workflow_state::WorkflowState;
 pub struct DomainState {
     /// Session sub-state: active tool, thinking, identity, model, context usage.
     pub session: SessionState,
-    /// Workflow sub-state: phase tracking, gate results, loop progress.
+    /// Workflow sub-state: phase tracking, check results, loop progress.
     pub workflow: WorkflowState,
     /// Budget sub-state: spending limits and thresholds.
     pub budget: BudgetState,

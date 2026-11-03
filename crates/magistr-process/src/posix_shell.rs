@@ -2,7 +2,7 @@
 //!
 //! Windows ships `bash.exe` launchers for WSL in the system directory and in
 //! `WindowsApps`. A child that resolves `bash` through an ordinary Windows
-//! PATH — a gate line `bash ./scripts/x.sh`, a script's
+//! PATH — a check line `bash ./scripts/x.sh`, a script's
 //! `#!/usr/bin/env bash`, an agent's `bash -c` — can land in a different
 //! operating system with a different toolchain, or hang while WSL starts.
 //! These items decide together which shell is real (a `sh.exe` outside

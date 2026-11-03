@@ -17,7 +17,7 @@ This audit is intentionally written for a project that is still in development. 
 
 Magistr is **technically ready for a source-first development release**, but it is **not publicly ready to announce yet**.
 
-The Rust workspace, native quality gates, website build, host packaging, public policy entry points, release workflow, and diagram system now pass locally. The remaining blocker is external: the configured GitHub repository, release, issue, and magistr.dev URLs are not anonymously reachable from this audit environment. The closure work records that dependency as an explicit release gate with an owner and rerun command.
+The Rust workspace, native checks, website build, host packaging, public policy entry points, release workflow, and diagram system now pass locally. The remaining blocker is external: the configured GitHub repository, release, issue, and magistr.dev URLs are not anonymously reachable from this audit environment. The closure work records that dependency as an explicit release check with an owner and rerun command.
 
 The most urgent distinction is:
 
@@ -30,7 +30,7 @@ The most urgent distinction is:
 | Area | Status | Evidence | Release implication |
 | --- | --- | --- | --- |
 | Rust source build | Ready | cargo package --locked --list -p magistr-cli succeeds; Cargo.lock is tracked | A source install is reproducible from the repository |
-| Native quality gates | Ready | The configured full gate run passed: check, nextest, clippy, and all required custom gates | The current commit has strong local verification |
+| Native checks | Ready | The configured full check run passed: check, nextest, clippy, and all required custom checks | The current commit has strong local verification |
 | Host archive | Ready for this host | scripts/package-release.sh produced magistr-0.1.0-aarch64-apple-darwin.tar.gz and .sha256; checksum verification passed | The packaging path works, but only the current host was exercised |
 | CLI smoke | Ready | Packaged binary reports magistr 0.1.0 and renders help | The archive contains a usable CLI |
 | Website build | Ready in a clean checkout | npm test in apps/website passed, including static routes, docs, metadata, favicons, contrast, diagram assets, and output assertions | Build no longer depends on ignored local assets |
@@ -73,7 +73,7 @@ Before announcing the development release:
 2. Deploy the website and publish DNS for the configured hostname.
 3. Check the repository, releases, issues, main branch, license, release inventory, and installation docs without authentication.
 4. Check the website, every docs route, robots.txt, sitemap, favicon, OG image, GitHub links, release links, and issue links from a clean browser session.
-5. Record this as a release gate so a future rename cannot silently break the public surface.
+5. Record this as a release check so a future rename cannot silently break the public surface.
 
 ### Resolved in closure: clean-checkout logo dependency
 
@@ -83,7 +83,7 @@ The implementation uses the tracked SVG path and `.github/workflows/ci.yml` asse
 
 ### Resolved in closure: automated public-release lane
 
-`.github/workflows/ci.yml` (which replaced `public-release.yml` on 2026-10-21) runs Rust formatting/check/test/clippy, the website test, clean-checkout asset assertions, and the macOS package check. Every job that compiles the Rust workspace runs on `macos-15` with a shared build cache: the hosted Linux runner ran out of disk compiling the workspace (run 39307180372), so Linux runs only selection, policy, source-gate scripts, visual evidence and the website deploy. Main run 41253007941 (2026-10-31) passed the full sequence on that split: Rust lint and test build in 441 s and three test slices in 352–376 s. `scripts/public-link-check.sh` probes the configured URLs; its strict failure remains the external release gate until the repository and DNS are live.
+`.github/workflows/ci.yml` (which replaced `public-release.yml` on 2026-10-21) runs Rust formatting/check/test/clippy, the website test, clean-checkout asset assertions, and the macOS package check. Every job that compiles the Rust workspace runs on `macos-15` with a shared build cache: the hosted Linux runner ran out of disk compiling the workspace (run 39307180372), so Linux runs only selection, policy, source-check scripts, visual evidence and the website deploy. Main run 41253007941 (2026-10-31) passed the full sequence on that split: Rust lint and test build in 441 s and three test slices in 352–376 s. `scripts/public-link-check.sh` probes the configured URLs; its strict failure remains the external release check until the repository and DNS are live.
 
 ### Resolved in closure: explicit distribution boundary
 
@@ -93,7 +93,7 @@ The source install is real and tested. The host archive path is real and tested 
 
 A public development release needs three small policy pages:
 
-- CONTRIBUTING.md: setup, focused changes, required gates, and how to propose a plan/workflow change.
+- CONTRIBUTING.md: setup, focused changes, required checks, and how to propose a plan/workflow change.
 - SECURITY.md: how to report a vulnerability privately, what local data may contain, and the support window for an early release.
 - CODE_OF_CONDUCT.md: the community standard and contact path.
 
@@ -117,7 +117,7 @@ The callout names local workflow state, provider credentials, normal operating-s
 
 ### Resolved in closure: time-aware release claims
 
-The installation docs now describe v0.1 as source-first and point to the package script/release inventory for host archives. The anonymous URL gate still owns the final “published” claim until the repository, releases, issues, and website are reachable.
+The installation docs now describe v0.1 as source-first and point to the package script/release inventory for host archives. The anonymous URL check still owns the final “published” claim until the repository, releases, issues, and website are reachable.
 
 ## A better visual language for Magistr
 
@@ -161,7 +161,7 @@ The state view connects the project checkout, plan/reasoning/run records, and ag
 
 ## Closure status
 
-The local implementation order is complete: tracked assets, canonical copy, policy pages, installation boundaries, hand-authored SVG diagrams, website assertions, CI/package checks, and the anonymous URL probe are all in source. The only remaining release gate is external endpoint availability; the maintainer or hosting operator must make the repository, releases, issues, and magistr.dev reachable and rerun `PUBLIC_RELEASE_STRICT=1 ./scripts/public-link-check.sh`.
+The local implementation order is complete: tracked assets, canonical copy, policy pages, installation boundaries, hand-authored SVG diagrams, website assertions, CI/package checks, and the anonymous URL probe are all in source. The only remaining release check is external endpoint availability; the maintainer or hosting operator must make the repository, releases, issues, and magistr.dev reachable and rerun `PUBLIC_RELEASE_STRICT=1 ./scripts/public-link-check.sh`.
 
 ## Definition of “ready to announce”
 

@@ -78,8 +78,8 @@ fn check_choices_use_the_existing_resolver_and_include_optional_checks() {
         "format": {"command": "cargo fmt", "extensions": ["rs"]},
         "testing": {"companion_pattern": "{name}.tests.rs", "test_dir": "alongside"},
         "reference_repos": [], "state_prefix": "context",
-        "quality_gate": {"check": "cargo check", "test": "", "lint": "cargo clippy"},
-        "custom_gates": [{"name": "contrast", "command": "contrast-check", "required": false}]
+        "checks": {"check": "cargo check", "test": "", "lint": "cargo clippy"},
+        "custom_checks": [{"name": "contrast", "command": "contrast-check", "required": false}]
     }))
     .expect("project config");
     let choices = check_choices(&config).expect("resolved");

@@ -53,7 +53,7 @@ pub fn load_preset_with_framework(lang: Language, framework: Framework) -> Resul
 /// Apply a package-manager overlay on top of an already-resolved preset.
 ///
 /// This handles cases where the build tool (e.g. Gradle vs Maven) changes
-/// quality gate commands independently of the framework.
+/// check commands independently of the framework.
 pub fn apply_package_manager_overlay(
     preset: Preset,
     package_manager: PackageManager,

@@ -6,7 +6,7 @@
 //! the source of truth for `verified`, every report problem degrades to
 //! exactly the pre-report behaviour with the record saying parsing did not
 //! happen, and only a machine-readable file the runner was asked for is ever
-//! read — plus the registry gates that keep the supported-format list from
+//! read — plus the registry checks that keep the supported-format list from
 //! drifting from what is registered.
 
 use magistr_workflow::run::engine::RunEngine;
@@ -166,7 +166,7 @@ fn every_report_problem_degrades_and_says_so() {
     degraded(&record, &results, "did not parse");
 }
 
-// ── The registry gates (the tracker/ shape) ────────────────────────
+// ── The registry checks (the tracker/ shape) ────────────────────────
 
 #[test]
 fn the_unknown_format_refusal_reads_its_list_from_the_registry() {
@@ -214,8 +214,8 @@ async fn active_step(svc: &RunService) {
     .unwrap();
     svc.arrange_steps(Parameters(PlanArgs {
         action: PlanAction::Add,
-        step_id: "gate".into(),
-        title: Some("run the gate".into()),
+        step_id: "check".into(),
+        title: Some("run the check".into()),
         step_type: None,
         estimate: None,
         after: None,
@@ -224,7 +224,7 @@ async fn active_step(svc: &RunService) {
     .await
     .unwrap();
     svc.start_step(Parameters(StartArgs {
-        step_id: "gate".into(),
+        step_id: "check".into(),
     }))
     .await
     .unwrap();

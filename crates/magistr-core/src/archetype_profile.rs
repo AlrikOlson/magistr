@@ -184,7 +184,7 @@ fn build_test_section(archetype: &Archetype) -> String {
         ));
     }
 
-    let test_cmd = &archetype.quality_gate.test;
+    let test_cmd = &archetype.checks.test;
     if !test_cmd.is_empty() {
         lines.push(format!("- **Test command:** `{test_cmd}`"));
     }

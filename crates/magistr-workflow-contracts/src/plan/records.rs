@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Exactly three, and closed on purpose. A mode decides which BOUNDARY applies
 /// — `Shape` may not touch implementation source, `Build` may not complete over
-/// a red gate, `Listen` may not process a second request — so an open vocabulary
+/// a red check, `Listen` may not process a second request — so an open vocabulary
 /// would be a vocabulary of unenforceable boundaries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

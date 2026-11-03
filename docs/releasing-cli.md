@@ -10,7 +10,7 @@ only when every dependency is also published, so the CLI needs all fourteen
 workspace crates, and a first publication waits roughly ninety minutes on the
 new-crate rate limit. The owner dropped Cargo publication on 31 October 2026.
 Six internal crates reached crates.io during the attempt and their
-`1.0.0-beta.2` versions are yanked. The release-stage public gate checks npm
+`1.0.0-beta.2` versions are yanked. The release-stage public check checks npm
 alone. The Cargo sections below describe tooling kept for a possible later
 return to crates.io; Cargo users build from source. The
 [21 October beta-1 candidate record](evidence/cli-installation/2026-10-21-beta-1-candidate/README.md)
@@ -51,7 +51,7 @@ The version also decides the **release channel**. `python3 scripts/version.py ch
 prints the npm dist-tag for the canonical version: `beta` for a pre-release,
 `latest` for a stable version. Every publication consumer derives the tag from
 the reviewed artifact version rather than hard-coding it: the publish workflow
-passes it to `npm publish --tag`, the release-stage public gate verifies the
+passes it to `npm publish --tag`, the release-stage public check verifies the
 package on that tag, and the hosted npm verification serves the packed artifact
 on the same tag. `latest` therefore stays reserved for `1.0.0`.
 
@@ -223,7 +223,7 @@ repositories. Private repositories can publish but do not receive that provenanc
 
 ## Verify deployed launch information
 
-The public gate checks the rendered installation, agent setup, upgrade and
+The public check checks the rendered installation, agent setup, upgrade and
 uninstall guides for their current commands and the planning boundary, as well
 as anonymous reachability. HTTP 200 alone is insufficient: an old guide or a
 redirect to an unrelated page fails.
@@ -365,8 +365,8 @@ After both registry uploads pass their real-registry installation and hash
 checks, and the installation guide no longer says packages are unpublished,
 create the annotated tag `v1.0.0-beta.2` on the reviewed source and a GitHub
 release marked **pre-release** with the candidate's release notes and checksums.
-Pushing a `v*` tag runs the release-stage public gate, which must pass. Do not
-tag before the uploads: the gate would fail on the missing registry versions.
+Pushing a `v*` tag runs the release-stage public check, which must pass. Do not
+tag before the uploads: the check would fail on the missing registry versions.
 
 ## Install, upgrade, repair and remove
 

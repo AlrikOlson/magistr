@@ -2,7 +2,7 @@ use super::*;
 use crate::workflow::{LifecycleEvent, WorkflowPhase};
 
 #[test]
-fn rust_preset_has_format_and_gate() {
+fn rust_preset_has_format_and_check() {
     let hooks = preset_for_language("rust");
     assert_eq!(hooks.len(), 2);
     assert_eq!(hooks[0].display_name(), "magistr_format");
@@ -10,7 +10,7 @@ fn rust_preset_has_format_and_gate() {
         hooks[0].event,
         LifecycleEvent::OnEnter(WorkflowPhase::Verifying)
     );
-    assert_eq!(hooks[1].display_name(), "magistr_gate");
+    assert_eq!(hooks[1].display_name(), "magistr_check");
     assert_eq!(
         hooks[1].event,
         LifecycleEvent::OnExit(WorkflowPhase::Verifying)

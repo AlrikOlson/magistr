@@ -1,4 +1,4 @@
-"""Read each Rust source once for the architecture gates."""
+"""Read each Rust source once for the architecture checks."""
 from functools import lru_cache
 import os
 from pathlib import Path

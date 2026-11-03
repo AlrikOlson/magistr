@@ -122,7 +122,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 /// `request_*` tools return a bare `Request` and MCP cannot `$ref` a schema
 /// across tools, so its 3,576 B is paid seven times.
 ///
-/// The gate did its job: it refused the increment and sent the question to a
+/// The check did its job: it refused the increment and sent the question to a
 /// human. The answer was that structured output is worth the bytes, on two
 /// grounds. First, the client this server actually runs against defers schemas
 /// behind ToolSearch and never loads them (the option-D reasoning above still
@@ -162,15 +162,15 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 /// # The line moved a second time, deliberately, on 2026-07-31
 ///
 /// 140,000 -> 150,000, human-approved for `webapp-approval-gates`. The two
-/// gate verbs (`approval_open` / `approval_wait`) measured 4,621 B on the
-/// wire — 143,967 B total against the 140,000 line. The gate refused the
+/// check verbs (`approval_open` / `approval_wait`) measured 4,621 B on the
+/// wire — 143,967 B total against the 140,000 line. The check refused the
 /// increment and the question went to the human, as designed; the answer was
 /// to keep both verbs and move the line, on three grounds. First, approval
-/// gates are a genuinely NEW capability (an agent pausing on a human answer
+/// checks are a genuinely NEW capability (an agent pausing on a human answer
 /// from the webapp), not schema backfill for an existing one — the first
 /// move's own test. Second, per the CORRECTION above, ~2/3 of these wire
 /// bytes are outputSchema/annotations the model never sees; the model-facing
-/// gate below is the number that guards context, and it holds. Third,
+/// check below is the number that guards context, and it holds. Third,
 /// `FamilySelection` still offers lean deployments to anyone who does not
 /// want the run family at all. Two verbs rather than one multiplexed tool
 /// was deliberate: open and wait have disjoint inputs and outputs, and a
@@ -259,7 +259,7 @@ fn description_bytes(svc: &UnifiedService) -> usize {
 ///
 /// WHY NOT ZERO. The degradation contract has to be stated where the call is
 /// formed: an agent that doesn't know a missing report is safe will not ask
-/// for one, and the whole feature exists so a red gate can name the failing
+/// for one, and the whole feature exists so a red check can name the failing
 /// test instead of the agent re-running the suite to find out.
 ///
 /// The outputSchema-duplication note above still stands as the real place to
@@ -273,7 +273,7 @@ fn tools_list_payload_stays_within_budget() {
         actual <= BUDGET,
         "tools/list is {actual} bytes, over the {BUDGET}-byte budget (was 87,897 when \
          the surface-size decision chose option D, 135,524 B after the outputSchema work, \
-         143,967 B after the approval-gate verbs, 150,728 B after plan_get, 153,630 B \
+         143,967 B after the approval verbs, 150,728 B after plan_get, 153,630 B \
          after the focus verbs, 156,363 B after check_step's structured report). Re-decide \
          the surface rather than raising this — the line has moved exactly five times, with \
          every argument written above. Before proposing a sixth, read the outputSchema \
@@ -345,7 +345,7 @@ const SURFACE_RECORD: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/tool_su
 fn surface_record(svc: &UnifiedService) -> String {
     format!(
         "# Written by tests/unified_service.rs::records_the_measured_tool_surface.\n\
-         # A RECORD, NOT A GATE — nothing here is asserted. The ceiling is\n\
+         # A RECORD, NOT A CHECK — nothing here is asserted. The ceiling is\n\
          # tools_list_payload_stays_within_budget; this file is the slope.\n\
          tools {}\n\
          wire_bytes {}\n\
@@ -378,14 +378,14 @@ fn surface_record(svc: &UnifiedService) -> String {
 /// ```
 ///
 /// Four green commits ate 87% of the original headroom, and the fifth took the
-/// blame for a wall the other four built. That is not a gate failing; it is a
-/// gate doing exactly its job, which is to catch the increment that crosses the
+/// blame for a wall the other four built. That is not a check failing; it is a
+/// check doing exactly its job, which is to catch the increment that crosses the
 /// line and nothing else.
 ///
-/// # Why a record and not a second gate
+/// # Why a record and not a second check
 ///
-/// A warn band or a delta-fail would be a second blocking gate on one number,
-/// and a second gate gets raised in the same motion as the first — it buys a
+/// A warn band or a delta-fail would be a second blocking check on one number,
+/// and a second check gets raised in the same motion as the first — it buys a
 /// ritual, not information. What was missing was never enforcement. It was that
 /// **nobody was ever shown a number**: all four commits passed code review, and
 /// review cannot catch a slope it is not told about.
@@ -398,7 +398,7 @@ fn surface_record(svc: &UnifiedService) -> String {
 ///
 /// An unenforced record can drift from reality. But it is refreshed by the same
 /// `cargo test` run that enforces the ceiling, so it is exactly as fresh as the
-/// gate it accompanies: if the suite never runs, the ceiling is dead too and
+/// check it accompanies: if the suite never runs, the ceiling is dead too and
 /// staleness here is the smaller problem. Writing only on change keeps a
 /// no-op run from dirtying the tree.
 ///

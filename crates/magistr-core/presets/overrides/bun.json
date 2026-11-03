@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "test": "bun test",
     "lint": "bun run lint"
   }

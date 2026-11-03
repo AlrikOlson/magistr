@@ -37,12 +37,12 @@ pub enum RunCommand {
         tools_used: Vec<String>,
         note: Option<u32>,
     },
-    /// `run_record_gate`. The report, when given, is a `(format, path)`
+    /// `run_record_check`. The report, when given, is a `(format, path)`
     /// the owner reads — so the path must be one the owner's process can
     /// open, which for a local attachment is the same filesystem.
-    RecordGate {
+    RecordCheck {
         step_id: Option<String>,
-        gate: String,
+        check: String,
         command: String,
         exit_code: i32,
         details: String,

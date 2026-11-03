@@ -20,7 +20,7 @@ fn workspace() -> tempfile::TempDir {
     fs::create_dir_all(root.join("target")).expect("target");
     fs::write(root.join("target/out"), "built").expect("output");
     fs::create_dir_all(root.join(".magistr")).expect("magistr");
-    fs::write(root.join(".magistr/project.json"), "{\"gate\":1}").expect("config");
+    fs::write(root.join(".magistr/project.json"), "{\"check\":1}").expect("config");
     fs::write(root.join(".magistr/state.json"), "{\"phase\":1}").expect("state");
     #[cfg(unix)]
     std::os::unix::fs::symlink("src/lib.rs", root.join("link")).expect("symlink");
@@ -143,7 +143,7 @@ fn every_kind_of_external_change_is_observed() {
 
     fs::remove_file(root.join("assets/logo.bin")).expect("delete");
     fs::write(root.join("NEW.md"), "untracked\n").expect("untracked");
-    fs::write(root.join(".magistr/project.json"), "{\"gate\":2}").expect("config change");
+    fs::write(root.join(".magistr/project.json"), "{\"check\":2}").expect("config change");
     std::fs::create_dir_all(root.join(".magistr")).unwrap();
     fs::write(root.join(".magistr/workspace.toml"), "[commands]\n").expect("config appears");
     fs::write(root.join("src/lib.rs"), [0_u8, 1, 2]).expect("text becomes binary");

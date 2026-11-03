@@ -46,7 +46,7 @@ test("every published action has a concise explanation, with no raw response fal
   const explanation=explanationFor(event.id),copy=JSON.stringify(explanation);
   assert(explanation.title&&explanation.summary,event.id);
   assert(explanation.details.length<=2,event.id+" has at most two supporting points");
-  assert(!/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f-]{23}|ttt-(rules|opponent|board|rematch)|required gate\(s\)|current tree|step 175\d/.test(copy),event.id+" exposes internal log language");
+  assert(!/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f-]{23}|ttt-(rules|opponent|board|rematch)|required check\(s\)|current tree|step 175\d/.test(copy),event.id+" exposes internal log language");
   assert(copy.split(/\s+/).length<100,event.id+" is short enough to scan");
  }
  assert.throws(()=>explanationFor("new-action"),/Missing recording explanation/);

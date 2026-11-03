@@ -1,7 +1,7 @@
-//! Quality gate execution — async gate running and post-scaffold checks.
+//! Check execution — async check running and post-scaffold checks.
 //!
-//! Canonical type definitions (`Gate`, `GateResult`, `ValidationResult`) and
-//! synchronous helpers (`load_project_config`, `gate_command`) live in
+//! Canonical type definitions (`StandardCheck`, `StandardCheckResult`, `ValidationResult`) and
+//! synchronous helpers (`load_project_config`, `standard_check_command`) live in
 //! `magistr-core::validate`. This module re-exports them and provides async
 //! execution functions that depend on the subprocess runtime.
 
@@ -9,7 +9,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use crate::error::{MagistrError, Result};
-use crate::types::QualityGate;
+use crate::types::StandardChecks;
 use crate::utils::subprocess::run_command_with_timeout;
 
 #[path = "project_validation.rs"]
@@ -19,24 +19,25 @@ pub(crate) use project_validation::ProjectValidation;
 // ── Re-exports from magistr-core ────────────────────────────────────────────
 
 pub use magistr_core::validate::{
-    Gate, GateResult, ValidationResult, gate_command, load_project_config,
+    StandardCheck, StandardCheckResult, ValidationResult, load_project_config,
+    standard_check_command,
 };
 
 // ── CLI extensions for core types ───────────────────────────────────────────
 
-/// TUI-specific extensions for `GateResult`.
-pub trait GateResultExt {
+/// TUI-specific extensions for `StandardCheckResult`.
+pub trait StandardCheckResultExt {
     /// Get the status symbol (`✓` for pass, `✗` for fail).
     fn status_symbol(&self) -> &'static str;
 }
 
-impl GateResultExt for GateResult {
+impl StandardCheckResultExt for StandardCheckResult {
     fn status_symbol(&self) -> &'static str {
         if self.passed { "\u{2713}" } else { "\u{2717}" }
     }
 }
 
-/// Maximum output size from gate commands (100 KB) to prevent overwhelming
+/// Maximum output size from check commands (100 KB) to prevent overwhelming
 /// LLM context with huge test/lint output.
 const MAX_OUTPUT_BYTES: usize = 100_000;
 
@@ -72,14 +73,18 @@ fn truncate_output(output: &str, max_bytes: usize) -> String {
     )
 }
 
-/// Run a single quality gate command with timeout, graceful cleanup, and stdio isolation.
+/// Run a single check command with timeout, graceful cleanup, and stdio isolation.
 ///
 /// Delegates to [`crate::utils::subprocess::run_command_with_timeout`] which handles
 /// process group management, SIGTERM→SIGKILL escalation, and orphan prevention.
-pub async fn run_single_gate(gate: Gate, command: &str, dir: &Path) -> GateResult {
+pub async fn run_single_check(
+    check: StandardCheck,
+    command: &str,
+    dir: &Path,
+) -> StandardCheckResult {
     if command.trim().is_empty() {
-        return GateResult {
-            gate,
+        return StandardCheckResult {
+            check,
             passed: false,
             duration: Duration::ZERO,
             output: "not configured; no check ran".into(),
@@ -88,13 +93,13 @@ pub async fn run_single_gate(gate: Gate, command: &str, dir: &Path) -> GateResul
     }
 
     let started = std::time::Instant::now();
-    let policy = magistr_core::gates::execution_policy(dir, gate.label(), command, None);
+    let policy = magistr_core::checks::execution_policy(dir, check.label(), command, None);
     let (timeout, schedule) = match policy {
         Ok(policy) => policy,
-        Err(reason) => return refused_gate(gate, command, reason, started.elapsed()),
+        Err(reason) => return refused_check(check, command, reason, started.elapsed()),
     };
     let cancel = tokio_util::sync::CancellationToken::new();
-    let _permit = match magistr_process::acquire_gate(
+    let _permit = match magistr_process::acquire_check(
         dir,
         command,
         &schedule,
@@ -105,8 +110,8 @@ pub async fn run_single_gate(gate: Gate, command: &str, dir: &Path) -> GateResul
     {
         Ok(permit) => permit,
         Err(reason) => {
-            return refused_gate(
-                gate,
+            return refused_check(
+                check,
                 command,
                 format!("Check did not start: {reason:?} while waiting for verification resources"),
                 started.elapsed(),
@@ -125,8 +130,8 @@ pub async fn run_single_gate(gate: Gate, command: &str, dir: &Path) -> GateResul
         format!("{}\n{}", result.stdout, result.stderr)
     };
 
-    GateResult {
-        gate,
+    StandardCheckResult {
+        check,
         passed: !result.timed_out && result.exit_code == 0,
         duration: started.elapsed(),
         output: truncate_output(&raw, MAX_OUTPUT_BYTES),
@@ -134,9 +139,14 @@ pub async fn run_single_gate(gate: Gate, command: &str, dir: &Path) -> GateResul
     }
 }
 
-fn refused_gate(gate: Gate, command: &str, output: String, duration: Duration) -> GateResult {
-    GateResult {
-        gate,
+fn refused_check(
+    check: StandardCheck,
+    command: &str,
+    output: String,
+    duration: Duration,
+) -> StandardCheckResult {
+    StandardCheckResult {
+        check,
         passed: false,
         duration,
         output,
@@ -144,34 +154,34 @@ fn refused_gate(gate: Gate, command: &str, output: String, duration: Duration) -
     }
 }
 
-/// Run quality gates under the shared resource limits.
-pub async fn run_gates(dir: &Path) -> Result<ValidationResult> {
+/// Run checks under the shared resource limits.
+pub async fn run_checks(dir: &Path) -> Result<ValidationResult> {
     let config = load_project_config(dir)?;
-    run_gates_with_config(&config.quality_gate, dir).await
+    run_checks_with_config(&config.checks, dir).await
 }
 
 /// Quick post-scaffold validation: run the check command to verify the scaffold is correct.
 ///
 /// This is called after `magistr init` to give immediate feedback on whether the
-/// generated configuration matches the project. Only runs the `check` gate
+/// generated configuration matches the project. Only runs the `check` check
 /// (not tests or lint) to keep it fast.
 ///
-/// Returns a tuple of (gate_name, command, passed, output).
-pub async fn post_scaffold_check(qg: &QualityGate, dir: &Path) -> Vec<PostScaffoldResult> {
+/// Returns a tuple of (check_name, command, passed, output).
+pub async fn post_scaffold_check(qg: &StandardChecks, dir: &Path) -> Vec<PostScaffoldResult> {
     let mut results = Vec::new();
 
-    for gate in [Gate::Check] {
-        let cmd = gate_command(qg, gate);
+    for check in [StandardCheck::Check] {
+        let cmd = standard_check_command(qg, check);
         if cmd.is_empty() {
             continue;
         }
-        let gate_result = run_single_gate(gate, cmd, dir).await;
+        let check_result = run_single_check(check, cmd, dir).await;
         results.push(PostScaffoldResult {
-            gate,
+            check,
             command: cmd.to_string(),
-            passed: gate_result.passed,
-            output: gate_result.output,
-            duration: gate_result.duration,
+            passed: check_result.passed,
+            output: check_result.output,
+            duration: check_result.duration,
         });
     }
 
@@ -181,7 +191,7 @@ pub async fn post_scaffold_check(qg: &QualityGate, dir: &Path) -> Vec<PostScaffo
 /// Result of a post-scaffold validation check.
 #[derive(Debug, Clone)]
 pub struct PostScaffoldResult {
-    pub gate: Gate,
+    pub check: StandardCheck,
     pub command: String,
     pub passed: bool,
     pub output: String,
@@ -198,29 +208,29 @@ impl PostScaffoldResult {
     }
 }
 
-/// Run all quality gates in parallel with an explicit config.
-pub async fn run_gates_with_config(qg: &QualityGate, dir: &Path) -> Result<ValidationResult> {
-    let mut specs = Gate::all()
+/// Run all checks in parallel with an explicit config.
+pub async fn run_checks_with_config(qg: &StandardChecks, dir: &Path) -> Result<ValidationResult> {
+    let mut specs = StandardCheck::all()
         .into_iter()
-        .map(|gate| magistr_core::gates::GateSpec {
-            name: gate.label().into(),
-            command: gate_command(qg, gate).into(),
+        .map(|check| magistr_core::checks::CheckSpec {
+            name: check.label().into(),
+            command: standard_check_command(qg, check).into(),
             required: true,
         })
         .collect();
-    magistr_core::gates::consolidate_gates(&mut specs);
+    magistr_core::checks::consolidate_checks(&mut specs);
     let mut handles = Vec::with_capacity(specs.len());
 
     for spec in specs {
-        let gate = match spec.name.as_str() {
-            "check" => Gate::Check,
-            "lint" => Gate::Lint,
-            _ => Gate::Test,
+        let check = match spec.name.as_str() {
+            "check" => StandardCheck::Check,
+            "lint" => StandardCheck::Lint,
+            _ => StandardCheck::Test,
         };
         let cmd = spec.command;
         let dir = dir.to_path_buf();
         handles.push(tokio::spawn(async move {
-            run_single_gate(gate, &cmd, &dir).await
+            run_single_check(check, &cmd, &dir).await
         }));
     }
 

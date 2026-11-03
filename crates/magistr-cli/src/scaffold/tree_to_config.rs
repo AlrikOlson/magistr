@@ -2,14 +2,14 @@
 //!
 //! Converts a detected project tree into the archetype, topology, and relationship
 //! data that populates `project.json`. Each detected project becomes one `Archetype`
-//! with quality gate, format, and testing config derived from the language preset.
+//! with check, format, and testing config derived from the language preset.
 
 use std::collections::HashSet;
 use std::path::PathBuf;
 
 use magistr_core::types::{
-    Archetype, ArchetypeRelationship, EdgeKind, FormatConfig, ProjectTree, QualityGate,
-    RelationshipKind, TestingConfig, Topology,
+    Archetype, ArchetypeRelationship, EdgeKind, FormatConfig, ProjectTree, RelationshipKind,
+    StandardChecks, TestingConfig, Topology,
 };
 
 /// Result of converting a `ProjectTree` into config-ready data.
@@ -27,7 +27,7 @@ pub struct TreeToConfigResult {
 ///
 /// For each `DetectedProject`, loads the language/framework preset — with the
 /// user's override from `user_preset_dir` when the caller captured one — to
-/// populate quality gate, format, and testing config. Derives a unique slug
+/// populate check, format, and testing config. Derives a unique slug
 /// id from the project name or path.
 pub fn tree_to_archetypes(
     tree: &ProjectTree,
@@ -47,7 +47,7 @@ pub fn tree_to_archetypes(
         let abs_dir = tree.root.join(&project.path);
         let pkg_mgr = magistr_core::detection::detect::detect_package_manager(&abs_dir, lang);
 
-        let (quality_gate, format, testing) =
+        let (checks, format, testing) =
             load_preset_config(&abs_dir, lang, framework, pkg_mgr, user_preset_dir);
 
         let framework_str = project.framework.map(|f| f.as_str().to_string());
@@ -63,7 +63,7 @@ pub fn tree_to_archetypes(
                 project.path.clone()
             },
             role: project.role,
-            quality_gate,
+            checks,
             format,
             testing,
             source_patterns: source_patterns_for(lang),
@@ -150,24 +150,24 @@ fn slug(name: &str) -> String {
         .to_string()
 }
 
-/// Load quality gate, format, and testing config from the preset for this language/framework.
+/// Load check, format, and testing config from the preset for this language/framework.
 fn load_preset_config(
     dir: &std::path::Path,
     lang: magistr_core::types::Language,
     framework: magistr_core::types::Framework,
     pkg_mgr: magistr_core::types::PackageManager,
     user_preset_dir: Option<&std::path::Path>,
-) -> (QualityGate, FormatConfig, TestingConfig) {
+) -> (StandardChecks, FormatConfig, TestingConfig) {
     let layers = magistr_core::config::preset::LayerOptions {
         user_preset_dir: user_preset_dir.map(Into::into),
         project_root: Some(dir.into()),
         ..Default::default()
     };
     match magistr_core::config::preset::load_preset_layered(lang, framework, pkg_mgr, &layers) {
-        Ok(preset) => (preset.quality_gate, preset.format, preset.testing),
+        Ok(preset) => (preset.checks, preset.format, preset.testing),
         Err(_) => {
             let fallback = magistr_core::config::preset::fallback_preset();
-            (fallback.quality_gate, fallback.format, fallback.testing)
+            (fallback.checks, fallback.format, fallback.testing)
         }
     }
 }

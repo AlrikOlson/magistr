@@ -29,7 +29,7 @@ pub(crate) fn with_claude_md_section(
 }
 
 /// The full marked section for a project, including the Verification block
-/// when the template vars carry gate commands.
+/// when the template vars carry check commands.
 pub(crate) fn build_section(vars: &HashMap<String, String>) -> String {
     let cmds: Vec<String> = ["check_cmd", "test_cmd", "lint_cmd"]
         .iter()

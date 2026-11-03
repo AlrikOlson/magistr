@@ -477,7 +477,7 @@ fn run_warns_about_self_reported_required_checks() {
         .unwrap();
     e.start_step("t1").unwrap();
     // A self-reported (unverified) required pass — exactly the fabricated-green
-    // case. run() must flag it rather than treat it as a real gate.
+    // case. run() must flag it rather than treat it as a real check.
     e.record_check(
         None,
         CheckType::Test,

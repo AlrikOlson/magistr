@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "python manage.py check && python -m mypy . --ignore-missing-imports --exclude '(\\.venv|__pycache__|\\.tox|dist|build|migrations)/'",
     "test": "python manage.py test"
   },

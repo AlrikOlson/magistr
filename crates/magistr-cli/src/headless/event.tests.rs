@@ -2,12 +2,12 @@ use super::*;
 
 #[test]
 fn event_serializes_with_tag() {
-    let event = HeadlessEvent::GatePass {
+    let event = HeadlessEvent::CheckPass {
         name: "check".into(),
         duration_ms: 100,
     };
     let json = serde_json::to_value(&event).unwrap();
-    assert_eq!(json["event"], "gate_pass");
+    assert_eq!(json["event"], "check_pass");
     assert_eq!(json["data"]["name"], "check");
 }
 

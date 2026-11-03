@@ -148,7 +148,7 @@
       "longest_function": 13,
       "public_items": 1
     },
-    "crates/magistr-workflow/src/infra/source_gate.rs": {
+    "crates/magistr-workflow/src/infra/source_check.rs": {
       "inline_test_modules": 1,
       "long_function_excess_lines": 0,
       "long_functions": 0,
@@ -1282,7 +1282,7 @@
       "longest_function": 28,
       "public_items": 2
     },
-    "crates/magistr-workflow/tests/task_long_gates.rs": {
+    "crates/magistr-workflow/tests/task_long_checks.rs": {
       "inline_test_modules": 0,
       "long_function_excess_lines": 0,
       "long_functions": 0,

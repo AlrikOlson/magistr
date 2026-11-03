@@ -1,13 +1,13 @@
 use super::*;
 
-// Pure type tests (gate_labels, gate_display, validation_result_*) now live
+// Pure type tests (check_labels, check_display, validation_result_*) now live
 // in magistr-core::validate::tests. This file tests CLI-specific behavior:
 // async execution, CLI extensions, and output truncation.
 
 #[test]
-fn gate_result_status_symbol_ext() {
-    let pass = GateResult {
-        gate: Gate::Check,
+fn check_result_status_symbol_ext() {
+    let pass = StandardCheckResult {
+        check: StandardCheck::Check,
         passed: true,
         duration: Duration::from_secs(1),
         output: String::new(),
@@ -16,8 +16,8 @@ fn gate_result_status_symbol_ext() {
     assert_eq!(pass.status_symbol(), "✓");
     assert_eq!(pass.status_label(), "PASS");
 
-    let fail = GateResult {
-        gate: Gate::Test,
+    let fail = StandardCheckResult {
+        check: StandardCheck::Test,
         passed: false,
         duration: Duration::from_secs(2),
         output: String::new(),
@@ -28,51 +28,51 @@ fn gate_result_status_symbol_ext() {
 }
 
 #[tokio::test]
-async fn run_gate_success() {
+async fn run_check_success() {
     let dir = std::env::current_dir().unwrap();
-    let result = run_single_gate(Gate::Check, "echo hello", &dir).await;
+    let result = run_single_check(StandardCheck::Check, "echo hello", &dir).await;
     assert!(result.passed);
     assert!(result.output.contains("hello"));
     assert_eq!(result.command, "echo hello");
 }
 
 #[tokio::test]
-async fn run_gate_failure() {
+async fn run_check_failure() {
     let dir = std::env::current_dir().unwrap();
-    let result = run_single_gate(Gate::Test, "false", &dir).await;
+    let result = run_single_check(StandardCheck::Test, "false", &dir).await;
     assert!(!result.passed);
 }
 
 #[tokio::test]
-async fn run_gate_empty_command_is_unconfigured() {
+async fn run_check_empty_command_is_unconfigured() {
     let dir = std::env::current_dir().unwrap();
-    let result = run_single_gate(Gate::Lint, "", &dir).await;
+    let result = run_single_check(StandardCheck::Lint, "", &dir).await;
     assert!(!result.passed);
     assert!(result.output.contains("not configured"));
 }
 
 #[tokio::test]
-async fn run_gates_with_config_all_pass() {
+async fn run_checks_with_config_all_pass() {
     let dir = std::env::current_dir().unwrap();
-    let qg = QualityGate {
+    let qg = StandardChecks {
         check: "true".into(),
         test: "true".into(),
         lint: "true".into(),
     };
-    let result = run_gates_with_config(&qg, &dir).await.unwrap();
+    let result = run_checks_with_config(&qg, &dir).await.unwrap();
     assert!(result.all_passed());
     assert_eq!(result.results.len(), 3);
 }
 
 #[tokio::test]
-async fn run_gates_with_config_partial_fail() {
+async fn run_checks_with_config_partial_fail() {
     let dir = std::env::current_dir().unwrap();
-    let qg = QualityGate {
+    let qg = StandardChecks {
         check: "true".into(),
         test: "false".into(),
         lint: "true".into(),
     };
-    let result = run_gates_with_config(&qg, &dir).await.unwrap();
+    let result = run_checks_with_config(&qg, &dir).await.unwrap();
     assert!(!result.all_passed());
     assert_eq!(result.passed_count(), 2);
     assert_eq!(result.failed_count(), 1);
@@ -88,7 +88,7 @@ fn load_config_missing_settings() {
 #[tokio::test]
 async fn post_scaffold_check_all_pass() {
     let dir = std::env::current_dir().unwrap();
-    let qg = QualityGate {
+    let qg = StandardChecks {
         check: "true".into(),
         test: "true".into(),
         lint: "true".into(),
@@ -101,7 +101,7 @@ async fn post_scaffold_check_all_pass() {
 #[tokio::test]
 async fn post_scaffold_check_does_not_run_the_test_or_lint_suites() {
     let dir = std::env::current_dir().unwrap();
-    let qg = QualityGate {
+    let qg = StandardChecks {
         check: "true".into(),
         test: "false".into(),
         lint: "true".into(),
@@ -109,13 +109,13 @@ async fn post_scaffold_check_does_not_run_the_test_or_lint_suites() {
     let results = post_scaffold_check(&qg, &dir).await;
     assert_eq!(results.len(), 1);
     assert!(results[0].passed);
-    assert_eq!(results[0].gate, Gate::Check);
+    assert_eq!(results[0].check, StandardCheck::Check);
 }
 
 #[tokio::test]
 async fn post_scaffold_check_skips_empty_commands() {
     let dir = std::env::current_dir().unwrap();
-    let qg = QualityGate {
+    let qg = StandardChecks {
         check: "true".into(),
         test: String::new(),
         lint: "true".into(),
@@ -127,7 +127,7 @@ async fn post_scaffold_check_skips_empty_commands() {
 #[test]
 fn post_scaffold_result_icons() {
     let pass = PostScaffoldResult {
-        gate: Gate::Check,
+        check: StandardCheck::Check,
         command: "true".into(),
         passed: true,
         output: String::new(),
@@ -136,7 +136,7 @@ fn post_scaffold_result_icons() {
     assert!(pass.status_icon().contains("✓") || pass.status_icon().contains("OK"));
 
     let fail = PostScaffoldResult {
-        gate: Gate::Test,
+        check: StandardCheck::Test,
         command: "false".into(),
         passed: false,
         output: String::new(),
@@ -146,17 +146,17 @@ fn post_scaffold_result_icons() {
 }
 
 #[tokio::test]
-async fn run_gate_does_not_hang_on_stdin() {
+async fn run_check_does_not_hang_on_stdin() {
     let dir = std::env::current_dir().unwrap();
-    let result = run_single_gate(Gate::Check, "cat", &dir).await;
+    let result = run_single_check(StandardCheck::Check, "cat", &dir).await;
     assert!(result.passed);
     assert!(result.output.is_empty());
 }
 
 #[tokio::test]
-async fn run_gate_captures_stderr() {
+async fn run_check_captures_stderr() {
     let dir = std::env::current_dir().unwrap();
-    let result = run_single_gate(Gate::Check, "echo err >&2", &dir).await;
+    let result = run_single_check(StandardCheck::Check, "echo err >&2", &dir).await;
     assert!(result.passed);
     assert!(result.output.contains("err"));
 }
@@ -178,10 +178,10 @@ fn truncate_output_truncates_large_input() {
 }
 
 #[tokio::test]
-async fn run_single_gate_truncates_large_output() {
+async fn run_single_check_truncates_large_output() {
     let dir = std::env::current_dir().unwrap();
     let cmd = format!("python3 -c \"print('a' * {})\"", MAX_OUTPUT_BYTES + 5_000);
-    let result = run_single_gate(Gate::Check, &cmd, &dir).await;
+    let result = run_single_check(StandardCheck::Check, &cmd, &dir).await;
     assert!(result.passed);
     assert!(
         result.output.len() <= MAX_OUTPUT_BYTES + 200,

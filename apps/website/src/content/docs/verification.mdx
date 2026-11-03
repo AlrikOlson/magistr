@@ -20,7 +20,7 @@ behavior and affected consumers. Explain why those checks establish the result.
 A documentation link fix and a persistence-format change need different checks.
 
 Use **full verification** for an explicit full-suite request or a concrete risk
-requiring every configured gate. A plan task does not by itself require
+requiring every configured check. A plan task does not by itself require
 every test, package build, or release check.
 
 For an interface change, include interaction and visual review. For example,
@@ -29,7 +29,7 @@ usable error state.
 
 ## Run and record checks
 
-Ask the connected agent to run named project gates or use `check_step` with
+Ask the connected agent to run named project checks or use `check_step` with
 the actual command. Command checks are executed by Magistr; their recorded
 exit status comes from that execution.
 
@@ -53,7 +53,7 @@ and failed tests must remain visible.
 
 Eligible successful test, lint, and typecheck results can be reused for up to
 24 hours when command, source, configuration, tools, and environment still match.
-Builds and reviews need fresh results. Custom gate reuse must be explicitly
+Builds and reviews need fresh results. Custom check reuse must be explicitly
 configured with adequate inputs.
 
 If files change during a check, its tests can pass while completion remains
@@ -71,7 +71,7 @@ Record what was inspected and its limitations as a review. A screenshot's
 existence does not establish visual review. Headless browser testing does not
 establish native operating-system input or assistive-technology behavior.
 
-## Run the full configured gate
+## Run the full configured check
 
 From the project root:
 
@@ -81,7 +81,7 @@ magistr validate
 
 Or use `$validate` in Codex or `/validate` in Claude Code. This runs the
 configured standard checks and required custom checks. It does not implement
-a plan item. A required failure blocks a successful full-gate result.
+a plan item. A required failure blocks a successful full-check result.
 
 ## Finish with evidence
 

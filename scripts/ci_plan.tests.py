@@ -36,7 +36,7 @@ class SelectionTests(unittest.TestCase):
         self.assertTrue(plan["contracts"])
         self.assertFalse(plan["package"])
 
-    def test_unknown_inputs_and_workflows_select_every_gate(self):
+    def test_unknown_inputs_and_workflows_select_every_check(self):
         for path in ("new-generator.py", ".github/workflows/ci.yml",
                      "crates/new-owner/src/lib.rs", "Cargo.lock", "crates/leaf/Cargo.toml"):
             with self.subTest(path=path):

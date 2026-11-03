@@ -696,7 +696,7 @@ async fn aborting_owner_releases_both_contexts_and_fences_a_running_local_job() 
     let (commands, receiver) = Commands::channel();
     let (opened, mut connections) = mpsc::unbounded_channel();
     let started = Arc::new(tokio::sync::Notify::new());
-    let (release, gate) = std::sync::mpsc::channel();
+    let (release, check) = std::sync::mpsc::channel();
     let task = InteractiveSession::new(
         move |purpose, _resume| {
             let (handle, observed) = controlled(purpose);
@@ -706,7 +706,7 @@ async fn aborting_owner_releases_both_contexts_and_fences_a_running_local_job() 
         inbox,
         Some(Box::new(HeldWorkspace {
             started: Arc::clone(&started),
-            release: std::sync::Mutex::new(gate),
+            release: std::sync::Mutex::new(check),
         })),
         None,
         None,
@@ -920,7 +920,7 @@ async fn unsupported_controls_and_absent_provider_fail_without_ending_live_work(
         },
         Cmd::Delegate("read".into()),
         Cmd::Kill(magistr_cockpit::cockpit::KillCmd::Terminal("build".into())),
-        Cmd::Kill(magistr_cockpit::cockpit::KillCmd::Gate("checks".into())),
+        Cmd::Kill(magistr_cockpit::cockpit::KillCmd::Check("checks".into())),
         Cmd::Reconnect,
         run_command(magistr_cockpit::cockpit::LoopCmd::Pause),
     ] {
@@ -951,7 +951,7 @@ fn idle_session(inbox: Inbox) -> (InteractiveSession, Opened) {
     )
     .connected(handle, false)
     .admitting_work(|action| match action {
-        magistr_cockpit::cockpit::LaunchAction::Gates => Err("The checks are not ready.".into()),
+        magistr_cockpit::cockpit::LaunchAction::Checks => Err("The checks are not ready.".into()),
         _ => Ok(()),
     });
     (session, opening)
@@ -1013,12 +1013,12 @@ async fn a_start_during_a_response_or_inside_running_work_is_refused_in_words() 
     let (inbox, mut events) = Inbox::channel();
     let (commands, mut receiver) = Commands::channel();
     let (session, mut opening) = idle_session(inbox);
-    commands.send(Cmd::Launch(LaunchAction::Gates)).unwrap();
+    commands.send(Cmd::Launch(LaunchAction::Checks)).unwrap();
     commands.send(Cmd::Prompt("still here".into())).unwrap();
     let running = tokio::spawn(async move { session.run(&mut receiver, None, false).await });
     assert!(matches!(
         next_observation(&mut events).await,
-        Msg::CommandFailed { cmd: Cmd::Launch(LaunchAction::Gates), error }
+        Msg::CommandFailed { cmd: Cmd::Launch(LaunchAction::Checks), error }
             if error == "The checks are not ready."
     ));
     assert_eq!(next(&mut opening.prompts).await, "still here");

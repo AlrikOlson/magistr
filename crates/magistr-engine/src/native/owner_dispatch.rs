@@ -163,18 +163,18 @@ impl NativeEngines {
                 tools_used,
                 note,
             )?),
-            RunCommand::RecordGate {
+            RunCommand::RecordCheck {
                 step_id,
-                gate,
+                check,
                 command,
                 exit_code,
                 details,
                 required,
                 report,
             } => OwnerReply::Check(
-                self.run_record_gate(
+                self.run_record_check(
                     step_id.as_deref(),
-                    &gate,
+                    &check,
                     command,
                     exit_code,
                     details,

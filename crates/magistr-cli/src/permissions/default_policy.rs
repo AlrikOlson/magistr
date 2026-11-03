@@ -1,20 +1,20 @@
 //! Default [`PermissionPolicy`] implementation.
 //!
 //! Wraps the existing `evaluate()` function with a configured profile,
-//! auto-allow rules, and gate commands.
+//! auto-allow rules, and check commands.
 
 use super::auto_allow_rule::AutoAllowRule;
 use super::permission_decision::PermissionDecision;
 use super::permission_profile::PermissionProfile;
 use super::policy::PermissionPolicy;
 
-/// Default permission policy backed by a profile, rules, and gate commands.
+/// Default permission policy backed by a profile, rules, and check commands.
 ///
 /// This is the production implementation of [`PermissionPolicy`].
 pub struct DefaultPermissionPolicy {
     profile: PermissionProfile,
     auto_rules: Vec<AutoAllowRule>,
-    gate_commands: Vec<String>,
+    check_commands: Vec<String>,
 }
 
 impl DefaultPermissionPolicy {
@@ -22,12 +22,12 @@ impl DefaultPermissionPolicy {
     pub fn new(
         profile: PermissionProfile,
         auto_rules: Vec<AutoAllowRule>,
-        gate_commands: Vec<String>,
+        check_commands: Vec<String>,
     ) -> Self {
         Self {
             profile,
             auto_rules,
-            gate_commands,
+            check_commands,
         }
     }
 }
@@ -39,7 +39,7 @@ impl PermissionPolicy for DefaultPermissionPolicy {
             tool_input,
             self.profile,
             &self.auto_rules,
-            &self.gate_commands,
+            &self.check_commands,
         )
     }
 }

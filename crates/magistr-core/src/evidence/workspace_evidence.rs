@@ -1,19 +1,19 @@
 use std::path::{Path, PathBuf};
 
-use magistr_engine::native::{EvidencePort, GateContract, SourceWitness, check_type_for};
+use magistr_engine::native::{CheckContract, EvidencePort, SourceWitness, check_type_for};
 use magistr_workspace::config::{ConfigDigest, ConfigLayer, ResolveOptions};
 use magistr_workspace::snapshot::{SelectionPolicy, SourceSnapshot};
 
 use super::SnapshotWitness;
+use crate::checks::resolve_checks;
 use crate::config::inputs::ProjectInputs;
-use crate::gates::resolve_gates;
 use crate::types::ProjectConfig;
 
 /// The evidence capability of one project root: source observed through
 /// the workspace's snapshot capability, the applicable external
 /// configuration layers (the workspace's organization policy and user
 /// layer, resolved from the inputs captured at composition) observed
-/// beside it, and gate contracts resolved from the project configuration
+/// beside it, and check contracts resolved from the project configuration
 /// as it is at the moment of asking. Source and configuration observations
 /// are lock-free. CheckResult retention reads the loop checkpoint under the caller's
 /// ledger lock, without acquiring another lock or writing any file.
@@ -51,11 +51,11 @@ impl WorkspaceEvidence {
     ) -> Result<
         (
             crate::types::VerificationConfig,
-            Option<crate::types::GatePolicy>,
+            Option<crate::types::CheckPolicy>,
         ),
         String,
     > {
-        crate::gates::verification_policy(&self.root, name, command)
+        crate::checks::verification_policy(&self.root, name, command)
     }
 
     /// The project root observed.
@@ -76,24 +76,24 @@ impl WorkspaceEvidence {
         &self.layers
     }
 
-    /// The gates `root`'s project configuration requires, as it is at the
-    /// moment of asking — the one resolver behind [`EvidencePort::required_gates`],
+    /// The checks `root`'s project configuration requires, as it is at the
+    /// moment of asking — the one resolver behind [`EvidencePort::required_checks`],
     /// shared with a host that resolves the same set without a writer.
     ///
     /// # Errors
     /// The configuration cannot be read or resolved.
-    pub fn gate_contracts(root: &Path) -> Result<Vec<GateContract>, String> {
+    pub fn check_contracts(root: &Path) -> Result<Vec<CheckContract>, String> {
         // A plain read: the config loader that repairs a stale stack on
         // disk would move the source revision it is being asked about.
         let path = crate::paths::project_json(root).map_err(|error| error.to_string())?;
         let bytes = std::fs::read(&path)
-            .map_err(|error| format!("read gate configuration {}: {error}", path.display()))?;
+            .map_err(|error| format!("read check configuration {}: {error}", path.display()))?;
         let config: ProjectConfig = serde_json::from_slice(&bytes)
-            .map_err(|error| format!("parse gate configuration {}: {error}", path.display()))?;
-        Ok(resolve_gates(&config, "all")?
+            .map_err(|error| format!("parse check configuration {}: {error}", path.display()))?;
+        Ok(resolve_checks(&config, "all")?
             .into_iter()
             .filter(|spec| spec.required)
-            .map(|spec| GateContract {
+            .map(|spec| CheckContract {
                 check_type: check_type_for(&spec.name),
                 name: spec.name,
                 command: spec.command,
@@ -254,19 +254,19 @@ impl EvidencePort for WorkspaceEvidence {
         &self,
         name: &str,
         command: Option<&str>,
-    ) -> Result<magistr_process::GateSchedule, String> {
+    ) -> Result<magistr_process::CheckSchedule, String> {
         let (config, policy) = self.check_policy(name, command)?;
         if !(1..=16).contains(&config.max_parallel) {
             return Err("Check parallelism must be between 1 and 16.".into());
         }
-        Ok(magistr_process::GateSchedule {
+        Ok(magistr_process::CheckSchedule {
             max_parallel: config.max_parallel,
             resources: policy.and_then(|policy| policy.resources),
         })
     }
 
-    fn required_gates(&self) -> Result<Vec<GateContract>, String> {
-        Self::gate_contracts(&self.root)
+    fn required_checks(&self) -> Result<Vec<CheckContract>, String> {
+        Self::check_contracts(&self.root)
     }
 }
 

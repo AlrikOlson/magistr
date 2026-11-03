@@ -2,13 +2,13 @@ use super::*;
 
 use std::time::Duration;
 
-use magistr_core::{GateFailureRow, GateRowSeverity};
+use magistr_core::{CheckFailureRow, CheckRowSeverity};
 
-use crate::utils::gate::GateVerdict;
+use crate::utils::check::CheckVerdict;
 
-fn row(message: &str, file: Option<&str>, line: Option<u32>) -> GateFailureRow {
-    GateFailureRow {
-        severity: GateRowSeverity::Error,
+fn row(message: &str, file: Option<&str>, line: Option<u32>) -> CheckFailureRow {
+    CheckFailureRow {
+        severity: CheckRowSeverity::Error,
         code: None,
         message: message.to_owned(),
         file: file.map(str::to_owned),
@@ -17,12 +17,12 @@ fn row(message: &str, file: Option<&str>, line: Option<u32>) -> GateFailureRow {
     }
 }
 
-fn gate(name: &str, exit_code: i32, rows: Vec<GateFailureRow>, output: &str) -> GateOutcome {
-    GateOutcome {
+fn check(name: &str, exit_code: i32, rows: Vec<CheckFailureRow>, output: &str) -> CheckRun {
+    CheckRun {
         name: name.to_owned(),
         command: "cargo clippy --workspace".to_owned(),
         required: true,
-        verdict: GateVerdict::Failed,
+        verdict: CheckVerdict::Failed,
         exit_code,
         output: output.to_owned(),
         rows,
@@ -32,8 +32,8 @@ fn gate(name: &str, exit_code: i32, rows: Vec<GateFailureRow>, output: &str) -> 
 }
 
 #[test]
-fn the_brief_carries_the_rows_the_gate_named_with_their_locations() {
-    let brief = failure_brief(&[&gate(
+fn the_brief_carries_the_rows_the_check_named_with_their_locations() {
+    let brief = failure_brief(&[&check(
         "lint",
         101,
         vec![
@@ -54,7 +54,7 @@ fn the_brief_carries_the_rows_the_gate_named_with_their_locations() {
 
 #[test]
 fn a_row_with_no_file_is_still_named() {
-    let brief = failure_brief(&[&gate(
+    let brief = failure_brief(&[&check(
         "test",
         100,
         vec![row("a::b panicked", None, None)],
@@ -65,10 +65,10 @@ fn a_row_with_no_file_is_still_named() {
 
 #[test]
 fn the_row_list_is_bounded_and_says_how_many_it_dropped() {
-    let rows: Vec<GateFailureRow> = (0..MAX_ROWS + 7)
+    let rows: Vec<CheckFailureRow> = (0..MAX_ROWS + 7)
         .map(|i| row(&format!("failure {i}"), Some("src/x.rs"), Some(1)))
         .collect();
-    let brief = failure_brief(&[&gate("check", 101, rows, "")]);
+    let brief = failure_brief(&[&check("check", 101, rows, "")]);
     assert!(brief.contains("failure 0"), "{brief}");
     assert!(
         brief.contains(&format!("failure {}", MAX_ROWS - 1)),
@@ -79,10 +79,10 @@ fn the_row_list_is_bounded_and_says_how_many_it_dropped() {
 }
 
 #[test]
-fn a_gate_whose_output_parsed_no_rows_falls_back_to_its_tail_and_says_so() {
+fn a_check_whose_output_parsed_no_rows_falls_back_to_its_tail_and_says_so() {
     let noise = "x".repeat(FALLBACK_TAIL_BYTES * 2);
     let output = format!("{noise}\nthe last thing it said");
-    let brief = failure_brief(&[&gate("structure", 1, Vec::new(), &output)]);
+    let brief = failure_brief(&[&check("structure", 1, Vec::new(), &output)]);
     assert!(brief.contains("named no failures"), "{brief}");
     assert!(brief.contains("the last thing it said"), "{brief}");
     assert!(
@@ -93,15 +93,15 @@ fn a_gate_whose_output_parsed_no_rows_falls_back_to_its_tail_and_says_so() {
 }
 
 #[test]
-fn several_red_gates_each_get_their_own_section() {
+fn several_red_checks_each_get_their_own_section() {
     let brief = failure_brief(&[
-        &gate(
+        &check(
             "check",
             101,
             vec![row("boom", Some("src/a.rs"), Some(1))],
             "",
         ),
-        &gate("lint", 3, vec![row("bang", Some("src/b.rs"), Some(2))], ""),
+        &check("lint", 3, vec![row("bang", Some("src/b.rs"), Some(2))], ""),
     ]);
     assert!(
         brief.contains("`check`") && brief.contains("`lint`"),
@@ -111,14 +111,14 @@ fn several_red_gates_each_get_their_own_section() {
 }
 
 #[test]
-fn a_timed_out_gate_says_it_timed_out_rather_than_failed() {
-    let mut timed = gate(
+fn a_timed_out_check_says_it_timed_out_rather_than_failed() {
+    let mut timed = check(
         "test",
         -1,
         Vec::new(),
         "still running when the clock ran out",
     );
-    timed.verdict = GateVerdict::TimedOut;
+    timed.verdict = CheckVerdict::TimedOut;
     let brief = failure_brief(&[&timed]);
     assert!(brief.contains("timed out"), "{brief}");
 }

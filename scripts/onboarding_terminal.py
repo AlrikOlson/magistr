@@ -86,7 +86,7 @@ def interview(binary, root, env, approve, on_preview):
             terminal.answer()
             terminal.expect("[Y/n]:")
         terminal.answer()
-        terminal.expect("Customize gate commands?")
+        terminal.expect("Customize check commands?")
         terminal.answer("y")
         for name, command in (("check", "cargo check --locked"),
                               ("test", "cargo test --lib"),

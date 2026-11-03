@@ -215,7 +215,7 @@ fn polyglot_reinit_keeps_configured_archetypes_and_hooks() {
     let path = tmp.path().join(".magistr/project.json");
     let mut config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    config["archetypes"][0]["quality_gate"]["check"] = "custom api check".into();
+    config["archetypes"][0]["checks"]["check"] = "custom api check".into();
     config["lifecycle_hooks"] = serde_json::json!([]);
     config["future"] = serde_json::json!({"keep": true});
     let expected = format!("{}\n", serde_json::to_string_pretty(&config).unwrap());

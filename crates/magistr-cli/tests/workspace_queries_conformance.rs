@@ -21,7 +21,7 @@ use std::{
 const FIXTURE: &str = include_str!("../../../subsystems/workspace/conformance/queries.json");
 
 #[tokio::test]
-#[ignore = "requires retained native addon; workspace-reference gate runs this explicitly"]
+#[ignore = "requires retained native addon; workspace-reference check runs this explicitly"]
 async fn native_queries_match_real_reference_in_independent_roots() {
     let fixtures: Value = serde_json::from_str(FIXTURE).expect("shared fixtures");
     let directory = tempfile::tempdir().expect("native root");

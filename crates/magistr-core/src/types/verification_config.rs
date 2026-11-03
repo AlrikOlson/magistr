@@ -10,15 +10,15 @@ pub struct VerificationConfig {
     pub timeout_secs: Option<u64>,
     /// Maximum independent checks in flight. Resource locks still apply.
     pub max_parallel: usize,
-    /// Overrides keyed by configured gate name.
-    pub gates: BTreeMap<String, GatePolicy>,
+    /// Overrides keyed by configured check name.
+    pub checks: BTreeMap<String, CheckPolicy>,
 }
 impl Default for VerificationConfig {
     fn default() -> Self {
         Self {
             timeout_secs: None,
             max_parallel: 4,
-            gates: BTreeMap::new(),
+            checks: BTreeMap::new(),
         }
     }
 }
@@ -31,7 +31,7 @@ impl VerificationConfig {
 /// A declared dependency boundary. Omitted inputs mean the whole source tree.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
-pub struct GatePolicy {
+pub struct CheckPolicy {
     pub inputs: Vec<String>,
     /// Whether a successful execution may be reused with identical inputs.
     pub reuse: Option<bool>,

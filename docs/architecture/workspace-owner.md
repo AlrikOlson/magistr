@@ -204,7 +204,7 @@ cancellation and per-connection planning restrictions.
 Initialization seeds `.magistr/workspace.toml` through native detection. No external
 workspace executable or Bun runtime is required. Multiple agents connect to the
 same workspace owner; distinct working copies retain separate journals and indexes.
-The optional `codex-subagent` gate exercises real parent and subagent attachment
+The optional `codex-subagent` check exercises real parent and subagent attachment
 in a disposable project.
 
 ## ADR-018 scope
@@ -241,8 +241,8 @@ supply actual execution results (macOS host).
 | 19: version skew | `owner_endpoint.tests.rs`: a `Hello` from another build is refused with `AttachRefusal::Build` naming both identities — another checkout's contract digest and the other profile of one tree are told apart from an equal package version, a copy of the same build attaches, and a protocol-3 `Hello` is answered with an explicit `Protocol` refusal; a bridge answers typed refusals until the owner of the other build ends, then admits; a probe from another build is refused the same way, and the doctor reports that owner as live but of another build | A real two-binary process fixture (the identities are exercised over the wire from one test process) |
 | 20: unrecognized owner record | `source_pipeline_routing` and `workspace_served_stdio`: refuse admission, preserve the record byte for byte and open no workspace stores | None |
 | 21: unreachable owner | `attachment`: a bridge preserves an unrecognized record and reconnects after an offline restore; a bridge started against a lock held without an endpoint answers within bounded windows, opens no store and admits once the lock is released. Non-temporary refusals still exit (66, 65, policy) | Startup against a lock held without an endpoint costs one bounded window per request until it is released |
-| 22: statelessness | Existing native served-schema/envelope tests use the same adapter through every path | Retained gate replayed through two bridges |
-| 23: Codex parent/subagent | `scripts/codex-subagent-check.py` passed on 2026-09-12 with codex-cli 0.154.0: parent and subagent `read` ok, two launches, zero exit-75, all nine tool names in the subagent's inventory | The gate is optional (needs `codex` and auth) |
+| 22: statelessness | Existing native served-schema/envelope tests use the same adapter through every path | Retained check replayed through two bridges |
+| 23: Codex parent/subagent | `scripts/codex-subagent-check.py` passed on 2026-09-12 with codex-cli 0.154.0: parent and subagent `read` ok, two launches, zero exit-75, all nine tool names in the subagent's inventory | The check is optional (needs `codex` and auth) |
 | 24: cockpit | `launcher_tests`: the cockpit port built from the project's `.mcp.json` maps, reads and lists the journal through the live owner without admitting | Live `magistr start` Changes-tab acceptance |
 
 The retained reference files are unchanged. This matrix records a first-party

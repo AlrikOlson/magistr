@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "test": "python -m pytest -x"
   },
   "extra_allowed_tools": ["flask"]

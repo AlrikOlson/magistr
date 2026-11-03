@@ -333,7 +333,7 @@ fn restored_binary_bytes_come_from_the_pinned_database() {
 }
 
 #[test]
-#[ignore = "requires Bun; executed by the workspace-reference gate"]
+#[ignore = "requires Bun; executed by the workspace-reference check"]
 fn native_append_is_decoded_by_the_pinned_reference_reader() {
     let corpus = corpus();
     for fixture in corpus["fixtures"].as_array().expect("fixtures") {

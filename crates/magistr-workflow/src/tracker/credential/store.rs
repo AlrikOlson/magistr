@@ -1014,11 +1014,11 @@ mod tests {
     /// cargo test -p magistr --lib the_real_os_keychain -- --ignored --nocapture
     /// ```
     ///
-    /// It is opt-in rather than part of the gate for two reasons. It writes to
+    /// It is opt-in rather than part of the check for two reasons. It writes to
     /// the developer's login keychain, and a suite that does that without being
     /// asked is a suite nobody trusts. And it is a one-platform proof: on a
     /// machine with no keyring it would report unavailable and assert nothing,
-    /// so as a gate it would pass by being skipped — the failure mode that makes
+    /// so as a check it would pass by being skipped — the failure mode that makes
     /// an absence test worthless.
     ///
     /// What it proves that the fake cannot: that the argv and stdin spellings in

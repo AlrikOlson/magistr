@@ -62,7 +62,7 @@ pub enum ConfigSource {
 pub struct CompanionLane {
     /// The second provider key. MUST differ from [`TrackerConfig::provider`] —
     /// two lanes under one key would put two link records in a fight over one
-    /// `external_id`, which is the distinction the registry gate
+    /// `external_id`, which is the distinction the registry check
     /// `the_board_is_reachable_through_the_one_lookup_and_is_not_the_issues_provider`
     /// exists to hold.
     pub provider: String,

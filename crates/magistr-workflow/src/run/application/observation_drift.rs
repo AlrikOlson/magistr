@@ -36,33 +36,33 @@ impl fmt::Display for ObservationDrift {
         match self {
             Self::ForeignWorkspace { expected, actual } => write!(
                 f,
-                "the gate ran in another workspace (`{expected}`, now `{actual}`)"
+                "the check ran in another workspace (`{expected}`, now `{actual}`)"
             ),
             Self::Scheme { before, after } => write!(
                 f,
-                "the source hashing scheme changed since the gate ran ({before}, now {after})"
+                "the source hashing scheme changed since the check ran ({before}, now {after})"
             ),
             Self::SelectionPolicy { before, after } => write!(
                 f,
-                "the selection policy changed since the gate ran (check_result {}…, now {}…)",
+                "the selection policy changed since the check ran (check_result {}…, now {}…)",
                 short(before),
                 short(after)
             ),
             Self::Source { before, after } => write!(
                 f,
-                "the source changed since the gate ran (check_result {}…, now {}…)",
+                "the source changed since the check ran (check_result {}…, now {}…)",
                 short(before),
                 short(after)
             ),
             Self::Configuration { before, after } => write!(
                 f,
-                "the applicable external configuration changed since the gate ran (check_result {}…, now {}…)",
+                "the applicable external configuration changed since the check ran (check_result {}…, now {}…)",
                 short(before),
                 short(after)
             ),
             Self::Unbound { identity } => write!(
                 f,
-                "the latest attempt was recorded before {identity} evidence was bound to check_results; run the gate again"
+                "the latest attempt was recorded before {identity} evidence was bound to check_results; run the check again"
             ),
         }
     }

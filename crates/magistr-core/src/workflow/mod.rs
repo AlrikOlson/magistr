@@ -3,15 +3,15 @@
 //! Drives plan-execute-verify iterations by spawning Claude Agent SDK sessions
 //! with specialized prompts derived from the project spec.
 //!
-//! Async runtime-dependent modules (`gate_runner`, `hook_dispatch`, `watcher`)
+//! Async runtime-dependent modules (`check_runner`, `hook_dispatch`, `watcher`)
 //! remain in the CLI crate — this module contains all pure domain logic.
 
+pub mod check_cache;
+pub mod check_guard;
+pub mod checks_passing;
 pub mod clean_tree_guard;
 pub mod format_result;
 pub mod formatter;
-pub mod gate_cache;
-pub mod gate_guard;
-pub mod gates_check;
 pub mod guards;
 pub mod iteration;
 pub mod loop_lease;

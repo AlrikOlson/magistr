@@ -26,7 +26,7 @@ fn sample_project_json(name: &str) -> serde_json::Value {
             "linter": "clippy",
             "formatter": "rustfmt"
         },
-        "quality_gate": {
+        "checks": {
             "check": "cargo check",
             "test": "cargo test",
             "lint": "cargo clippy"
@@ -125,7 +125,7 @@ edition = "2024"
     assert!(result.is_ok(), "init --ci should succeed: {result:?}");
 
     // A workflow file should be created under .github/workflows/
-    let workflow = tmp.path().join(".github/workflows/quality-gates.yml");
+    let workflow = tmp.path().join(".github/workflows/checks.yml");
     assert!(
         workflow.exists(),
         "workflow file should exist at {}",
@@ -147,7 +147,7 @@ fn rust_project() -> tempfile::TempDir {
 }
 
 fn seed_workflow(dir: &std::path::Path, content: &str) -> std::path::PathBuf {
-    let workflow = dir.join(".github/workflows/quality-gates.yml");
+    let workflow = dir.join(".github/workflows/checks.yml");
     std::fs::create_dir_all(workflow.parent().unwrap()).unwrap();
     std::fs::write(&workflow, content).unwrap();
     workflow
@@ -194,7 +194,7 @@ fn cmd_init_ci_overwrites_an_existing_workflow_with_force() {
 #[test]
 fn cmd_init_ci_refuses_a_workflow_path_that_is_a_directory() {
     let tmp = rust_project();
-    std::fs::create_dir_all(tmp.path().join(".github/workflows/quality-gates.yml")).unwrap();
+    std::fs::create_dir_all(tmp.path().join(".github/workflows/checks.yml")).unwrap();
 
     let renderer = SilentRenderer::new();
     let inputs = crate::config::inputs::ProjectInputs::from_lookup(tmp.path(), |_| None);
@@ -202,9 +202,5 @@ fn cmd_init_ci_refuses_a_workflow_path_that_is_a_directory() {
         .unwrap_err()
         .to_string();
     assert!(error.contains("not a regular file"), "{error}");
-    assert!(
-        tmp.path()
-            .join(".github/workflows/quality-gates.yml")
-            .is_dir()
-    );
+    assert!(tmp.path().join(".github/workflows/checks.yml").is_dir());
 }

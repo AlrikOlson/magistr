@@ -294,7 +294,7 @@ fn preset_layers_apply_the_captured_user_override_directory() {
     std::fs::create_dir_all(&presets).unwrap();
     std::fs::write(
         presets.join("rust.json"),
-        r#"{"quality_gate": {"check": "cargo check --all-features"}}"#,
+        r#"{"checks": {"check": "cargo check --all-features"}}"#,
     )
     .unwrap();
     let inputs = ProjectInputs::from_lookup("/proj", lookup(vec![])).with_config_dir(dir.path());
@@ -307,7 +307,7 @@ fn preset_layers_apply_the_captured_user_override_directory() {
         &layers,
     )
     .unwrap();
-    assert_eq!(preset.quality_gate.check, "cargo check --all-features");
+    assert_eq!(preset.checks.check, "cargo check --all-features");
     let info = inputs.user_preset_info();
     assert_eq!(info.len(), 1);
     assert_eq!(info[0].source, "user-global");

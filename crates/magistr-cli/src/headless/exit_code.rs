@@ -9,10 +9,10 @@ use std::fmt;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ExitCode {
-    /// All gates passed, session completed successfully.
+    /// All checks passed, session completed successfully.
     Success = 0,
-    /// One or more quality gates failed.
-    GatesFailed = 1,
+    /// One or more checks failed.
+    ChecksFailed = 1,
     /// A runtime error occurred (agent crash, network failure, etc.).
     RuntimeError = 2,
     /// The spending budget was exceeded.
@@ -37,7 +37,7 @@ impl fmt::Display for ExitCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Success => write!(f, "success (0)"),
-            Self::GatesFailed => write!(f, "gates failed (1)"),
+            Self::ChecksFailed => write!(f, "checks failed (1)"),
             Self::RuntimeError => write!(f, "runtime error (2)"),
             Self::BudgetExceeded => write!(f, "budget exceeded (3)"),
         }

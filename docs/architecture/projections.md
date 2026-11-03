@@ -175,7 +175,7 @@ the lock or erase receipts. Late outcomes remain attached to their original run.
 The owner's NDJSON feed supplies typed family events. `NativeFrame::decode`
 parses wire values at the transport boundary; views do not infer phases from
 narrative text or inspect arbitrary JSON fields. `MagistrFrame` carries phase
-announcements and running gate output. Those observations are distinct from
+announcements and running check output. Those observations are distinct from
 persisted family snapshots.
 
 An `EventCursor` contains the admitted owner's epoch and the publisher's event

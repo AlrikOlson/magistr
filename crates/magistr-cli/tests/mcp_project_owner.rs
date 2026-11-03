@@ -185,7 +185,7 @@ fn native_project(root: &Path) {
             "reference_repos": [],
             "state_prefix": "fixture",
             "plan_exports": false,
-            "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+            "checks": {"check": "true", "test": "true", "lint": "true"},
             "plan_backend": "native"
         })
         .to_string(),
@@ -734,20 +734,20 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
             "{check}"
         );
     }
-    let gate_a = a.call("magistr_gate", json!({"gate":"test"})).await;
-    let gate_b = b.call("magistr_gate", json!({"gate":"test"})).await;
-    assert_eq!(gate_a["passed"], true, "{gate_a}");
-    assert_eq!(gate_b["passed"], true, "{gate_b}");
+    let check_a = a.call("magistr_check", json!({"check":"test"})).await;
+    let check_b = b.call("magistr_check", json!({"check":"test"})).await;
+    assert_eq!(check_a["passed"], true, "{check_a}");
+    assert_eq!(check_b["passed"], true, "{check_b}");
     let receipt_a = a
         .call(
             "magistr_context",
-            json!({"check_result_id":gate_a["check_result"]}),
+            json!({"check_result_id":check_a["check_result"]}),
         )
         .await;
     let receipt_b = b
         .call(
             "magistr_context",
-            json!({"check_result_id":gate_b["check_result"]}),
+            json!({"check_result_id":check_b["check_result"]}),
         )
         .await;
     for (receipt, status, root) in [
@@ -770,7 +770,7 @@ async fn linked_worktrees_share_one_workflow_owner_and_keep_source_checks_and_re
     assert!(
         a.call(
             "magistr_context",
-            json!({"check_result_id":gate_b["check_result"]})
+            json!({"check_result_id":check_b["check_result"]})
         )
         .await["check_result"]
             .is_null(),

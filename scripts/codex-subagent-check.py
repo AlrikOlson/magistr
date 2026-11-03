@@ -15,7 +15,7 @@ through `--output-schema`. Three witnesses decide: the parent's
 `mcp_tool_call` events, the schema-shaped final answer, and the wrapper's
 launch log (two launches, zero exit-75).
 
-Opt-in (the optional `codex-subagent` Magistr gate): skips with exit 0 when
+Opt-in (the optional `codex-subagent` Magistr check): skips with exit 0 when
 `codex` is not on PATH, no auth.json exists, or no magistr binary is found.
 Only auth.json is copied (mode 0600) and deleted again before exit.
 

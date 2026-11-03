@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use super::{FormatConfig, QualityGate, TestingConfig};
+use super::{FormatConfig, StandardChecks, TestingConfig};
 
 /// A language preset loaded from embedded JSON.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Preset {
-    pub quality_gate: QualityGate,
+    pub checks: StandardChecks,
     pub format: FormatConfig,
     pub testing: TestingConfig,
     pub allowed_tools: Vec<String>,
@@ -16,7 +16,7 @@ pub struct Preset {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct PresetOverride {
     #[serde(default)]
-    pub quality_gate: Option<QualityGateOverride>,
+    pub checks: Option<StandardChecksOverride>,
     #[serde(default)]
     pub format: Option<FormatConfigOverride>,
     #[serde(default)]
@@ -25,9 +25,9 @@ pub struct PresetOverride {
     pub extra_allowed_tools: Vec<String>,
 }
 
-/// Partial quality gate — only overrides fields that are Some.
+/// Partial check — only overrides fields that are Some.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
-pub struct QualityGateOverride {
+pub struct StandardChecksOverride {
     #[serde(default)]
     pub check: Option<String>,
     #[serde(default)]
@@ -60,15 +60,15 @@ impl Preset {
     /// Merge a framework overlay onto this base preset.
     /// Overlay fields that are Some replace the base; None fields keep the base.
     pub fn merge(mut self, overlay: &PresetOverride) -> Self {
-        if let Some(qg) = &overlay.quality_gate {
+        if let Some(qg) = &overlay.checks {
             if let Some(check) = &qg.check {
-                self.quality_gate.check = check.clone();
+                self.checks.check = check.clone();
             }
             if let Some(test) = &qg.test {
-                self.quality_gate.test = test.clone();
+                self.checks.test = test.clone();
             }
             if let Some(lint) = &qg.lint {
-                self.quality_gate.lint = lint.clone();
+                self.checks.lint = lint.clone();
             }
         }
         if let Some(fmt) = &overlay.format {

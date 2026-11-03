@@ -30,7 +30,7 @@ use magistr_workspace::{
 const PROJECT: &str = "composition-integration";
 const TASK: &str = "test";
 
-/// A workspace with a project configuration naming three gates: the
+/// A workspace with a project configuration naming three checks: the
 /// evidence capability resolves the contracts from it, and the snapshot
 /// hashes it as a config input.
 fn workspace(tmp: &tempfile::TempDir, name: &str) -> PathBuf {
@@ -49,7 +49,7 @@ fn project_json(test_command: &str) -> String {
             "language": "rust", "framework": "none", "package_manager": "cargo",
             "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"
         },
-        "quality_gate": { "check": "true", "test": test_command, "lint": "true" },
+        "checks": { "check": "true", "test": test_command, "lint": "true" },
         "format": { "extensions": ["rs"], "command": "true" },
         "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
         "reference_repos": [],
@@ -113,9 +113,9 @@ fn goal_with(engines: &NativeEngines, step: &str, acceptance: Vec<String>) {
     engines.start_step(step).expect("active step");
 }
 
-/// One gate admitted and settled through the boundary, the way
-/// `magistr_gate` and the loop settle theirs.
-fn gate(engines: &NativeEngines, root: &Path, name: &str, code: i32) -> CheckSettlement {
+/// One check admitted and settled through the boundary, the way
+/// `magistr_check` and the loop settle theirs.
+fn check(engines: &NativeEngines, root: &Path, name: &str, code: i32) -> CheckSettlement {
     AdmittedCheck::admit(engines, root, None, name, "true".into(), true)
         .expect("admitted")
         .settle(engines, CheckExecution::Exited { code }, String::new())
@@ -123,10 +123,10 @@ fn gate(engines: &NativeEngines, root: &Path, name: &str, code: i32) -> CheckSet
         .settlement
 }
 
-fn all_gates(engines: &NativeEngines, root: &Path) {
+fn all_checks(engines: &NativeEngines, root: &Path) {
     for name in ["check", "test", "lint"] {
         assert!(matches!(
-            gate(engines, root, name, 0),
+            check(engines, root, name, 0),
             CheckSettlement::Applied { .. }
         ));
     }
@@ -185,7 +185,7 @@ async fn a_check_admitted_with_source_observes_the_owners_write_and_lands_on_its
     );
     let admitted_revision = admitted.source().expect("observation").revision.clone();
 
-    // The agent edits through the owner while the gate runs.
+    // The agent edits through the owner while the check runs.
     let seq = owner_edit(&service, "alpha", "beta").await;
 
     let settled = admitted
@@ -244,45 +244,45 @@ async fn a_check_admitted_with_source_observes_the_owners_write_and_lands_on_its
         .join(format!("{}.json", check_result.id));
     assert!(published.is_file(), "{}", published.display());
 
-    // A gate that saw the tree move under it is not evidence of the tree
+    // A check that saw the tree move under it is not evidence of the tree
     // as it is now: completion refuses it by name, and accepts the set
-    // once every gate has run against the settled tree.
+    // once every check has run against the settled tree.
     let refused = refusal(&engines, Some("step:verify"));
     assert!(
-        refused.contains("test: the workspace changed while the gate ran: notes.txt (Modified)"),
+        refused.contains("test: the workspace changed while the check ran: notes.txt (Modified)"),
         "{refused}"
     );
     assert!(
-        refused.contains("check: required gate has no check_result"),
+        refused.contains("check: required check has no check_result"),
         "{refused}"
     );
-    all_gates(&engines, service.root());
+    all_checks(&engines, service.root());
     let done = engines
         .plan_complete_task(TASK, Some("step:verify"))
-        .expect("every required gate is current");
+        .expect("every required check is current");
     assert_eq!(done.value.status, TaskStatus::Done);
     service.shutdown().await.expect("clean shutdown");
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn completion_refuses_after_a_source_config_or_acceptance_change_until_the_gates_rerun() {
+async fn completion_refuses_after_a_source_config_or_acceptance_change_until_the_checks_rerun() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let root = workspace(&tmp, "workspace");
     let service = owner(&root).await;
     let (engines, _) = host(&tmp, service.root());
     goal_with(&engines, "verify", vec!["it works".into()]);
-    all_gates(&engines, service.root());
+    all_checks(&engines, service.root());
 
-    // The source moved on through the owner after the gates passed.
+    // The source moved on through the owner after the checks passed.
     owner_edit(&service, "alpha", "beta").await;
     let refused = refusal(&engines, None);
     assert!(
-        refused.contains("the source changed since the gate ran"),
+        refused.contains("the source changed since the check ran"),
         "{refused}"
     );
-    all_gates(&engines, service.root());
+    all_checks(&engines, service.root());
 
-    // The gate configuration changed: the config input moves the revision
+    // The check configuration changed: the config input moves the revision
     // and the contract names another command.
     std::fs::write(root.join(".magistr/project.json"), project_json("false")).expect("config");
     let refused = refusal(&engines, None);
@@ -292,7 +292,7 @@ async fn completion_refuses_after_a_source_config_or_acceptance_change_until_the
         "{refused}"
     );
     std::fs::write(root.join(".magistr/project.json"), project_json("true")).expect("config");
-    all_gates(&engines, service.root());
+    all_checks(&engines, service.root());
 
     // The acceptance was edited mid-flight: same run, new revision.
     engines
@@ -306,7 +306,7 @@ async fn completion_refuses_after_a_source_config_or_acceptance_change_until_the
         .expect("edited in flight");
     let refused = refusal(&engines, None);
     assert!(refused.contains("acceptance changed"), "{refused}");
-    all_gates(&engines, service.root());
+    all_checks(&engines, service.root());
     assert_eq!(
         engines
             .plan_complete_task(TASK, None)
@@ -395,7 +395,7 @@ async fn a_rolled_over_goal_leaves_the_result_stale_and_a_reused_name_has_no_evi
     );
     let refused = refusal(&engines, Some("step:verify"));
     assert!(
-        refused.contains("check: required gate has no check_result on step `verify` in this run"),
+        refused.contains("check: required check has no check_result on step `verify` in this run"),
         "{refused}"
     );
     let refused = refusal(&engines, None);
@@ -419,19 +419,19 @@ async fn the_cockpit_complete_action_names_the_verification_step_and_refuses_wit
     assert!(refused.to_string().contains("no run goal"), "{refused}");
 
     goal(&engines, "verify");
-    // A failed gate, then a passing one: recovered, not outstanding.
+    // A failed check, then a passing one: recovered, not outstanding.
     assert!(matches!(
-        gate(&engines, service.root(), "test", 1),
+        check(&engines, service.root(), "test", 1),
         CheckSettlement::Applied { .. }
     ));
-    let refused = port.complete_task(TASK).expect_err("red gate");
+    let refused = port.complete_task(TASK).expect_err("red check");
     assert!(
         refused
             .to_string()
             .contains("test: the latest attempt did not pass (exit 1)"),
         "{refused}"
     );
-    all_gates(&engines, service.root());
+    all_checks(&engines, service.root());
 
     let done = port.complete_task(TASK).expect("current evidence");
     assert_eq!(done.value.status, magistr_engine::TaskStatus::Done);
@@ -477,7 +477,7 @@ async fn the_plain_status_route_and_a_foreign_scope_are_refused() {
         .add_step("verify".into(), "Verify".into(), StepType::Test, None)
         .expect("step");
     engines.start_step("verify").expect("active");
-    all_gates(&engines, service.root());
+    all_checks(&engines, service.root());
     let refused = refusal(&engines, Some("step:verify"));
     assert!(refused.contains("scoped to `task:other`"), "{refused}");
     service.shutdown().await.expect("clean shutdown");

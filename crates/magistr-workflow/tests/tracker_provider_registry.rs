@@ -1,4 +1,4 @@
-//! The registry's truth gates.
+//! The registry's truth checks.
 //!
 //! `tracker-provider-registry` exists because "adding a provider adds a file"
 //! was true of the port and not of the binary: the CLI matched on two string
@@ -49,7 +49,7 @@ fn refusal(result: Result<Box<dyn TrackerPort>, RegistryError>) -> RegistryError
     }
 }
 
-/// THE gate this file is really about, and it is not about the message.
+/// THE check this file is really about, and it is not about the message.
 ///
 /// A registration's `key` is what a human types into `--provider` and what every
 /// link record is filed under. The port it builds answers the same question
@@ -217,9 +217,9 @@ fn a_provider_this_crate_has_never_heard_of_is_reachable_through_the_one_lookup(
 /// lives in `tracker/host/build_port.rs`, and the point of the registry is
 /// that it names none.
 ///
-/// # This gate's excuse is retired, and it is kept anyway
+/// # This check's excuse is retired, and it is kept anyway
 ///
-/// It used to say: "a source-text gate, because the property IS about the text:
+/// It used to say: "a source-text check, because the property IS about the text:
 /// the function is not reachable from a test."
 /// The second half of that is no longer true. The command seam shipped,
 /// the builder takes its registration table as a parameter, and
@@ -228,12 +228,12 @@ fn a_provider_this_crate_has_never_heard_of_is_reachable_through_the_one_lookup(
 ///
 /// So why is this still here? Because the two prove different things, and the
 /// difference has been paid for before by deliberately breaking the source to
-/// check what each gate notices. The executing test proves the dispatch CONSULTS THE TABLE IT WAS
+/// check what each check notices. The executing test proves the dispatch CONSULTS THE TABLE IT WAS
 /// GIVEN. It would pass just as happily on a builder that also carried a
 /// hardcoded `if provider == "github"` shortcut ahead of the lookup, because
 /// the seam test never asks for `github`. Only reading the text can show that
 /// no such branch exists. Presence is behavioural; ABSENCE is textual. Neither
-/// gate subsumes the other, and this one no longer needs an excuse to say so.
+/// check subsumes the other, and this one no longer needs an excuse to say so.
 #[test]
 fn the_host_port_builder_names_no_provider() {
     let source = include_str!("../src/tracker/host/build_port.rs");
@@ -241,18 +241,18 @@ fn the_host_port_builder_names_no_provider() {
     // search it performs.
     let signature = concat!("fn ", "build_tracker_port_in(");
     let start = source.find(signature).expect(
-        "build_tracker_port_in still exists — a gate that cannot find its window covers nothing",
+        "build_tracker_port_in still exists — a check that cannot find its window covers nothing",
     );
     let body = &source[start..];
     let end = body.find("\n}\n").expect("the function terminates");
     let body = &body[..end];
 
-    // Positive FIRST, because a source-text gate that only asserts an ABSENCE
+    // Positive FIRST, because a source-text check that only asserts an ABSENCE
     // passes just as happily on a file that no longer builds a port at all.
     //
     // Matched on a LIVE line rather than on the substring anywhere, so a
     // commented-out or otherwise dead call cannot satisfy it. Deliberately not
-    // matched on the exact statement: this gate should bite on "the delegation
+    // matched on the exact statement: this check should bite on "the delegation
     // is gone", not on "someone bound the result to a local first".
     //
     // `build_in`, not `build`: the whole point of the command seam is that

@@ -511,23 +511,25 @@ impl NativeEngines {
     }
 
     /// Record an immediately available result against its captured owner.
-    /// Async runners must capture `run_admit_gate` before execution and pass
-    /// that identity to `run_settle_gate` afterward. They must not admit an
+    /// Async runners must capture `run_admit_configured_check` before execution and pass
+    /// that identity to `run_settle_check` afterward. They must not admit an
     /// already-running command against whichever step is current on return.
     /// Reports are additive; the process exit code alone determines `passed`.
     #[allow(clippy::too_many_arguments)]
-    pub fn run_record_gate(
+    pub fn run_record_check(
         &self,
         step_id: Option<&str>,
-        gate: &str,
+        check: &str,
         command: String,
         exit_code: i32,
         details: String,
         required: bool,
         report: Option<(&str, &str)>,
     ) -> Result<Observed<Check>, RunError> {
-        let admission = self.run_admit_gate(step_id, gate, command, required)?.value;
-        match self.run_settle_gate(
+        let admission = self
+            .run_admit_configured_check(step_id, check, command, required)?
+            .value;
+        match self.run_settle_check(
             admission,
             CheckExecution::Exited { code: exit_code },
             details,
@@ -549,19 +551,19 @@ impl NativeEngines {
         self.services.run.admit_step(step_id)
     }
 
-    /// Capture native project/run/step identity before a host starts a gate.
-    pub fn run_admit_gate(
+    /// Capture native project/run/step identity before a host starts a check.
+    pub fn run_admit_configured_check(
         &self,
         step_id: Option<&str>,
-        gate: &str,
+        check: &str,
         command: String,
         required: bool,
     ) -> Result<Observed<CheckAdmission>, RunError> {
         self.services.run.admit_check(CheckRequest {
             options: Default::default(),
             step_id: step_id.map(str::to_owned),
-            check_type: check_type_for(gate),
-            name: gate.to_owned(),
+            check_type: check_type_for(check),
+            name: check.to_owned(),
             passed: None,
             details: String::new(),
             required,
@@ -571,7 +573,7 @@ impl NativeEngines {
     }
 
     /// Find current evidence for this command under its new step admission.
-    pub fn run_reuse_gate(
+    pub fn run_reuse_check(
         &self,
         admission: &CheckAdmission,
     ) -> Result<Option<CheckOutcome>, RunError> {
@@ -591,7 +593,7 @@ impl NativeEngines {
     /// check_result is settled under its original identity either way. Only an
     /// exit decides `passed`: a timeout, a cancel or a launch failure is
     /// recorded as what it was.
-    pub fn run_settle_gate(
+    pub fn run_settle_check(
         &self,
         admission: CheckAdmission,
         execution: CheckExecution,

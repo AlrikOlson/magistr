@@ -1,6 +1,6 @@
 use super::*;
 use crate::native::{
-    EvidencePort, GateContract, NativeConfig, NativeReader, NativeSnapshot, ProjectAuthority,
+    CheckContract, EvidencePort, NativeConfig, NativeReader, NativeSnapshot, ProjectAuthority,
     SourceFreshness, SourceObservation, SourceWitness, WriterRole,
 };
 use magistr_workflow::decision::domain::Note;
@@ -10,9 +10,9 @@ use magistr_workflow::run::domain::check::{Check, CheckType};
 use magistr_workflow::run::domain::progress::ProgressType;
 use magistr_workflow::run::domain::step::StepType;
 
-/// A source that never moves and a project that configures no gates: the
+/// A source that never moves and a project that configures no checks: the
 /// evidence capability every writer here is admitted with, so a recorded
-/// gate certifies a source and a task can complete on it.
+/// check certifies a source and a task can complete on it.
 struct Fixed;
 
 impl SourceWitness for Fixed {
@@ -42,7 +42,7 @@ impl EvidencePort for Evidence {
     fn observe(&self) -> Result<Box<dyn SourceWitness>, String> {
         Ok(Box::new(Fixed))
     }
-    fn required_gates(&self) -> Result<Vec<GateContract>, String> {
+    fn required_checks(&self) -> Result<Vec<CheckContract>, String> {
         Ok(Vec::new())
     }
 }
@@ -122,11 +122,11 @@ fn compaction_owner_command_preserves_check_results_for_current_and_retained_run
             .unwrap();
         engines.start_step("verify").unwrap();
         let admission = engines
-            .run_admit_gate(None, "test", "true".into(), true)
+            .run_admit_configured_check(None, "test", "true".into(), true)
             .unwrap();
         let check_result_id = admission.value.check_result_id.clone();
         engines
-            .run_settle_gate(
+            .run_settle_check(
                 admission.value,
                 CheckExecution::Exited { code: 0 },
                 String::new(),
@@ -330,7 +330,7 @@ fn round_trip_through_a_temp_store() {
             .expect("progress");
         assert_eq!(progress.value.note, Some(1));
         let check = engines
-            .run_record_gate(
+            .run_record_check(
                 None,
                 "test",
                 "cargo nextest".into(),
@@ -339,19 +339,19 @@ fn round_trip_through_a_temp_store() {
                 true,
                 None,
             )
-            .expect("gate");
+            .expect("check");
         assert!(check.value.passed && check.value.verified);
         assert_eq!(check.value.exit_code, Some(0));
         let failed = engines
-            .run_record_gate(None, "lint", "clippy".into(), 1, String::new(), true, None)
-            .expect("gate");
+            .run_record_check(None, "lint", "clippy".into(), 1, String::new(), true, None)
+            .expect("check");
         assert!(!failed.value.passed && failed.value.verified);
         // The red lint is current evidence against completion until it
         // is re-run green; then it is a recovered failure, not an
         // outstanding one.
         let refused = engines
             .plan_complete_task("base", Some("step:t1"))
-            .expect_err("a failed required gate refuses completion");
+            .expect_err("a failed required check refuses completion");
         assert!(
             refused
                 .to_string()
@@ -359,8 +359,8 @@ fn round_trip_through_a_temp_store() {
             "{refused}"
         );
         engines
-            .run_record_gate(None, "lint", "clippy".into(), 0, String::new(), true, None)
-            .expect("gate");
+            .run_record_check(None, "lint", "clippy".into(), 0, String::new(), true, None)
+            .expect("check");
         engines.finish_step("t1", vec![]).expect("complete");
 
         let sig = engines
@@ -947,7 +947,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
         )
         .expect("progress");
     engines
-        .run_record_gate(
+        .run_record_check(
             Some("t1"),
             "cargo nextest",
             "true".into(),
@@ -956,7 +956,7 @@ fn a_snapshot_reads_every_family_whole_with_its_source() {
             true,
             None,
         )
-        .expect("gate");
+        .expect("check");
     engines
         .request_capture(RequestKind::Suggestion, "alice".into(), "faster".into())
         .expect("request");
@@ -1177,14 +1177,14 @@ fn request_queries_observe_another_writers_capture() {
     assert_eq!(host.request_status().unwrap()["counts"]["total"], 1);
 }
 
-/// A run trace with one active step, ready to take a gate record.
+/// A run trace with one active step, ready to take a check record.
 fn engines_with_active_step(tmp: &tempfile::TempDir) -> NativeEngines {
-    let engines = host(&temp_config(tmp), "gate-rec");
+    let engines = host(&temp_config(tmp), "check-rec");
     engines
-        .run_open("record the gates".into(), vec![], vec![], String::new())
+        .run_open("record the checks".into(), vec![], vec![], String::new())
         .expect("goal");
     engines
-        .add_step("t1".into(), "run gates".into(), StepType::Implement, None)
+        .add_step("t1".into(), "run checks".into(), StepType::Implement, None)
         .expect("add step");
     engines.start_step("t1").expect("start");
     engines
@@ -1200,12 +1200,12 @@ fn checks(engines: &NativeEngines) -> Vec<Check> {
 }
 
 #[test]
-fn a_recorded_gate_is_verified_and_carries_the_command_and_the_real_exit_code() {
+fn a_recorded_check_is_verified_and_carries_the_command_and_the_real_exit_code() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let engines = engines_with_active_step(&tmp);
 
     engines
-        .run_record_gate(
+        .run_record_check(
             None,
             "lint",
             "cargo clippy --workspace".to_owned(),
@@ -1219,7 +1219,7 @@ fn a_recorded_gate_is_verified_and_carries_the_command_and_the_real_exit_code() 
     let checks = checks(&engines);
     assert_eq!(checks.len(), 1);
     let check = &checks[0];
-    assert!(check.verified, "a gate the loop ran is not self-reported");
+    assert!(check.verified, "a check the loop ran is not self-reported");
     assert!(!check.passed);
     assert_eq!(check.exit_code, Some(3));
     assert_eq!(check.command.as_deref(), Some("cargo clippy --workspace"));
@@ -1228,12 +1228,12 @@ fn a_recorded_gate_is_verified_and_carries_the_command_and_the_real_exit_code() 
 }
 
 #[test]
-fn the_check_type_is_derived_from_the_gate_name_archetype_suffix_and_all() {
+fn the_check_type_is_derived_from_the_check_name_archetype_suffix_and_all() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let engines = engines_with_active_step(&tmp);
     for name in ["check", "test:app-typescript", "lint", "structure", "test"] {
         engines
-            .run_record_gate(None, name, "true".to_owned(), 0, String::new(), true, None)
+            .run_record_check(None, name, "true".to_owned(), 0, String::new(), true, None)
             .expect("record");
     }
     let kinds: Vec<CheckType> = checks(&engines)
@@ -1246,8 +1246,8 @@ fn the_check_type_is_derived_from_the_gate_name_archetype_suffix_and_all() {
             CheckType::Typecheck,
             CheckType::Test,
             CheckType::Lint,
-            // A custom gate is a lint until it says otherwise — the same
-            // fallback `magistr_gate`'s own mapping uses.
+            // A custom check is a lint until it says otherwise — the same
+            // fallback `magistr_check`'s own mapping uses.
             CheckType::Lint,
             CheckType::Test,
         ]
@@ -1273,7 +1273,7 @@ fn a_junit_report_is_parsed_into_the_record() {
     .expect("write junit");
 
     engines
-        .run_record_gate(
+        .run_record_check(
             None,
             "test",
             "cargo nextest run".to_owned(),
@@ -1305,7 +1305,7 @@ fn a_missing_report_is_not_parsed_and_never_a_failure() {
     let absent = tmp.path().join("never-written.xml");
 
     let check = engines
-        .run_record_gate(
+        .run_record_check(
             None,
             "test",
             "cargo nextest run".to_owned(),
@@ -1325,13 +1325,13 @@ fn a_missing_report_is_not_parsed_and_never_a_failure() {
 }
 
 #[test]
-fn a_gate_cannot_be_recorded_with_no_step_to_record_it_against() {
+fn a_check_cannot_be_recorded_with_no_step_to_record_it_against() {
     // The loop needs the refusal to be legible: it prints it on the stage
     // rather than silently recording nothing.
     let tmp = tempfile::tempdir().expect("tempdir");
     let engines = host(&temp_config(&tmp), "no-step");
     let refusal = engines
-        .run_record_gate(
+        .run_record_check(
             None,
             "check",
             "true".to_owned(),

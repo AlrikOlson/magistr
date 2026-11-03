@@ -7,14 +7,14 @@ use magistr_engine::native::{
 };
 
 use super::{CheckEvidenceError, CheckIdentities, SettledCheck};
-use crate::utils::gate::nextest_junit_report_path;
+use crate::utils::check::nextest_junit_report_path;
 
-/// One gate, admitted by the workflow before its command runs.
+/// One check, admitted by the workflow before its command runs.
 ///
 /// Admission captures the concrete step instance the check belongs to and
 /// publishes its durable check_result, and — through the evidence capability
 /// the writer was admitted with — observes the workspace's selected source
-/// at that moment, so a step started while the gate ran can never collect
+/// at that moment, so a step started while the check ran can never collect
 /// the result and the check_result names the bytes it certifies. The command
 /// then runs with the owner's edits still flowing and nothing waiting on
 /// it. Settlement re-observes the source, then settles through the same
@@ -27,11 +27,11 @@ pub struct AdmittedCheck {
 }
 
 impl AdmittedCheck {
-    /// Admit `gate` on `step_id` (the active step when `None`) through the
+    /// Admit `check` on `step_id` (the active step when `None`) through the
     /// admitted writer. The workflow is asked first: a check with no step
     /// to land on is refused before any byte is hashed; a workspace that
     /// cannot be observed refuses the admission too, so an unobservable
-    /// gate is never recorded as evidence.
+    /// check is never recorded as evidence.
     ///
     /// # Errors
     /// `Admission` when the workflow names no step or refuses the request;
@@ -40,7 +40,7 @@ impl AdmittedCheck {
         engines: &NativeEngines,
         root: &Path,
         step_id: Option<&str>,
-        gate: &str,
+        check: &str,
         command: String,
         required: bool,
     ) -> Result<Self, CheckEvidenceError> {
@@ -48,7 +48,7 @@ impl AdmittedCheck {
             engines,
             root,
             step_id,
-            gate,
+            check,
             command,
             required,
             Default::default(),
@@ -61,7 +61,7 @@ impl AdmittedCheck {
         engines: &NativeEngines,
         root: &Path,
         step_id: Option<&str>,
-        gate: &str,
+        check: &str,
         command: String,
         required: bool,
         options: magistr_engine::native::CheckOptions,
@@ -70,8 +70,8 @@ impl AdmittedCheck {
             .run_admit_check(magistr_engine::native::CheckRequest {
                 options,
                 step_id: step_id.map(str::to_owned),
-                check_type: magistr_engine::native::check_type_for(gate),
-                name: gate.into(),
+                check_type: magistr_engine::native::check_type_for(check),
+                name: check.into(),
                 passed: None,
                 details: String::new(),
                 required,
@@ -92,7 +92,7 @@ impl AdmittedCheck {
         engines: &NativeEngines,
     ) -> Result<Option<SettledCheck>, CheckEvidenceError> {
         let outcome = engines
-            .run_reuse_gate(&self.admission.value)
+            .run_reuse_check(&self.admission.value)
             .map_err(CheckEvidenceError::Settlement)?;
         outcome
             .map(|outcome| {
@@ -161,7 +161,7 @@ impl AdmittedCheck {
             .and_then(nextest_junit_report_path)
             .map(|relative| self.root.join(relative).to_string_lossy().into_owned());
         let settlement = engines
-            .run_settle_gate(
+            .run_settle_check(
                 self.admission.value,
                 execution,
                 details,

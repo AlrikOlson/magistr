@@ -4,7 +4,7 @@
 //! outcomes and durations. No `Instant` fields (frontend manages timing),
 //! no overlay state (transition/completion summaries are frontend-specific).
 
-use super::gate::{IterationOutcome, IterationPhase};
+use super::check::{IterationOutcome, IterationPhase};
 
 /// Progress state for a next-loop run (domain-only).
 ///

@@ -1,6 +1,6 @@
 //! Magistr orchestration and native workflow integration.
 //!
-//! Deterministic policy, run rules and gate values live in `magistr-domain`;
+//! Deterministic policy, run rules and check values live in `magistr-domain`;
 //! this crate currently re-exports those values for its callers. It also owns
 //! runtime and native-store adapters and is not an effect-free boundary.
 //!
@@ -12,7 +12,7 @@
 //! - **Workflow policies** — `GovernancePolicy`, `PolicyEngine`, `PolicyRule`, `PolicyEffect`
 //! - **Plan tracking** — `PlanManager`, `PlanProgress`, `PlanEvent`
 //! - **Engine handle** — `EngineHandle` (thread-safe entry point composing all services)
-//! - **Quality gates** — `GateKind`, `GateStatus`, `GateOutcome`
+//! - **Checks** — `StandardCheckKind`, `CheckState`, `StandardCheckOutcome`
 //! - **Workflow guards** — `WorkflowGuard`, `GuardResult`, `GuardsConfig`, `RunGuardState`
 //! - **Spec parsing** — `SpecSummary`
 //! - **Prompt building** — `PromptConfig`
@@ -24,9 +24,9 @@
 //! Infrastructure adapters in `magistr-cli` bridge these domain types
 //! to the concrete ACP protocol and terminal UI.
 
+pub mod check;
 pub mod cost;
 pub mod error;
-pub mod gate;
 pub mod guard;
 pub mod handle;
 pub mod native;
@@ -41,19 +41,19 @@ pub mod spec;
 pub mod workflow;
 
 // Re-export primary types for convenience.
+pub use check::{CheckState, StandardCheckKind, StandardCheckOutcome};
 pub use cost::{
     BudgetConfig, BudgetDecision, BudgetStatus, CostAttribution, CostEvent, CostGovernor,
     CostSample, TokenType,
 };
 pub use error::EngineError;
-pub use gate::{GateKind, GateOutcome, GateStatus};
 pub use guard::{
     GuardAction, GuardContext, GuardResult, GuardsConfig, RunGuardState, WorkflowGuard,
 };
 pub use handle::{EngineEvent, EngineHandle, WorkflowEvent};
 pub use native::{
-    AttachError, AttachKind, AttachRefusal, CallerIdentity, DecisionCommand, DecisionData,
-    DecisionFrame, Delivery, EventCursor, FeedCursor, FeedStatus, GateOutput, MagistrFrame,
+    AttachError, AttachKind, AttachRefusal, CallerIdentity, CheckBytes, DecisionCommand,
+    DecisionData, DecisionFrame, Delivery, EventCursor, FeedCursor, FeedStatus, MagistrFrame,
     McpAcceptor, NativeConfig, NativeEngines, NativeEvent, NativeFrame, NativePlanSnapshot,
     NativeReader, NativeSnapshot, Observed, OwnerClient, OwnerCommand, OwnerEndpoint,
     OwnerGeneration, OwnerReply, PlanBackend, PlanCommand, PlanData, PlanFrame, ProjectAuthority,
@@ -83,7 +83,7 @@ pub use magistr_workflow::run::domain::step::StepType;
 pub use workflow::{
     HookAction, HookDispatcher, HookError, HookExecutionReport, HookExecutor, HookOutput,
     HookResolver, IterationState, IterationStatus, LifecycleEvent, LifecycleHook,
-    LifecycleHooksConfig, OnFailure, QualityGateConfig, ResolvedHook, WorkflowCommand,
+    LifecycleHooksConfig, OnFailure, ResolvedHook, StandardChecksConfig, WorkflowCommand,
     WorkflowConfig, WorkflowEngine, WorkflowPhase,
 };
 

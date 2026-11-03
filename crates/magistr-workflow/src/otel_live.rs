@@ -157,7 +157,7 @@ fn as_server_span(mut span: Value, status_message: Option<&str>) -> Value {
 }
 
 /// What the emitter needs to reach a backend. `None` anywhere means "not
-/// configured", which is the enable gate.
+/// configured", which is the enable check.
 #[derive(Debug, Clone)]
 pub struct LiveConfig {
     pub endpoint: String,
@@ -632,7 +632,7 @@ fn post(
 mod tests {
     use super::*;
 
-    /// The gate. A disabled emitter must spawn nothing and accept everything,
+    /// The check. A disabled emitter must spawn nothing and accept everything,
     /// because it is what runs on every machine that never configured OTLP.
     #[test]
     fn a_disabled_emitter_is_inert() {
@@ -930,7 +930,7 @@ mod tests {
         );
     }
 
-    /// THE ANTI-DRIFT GATE for trace-to-log correlation, and the reason
+    /// THE ANTI-DRIFT CHECK for trace-to-log correlation, and the reason
     /// `call_span_id` is a named function rather than a `format!` in two places.
     ///
     /// The log lane publishes `correlation()` BEFORE the call and the span lane

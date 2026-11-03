@@ -23,7 +23,7 @@ exercised entry, build and platform matrix.
 | `magistr-application` | Project-scoped use cases, typed outcomes, and narrow adapter ports |
 | `magistr-workflow-contracts` | Canonical workflow records, typed mutation frames, snapshots and freshness values, independent of stores and runtimes |
 | `magistr-core` | Configuration, presets, and shared project/interface types |
-| `magistr-engine` | Sessions, workflow policies, costs, gates, native workflow integration, and the one producer of typed workflow snapshots and events |
+| `magistr-engine` | Sessions, workflow policies, costs, checks, native workflow integration, and the one producer of typed workflow snapshots and events |
 | `magistr-workspace` | Native configuration/path/key policy, response and byte contracts, parsing/search/rewrite, index extraction, language registry and sandbox primitives, bounded native worker supervision, persistent derived index with watchers and typed source queries, durable journal/undo planning, confirmed verified byte transactions, native commands and served tool parity, generation-fenced single-owner admission with explicit sessions, Unix client attachment through the shared owner endpoint; the bridge, launcher and worker lifetime live in `magistr-cli` |
 | `magistr-process` | Owned child reaping, Unix process groups and hard-exit registry, bounded command capture, plain-text normalization and termination |
 | `magistr-acp` | Agent Client Protocol transport and configured local effect adapter |
@@ -91,7 +91,7 @@ reader, writer and attachment paths use its typed settings and identity inputs.
 Project setup enters through the CLI's detection module, which calls the core
 stack detector with the CLI's plugin results. Setup writes
 `.magistr/project.json` and agent-specific files from the CLI crate's templates
-and the core crate's presets. The project file supplies commands, custom gates,
+and the core crate's presets. The project file supplies commands, custom checks,
 testing conventions, and native plan settings. Generated files carry
 ownership rules so refresh and removal can preserve user changes; setup,
 repair and owned removal each compute one
@@ -138,7 +138,7 @@ provenance, and licenses remain beside
 the files they document.
 
 Release preparation owns package inventories and extracted-installation receipts.
-The [security gate](../release-security.md) owns current advisory and secret scans
+The [security check](../release-security.md) owns current advisory and secret scans
 and writes one source-bound receipt, including artifact hashes during packaging.
 `cli-release.py` consumes those receipts and successful exact-source CI runs before
 `cargo_publication.py` reconciles any upload with the registry. Registry state is

@@ -295,7 +295,7 @@ fn shared_view_dependency_closure_contains_no_effectful_host() {
                 && dependency["optional"] == false
                 && dependency["rename"].is_null()
                 && dependency["target"].is_null(),
-            "contract dependencies cannot hide behind aliases or optional/target gates"
+            "contract dependencies cannot hide behind aliases or optional/target checks"
         );
         if name == "chrono" {
             assert_eq!(dependency["uses_default_features"], false);

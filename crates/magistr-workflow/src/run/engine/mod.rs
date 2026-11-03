@@ -97,15 +97,15 @@ impl RunEngine {
         self
     }
 
-    /// A clone of the attached cloud client, if any. The gate tools take this
-    /// and drop the engine lock BEFORE any network await — a gate poll must
+    /// A clone of the attached cloud client, if any. The check tools take this
+    /// and drop the engine lock BEFORE any network await — a check poll must
     /// never hold the engine hostage.
     #[must_use]
     pub fn cloud_client(&self) -> Option<CloudClient> {
         self.cloud.clone()
     }
 
-    /// The id of the currently active step, if any — the gate's `part_of` edge.
+    /// The id of the currently active step, if any — the check's `part_of` edge.
     #[must_use]
     pub fn active_step_id(&self) -> Option<String> {
         self.steps
@@ -465,7 +465,7 @@ mod wire_id_tests {
     use super::*;
     use crate::run::domain::step::StepType;
 
-    /// The gate edge must carry the cycle-scoped form a check edge uses —
+    /// The check edge must carry the cycle-scoped form a check edge uses —
     /// a bare local id like `verify` recurs across cycles and resolves to
     /// nothing.
     #[test]

@@ -4,8 +4,8 @@ use super::*;
 fn workflow_state_default() {
     let state = WorkflowState::default();
     assert!(state.workflow_phase.is_none());
-    assert!(state.gate_results.is_empty());
-    assert!(state.gate_results_history.is_empty());
+    assert!(state.check_results.is_empty());
+    assert!(state.check_results_history.is_empty());
     assert_eq!(state.consecutive_failures, 0);
     assert!(state.loop_progress.is_none());
 }
@@ -46,14 +46,14 @@ fn completed_phase_message_has_no_progress_punctuation() {
 }
 
 #[test]
-fn push_gate_history() {
+fn push_check_history() {
     let mut state = WorkflowState::default();
     // Empty results should not push.
-    state.push_gate_history();
-    assert!(state.gate_results_history.is_empty());
+    state.push_check_history();
+    assert!(state.check_results_history.is_empty());
 
     // Non-empty results push.
-    state.gate_results.push(GateResult {
+    state.check_results.push(CheckReport {
         name: "test".into(),
         passed: true,
         duration_secs: 1.0,
@@ -61,15 +61,15 @@ fn push_gate_history() {
         test_count: None,
         rows: Vec::new(),
     });
-    state.push_gate_history();
-    assert_eq!(state.gate_results_history.len(), 1);
+    state.push_check_history();
+    assert_eq!(state.check_results_history.len(), 1);
 }
 
 #[test]
-fn push_gate_history_caps_at_max() {
+fn push_check_history_caps_at_max() {
     let mut state = WorkflowState::default();
-    for i in 0..GATE_HISTORY_MAX + 5 {
-        state.gate_results = vec![GateResult {
+    for i in 0..CHECK_HISTORY_MAX + 5 {
+        state.check_results = vec![CheckReport {
             name: format!("run{i}"),
             passed: true,
             duration_secs: 1.0,
@@ -77,9 +77,9 @@ fn push_gate_history_caps_at_max() {
             test_count: None,
             rows: Vec::new(),
         }];
-        state.push_gate_history();
+        state.push_check_history();
     }
-    assert_eq!(state.gate_results_history.len(), GATE_HISTORY_MAX);
+    assert_eq!(state.check_results_history.len(), CHECK_HISTORY_MAX);
     // Oldest should have been dropped — first remaining is run5.
-    assert_eq!(state.gate_results_history[0][0].name, "run5");
+    assert_eq!(state.check_results_history[0][0].name, "run5");
 }

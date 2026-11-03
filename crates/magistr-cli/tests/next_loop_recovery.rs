@@ -205,7 +205,7 @@ fn project() -> tempfile::TempDir {
         "project": {"name": "loop-recovery"},
         "stack": {"language": "rust", "framework": "none", "package_manager": "cargo",
             "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"},
-        "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+        "checks": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "true", "extensions": []},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [], "state_prefix": "loop-recovery",

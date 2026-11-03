@@ -1,4 +1,4 @@
-//! Source gate for docs/STYLE.md S8: no process narration in Rust source.
+//! Source check for docs/STYLE.md S8: no process narration in Rust source.
 //!
 //! Comments in this codebase carry design arguments — the WHY — and those
 //! must reference things a reader can resolve: types, modules, public specs,
@@ -10,7 +10,7 @@
 //!
 //! Every needle below is built with `concat!` so this file cannot satisfy
 //! its own scan. Each needle's expected count is pinned at zero: a new file
-//! that reintroduces a marker fails the gate instead of being absorbed.
+//! that reintroduces a marker fails the check instead of being absorbed.
 //!
 //! Deliberately NOT gated, because each has a legitimate meaning here:
 //! `SEP-<n>` (public MCP Spec Enhancement Proposals — citations, like RFCs),
@@ -133,7 +133,7 @@ fn narration_markers_absent_from_workflow_source() {
     assert!(
         files.len() > 100,
         "the scan found only {} .rs files — the walk is broken, which would \
-         make this gate pass vacuously",
+         make this check pass vacuously",
         files.len()
     );
 

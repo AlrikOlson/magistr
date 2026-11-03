@@ -87,11 +87,11 @@ impl ScaffoldPipeline {
                     self.user_preset_dir().as_deref(),
                     &tree.root.join(&project.path),
                 );
-                primary.quality_gate = preset.quality_gate;
+                primary.checks = preset.checks;
                 primary.format = preset.format;
                 primary.testing = preset.testing;
                 self.selections.apply_commands(
-                    &mut primary.quality_gate,
+                    &mut primary.checks,
                     &mut primary.format,
                     &mut primary.testing,
                 );

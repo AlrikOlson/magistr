@@ -1,24 +1,24 @@
 use std::time::Duration;
 
 use super::*;
-use crate::validate::{Gate, GateResult, ValidationResult};
+use crate::validate::{StandardCheck, StandardCheckResult, ValidationResult};
 
-fn make_gate_result(gate: Gate, passed: bool, secs: f64) -> GateResult {
-    GateResult {
-        gate,
+fn make_check_result(check: StandardCheck, passed: bool, secs: f64) -> StandardCheckResult {
+    StandardCheckResult {
+        check,
         passed,
         duration: Duration::from_secs_f64(secs),
         output: String::new(),
-        command: format!("cmd-{}", gate.label()),
+        command: format!("cmd-{}", check.label()),
     }
 }
 
 fn all_pass_result() -> ValidationResult {
     ValidationResult {
         results: vec![
-            make_gate_result(Gate::Check, true, 1.2),
-            make_gate_result(Gate::Test, true, 5.3),
-            make_gate_result(Gate::Lint, true, 0.8),
+            make_check_result(StandardCheck::Check, true, 1.2),
+            make_check_result(StandardCheck::Test, true, 5.3),
+            make_check_result(StandardCheck::Lint, true, 0.8),
         ],
     }
 }
@@ -26,9 +26,9 @@ fn all_pass_result() -> ValidationResult {
 fn mixed_result() -> ValidationResult {
     ValidationResult {
         results: vec![
-            make_gate_result(Gate::Check, true, 1.0),
-            make_gate_result(Gate::Test, false, 3.0),
-            make_gate_result(Gate::Lint, false, 0.5),
+            make_check_result(StandardCheck::Check, true, 1.0),
+            make_check_result(StandardCheck::Test, false, 3.0),
+            make_check_result(StandardCheck::Lint, false, 0.5),
         ],
     }
 }
@@ -42,9 +42,9 @@ fn pr_comment_has_header() {
 }
 
 #[test]
-fn pr_comment_has_gate_table() {
+fn pr_comment_has_check_table() {
     let md = generate_pr_comment(&all_pass_result(), None);
-    assert!(md.contains("| Gate | Status | Duration |"));
+    assert!(md.contains("| Check | Status | Duration |"));
     assert!(md.contains("| check |"));
     assert!(md.contains("| test |"));
     assert!(md.contains("| lint |"));
@@ -54,14 +54,14 @@ fn pr_comment_has_gate_table() {
 fn pr_comment_shows_pass_status() {
     let md = generate_pr_comment(&all_pass_result(), None);
     assert!(md.contains("✅ PASS"));
-    assert!(md.contains("**All gates passed**"));
+    assert!(md.contains("**All checks passed**"));
 }
 
 #[test]
 fn pr_comment_shows_fail_status() {
     let md = generate_pr_comment(&mixed_result(), None);
     assert!(md.contains("❌ FAIL"));
-    assert!(md.contains("**2 gate(s) failed**"));
+    assert!(md.contains("**2 check(s) failed**"));
 }
 
 #[test]

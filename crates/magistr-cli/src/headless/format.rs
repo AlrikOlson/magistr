@@ -7,7 +7,7 @@ use clap::ValueEnum;
 
 /// Output format for headless mode.
 ///
-/// Controls how session events and gate results are rendered when running
+/// Controls how session events and check results are rendered when running
 /// without the interface (e.g., in CI pipelines).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum)]
 pub enum OutputFormat {

@@ -119,11 +119,11 @@ fn all_of_tool_no_match_different_tool() {
     assert!(!rule.matches("Write", &json!({})));
 }
 
-// ── Quality gate rules ─────────────────────────────────────────
+// ── Check rules ─────────────────────────────────────────
 
 #[test]
-fn quality_gate_rules_creates_rules() {
-    let rules = rules_from_quality_gates(
+fn checks_rules_creates_rules() {
+    let rules = rules_from_checks(
         "cargo check --workspace",
         "cargo test --workspace",
         "cargo clippy --workspace -- -D warnings",
@@ -138,8 +138,8 @@ fn quality_gate_rules_creates_rules() {
 }
 
 #[test]
-fn quality_gate_rules_skips_empty() {
-    let rules = rules_from_quality_gates("cargo check", "", "cargo clippy");
+fn checks_rules_skips_empty() {
+    let rules = rules_from_checks("cargo check", "", "cargo clippy");
     assert_eq!(rules.len(), 2);
 }
 

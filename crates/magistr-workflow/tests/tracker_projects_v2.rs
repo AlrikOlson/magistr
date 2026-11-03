@@ -17,7 +17,7 @@
 //! `fixtures/projects_v2_fields.json` is not hand-written. It is the byte-exact
 //! answer GitHub gave for a real board, captured by
 //! `tests/tracker_live_projects_v2.rs`, and the tests that read it exist so that
-//! what GitHub ACTUALLY returns gates the discovery layer instead of what the
+//! what GitHub ACTUALLY returns checks the discovery layer instead of what the
 //! transport's author imagined. Two assumptions died on contact with it; see
 //! the tests for which.
 

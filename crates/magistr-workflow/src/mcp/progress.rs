@@ -1,7 +1,7 @@
 //! Liveness progress for long tool calls.
 //!
 //! Several tools do real work behind a single silent `tools/call`:
-//! `check_step` with a `command` runs an actual gate, `tracker push` walks a
+//! `check_step` with a `command` runs an actual check, `tracker push` walks a
 //! network under a rate budget, the sweep reconciles, sync back-fills a corpus.
 //! From outside, every one of them is byte-for-byte indistinguishable from a
 //! wedged server. The failure that causes is not incorrectness — it is a human
@@ -19,7 +19,7 @@
 //! whose entire purpose is trust.
 //!
 //! The tick is therefore a *liveness* signal, not a completion estimate. That
-//! is also the thing a person waiting on a gate actually wants: not "how far",
+//! is also the thing a person waiting on a check actually wants: not "how far",
 //! but "still alive, and here is how long it has been".
 //!
 //! # Why the first tick is delayed
@@ -29,7 +29,7 @@
 //! majority of this server's ~48 tools return in single-digit milliseconds.
 //! Ticking from t=0 would spray a notification at every trivial call for no
 //! human benefit. [`FIRST_TICK`] is what makes the feature *silent* in the
-//! common case while still firing several times for even the fastest real gate.
+//! common case while still firing several times for even the fastest real check.
 //!
 //! # Degrade, never fail
 //!
@@ -66,10 +66,10 @@ use rmcp::{
 ///
 /// Above the fast-call population (single-digit ms) and below the floor of the
 /// slow one (7.5s warm `cargo test`), so trivial calls stay silent while every
-/// real gate still reports.
+/// real check still reports.
 pub const FIRST_TICK: Duration = Duration::from_secs(2);
 
-/// Spacing between ticks once they start. Bounds a 90s gate to ~44 tiny
+/// Spacing between ticks once they start. Bounds a 90s check to ~44 tiny
 /// notifications.
 pub const TICK_INTERVAL: Duration = Duration::from_secs(2);
 
@@ -182,7 +182,7 @@ mod tests {
     #[test]
     fn first_tick_is_above_the_fast_call_population_and_below_the_slow_one() {
         // Not a taste check: 2s is the measured boundary between the ~48 tools
-        // that return in milliseconds and the 7.5s floor of a warm gate.
+        // that return in milliseconds and the 7.5s floor of a warm check.
         assert_eq!(FIRST_TICK, Duration::from_secs(2));
         assert!(FIRST_TICK < Duration::from_millis(7500));
     }

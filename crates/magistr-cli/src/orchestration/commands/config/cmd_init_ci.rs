@@ -29,11 +29,8 @@ pub fn cmd_init_ci(
     )
     .unwrap_or_else(|_| config::preset::fallback_preset());
 
-    let yaml = scaffold::ci::generate_workflow(
-        stack.language,
-        stack.package_manager,
-        &preset.quality_gate,
-    );
+    let yaml =
+        scaffold::ci::generate_workflow(stack.language, stack.package_manager, &preset.checks);
 
     // The workflow file is an administrative change like any other: planned
     // first, then applied through the administrative service, which
@@ -73,7 +70,7 @@ pub fn cmd_init_ci(
             eprintln!(
                 "  {}",
                 fmt::dim(&format!(
-                    "Stack: {} + {} | Gates: check → test → lint",
+                    "Stack: {} + {} | Checks: check → test → lint",
                     stack.language.as_str(),
                     stack.package_manager.as_str(),
                 ))

@@ -36,13 +36,13 @@ pub fn error(message: impl Into<String>) -> ErrorEnvelope {
 #[derive(Debug, Serialize)]
 pub struct ValidationOutput {
     pub all_passed: bool,
-    pub gates: Vec<GateOutput>,
+    pub checks: Vec<ValidationCheckOutput>,
     pub total_duration_ms: u64,
 }
 
-/// A single gate result for JSON output.
+/// A single check result for JSON output.
 #[derive(Debug, Serialize)]
-pub struct GateOutput {
+pub struct ValidationCheckOutput {
     pub name: String,
     pub passed: bool,
     pub duration_ms: u64,
@@ -53,11 +53,11 @@ impl From<&crate::validate::ValidationResult> for ValidationOutput {
     fn from(result: &crate::validate::ValidationResult) -> Self {
         Self {
             all_passed: result.all_passed(),
-            gates: result
+            checks: result
                 .results
                 .iter()
-                .map(|g| GateOutput {
-                    name: g.gate.label().to_string(),
+                .map(|g| ValidationCheckOutput {
+                    name: g.check.label().to_string(),
                     passed: g.passed,
                     duration_ms: g.duration.as_millis() as u64,
                     command: g.command.clone(),

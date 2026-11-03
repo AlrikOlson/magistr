@@ -1,7 +1,7 @@
 //! Trait abstraction for permission evaluation.
 //!
 //! Enables dependency injection and testability by decoupling permission
-//! logic from the concrete profile/rules/gate-command configuration.
+//! logic from the concrete profile/rules/check-command configuration.
 
 use super::permission_decision::PermissionDecision;
 
@@ -9,7 +9,7 @@ use super::permission_decision::PermissionDecision;
 ///
 /// The default implementation ([`DefaultPermissionPolicy`](super::DefaultPermissionPolicy))
 /// delegates to the existing `evaluate()` function with a configured profile,
-/// rules, and gate commands. Alternative implementations enable testing
+/// rules, and check commands. Alternative implementations enable testing
 /// permission-dependent code without real config.
 pub trait PermissionPolicy: Send + Sync {
     /// Evaluate whether a tool call should be allowed, denied, or prompted.

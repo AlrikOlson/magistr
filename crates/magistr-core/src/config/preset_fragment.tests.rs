@@ -5,7 +5,7 @@ fn parse_toml_minimal() {
     let toml = r#"
 name = "my-team"
 
-[quality_gate]
+[checks]
 check = "cargo check"
 test = "cargo test"
 "#;
@@ -15,7 +15,7 @@ test = "cargo test"
     assert_eq!(frag.merge_strategy, MergeStrategy::Replace);
     assert!(frag.extends.is_none());
     assert_eq!(
-        frag.quality_gate.as_ref().unwrap().check.as_deref(),
+        frag.checks.as_ref().unwrap().check.as_deref(),
         Some("cargo check")
     );
 }
@@ -30,7 +30,7 @@ extends = "rust"
 merge_strategy = "append"
 extra_allowed_tools = ["Bash(make:*)"]
 
-[quality_gate]
+[checks]
 check = "cargo check --workspace"
 test = "cargo nextest run"
 lint = "cargo clippy -- -D warnings"
@@ -59,7 +59,7 @@ test_dir = "alongside"
 fn parse_json_fragment() {
     let json = r#"{
         "name": "legacy",
-        "quality_gate": { "check": "npm run build" }
+        "checks": { "check": "npm run build" }
     }"#;
     let frag = UserPresetFragment::from_json(json).unwrap();
     assert_eq!(frag.name, "legacy");
@@ -74,7 +74,7 @@ fn roundtrip_toml() {
         layer_type: FragmentLayerType::ProjectLocal,
         extends: Some("python".into()),
         merge_strategy: MergeStrategy::Replace,
-        quality_gate: Some(QualityGateOverride {
+        checks: Some(StandardChecksOverride {
             check: Some("mypy .".into()),
             test: None,
             lint: None,
@@ -97,7 +97,7 @@ fn to_override_converts_correctly() {
         layer_type: FragmentLayerType::ProjectLocal,
         extends: None,
         merge_strategy: MergeStrategy::Replace,
-        quality_gate: Some(QualityGateOverride {
+        checks: Some(StandardChecksOverride {
             check: Some("make check".into()),
             test: None,
             lint: None,
@@ -108,7 +108,7 @@ fn to_override_converts_correctly() {
     };
 
     let ov = frag.to_override();
-    assert_eq!(ov.quality_gate.unwrap().check.unwrap(), "make check");
+    assert_eq!(ov.checks.unwrap().check.unwrap(), "make check");
     assert_eq!(ov.extra_allowed_tools, vec!["Read"]);
 }
 
@@ -120,7 +120,7 @@ fn validate_empty_name() {
         layer_type: FragmentLayerType::ProjectLocal,
         extends: None,
         merge_strategy: MergeStrategy::Replace,
-        quality_gate: Some(QualityGateOverride::default()),
+        checks: Some(StandardChecksOverride::default()),
         format: None,
         testing: None,
         extra_allowed_tools: vec![],
@@ -137,7 +137,7 @@ fn validate_no_overrides() {
         layer_type: FragmentLayerType::ProjectLocal,
         extends: None,
         merge_strategy: MergeStrategy::Replace,
-        quality_gate: None,
+        checks: None,
         format: None,
         testing: None,
         extra_allowed_tools: vec![],
@@ -154,7 +154,7 @@ fn validate_empty_extends() {
         layer_type: FragmentLayerType::ProjectLocal,
         extends: Some("".into()),
         merge_strategy: MergeStrategy::Replace,
-        quality_gate: Some(QualityGateOverride::default()),
+        checks: Some(StandardChecksOverride::default()),
         format: None,
         testing: None,
         extra_allowed_tools: vec![],
@@ -163,14 +163,14 @@ fn validate_empty_extends() {
 }
 
 #[test]
-fn validate_empty_gate_command_warns() {
+fn validate_empty_check_command_warns() {
     let frag = UserPresetFragment {
-        name: "warn-gates".into(),
+        name: "warn-checks".into(),
         description: None,
         layer_type: FragmentLayerType::ProjectLocal,
         extends: None,
         merge_strategy: MergeStrategy::Replace,
-        quality_gate: Some(QualityGateOverride {
+        checks: Some(StandardChecksOverride {
             check: Some("".into()),
             test: Some("".into()),
             lint: None,
@@ -180,12 +180,12 @@ fn validate_empty_gate_command_warns() {
         extra_allowed_tools: vec![],
     };
     let warnings = frag.validate();
-    let gate_warns: Vec<_> = warnings
+    let check_warns: Vec<_> = warnings
         .iter()
-        .filter(|w| w.field.starts_with("quality_gate"))
+        .filter(|w| w.field.starts_with("checks"))
         .collect();
-    assert_eq!(gate_warns.len(), 2);
-    assert!(gate_warns.iter().all(|w| !w.is_error));
+    assert_eq!(check_warns.len(), 2);
+    assert!(check_warns.iter().all(|w| !w.is_error));
 }
 
 #[test]
@@ -196,7 +196,7 @@ fn load_from_toml_file() {
         &path,
         r#"
 name = "file-test"
-[quality_gate]
+[checks]
 check = "echo ok"
 "#,
     )
@@ -212,7 +212,7 @@ fn load_from_json_file() {
     let path = dir.path().join("my-preset.json");
     std::fs::write(
         &path,
-        r#"{"name": "json-test", "quality_gate": {"check": "echo ok"}}"#,
+        r#"{"name": "json-test", "checks": {"check": "echo ok"}}"#,
     )
     .unwrap();
 
@@ -231,7 +231,7 @@ fn save_and_reload() {
         layer_type: FragmentLayerType::UserOverride,
         extends: None,
         merge_strategy: MergeStrategy::Append,
-        quality_gate: Some(QualityGateOverride {
+        checks: Some(StandardChecksOverride {
             check: Some("make".into()),
             test: None,
             lint: None,
@@ -254,7 +254,7 @@ fn resolve_inheritance_rust() {
         layer_type: FragmentLayerType::ProjectLocal,
         extends: Some("rust".into()),
         merge_strategy: MergeStrategy::Replace,
-        quality_gate: Some(QualityGateOverride {
+        checks: Some(StandardChecksOverride {
             check: Some("cargo check --all-features".into()),
             test: None,
             lint: None,
@@ -266,9 +266,9 @@ fn resolve_inheritance_rust() {
 
     let resolved = frag.resolve_inheritance().unwrap().unwrap();
     // Check command was overridden
-    assert_eq!(resolved.quality_gate.check, "cargo check --all-features");
+    assert_eq!(resolved.checks.check, "cargo check --all-features");
     // Test command inherited from rust preset
-    assert!(!resolved.quality_gate.test.is_empty());
+    assert!(!resolved.checks.test.is_empty());
 }
 
 #[test]
@@ -279,7 +279,7 @@ fn resolve_inheritance_none() {
         layer_type: FragmentLayerType::ProjectLocal,
         extends: None,
         merge_strategy: MergeStrategy::Replace,
-        quality_gate: None,
+        checks: None,
         format: None,
         testing: None,
         extra_allowed_tools: vec![],
@@ -296,7 +296,7 @@ fn resolve_inheritance_unknown_preset() {
         layer_type: FragmentLayerType::ProjectLocal,
         extends: Some("brainfuck".into()),
         merge_strategy: MergeStrategy::Replace,
-        quality_gate: None,
+        checks: None,
         format: None,
         testing: None,
         extra_allowed_tools: vec![],

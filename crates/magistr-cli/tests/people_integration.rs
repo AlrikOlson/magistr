@@ -372,7 +372,7 @@ fn a_viewer_may_not_take_a_session_over_but_an_admin_may() {
         .stdout(predicate::str::contains("s-alice"));
 }
 
-// ── 5. Verified identity gates the roster when the team asks ────────
+// ── 5. Verified identity checks the roster when the team asks ────────
 
 #[test]
 fn a_provider_requiring_roster_refuses_a_self_asserted_edit() {

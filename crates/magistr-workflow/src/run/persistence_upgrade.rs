@@ -8,26 +8,32 @@ impl Persistence {
     /// progress, waiting, done, finished), versions 1 to 3 name plan tasks
     /// `task:` instead of `chunk:`, versions 1 to 4 point progress at its
     /// decision `note` and name notes `decision:`, and versions 1 to 5 name
-    /// requests `request:` instead of `signal:`. Current readers stay strict and
+    /// requests `request:` instead of `signal:`. Version 6 changes no words in
+    /// the document: version 7 marks that the execution's check results name
+    /// their check `check`, which [`Self::upgrade_check_result`] converts
+    /// before the document is republished. Current readers stay strict and
     /// never invent identities. The caller holds the owner/document locks and
     /// retains the original bytes.
     pub fn upgrade_document(bytes: &[u8], project_id: &str) -> Result<Vec<u8>, ReadError> {
         let mut value: Value = serde_json::from_slice(bytes).map_err(schema)?;
         let version = value["schema_version"].as_u64();
         match version {
-            Some(1..=5) => {
+            Some(1..=6) => {
                 // Run documents never stored run references as strings, so only
                 // the plan task, note and request prefixes change here.
                 let words = match version {
-                    Some(5) => crate::infra::StoredRefWords::BeforeRequestWords,
-                    Some(4) => crate::infra::StoredRefWords::BeforeDecisionWords,
-                    _ => crate::infra::StoredRefWords::BeforePlanWords,
+                    Some(6) => None,
+                    Some(5) => Some(crate::infra::StoredRefWords::BeforeRequestWords),
+                    Some(4) => Some(crate::infra::StoredRefWords::BeforeDecisionWords),
+                    _ => Some(crate::infra::StoredRefWords::BeforePlanWords),
                 };
-                crate::infra::CrossRef::upgrade_stored_refs(&mut value, words);
+                if let Some(words) = words {
+                    crate::infra::CrossRef::upgrade_stored_refs(&mut value, words);
+                }
                 if matches!(version, Some(1 | 2)) {
                     rename_document_words(&mut value)?;
                 }
-                if version != Some(5) {
+                if !matches!(version, Some(5 | 6)) {
                     for_each_cycle(&mut value, rename_note_words)?;
                 }
                 if version == Some(1) {
@@ -61,8 +67,9 @@ impl Persistence {
     }
 
     /// Convert one stored check result to the run vocabulary: its target
-    /// names a step (`step_id`, `step_instance`). Converting a current
-    /// record changes nothing.
+    /// names a step (`step_id`, `step_instance`), and it names its check
+    /// `check` (before the check words, `gate`). Converting a current record
+    /// changes nothing.
     pub fn upgrade_check_result(bytes: &[u8]) -> Result<Vec<u8>, ReadError> {
         let mut value: Value = serde_json::from_slice(bytes).map_err(schema)?;
         let record = value
@@ -73,6 +80,7 @@ impl Persistence {
             changed |= rename_key(target, "task_id", "step_id")?;
             changed |= rename_key(target, "task_instance", "step_instance")?;
         }
+        changed |= rename_key(record, "gate", "check")?;
         if !changed {
             return Ok(bytes.to_vec());
         }

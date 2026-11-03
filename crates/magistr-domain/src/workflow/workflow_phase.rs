@@ -11,7 +11,7 @@ pub enum WorkflowPhase {
     Planning,
     /// Implementing the plan with TDD.
     Executing,
-    /// Running quality gates, updating spec, committing.
+    /// Running checks, updating spec, committing.
     Verifying,
     /// Iteration complete — committed and cleaned up.
     Complete,

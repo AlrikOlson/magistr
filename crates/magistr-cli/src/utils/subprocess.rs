@@ -7,7 +7,7 @@
 //! is ended gracefully — `SIGTERM`, [`SIGTERM_GRACE`], `SIGKILL`, reap — and
 //! the group is registered with [`super::child_guard`] for the life of the
 //! run so a hard exit still cleans it up. What is decided here is the
-//! *admission*: the line is the configured gate command a caller resolved,
+//! *admission*: the line is the configured check command a caller resolved,
 //! and it is always a shell line, never an argv.
 
 use std::path::Path;
@@ -138,7 +138,7 @@ pub(crate) async fn run_guarded(
     process.run(&cancel, sink).await
 }
 
-/// The answer for a gate with no command configured: nothing ran.
+/// The answer for a check with no command configured: nothing ran.
 pub(crate) fn skipped() -> CommandResult {
     CommandResult {
         exit_code: 0,
@@ -162,7 +162,7 @@ pub(crate) fn spawn_failed(error: &std::io::Error) -> CommandResult {
     }
 }
 
-/// The gate's account of an outcome: partial output kept, and how the
+/// The check's account of an outcome: partial output kept, and how the
 /// run ended named on stderr when it was not the child's own exit.
 pub(crate) fn command_result(outcome: ProcessOutcome, timeout_secs: u64) -> CommandResult {
     let exit_code = if outcome.fault.is_some() {

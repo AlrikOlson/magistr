@@ -198,7 +198,7 @@ pub trait WorkflowStepPlugin: Send {
 /// A workflow step plugin implementation backed by a [`PluginInstance`].
 ///
 /// Translates trait method calls into JSON-line protocol requests and
-/// parses the responses. Mirrors the [`super::gate_trait::SubprocessGate`]
+/// parses the responses. Mirrors the [`super::check_trait::SubprocessCheck`]
 /// pattern.
 pub struct SubprocessWorkflowStep {
     /// The activated plugin instance.

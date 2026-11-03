@@ -9,7 +9,7 @@
 //! Four claims, one test each, so a single regression cannot hide behind
 //! another's failure:
 //!
-//! 1. a slow `check_step` gate emits ticks against the caller's OWN token,
+//! 1. a slow `check_step` check emits ticks against the caller's OWN token,
 //! 2. those ticks are liveness signals — rising counter, no fabricated `total`,
 //!    message by exact value,
 //! 3. a call shorter than the first-tick window stays silent (claim 3a), and
@@ -124,14 +124,14 @@ async fn open_an_active_task(
         "arrange_steps",
         args(json!({
             "action": "add",
-            "step_id": "gate",
-            "title": "run a slow gate",
+            "step_id": "check",
+            "title": "run a slow check",
             "step_type": "test",
         })),
     ))
     .await
     .unwrap();
-    peer.call_tool(call("start_step", args(json!({ "step_id": "gate" }))))
+    peer.call_tool(call("start_step", args(json!({ "step_id": "check" }))))
         .await
         .unwrap();
 }
@@ -159,7 +159,7 @@ async fn a_slow_run_check_emits_progress_against_the_callers_token() {
                 "check_step",
                 args(json!({
                     "type": "test",
-                    "name": "slow gate",
+                    "name": "slow check",
                     "command": "sleep 5",
                 })),
             ))),
@@ -193,7 +193,7 @@ async fn a_slow_run_check_emits_progress_against_the_callers_token() {
         );
     }
 
-    // The result is unaffected: the gate really ran and really passed.
+    // The result is unaffected: the check really ran and really passed.
     let ServerResult::CallToolResult(result) = response else {
         panic!("expected a CallToolResult");
     };
@@ -201,7 +201,7 @@ async fn a_slow_run_check_emits_progress_against_the_callers_token() {
     assert_eq!(
         structured.pointer("/check/value/passed"),
         Some(&json!(true)),
-        "the gate's real outcome must survive being narrated: {structured}"
+        "the check's real outcome must survive being narrated: {structured}"
     );
 
     let _ = client.cancel().await;
@@ -222,7 +222,7 @@ async fn ticks_rise_carry_no_fake_total_and_name_the_tool_and_elapsed_time() {
             "check_step",
             args(json!({
                 "type": "test",
-                "name": "slow gate",
+                "name": "slow check",
                 "command": "sleep 5",
             })),
         ))
@@ -240,7 +240,7 @@ async fn ticks_rise_carry_no_fake_total_and_name_the_tool_and_elapsed_time() {
         );
         assert_eq!(
             tick.total, None,
-            "a shelled-out gate has no honest denominator; `total` must stay absent"
+            "a shelled-out check has no honest denominator; `total` must stay absent"
         );
         // Exact value, not "is_some()": an empty or generic message is a
         // notification a human learns nothing from, and would pass a shape check.
@@ -286,7 +286,7 @@ async fn a_call_shorter_than_the_first_tick_stays_silent() {
             "check_step",
             args(json!({
                 "type": "test",
-                "name": "quick gate",
+                "name": "quick check",
                 "command": "sleep 1",
             })),
         ))

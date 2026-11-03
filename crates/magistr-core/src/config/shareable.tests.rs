@@ -18,7 +18,7 @@ fn sample_project_config() -> ProjectConfig {
             linter: "clippy".into(),
             formatter: "rustfmt".into(),
         },
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: "cargo check --all-targets".into(),
             test: "cargo test".into(),
             lint: "cargo clippy -- -D warnings".into(),
@@ -38,7 +38,7 @@ fn sample_project_config() -> ProjectConfig {
         },
         reference_repos: vec![],
         state_prefix: "test-project".into(),
-        custom_gates: vec![],
+        custom_checks: vec![],
         guards: Default::default(),
         hints: vec![],
         lifecycle_hooks: vec![],
@@ -62,7 +62,7 @@ fn sample_preset() -> ShareablePreset {
             linter: "clippy".into(),
             formatter: "rustfmt".into(),
         },
-        quality_gate: ShareableQualityGate {
+        checks: ShareableChecks {
             check: "cargo check --all-targets".into(),
             test: "cargo test".into(),
             lint: "cargo clippy -- -D warnings".into(),
@@ -90,9 +90,9 @@ fn from_project_config_captures_all_fields() {
     assert_eq!(preset.stack.test_framework, "cargo-test");
     assert_eq!(preset.stack.linter, "clippy");
     assert_eq!(preset.stack.formatter, "rustfmt");
-    assert_eq!(preset.quality_gate.check, "cargo check --all-targets");
-    assert_eq!(preset.quality_gate.test, "cargo test");
-    assert_eq!(preset.quality_gate.lint, "cargo clippy -- -D warnings");
+    assert_eq!(preset.checks.check, "cargo check --all-targets");
+    assert_eq!(preset.checks.test, "cargo test");
+    assert_eq!(preset.checks.lint, "cargo clippy -- -D warnings");
     assert_eq!(preset.format.command, "cargo fmt");
     assert_eq!(preset.format.extensions, vec![".rs"]);
     assert_eq!(preset.testing.companion_pattern, "tests/{{name}}_test.rs");
@@ -121,7 +121,7 @@ fn toml_output_is_readable() {
     let toml_str = preset.to_toml().expect("serialize");
     assert!(toml_str.contains("name = \"test-project\""));
     assert!(toml_str.contains("[stack]"));
-    assert!(toml_str.contains("[quality_gate]"));
+    assert!(toml_str.contains("[checks]"));
     assert!(toml_str.contains("[format]"));
     assert!(toml_str.contains("[testing]"));
 }
@@ -219,14 +219,14 @@ fn sanitize_prefix_works() {
 }
 
 #[test]
-fn round_trip_quality_gate_conversion() {
-    let qg = QualityGate {
+fn round_trip_checks_conversion() {
+    let qg = StandardChecks {
         check: "cargo check".into(),
         test: "cargo test".into(),
         lint: "cargo clippy".into(),
     };
-    let shareable = ShareableQualityGate::from(&qg);
-    let back: QualityGate = QualityGate::from(&shareable);
+    let shareable = ShareableChecks::from(&qg);
+    let back: StandardChecks = StandardChecks::from(&shareable);
     assert_eq!(qg, back);
 }
 
@@ -293,25 +293,25 @@ fn validate_empty_language_returns_error() {
 #[test]
 fn validate_empty_check_command_returns_warning() {
     let mut preset = sample_preset();
-    preset.quality_gate.check = String::new();
+    preset.checks.check = String::new();
     let warnings = preset.validate();
-    assert!(warnings.iter().any(|w| w.field == "quality_gate.check"));
+    assert!(warnings.iter().any(|w| w.field == "checks.check"));
 }
 
 #[test]
 fn validate_empty_test_command_returns_warning() {
     let mut preset = sample_preset();
-    preset.quality_gate.test = String::new();
+    preset.checks.test = String::new();
     let warnings = preset.validate();
-    assert!(warnings.iter().any(|w| w.field == "quality_gate.test"));
+    assert!(warnings.iter().any(|w| w.field == "checks.test"));
 }
 
 #[test]
 fn validate_empty_lint_command_returns_warning() {
     let mut preset = sample_preset();
-    preset.quality_gate.lint = String::new();
+    preset.checks.lint = String::new();
     let warnings = preset.validate();
-    assert!(warnings.iter().any(|w| w.field == "quality_gate.lint"));
+    assert!(warnings.iter().any(|w| w.field == "checks.lint"));
 }
 
 #[test]
@@ -335,7 +335,7 @@ fn validate_multiple_issues_returns_multiple_warnings() {
     let mut preset = sample_preset();
     preset.name = String::new();
     preset.stack.language = String::new();
-    preset.quality_gate.check = String::new();
+    preset.checks.check = String::new();
     let warnings = preset.validate();
     assert!(warnings.len() >= 3);
 }

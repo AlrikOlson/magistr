@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "go vet ./...",
     "test": "go test -race ./..."
   },

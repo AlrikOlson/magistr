@@ -1,13 +1,13 @@
 use super::*;
 
 use crate::types::{
-    FormatConfig, FormatConfigOverride, Preset, PresetOverride, QualityGate, QualityGateOverride,
-    TestingConfig,
+    FormatConfig, FormatConfigOverride, Preset, PresetOverride, StandardChecks,
+    StandardChecksOverride, TestingConfig,
 };
 
 fn base_preset() -> Preset {
     Preset {
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: "cargo check".to_string(),
             test: "cargo test".to_string(),
             lint: "cargo clippy".to_string(),
@@ -30,7 +30,7 @@ fn make_layer(layer_type: PresetLayerType, name: &str, check_cmd: &str) -> Prese
         layer_type,
         name: name.to_string(),
         overrides: PresetOverride {
-            quality_gate: Some(QualityGateOverride {
+            checks: Some(StandardChecksOverride {
                 check: Some(check_cmd.to_string()),
                 test: None,
                 lint: None,
@@ -60,9 +60,9 @@ fn single_layer_applies_override() {
         "cargo check --all-targets",
     ));
     let result = pipeline.apply(base);
-    assert_eq!(result.quality_gate.check, "cargo check --all-targets");
+    assert_eq!(result.checks.check, "cargo check --all-targets");
     // Unoverridden fields preserved
-    assert_eq!(result.quality_gate.test, "cargo test");
+    assert_eq!(result.checks.test, "cargo test");
 }
 
 #[test]
@@ -89,7 +89,7 @@ fn layers_applied_in_type_order() {
 
     let result = pipeline.apply(base);
     // UserOverride is last, so it wins
-    assert_eq!(result.quality_gate.check, "user-check");
+    assert_eq!(result.checks.check, "user-check");
 }
 
 #[test]
@@ -109,7 +109,7 @@ fn later_layer_type_overrides_earlier() {
     ));
 
     let result = pipeline.apply(base);
-    assert_eq!(result.quality_gate.check, "docker-check");
+    assert_eq!(result.checks.check, "docker-check");
 }
 
 #[test]
@@ -141,7 +141,7 @@ fn user_override_always_wins() {
     ));
 
     let result = pipeline.apply(base);
-    assert_eq!(result.quality_gate.check, "user-check");
+    assert_eq!(result.checks.check, "user-check");
 }
 
 #[test]
@@ -157,9 +157,9 @@ fn missing_layers_graceful_fallback() {
     ));
 
     let result = pipeline.apply(base);
-    assert_eq!(result.quality_gate.check, "prisma-check");
+    assert_eq!(result.checks.check, "prisma-check");
     // Other fields preserved from base
-    assert_eq!(result.quality_gate.test, "cargo test");
+    assert_eq!(result.checks.test, "cargo test");
     assert_eq!(result.format.command, "rustfmt");
 }
 
@@ -175,7 +175,7 @@ fn add_optional_skips_none() {
     )));
     assert_eq!(pipeline.len(), 1);
     let result = pipeline.apply(base);
-    assert_eq!(result.quality_gate.check, "diesel-check");
+    assert_eq!(result.checks.check, "diesel-check");
 }
 
 #[test]
@@ -187,7 +187,7 @@ fn extra_allowed_tools_accumulate() {
         layer_type: PresetLayerType::Database,
         name: "sqlx".to_string(),
         overrides: PresetOverride {
-            quality_gate: None,
+            checks: None,
             format: None,
             testing: None,
             extra_allowed_tools: vec!["Bash(sqlx:*)".to_string()],
@@ -197,7 +197,7 @@ fn extra_allowed_tools_accumulate() {
         layer_type: PresetLayerType::CiCd,
         name: "github-actions".to_string(),
         overrides: PresetOverride {
-            quality_gate: None,
+            checks: None,
             format: None,
             testing: None,
             extra_allowed_tools: vec!["Bash(gh:*)".to_string()],
@@ -228,7 +228,7 @@ fn same_type_layers_preserve_insertion_order() {
     ));
 
     let result = pipeline.apply(base);
-    assert_eq!(result.quality_gate.check, "check-b");
+    assert_eq!(result.checks.check, "check-b");
 }
 
 #[test]
@@ -269,7 +269,7 @@ fn format_override_in_pipeline() {
         layer_type: PresetLayerType::Deployment,
         name: "docker".to_string(),
         overrides: PresetOverride {
-            quality_gate: None,
+            checks: None,
             format: Some(FormatConfigOverride {
                 extensions: None,
                 command: None,

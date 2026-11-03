@@ -31,7 +31,7 @@ fn step(id: &str, checks: usize) -> Step {
             .map(|_| Check {
                 check_result_id: None,
                 check_type: CheckType::Test,
-                name: "gate".to_owned(),
+                name: "check".to_owned(),
                 passed: false,
                 details: String::new(),
                 required: true,

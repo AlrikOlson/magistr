@@ -210,7 +210,7 @@ test('runtime effects stay in the entry module and exclude models, files, proces
     source.indexOf('const READS'),
     source.indexOf('function redraw'),
   )
-  assert.doesNotMatch(reads, /start_step|magistr_gate|focus_set|start_task/)
+  assert.doesNotMatch(reads, /start_step|magistr_check|focus_set|start_task/)
   assert.match(source, /consent:/)
   assert.match(source, /reads\.size >= 2/)
   assert.match(source, /actionInFlight/)
@@ -229,7 +229,7 @@ test('wire validation covers every rendered collection and preserves Windows and
       'context',
       {
         ...f.context,
-        check_result: { gate: 'check', target: {}, freshness: { paths: 'bad' } },
+        check_result: { check: 'check', target: {}, freshness: { paths: 'bad' } },
       },
     ],
     ['work', { records: [{ ...f.work, acceptance: 'bad' }] }],

@@ -1,6 +1,6 @@
 //! A pseudo-terminal pair (Unix only): the child gets the slave as its
 //! stdout and stderr so it sees a tty — colours, progress bars, its own
-//! width — and the master is what the owner reads and streams. The gate
+//! width — and the master is what the owner reads and streams. The check
 //! runner's [`OutputMode::Terminal`](crate::OutputMode::Terminal) and the
 //! ACP agent's terminals both run on this pair.
 

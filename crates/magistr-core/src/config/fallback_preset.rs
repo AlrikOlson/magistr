@@ -5,7 +5,7 @@ use crate::types::Preset;
 /// Get a fallback preset for unknown languages.
 pub fn fallback_preset() -> Preset {
     Preset {
-        quality_gate: crate::types::QualityGate {
+        checks: crate::types::StandardChecks {
             check: String::new(),
             test: String::new(),
             lint: String::new(),

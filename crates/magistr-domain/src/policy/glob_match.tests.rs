@@ -10,14 +10,14 @@ fn a_pattern_with_no_wildcard_is_equality() {
 #[test]
 fn matching_ignores_case() {
     assert!(glob_match("bash", "Bash"));
-    assert!(glob_match("MCP__*", "mcp__magistr__gate"));
+    assert!(glob_match("MCP__*", "mcp__magistr__check"));
 }
 
 #[test]
 fn star_spans_any_run_including_none() {
     assert!(glob_match("*", ""));
     assert!(glob_match("*", "anything at all"));
-    assert!(glob_match("mcp__*", "mcp__magistr__gate"));
+    assert!(glob_match("mcp__*", "mcp__magistr__check"));
     assert!(glob_match("*.rs", "src/main.rs"));
     assert!(glob_match("src/*/mod.rs", "src/team/mod.rs"));
     assert!(!glob_match("*.rs", "Cargo.toml"));

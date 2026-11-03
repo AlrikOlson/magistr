@@ -95,7 +95,7 @@ fn the_run_store_moves_once_and_keeps_its_original() {
     let run = read(data.join(format!(
         "run/executions/{EXECUTION}/sessions/{PROJECT}.json"
     )));
-    assert_eq!(run["schema_version"], 6);
+    assert_eq!(run["schema_version"], 7);
     assert_eq!(run["goal"]["status"], "finished");
     assert!(run.get("objective").is_none() && run.get("tasks").is_none());
     assert_eq!(run["steps"][0]["status"], "done");
@@ -565,7 +565,7 @@ fn an_interrupted_move_keeps_exact_staged_records_and_rebuilds_the_rest() {
     assert!(!data.join("run/sessions/.staging-abc123").exists());
     assert_eq!(
         read(data.join(format!("run/sessions/{PROJECT}.json")))["schema_version"],
-        6
+        7
     );
 }
 
@@ -739,4 +739,94 @@ fn a_plan_saved_before_the_team_words_converts_in_place_and_keeps_its_original()
     );
     let reader = NativeReader::open(&config);
     assert!(reader.plan_snapshot().is_ok());
+}
+
+/// A real check result as the run words left it: its target names a step,
+/// and it still names its check `gate`.
+const CHECK_WORDS: &[u8] = include_bytes!("fixtures/before-check-words-check-result.json");
+
+/// A store the team words already converted: every family has moved and the
+/// run document is version 6, whose check results name their check `gate`.
+#[test]
+fn check_results_saved_before_the_check_words_convert_with_their_run_document() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("project");
+    fs::create_dir_all(root.join(".magistr")).unwrap();
+    fs::write(
+        root.join(".magistr/project.json"),
+        format!(r#"{{"project":{{"id":"{PROJECT}"}}}}"#),
+    )
+    .unwrap();
+    let config =
+        NativeConfig::from_lookup(&root, |_| None).with_data_dir(dir.path().join("data/workflow"));
+    let data = config.data_dir().to_path_buf();
+    // Version 7 changes no words in the run document itself, so the real
+    // version-2 document converted and stamped 6 is what version 6 wrote.
+    let current =
+        magistr_workflow::run::persistence::Persistence::upgrade_document(RUN, PROJECT).unwrap();
+    let current = String::from_utf8(current).unwrap();
+    let run = current
+        .replacen("\"schema_version\":7", "\"schema_version\":6", 1)
+        .into_bytes();
+    assert_ne!(run, current.as_bytes(), "the version leads the document");
+    let id = json(CHECK_WORDS)["id"].as_str().unwrap().to_owned();
+    // This working copy's own execution, the one readers check.
+    let execution = config.execution_context().key();
+    let document = data.join(format!(
+        "run/executions/{execution}/sessions/{PROJECT}.json"
+    ));
+    let check_result = data.join(format!(
+        "run/executions/{execution}/check_results/{PROJECT}/{id}.json"
+    ));
+    for (file, bytes) in [(&document, run.as_slice()), (&check_result, CHECK_WORDS)] {
+        fs::create_dir_all(file.parent().unwrap()).unwrap();
+        fs::write(file, bytes).unwrap();
+    }
+    assert!(
+        StoreWordsUpgrade::ready(&config, PROJECT).is_err(),
+        "readers wait while check results still say gate"
+    );
+
+    StoreWordsUpgrade::apply(&config, PROJECT).unwrap();
+
+    let converted = read(check_result.clone());
+    let original = json(CHECK_WORDS);
+    assert_eq!(converted["check"], original["gate"]);
+    assert!(converted.get("gate").is_none());
+    let mut rest = converted.clone();
+    rest.as_object_mut().unwrap().remove("check");
+    let mut before = original.clone();
+    before.as_object_mut().unwrap().remove("gate");
+    assert_eq!(rest, before, "only the check's name moves");
+    assert_eq!(read(document.clone())["schema_version"], 7);
+    let backups = data.join("backups/before-check-words/run/executions");
+    assert_eq!(
+        fs::read(backups.join(format!("{execution}/check_results/{PROJECT}/{id}.json"))).unwrap(),
+        CHECK_WORDS,
+        "the check result's original is recoverable byte for byte"
+    );
+    assert_eq!(
+        fs::read(backups.join(format!("{execution}/sessions/{PROJECT}.json"))).unwrap(),
+        run,
+        "so is the run document's"
+    );
+    let stored: magistr_workflow::run::domain::check_result::CheckResult =
+        serde_json::from_slice(&fs::read(&check_result).unwrap())
+            .expect("current readers accept it");
+    assert_eq!(stored.check, original["gate"].as_str().unwrap());
+    assert!(
+        serde_json::from_slice::<magistr_workflow::run::domain::check_result::CheckResult>(
+            CHECK_WORDS
+        )
+        .is_err(),
+        "current readers refuse the old spelling"
+    );
+    let after = fs::read(&check_result).unwrap();
+    StoreWordsUpgrade::apply(&config, PROJECT).unwrap();
+    assert_eq!(
+        fs::read(&check_result).unwrap(),
+        after,
+        "a second pass changes nothing"
+    );
+    StoreWordsUpgrade::ready(&config, PROJECT).expect("ready after the upgrade");
 }

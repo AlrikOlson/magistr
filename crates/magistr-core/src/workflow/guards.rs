@@ -37,8 +37,8 @@ impl GuardRunner {
         if config.clean_tree {
             guards.push(Box::new(CleanTreeGuard));
         }
-        if config.quality_gate {
-            guards.push(Box::new(super::gate_guard::QualityGateGuard::new()));
+        if config.checks {
+            guards.push(Box::new(super::check_guard::CheckGuard::new()));
         }
         Self { guards }
     }

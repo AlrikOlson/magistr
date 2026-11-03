@@ -7,7 +7,7 @@ import threading
 import unittest
 from urllib.parse import quote
 
-import public_link_check as gate
+import public_link_check as check
 
 
 class FixtureHandler(BaseHTTPRequestHandler):
@@ -61,7 +61,7 @@ class PublicReadinessTests(unittest.TestCase):
 
     def guide(self, pages=None, strings=None, extra=""):
         """Serve every manual guide; `strings` and `extra` address the installation guide."""
-        pages = dict(gate.GUIDE_CONTRACT if pages is None else pages)
+        pages = dict(check.GUIDE_CONTRACT if pages is None else pages)
         if strings is not None:
             pages["installation"] = strings
         for name, items in pages.items():
@@ -73,7 +73,7 @@ class PublicReadinessTests(unittest.TestCase):
             self.set_route(f"/site/docs/{name}/", "<html><body>" + text + tail + "</body></html>")
 
     def audit(self, stage="release", version="0.1.0"):
-        return gate.audit(stage, version, site=self.site, repository=self.repository,
+        return check.audit(stage, version, site=self.site, repository=self.repository,
                           github=self.github, api=self.base + "/api",
                           npm=self.base + "/npm")
 
@@ -88,7 +88,7 @@ class PublicReadinessTests(unittest.TestCase):
         self.assertIn("Current installation guide", self.failures(self.audit("website")))
 
     def test_missing_contract_is_blocked_even_when_other_steps_and_status_pass(self):
-        self.guide(pages={**gate.GUIDE_CONTRACT, "agents": gate.GUIDE_CONTRACT["agents"][:-1]})
+        self.guide(pages={**check.GUIDE_CONTRACT, "agents": check.GUIDE_CONTRACT["agents"][:-1]})
         self.assertEqual(self.failures(self.audit("website")), ["Current agents guide"])
 
     def test_every_manual_guide_is_checked_for_its_own_commands(self):
@@ -97,7 +97,7 @@ class PublicReadinessTests(unittest.TestCase):
                          ["Uninstall guide", "Current uninstall guide"])
 
     def test_script_text_cannot_fake_visible_instructions(self):
-        self.guide(strings=(), extra="<script>" + " ".join(gate.GUIDE_CONTRACT["installation"]) + "</script>")
+        self.guide(strings=(), extra="<script>" + " ".join(check.GUIDE_CONTRACT["installation"]) + "</script>")
         self.assertIn("Current installation guide", self.failures(self.audit("website")))
 
     def test_html_entities_and_spans_are_read_but_styles_are_ignored(self):

@@ -45,9 +45,9 @@ pub fn cmd_archetypes(dir: &Path, detail: bool, json_output: bool) -> eyre::Resu
 
         if detail {
             println!("    Commands:");
-            println!("      check: {}", arch.quality_gate.check);
-            println!("      test:  {}", arch.quality_gate.test);
-            println!("      lint:  {}", arch.quality_gate.lint);
+            println!("      check: {}", arch.checks.check);
+            println!("      test:  {}", arch.checks.test);
+            println!("      lint:  {}", arch.checks.lint);
             println!(
                 "    Format:    {} ({})",
                 arch.format.command,
@@ -67,7 +67,7 @@ pub fn cmd_archetypes(dir: &Path, detail: bool, json_output: bool) -> eyre::Resu
                 println!("    Model:     {model}");
             }
         } else {
-            println!("    Gates:     check | test | lint");
+            println!("    Checks:     check | test | lint");
             println!(
                 "    Format:    {}",
                 if arch.format.command.is_empty() {

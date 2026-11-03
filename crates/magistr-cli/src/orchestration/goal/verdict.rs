@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// A verdict is an *opinion*: it never completes a task by itself. See
 /// [`Decision::reconcile`](super::Decision::reconcile) for what the loop
-/// does with it against the real gates.
+/// does with it against the real checks.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Verdict {
     /// Whether the judge holds the acceptance to be met.

@@ -10,13 +10,13 @@ PROJECT_ROOT="${RATCHET_PROJECT_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 RATCHET="$PROJECT_ROOT/.magistr/legacy-gui-ratchet.json"
 
 if [[ ! -f "$RATCHET" ]]; then
-    echo "legacy-gui: no frozen-tree declaration at .magistr/legacy-gui-ratchet.json; nothing to gate"
+    echo "legacy-gui: no frozen-tree declaration at .magistr/legacy-gui-ratchet.json; nothing to check"
     exit 0
 fi
 
 # --- Declaration ------------------------------------------------------------
 # Flat JSON: {"path": …, "files": N, "loc": M, "unlock": [...], "replacement": …}
-# Parsed with sed so the gate has no jq dependency.
+# Parsed with sed so the check has no jq dependency.
 
 ratchet_number() {
     sed -nE "s/.*\"$1\"[[:space:]]*:[[:space:]]*([0-9]+).*/\1/p" "$RATCHET" | head -n 1

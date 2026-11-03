@@ -295,7 +295,7 @@ fn plain_value_len(s: &str) -> usize {
 }
 
 /// What the log lane needs to reach a backend. `None` anywhere means "not
-/// configured", which is the enable gate — no endpoint, no thread, no network.
+/// configured", which is the enable check — no endpoint, no thread, no network.
 #[derive(Debug, Clone)]
 pub struct LogConfig {
     pub endpoint: String,
@@ -642,7 +642,7 @@ impl<S: Subscriber> Layer<S> for OtelLogLayer {
 mod tests {
     use super::*;
 
-    /// The gate. A disabled lane must spawn nothing and accept everything,
+    /// The check. A disabled lane must spawn nothing and accept everything,
     /// because it is what runs on every machine that never configured OTLP.
     #[test]
     fn a_disabled_lane_is_inert() {

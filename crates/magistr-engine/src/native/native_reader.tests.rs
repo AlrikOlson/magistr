@@ -386,7 +386,7 @@ fn complete_execution_history_survives_new_work_and_failed_reads() {
         .unwrap();
     writer.start_step("verify").unwrap();
     let check = writer
-        .run_record_gate(
+        .run_record_check(
             Some("verify"),
             "focused",
             "true".into(),

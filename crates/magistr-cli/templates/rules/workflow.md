@@ -31,7 +31,7 @@ Use the skill matching the user’s request:
 - `/next-loop`: bounded fresh-session handoff; one complete task per
   agent session, then a new session before the next task. The native CLI
   loop owns automatic chaining.
-- `/validate`: configured gates with accurate results and recording status.
+- `/validate`: configured checks with accurate results and recording status.
 - `/roadmap-refresh` or `/signals`: research and native state updates within
   the requested scope, without implementing the resulting features.
 - `/init`: tailor project configuration without starting implementation.
@@ -44,5 +44,5 @@ reasoning and the local iteration log, not always-loaded project instructions.
 Keep native phase indicators current during an implementation iteration with
 `magistr_set_phase`: `research`, `plan`, `execute`, `verify`, then `done` only
 after the commit exists. Claude guard hooks remain additional enforcement;
-follow the skills’ explicit recorded gates and lifecycle verification even
+follow the skills’ explicit recorded checks and lifecycle verification even
 when the host does not run those hooks.

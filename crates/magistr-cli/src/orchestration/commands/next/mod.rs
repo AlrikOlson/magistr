@@ -1,9 +1,9 @@
 //! Workflow commands: next, next --continue, next-loop (TUI and non-TUI variants),
-//! and headless/gate-only modes for CI pipelines.
+//! and headless/check-only modes for CI pipelines.
 
 mod cmd_next;
+mod cmd_next_check_only;
 mod cmd_next_continue;
-mod cmd_next_gate_only;
 mod cmd_next_headless;
 mod cmd_next_loop;
 mod cmd_next_loop_headless;
@@ -11,8 +11,8 @@ mod cmd_resolve_dispatch;
 pub use cmd_resolve_dispatch::cmd_resolve_dispatch;
 
 pub use cmd_next::cmd_next;
+pub use cmd_next_check_only::cmd_next_check_only;
 pub use cmd_next_continue::cmd_next_continue;
-pub use cmd_next_gate_only::cmd_next_gate_only;
 pub use cmd_next_headless::cmd_next_headless;
 pub use cmd_next_loop::cmd_next_loop;
 pub use cmd_next_loop_headless::cmd_next_loop_headless;

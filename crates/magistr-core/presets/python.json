@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "python -m mypy . --ignore-missing-imports --exclude '(\\.venv|__pycache__|\\.tox|dist|build)/'",
     "test": "python -m pytest",
     "lint": "ruff check ."

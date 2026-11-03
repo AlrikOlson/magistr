@@ -82,7 +82,7 @@ where
 /// It is not proof the wait is present. Deleting the call here costs only ~15%
 /// of runs (18 failures in 120 measured with the wait removed), so a behavioural
 /// suite cannot defend its own call sites. That job belongs to the structural
-/// gate in `src/cloud/mod.rs`.
+/// check in `src/cloud/mod.rs`.
 ///
 /// Returns `Err` with a diagnostic naming every path actually seen, so a
 /// timeout reads as "the push never happened" rather than "the sleep was short".
@@ -115,13 +115,13 @@ pub async fn wait_for_request(
     Err(format!("{timeout}; {seen}"))
 }
 
-/// The helper's own gates. Compiled into every binary that pulls in `support`,
+/// The helper's own checks. Compiled into every binary that pulls in `support`,
 /// so each one proves the tool it depends on rather than assuming it.
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// THE VACUITY GATE. A readiness helper that returns success unconditionally
+    /// THE VACUITY CHECK. A readiness helper that returns success unconditionally
     /// looks IDENTICAL to a working one from every happy path — every cloud sync
     /// test would still pass, because the push it is waiting for lands anyway.
     /// Only a case where the awaited thing never happens can tell them apart.

@@ -118,11 +118,11 @@ fn discover_executable_plugin() {
         .join(".magistr")
         .join("plugins")
         .join("my-backend");
-    write_executable_manifest(&plugin_dir, "my-gate", "quality-gate");
+    write_executable_manifest(&plugin_dir, "my-check", "check");
 
     let plugins = discover_plugins(tmp.path(), None);
     assert_eq!(plugins.len(), 1);
-    assert_eq!(plugins[0].manifest.kind, PluginKind::QualityGate);
+    assert_eq!(plugins[0].manifest.kind, PluginKind::Check);
     assert!(plugins[0].manifest.kind.is_executable());
     assert_eq!(
         plugins[0].manifest.entrypoint.as_deref(),

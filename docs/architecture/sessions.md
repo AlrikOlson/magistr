@@ -334,7 +334,7 @@ first one requests the process-wide
 [`Shutdown`](../../crates/magistr-cli/src/utils/shutdown.rs): every resident
 session owner takes its `interrupt` path (no further turn, the active one
 cancelled, the transport closed after the provider's terminal response);
-every owned subprocess — a gate on its pty, a workflow check, a workspace
+every owned subprocess — a check on its pty, a workflow check, a workspace
 command — is ended the way a cancel ends it (`SIGTERM`, the grace,
 `SIGKILL`, reaped and its group settled) and answers `cancelled`; the loop
 driver admits no further attempt. The command then finishes its own
@@ -344,8 +344,8 @@ A second `SIGINT`, or the settle deadline (`Shutdown::SETTLE_DEADLINE`, 8 s)
 passing first, is the distinct emergency exit: the terminal restored, the
 registered process groups killed, exit 130, and a stderr line naming which
 way out was taken. The process fixtures in `tests/cli_integration.rs`
-interrupt a real `magistr validate --ci` over a sleeping gate (settled and
-joined, exit 130, no emergency line) and over a `TERM`-ignoring gate with a
+interrupt a real `magistr validate --ci` over a sleeping check (settled and
+joined, exit 130, no emergency line) and over a `TERM`-ignoring check with a
 second interrupt (emergency line, the child gone).
 
 Not covered: an external `SIGINT` to the interactive cockpit drains its
@@ -410,7 +410,7 @@ contracts have no ACP or Tokio dependency.
 The [shared permission service](permissions.md) evaluates received ACP requests
 before cockpit presentation or noninteractive response selection. Headless
 supervision owns this handling at startup, including plain sessions. Profiles, rules,
-gates and governance use the selected project directory. Noninteractive Ask
+checks and governance use the selected project directory. Noninteractive Ask
 refuses by default; `.claude/permissions.toml` can explicitly select
 `noninteractive = "legacy-automatic-approval"` as an explicit current setting.
 The pre-release policy permits removing this setting with its callers and tests.

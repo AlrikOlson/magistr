@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use super::{
-    DiscoveredServer, GeneratedFile, RecommendedAgent, RecommendedFormat, RecommendedQualityGate,
+    DiscoveredServer, GeneratedFile, RecommendedAgent, RecommendedChecks, RecommendedFormat,
     RecommendedTesting,
 };
 
@@ -26,9 +26,9 @@ pub struct Recommendations {
     /// Suggested project type (cli, web-app, api, library, monorepo, other).
     #[serde(default)]
     pub suggested_project_type: Option<String>,
-    /// AI-recommended quality gate commands (override static preset).
+    /// AI-recommended check commands (override static preset).
     #[serde(default)]
-    pub quality_gate: Option<RecommendedQualityGate>,
+    pub checks: Option<RecommendedChecks>,
     /// AI-recommended format configuration (override static preset).
     #[serde(default)]
     pub format: Option<RecommendedFormat>,
@@ -90,7 +90,7 @@ pub enum ConfidenceLevel {
 /// that get parsed into the real types during scaffolding.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct RecommendedLifecycleHook {
-    /// Event string (e.g. "on_enter(verify)", "on_gate_pass").
+    /// Event string (e.g. "on_enter(verify)", "on_check_pass").
     pub event: String,
     /// MCP tool name (mutually exclusive with `command`).
     #[serde(default)]

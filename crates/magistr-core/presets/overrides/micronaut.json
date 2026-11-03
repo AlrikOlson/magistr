@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "mvn compile -q",
     "test": "mvn test -q",
     "lint": "mvn checkstyle:check -q"

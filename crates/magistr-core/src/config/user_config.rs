@@ -465,7 +465,7 @@ pub struct GeneralConfig {
     /// Send native notification on session/workflow completion (default: true).
     pub notifications_completions: Option<bool>,
 
-    /// Send native notification on gate failure (default: true).
+    /// Send native notification on check failure (default: true).
     pub notifications_failures: Option<bool>,
 
     /// Send native notification on permission request (default: true).

@@ -39,7 +39,7 @@ plans without resetting them.
    ambiguous work within the chosen feature.
 2. Invoke exactly one complete `{{invoke}}next` workflow. When its stop rule is
    reached, end this loop invocation; the return is not permission to select
-   another task in the same session. A recoverable gate or test failure stays
+   another task in the same session. A recoverable check or test failure stays
    inside this iteration: diagnose the cause, repair it within authorized
    scope, and rerun and record the affected checks. An unfinished commit means
    continue the current iteration, not select another task or stop solely

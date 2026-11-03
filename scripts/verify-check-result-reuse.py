@@ -28,7 +28,7 @@ def main():
             "project": {"name": "check-result-smoke", "description": "", "type": "cli"},
             "stack": {"language": "rust", "framework": "none", "package_manager": "cargo",
                       "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"},
-            "quality_gate": {"check": "cargo check", "test": "cargo test", "lint": "cargo clippy"},
+            "checks": {"check": "cargo check", "test": "cargo test", "lint": "cargo clippy"},
             "format": {"extensions": ["rs"], "command": "cargo fmt"},
             "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
             "reference_repos": [], "state_prefix": "check-result-smoke", "plan_exports": False,

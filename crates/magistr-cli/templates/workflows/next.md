@@ -77,12 +77,12 @@ for delegation; the coordinating session owns shared run state and file scope.
    criteria. New goals explicitly use `verification: "focused"` for
    bounded changes, including code; resuming does not recreate the goal.
    Run formatting and the relevant crate, interface, and visual checks through
-   server-executed `check_step` or named `magistr_gate` calls. A plan task
-   alone does not require every project gate. Use `verification: "full"` and
-   `magistr_gate(gate: "all")` only for an explicit full-suite request or when
+   server-executed `check_step` or named `magistr_check` calls. A plan task
+   alone does not require every project check. Use `verification: "full"` and
+   `magistr_check(check: "all")` only for an explicit full-suite request or when
    a concrete cross-cutting risk requires it; state that reason before running.
-2. Require all required gates to pass **and be recorded**. Inspect `recorded`,
-   `note`, exit codes, and native errors. Diagnose gate and test failures,
+2. Require all required checks to pass **and be recorded**. Inspect `recorded`,
+   `note`, exit codes, and native errors. Diagnose check and test failures,
    repair their cause within authorized scope, and rerun affected checks.
    A recoverable failure is part of this iteration, not a reason to stop it.
    Verify the integrated artifact against each acceptance criterion. If step
@@ -105,7 +105,7 @@ for delegation; the coordinating session owns shared run state and file scope.
    iteration's changes. Commit with a conventional message, preserving
    unrelated user changes.
 6. Confirm the commit and announce `magistr_set_phase(phase: "done")`. Report
-   task, acceptance/gate results, commit, limitations, and next candidate.
+   task, acceptance/check results, commit, limitations, and next candidate.
    **Stop.** Only an explicitly invoked `{{invoke}}next-loop` owns further chaining.
 
 If progress truly requires user input or external state, exceeds authorized

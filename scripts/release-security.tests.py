@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Security gate regression checks: target selection, reviewed scope and stale evidence."""
+"""Security check regression checks: target selection, reviewed scope and stale evidence."""
 from datetime import datetime, timedelta, timezone
 import importlib.util
 import json
@@ -16,7 +16,7 @@ SOURCE = "1" * 40
 NOW = datetime(2026, 10, 20, tzinfo=timezone.utc)
 
 
-class SecurityGateTests(unittest.TestCase):
+class SecurityCheckTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)

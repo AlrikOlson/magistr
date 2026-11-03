@@ -2,12 +2,12 @@
 
 use std::fmt::Write as _;
 
-use super::gate_evidence::GateEvidence;
+use super::check_evidence::CheckEvidence;
 use super::verdict::Verdict;
 
 /// Everything the judge is given: the task's acceptance list, entire
 /// and unabridged — there is no 500-character cap here, which is one of
-/// the three reasons the native judge leads — the real gate
+/// the three reasons the native judge leads — the real check
 /// evidence, and the tail of what the agent said.
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct JudgeInput {
@@ -17,8 +17,8 @@ pub struct JudgeInput {
     pub title: String,
     /// Every acceptance criterion, verbatim.
     pub acceptance: Vec<String>,
-    /// The gates, as they really ran.
-    pub gates: Vec<GateEvidence>,
+    /// The checks, as they really ran.
+    pub checks: Vec<CheckEvidence>,
     /// Previously executed checks whose receipts still certify the current source.
     pub recorded_checks: Vec<String>,
     /// The last of the agent's own text this iteration.
@@ -43,8 +43,8 @@ impl JudgeInput {
         );
         let _ = writeln!(
             out,
-            "Judge the acceptance criteria below against the evidence. The gate results \
-             are the real exit codes of the project's quality gates — they are facts, not \
+            "Judge the acceptance criteria below against the evidence. The check results \
+             are the real exit codes of the project's checks — they are facts, not \
              the agent's account. If the evidence does not clearly show a criterion is met, \
              it is not met. If the transcript does not contain clear evidence that the \
              acceptance is satisfied, answer {{\"ok\": false, \"reason\": \"insufficient evidence\"}}."
@@ -60,12 +60,12 @@ impl JudgeInput {
         for (n, criterion) in self.acceptance.iter().enumerate() {
             let _ = writeln!(out, "{}. {criterion}", n + 1);
         }
-        let _ = writeln!(out, "\n## Quality gates (real exit codes)");
-        if self.gates.is_empty() && self.recorded_checks.is_empty() {
-            let _ = writeln!(out, "(no gates are configured)");
+        let _ = writeln!(out, "\n## Checks (real exit codes)");
+        if self.checks.is_empty() && self.recorded_checks.is_empty() {
+            let _ = writeln!(out, "(no checks are configured)");
         }
-        for gate in &self.gates {
-            let _ = writeln!(out, "{}", gate.line());
+        for check in &self.checks {
+            let _ = writeln!(out, "{}", check.line());
         }
         for name in &self.recorded_checks {
             let _ = writeln!(
@@ -78,7 +78,7 @@ impl JudgeInput {
         let _ = writeln!(
             out,
             "\n## Answer\nReply with one JSON object and nothing else, matching this schema:\n{}\n\
-             Use {{\"ok\": true}} only when every criterion is met and every gate passed; \
+             Use {{\"ok\": true}} only when every criterion is met and every check passed; \
              {{\"ok\": false}} to iterate again; {{\"ok\": false, \"impossible\": true}} when the \
              acceptance cannot be met as written and a human must decide.",
             Verdict::SCHEMA

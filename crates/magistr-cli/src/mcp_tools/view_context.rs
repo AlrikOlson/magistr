@@ -79,14 +79,14 @@ pub(super) fn tool() -> Tool {
 
 pub(super) fn check_choices(config: &ProjectConfig) -> Result<Vec<Value>, String> {
     let mut names = vec!["check".to_owned(), "test".to_owned(), "lint".to_owned()];
-    names.extend(config.custom_gates.iter().map(|gate| gate.name.clone()));
+    names.extend(config.custom_checks.iter().map(|check| check.name.clone()));
     names.sort();
     names.dedup();
     names
         .into_iter()
         .filter(|key| key != "all")
         .map(|key| {
-            let specs = super::gate::resolve_gates(config, &key)?;
+            let specs = super::check::resolve_checks(config, &key)?;
             Ok(json!({
                 "key": key,
                 "commands": specs.iter().filter(|s| !s.command.trim().is_empty())

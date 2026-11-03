@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "php artisan --version && php -l $(find app -name '*.php' | head -50)",
     "test": "php artisan test",
     "lint": "vendor/bin/phpstan analyse --no-progress"

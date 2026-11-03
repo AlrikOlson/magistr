@@ -284,15 +284,15 @@ entrypoint = "bin/openai"
 }
 
 #[test]
-fn validate_quality_gate_plugin() {
+fn validate_checks_plugin() {
     let dir = TempDir::new().unwrap();
     write_file(
         dir.path(),
         MANIFEST_FILENAME,
         r#"
-name = "sonar-gate"
+name = "sonar-check"
 version = "0.5.0"
-kind = "quality-gate"
+kind = "check"
 entrypoint = "bin/sonar"
 permissions = ["network", "file-read"]
 "#,
@@ -329,9 +329,9 @@ fn load_manifest_backend_with_dependencies() {
         dir.path(),
         MANIFEST_FILENAME,
         r#"
-name = "sonar-gate"
+name = "sonar-check"
 version = "1.0.0"
-kind = "quality-gate"
+kind = "check"
 entrypoint = "bin/sonar"
 permissions = ["network", "env-read"]
 
@@ -345,7 +345,7 @@ jig_version = "0.2.0"
     );
 
     let manifest = load_manifest(dir.path()).unwrap();
-    assert_eq!(manifest.kind, PluginKind::QualityGate);
+    assert_eq!(manifest.kind, PluginKind::Check);
     assert_eq!(manifest.entrypoint.as_deref(), Some("bin/sonar"));
     assert_eq!(manifest.dependencies.len(), 1);
     assert_eq!(manifest.dependencies[0].name, "auth-helper");

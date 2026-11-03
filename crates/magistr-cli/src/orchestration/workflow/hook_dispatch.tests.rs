@@ -34,7 +34,7 @@ async fn format_command_runs_successfully() {
             linter: "clippy".into(),
             formatter: "rustfmt".into(),
         },
-        quality_gate: crate::types::QualityGate {
+        checks: crate::types::StandardChecks {
             check: "true".into(),
             test: "true".into(),
             lint: "true".into(),
@@ -54,7 +54,7 @@ async fn format_command_runs_successfully() {
         },
         reference_repos: vec![],
         state_prefix: ".magistr".into(),
-        custom_gates: vec![],
+        custom_checks: vec![],
         guards: Default::default(),
         hints: vec![],
         lifecycle_hooks: vec![],

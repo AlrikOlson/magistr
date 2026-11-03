@@ -51,7 +51,7 @@ pub struct NativeConfig {
     /// project root: `XDG_RUNTIME_DIR`, else `TMPDIR`, else `/tmp`.
     pub(super) runtime_dir: PathBuf,
     /// The host's verification evidence capability — source observation and
-    /// the required gate contracts — composed into the run family of every
+    /// the required check contracts — composed into the run family of every
     /// writer opened on this configuration. A writer opened without one
     /// records checks with no source and cannot complete a task; the host
     /// attaches it at every production admission.

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use super::*;
-use crate::types::{Archetype, FormatConfig, ProjectRole, QualityGate, TestingConfig};
+use crate::types::{Archetype, FormatConfig, ProjectRole, StandardChecks, TestingConfig};
 
 fn make_rust_archetype() -> Archetype {
     Archetype {
@@ -11,7 +11,7 @@ fn make_rust_archetype() -> Archetype {
         framework: Some("axum".into()),
         root: PathBuf::from("services/api"),
         role: ProjectRole::Backend,
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: "cargo check".into(),
             test: "cargo nextest run".into(),
             lint: "cargo clippy -- -D warnings".into(),
@@ -42,7 +42,7 @@ fn make_ts_archetype() -> Archetype {
         framework: Some("nextjs".into()),
         root: PathBuf::from("apps/web"),
         role: ProjectRole::Frontend,
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: "npm run build".into(),
             test: "npm test".into(),
             lint: "npm run lint".into(),

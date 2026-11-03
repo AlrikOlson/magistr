@@ -58,7 +58,12 @@ request 4, decision and run 6), renaming `signal:` references to `request:`;
 request documents also rename their list to `requests`, kind `idea` to
 `suggestion`, status `surfaced` to `raised` and its `surfaced_at` stamp to
 `raised_at`. The team words move plan documents to version 5, renaming a
-focus's `lane` to `team`; no store moves. The engine asks each family's codec
+focus's `lane` to `team`; no store moves. The check words move run documents
+to version 7; the document's own words do not change, but before it is
+republished each of the execution's check results under
+`check_results/<project>/` renames its `gate` to `check`, so an interrupted
+attempt leaves the document older and the next admission finishes the
+results. The engine asks each family's codec
 for its current version rather than keeping its own copy, and every in-place
 conversion keeps its originals in its own `backups/before-<words>/` folder, so
 a later conversion never finds an earlier backup and skips its own. A move stages

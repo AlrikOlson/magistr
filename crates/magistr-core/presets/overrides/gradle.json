@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "./gradlew compileJava",
     "test": "./gradlew test",
     "lint": "./gradlew check"

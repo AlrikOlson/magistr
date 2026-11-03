@@ -746,7 +746,7 @@ fn project_config() -> crate::types::ProjectConfig {
             "language": "rust", "framework": "none", "package_manager": "cargo",
             "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"
         },
-        "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+        "checks": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "true", "extensions": ["rs"]},
         "spec": {"file": "PLAN.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
@@ -761,9 +761,9 @@ pub(in crate::workflow) fn native_engines(tmp: &tempfile::TempDir) -> NativeEngi
     admitted(tmp, magistr_engine::WriterRole::Host)
 }
 
-/// A source that never moves and a project that configures no gates: the
+/// A source that never moves and a project that configures no checks: the
 /// evidence capability every writer here is admitted with, so a recorded
-/// gate certifies a source and a task can complete on it.
+/// check certifies a source and a task can complete on it.
 struct FixedSource;
 
 impl magistr_engine::native::SourceWitness for FixedSource {
@@ -795,9 +795,9 @@ impl magistr_engine::native::EvidencePort for FixedEvidence {
     ) -> std::result::Result<Box<dyn magistr_engine::native::SourceWitness>, String> {
         Ok(Box::new(FixedSource))
     }
-    fn required_gates(
+    fn required_checks(
         &self,
-    ) -> std::result::Result<Vec<magistr_engine::native::GateContract>, String> {
+    ) -> std::result::Result<Vec<magistr_engine::native::CheckContract>, String> {
         Ok(Vec::new())
     }
 }
@@ -813,7 +813,7 @@ fn admitted(tmp: &tempfile::TempDir, role: magistr_engine::WriterRole) -> Native
 }
 
 /// Complete `id` the only way a task completes: a goal scoped to
-/// it, a verification step, a gate recorded green on that step, then
+/// it, a verification step, a check recorded green on that step, then
 /// `plan_complete_task` naming the step.
 pub(in crate::workflow) fn complete_native_task(engines: &NativeEngines, id: &str) {
     engines
@@ -829,8 +829,8 @@ pub(in crate::workflow) fn complete_native_task(engines: &NativeEngines, id: &st
         .expect("step");
     engines.start_step("verify").expect("active");
     engines
-        .run_record_gate(None, "test", "true".into(), 0, String::new(), true, None)
-        .expect("gate");
+        .run_record_check(None, "test", "true".into(), 0, String::new(), true, None)
+        .expect("check");
     engines
         .plan_complete_task(id, Some("step:verify"))
         .expect("complete on the run's check_results");

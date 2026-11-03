@@ -4,8 +4,8 @@ use super::*;
 fn the_three_shapes_round_trip() {
     for (verdict, json) in [
         (
-            Verdict::met("gates green"),
-            r#"{"ok":true,"reason":"gates green"}"#,
+            Verdict::met("checks green"),
+            r#"{"ok":true,"reason":"checks green"}"#,
         ),
         (
             Verdict::not_yet("tests missing"),

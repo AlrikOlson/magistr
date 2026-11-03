@@ -20,7 +20,7 @@ use crate::cli::GuardEvent;
 const BLOCK_EXIT_CODE: i32 = 2;
 
 /// The frozen-tree declaration, shared with `scripts/legacy-gui-ratchet.sh`
-/// (the `legacy-gui` quality gate). The name travels with whichever tree is
+/// (the `legacy-gui` check). The name travels with whichever tree is
 /// currently frozen — it was `legacy-tui-ratchet.json` while `src/tui` was —
 /// because a project freezes one tree at a time and the file's name is how
 /// the next reader learns which.

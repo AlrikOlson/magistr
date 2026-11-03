@@ -87,7 +87,7 @@ def fixture(root):
         "format":{"command":"true","extensions":["py"]},
         "testing":{"companion_pattern":"test_{name}.py","test_dir":"."},
         "reference_repos":[],"state_prefix":"mcp-evaluation","plan_exports":False,
-        "quality_gate":{"check":cmd,"test":cmd,"lint":cmd},"lifecycle_hooks":[]}))
+        "checks":{"check":cmd,"test":cmd,"lint":cmd},"lifecycle_hooks":[]}))
     (root/".magistr/workspace.toml").write_text('[edit]\nconfirm_mode = "token"\n[commands]\ntest = "python3 -m unittest -q"\n')
 
 def servers(binary, root, surface, env):

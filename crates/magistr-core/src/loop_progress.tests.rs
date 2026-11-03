@@ -1,5 +1,5 @@
 use super::*;
-use crate::gate::{IterationOutcome, IterationPhase};
+use crate::check::{IterationOutcome, IterationPhase};
 
 #[test]
 fn new_loop_progress() {

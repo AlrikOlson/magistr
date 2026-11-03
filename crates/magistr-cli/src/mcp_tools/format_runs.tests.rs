@@ -3,7 +3,7 @@ use super::*;
 use std::path::PathBuf;
 
 use magistr_core::types::{ProjectRole, TestingConfig};
-use magistr_core::{FormatConfig, QualityGate};
+use magistr_core::{FormatConfig, StandardChecks};
 
 const WORKSPACE_FMT: &str = "cargo fmt --manifest-path rust/Cargo.toml";
 
@@ -15,7 +15,7 @@ fn arch(id: &str, root: &str, command: &str) -> Archetype {
         framework: None,
         root: PathBuf::from(root),
         role: ProjectRole::Unknown,
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: String::new(),
             test: String::new(),
             lint: String::new(),

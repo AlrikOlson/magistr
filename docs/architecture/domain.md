@@ -11,7 +11,7 @@ filesystem, network client, or renderer.
 | `workflow` | Canonical phases, run modes and stopping policy, attempt settlement, iteration status and values, spec completion, workflow command values |
 | `project` | Project context snapshot supplied by effectful adapters |
 | `policy` | Existing governance rules, matching, severity composition, charter decisions and model tiers |
-| `gate` | Gate kinds, statuses and observed outcomes |
+| `check` | Check kinds, statuses and observed outcomes |
 
 ### Cohesive modules
 
@@ -89,7 +89,7 @@ use cases, with concrete adapters supplied by hosts.
 
 ## Run rules
 
-Engine policy and gate modules re-export the domain's types **and module paths**.
+Engine policy and check modules re-export the domain's types **and module paths**.
 Existing imports therefore use the same definitions, rather than copied models.
 The engine retains configuration, lifecycle hooks, tracing and effect adapters.
 Core and engine now re-export the same
@@ -100,7 +100,7 @@ Phase labels are explicit: the domain supplies `Researching`, for example, and
 the [core notification adapter](../../crates/magistr-core/src/workflow_state.rs)
 adds progress punctuation. Equal and forward phase transitions remain accepted,
 and a completed phase can restart at any phase. Spec completion still requires
-a nonempty spec and checked count at least the total. Gate labels, icons,
+a nonempty spec and checked count at least the total. Check labels, icons,
 cached-pass behavior and serialization describe that implementation. They may
 change with the intended design and current tests.
 
@@ -175,7 +175,7 @@ live-provider recovery or desktop integration is claimed.
 ## Enforcement and verification
 
 The CLI integration suite `domain_boundary` runs in the required workspace test
-gate. It checks Cargo dependency metadata and the domain's Rust syntax, including
+check. It checks Cargo dependency metadata and the domain's Rust syntax, including
 inactive configuration branches and companion tests. The reviewed runtime
 dependency closure is Serde and its derive machinery. It rejects effectful
 dependencies, explicit standard-library access, unsafe/FFI, source inclusion,
@@ -217,7 +217,7 @@ cargo nextest run -p magistr-cli --test domain_boundary
 cargo test -p magistr-domain --doc
 ```
 
-The moved policy/gate suites retain their behavior and serialization assertions.
+The moved policy/check suites retain their behavior and serialization assertions.
 Additional tests cover identity scope separation, invalid serialized keys,
 provider correlation, the phase transition matrix, stop boundaries, and negative
 dependency/source fixtures. Run suites cover duplicate settlement, two-attempt

@@ -10,7 +10,7 @@
 //! # Where the budget comes from
 //!
 //! [`NAME_BUDGET`] is not a taste call. It is derived from the canvas map
-//! level's mark size, and it is the number [`fits`] gates on.
+//! level's mark size, and it is the number [`fits`] checks on.
 //!
 //! # Why the id is only a seed
 //!
@@ -91,7 +91,7 @@ pub fn why_unfit(name: &str) -> Option<String> {
 /// whole budget. An empty id is the one exception and it derives to nothing,
 /// because there is nothing to name — the engine rejects that id upstream.
 ///
-/// Pure by design, so the gate can drive it with ids this plan has never
+/// Pure by design, so the check can drive it with ids this plan has never
 /// held. A derivation only ever exercised against live data proves nothing about
 /// the next task anyone writes.
 #[must_use]

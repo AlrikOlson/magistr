@@ -31,8 +31,8 @@ which remain retained reference source in this adoption chunk.
 The `config.json`, `jail.json`, `responses.json` and `content.json` vectors
 extend this corpus for `arch-14c1-workspace-policy`. Each has an ordinary Rust
 integration test and a matching `*-reference.ts` runner that imports the
-pinned implementation. The required `workspace-reference` gate runs all four
-reference runners; root Rust and `workspace-native` gates run their native
+pinned implementation. The required `workspace-reference` check runs all four
+reference runners; root Rust and `workspace-native` checks run their native
 counterparts. No fixture runner starts a workspace server.
 
 - Configuration fixtures compare layered effective settings, command admission,
@@ -72,7 +72,7 @@ and cold/warm maps. `queries-reference.ts` starts the pinned real NAPI core and
 no workspace server. The Rust comparator uses a separate root, native index and
 the actual Magistr parser worker. Both owners are shut down after comparison.
 
-The required `workspace-reference` gate builds the addon first, then explicitly
+The required `workspace-reference` check builds the addon first, then explicitly
 runs `workspace_queries_conformance` with `--ignored`. Its single test compares
 all 15 complete envelopes: rows, hashes, order, confidence/provenance, freshness,
 UTF-16 row token costs, truncation and notes. Only independent cache generation
@@ -110,7 +110,7 @@ read-only opening preserves the file bytes, migrate v1 without changing any
 record or compressed blob, compare session and undo eligibility, and construct
 exact-byte binary restoration plans. The ignored
 `native_append_is_decoded_by_the_pinned_reference_reader` test runs through the
-required `workspace-reference` gate: it appends native zstd binary history to
+required `workspace-reference` check: it appends native zstd binary history to
 both databases and compares every record with the pinned reader's result,
 beside a live WAL writer and after a TRUNCATE writer closes. The pinned Bun
 reader on the verified macOS host refuses a closed WAL database once its

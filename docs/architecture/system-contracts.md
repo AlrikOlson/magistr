@@ -33,9 +33,9 @@ run before a window is created and keep protocol-only stdout.
 
 Root workspace check/Clippy and focused shared-crate tests cover removal and the
 changed dependency closure. Desktop CI explicitly runs its own formatter, check,
-build, Clippy, Nextest, Node input/stream tests and current visual gate on macOS.
+build, Clippy, Nextest, Node input/stream tests and current visual check on macOS.
 macOS 15 runs the shared Rust, website, release-security and extracted CLI package
-gates. Windows only runs the bounded JavaScript adapter contracts; no CI job
+checks. Windows only runs the bounded JavaScript adapter contracts; no CI job
 builds Windows Rust. Build tool versions are read from the root toolchain files,
 and external action commits are pinned and checked. The real macOS journey
 retains light/dark/narrow screenshots, native accessibility and clipboard
@@ -74,7 +74,7 @@ tests for the first group are in the [client inventory](clients.md#client-invent
 | `magistr acp-agent` (hidden) | none; its tools arrive through `mcp` and the bridge | none | the provider side of one session |
 | `magistr codex-launch`, `magistr codex-remove` | none in the wrapper | none | the external runtime; removal is an administrative plan |
 | `magistr guard` | reader | none | none |
-| `magistr validate` | none; runs gates and records nothing | none | none |
+| `magistr validate` | none; runs checks and records nothing | none | none |
 | `magistr init`, `magistr repair`, `magistr remove` | setup checks use read-only context through MCP | administrative plan; connection checks use the workspace owner | none; setup offers a planning prompt |
 | `magistr reset`, `magistr import`, `magistr export`, `magistr preset`, `magistr plugins` | none | none | none |
 | `magistr detect`, `magistr lint`, `magistr doctor`, `magistr config`, `magistr archetypes`, `magistr policy`, `magistr people` | none | none | none |

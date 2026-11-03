@@ -19,8 +19,8 @@ pub enum LoopStage {
     /// a loop that never names its stage reads with the default stage label.
     #[default]
     Agent,
-    /// The gates run as jobs after the turn.
-    Gates,
+    /// The checks run as jobs after the turn.
+    Checks,
     /// The judge is asked about the iteration's task.
     Judge,
 }
@@ -32,7 +32,7 @@ impl LoopStage {
         match self {
             Self::Connecting => "starting the agent",
             Self::Agent => "agent working",
-            Self::Gates => "gates running",
+            Self::Checks => "checks running",
             Self::Judge => "judge deciding",
         }
     }

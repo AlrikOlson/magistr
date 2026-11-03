@@ -95,17 +95,17 @@ fn no_duplicate_for_different_headings() {
 }
 
 #[test]
-fn missing_gates_detected() {
+fn missing_checks_detected() {
     let content = "# My Project\n\nThis is a project without any test commands.\n";
-    let diags = check_no_quality_gates(content);
+    let diags = check_no_checks(content);
     assert_eq!(diags.len(), 1);
-    assert_eq!(diags[0].rule, "missing-gates");
+    assert_eq!(diags[0].rule, "missing-checks");
 }
 
 #[test]
-fn gates_found_with_cargo_test() {
+fn checks_found_with_cargo_test() {
     let content = "Run `cargo test` to verify.\n";
-    let diags = check_no_quality_gates(content);
+    let diags = check_no_checks(content);
     assert!(diags.is_empty());
 }
 

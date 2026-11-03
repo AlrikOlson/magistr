@@ -39,7 +39,7 @@ impl Goal {
     /// length-framed so fields cannot alias. A check_result records the revision
     /// current at admission; completion refuses evidence taken under
     /// another one, so editing the acceptance mid-flight (which keeps the
-    /// run id) still invalidates the gates that were run before it.
+    /// run id) still invalidates the checks that were run before it.
     #[must_use]
     pub fn acceptance_revision(&self) -> String {
         let mut digest = Sha256::new();

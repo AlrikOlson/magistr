@@ -13,7 +13,7 @@ use super::workflow_phase::WorkflowPhase;
 /// unknown languages.
 ///
 /// Presets:
-/// - **Rust**: `magistr_format` on_enter(verify) + `magistr_gate` on_exit(verify)
+/// - **Rust**: `magistr_format` on_enter(verify) + `magistr_check` on_exit(verify)
 /// - **Node/TypeScript/JavaScript**: `magistr_lint` on_enter(verify)
 /// - **Python**: `magistr_format` on_enter(execute)
 #[must_use]
@@ -26,7 +26,7 @@ pub fn preset_for_language(language: &str) -> Vec<LifecycleHook> {
     }
 }
 
-/// Rust: format before verify, run full gate on exit from verify.
+/// Rust: format before verify, run full check on exit from verify.
 fn rust_preset() -> Vec<LifecycleHook> {
     vec![
         LifecycleHook {
@@ -41,10 +41,10 @@ fn rust_preset() -> Vec<LifecycleHook> {
         LifecycleHook {
             event: LifecycleEvent::OnExit(WorkflowPhase::Verifying),
             action: HookAction::McpTool {
-                tool: "magistr_gate".into(),
+                tool: "magistr_check".into(),
                 arguments: serde_json::Value::Null,
             },
-            description: Some("Run quality gate after verification".into()),
+            description: Some("Run check after verification".into()),
             on_failure: OnFailure::FailFast,
         },
     ]

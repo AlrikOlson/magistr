@@ -22,7 +22,7 @@ fn write(dir: &Path, rel: &str, content: &str) {
     std::fs::write(path, content).expect("write");
 }
 
-/// The script the way the gate runs it: through `sh -c`, which follows its
+/// The script the way the check runs it: through `sh -c`, which follows its
 /// shebang to bash.
 fn run(root: &Path) -> Output {
     let script = script().to_string_lossy().replace('\\', "/");
@@ -106,7 +106,7 @@ fn a_public_module_path_may_still_export_only_one_item() {
     );
     let out = run(tmp.path());
     let log = text(&out);
-    assert!(!out.status.success(), "gate stayed green:\n{log}");
+    assert!(!out.status.success(), "check stayed green:\n{log}");
     assert!(
         log.contains(MODULE) && log.contains("pub mod"),
         "the refusal must name the file and the public module path:\n{log}"
@@ -119,7 +119,7 @@ fn a_private_module_nobody_re_exports_is_refused() {
     write(tmp.path(), FACADE, "mod permission;\n");
     let out = run(tmp.path());
     let log = text(&out);
-    assert!(!out.status.success(), "gate stayed green:\n{log}");
+    assert!(!out.status.success(), "check stayed green:\n{log}");
     assert!(
         log.contains(MODULE) && log.contains("pub use permission::"),
         "the refusal must name the missing re-export:\n{log}"
@@ -136,7 +136,7 @@ fn a_module_no_parent_declares_is_refused() {
     );
     let out = run(tmp.path());
     let log = text(&out);
-    assert!(!out.status.success(), "gate stayed green:\n{log}");
+    assert!(!out.status.success(), "check stayed green:\n{log}");
     assert!(
         log.contains(MODULE) && log.contains("mod permission;"),
         "the refusal must name the missing declaration:\n{log}"
@@ -149,7 +149,7 @@ fn a_cohesive_module_without_a_change_rationale_is_refused() {
     write(tmp.path(), MODULE, ITEMS);
     let out = run(tmp.path());
     let log = text(&out);
-    assert!(!out.status.success(), "gate stayed green:\n{log}");
+    assert!(!out.status.success(), "check stayed green:\n{log}");
     assert!(
         log.contains(MODULE) && log.contains("//!"),
         "the refusal must name the missing module doc:\n{log}"
@@ -162,7 +162,7 @@ fn a_cohesive_module_without_companion_tests_is_refused() {
     std::fs::remove_file(tmp.path().join(TESTS)).expect("remove tests");
     let out = run(tmp.path());
     let log = text(&out);
-    assert!(!out.status.success(), "gate stayed green:\n{log}");
+    assert!(!out.status.success(), "check stayed green:\n{log}");
     assert!(
         log.contains(MODULE) && log.contains(TESTS),
         "the refusal must name the missing companion tests:\n{log}"
@@ -177,7 +177,7 @@ fn every_missing_property_is_named_at_once() {
     std::fs::remove_file(tmp.path().join(TESTS)).expect("remove tests");
     let out = run(tmp.path());
     let log = text(&out);
-    assert!(!out.status.success(), "gate stayed green:\n{log}");
+    assert!(!out.status.success(), "check stayed green:\n{log}");
     for needle in ["pub mod", "//!", TESTS] {
         assert!(log.contains(needle), "missing {needle:?} in:\n{log}");
     }
@@ -259,7 +259,7 @@ fn a_crate_root_cannot_be_a_cohesive_module() {
     );
     let out = run(tmp.path());
     let log = text(&out);
-    assert!(!out.status.success(), "gate stayed green:\n{log}");
+    assert!(!out.status.success(), "check stayed green:\n{log}");
     assert!(
         log.contains("crates/magistr-application/src/lib.rs"),
         "{log}"

@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "npx nest build --tsc",
     "test": "npx jest --passWithNoTests",
     "lint": "npx eslint \"{src,apps,libs,test}/**/*.ts\" --max-warnings 0"

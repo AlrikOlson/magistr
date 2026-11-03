@@ -50,7 +50,7 @@ impl Fixture {
             root.join(".magistr/workspace/journal.db"),
         ))
         .expect("sole test journal writer");
-        // The suite exercises the human confirmation gates, which are opt-in.
+        // The suite exercises the human confirmation checks, which are opt-in.
         let mut resolve = ResolveOptions::new(&root);
         resolve
             .session_flags

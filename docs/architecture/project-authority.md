@@ -46,7 +46,7 @@ then applies the shared native setup policy. Approval waits similarly use the
 application capability. CLI and MCP presentation retain their external names
 and ordinary success/error envelopes.
 
-The `native-write-path` gate keeps these boundaries executable: Magistr engine
+The `native-write-path` check keeps these boundaries executable: Magistr engine
 composition is confined to `native`; raw engine reads belong to `NativeReader`;
 native writes and workflow application modules cannot depend on MCP handlers,
 wire argument/result types, JSON result decoding, or noop-waker polling.
@@ -65,10 +65,10 @@ merge cannot resurrect them.
 begins — together with the durable receipt it was admitted under, the
 acceptance revision then current, and the source the workflow observed at
 that moment. Native `check_step` retains this admission across command
-execution inside the workflow crate; `magistr_gate` and the loop driver
+execution inside the workflow crate; `magistr_check` and the loop driver
 retain it through the [composition boundary](application.md#the-composition-boundary)'s
 `AdmittedCheck`. The loop additionally fixes one task admission for the
-complete gate set, including retries. Reusing a task name in a later
+complete check set, including retries. Reusing a task name in a later
 goal cannot collect an earlier command's result.
 
 ### Receipts and the evidence capability
@@ -77,7 +77,7 @@ Every admitted check writes a durable `CheckResult` before its command
 runs (`run/executions/<context-key>/receipts/<project>/<id>.json` beside the session record, one
 file per receipt, published by temp → fsync → rename → fsync-directory;
 in memory when persistence is off). The receipt names the run, task
-instance and per-gate attempt, the gate contract as requested (name, type,
+instance and per-check attempt, the check contract as requested (name, type,
 command, required), the goal's acceptance revision (a content digest
 of description, acceptance criteria, constraints and scope — an in-flight
 `run_open` keeps the run id but moves the revision) and, when the
@@ -94,20 +94,20 @@ still matched (`SourceFreshness`) and how the workflow settled it.
 The evidence capability is the workflow's `EvidencePort`: `observe()`
 answers a `SourceWitness` — held in the admitting process until the check
 settles, consumed once to validate. Each admission captures anew; re-running
-a named gate allocates a new receipt and attempt over the current selected
+a named check allocates a new receipt and attempt over the current selected
 bytes. Direct workflow commands use that observation's workspace as their
-working directory and resolve relative reports there. `required_gates()` answers the
-`GateContract`s the project requires now. Magistr composes exactly one
+working directory and resolve relative reports there. `required_checks()` answers the
+`CheckContract`s the project requires now. Magistr composes exactly one
 implementation, `magistr_core::evidence::WorkspaceEvidence`, from the
 workspace's lock-free `SourceSnapshot` under its default selection policy
 (which hashes `.magistr/project.json` as a config input), the workspace's
 `ConfigDigest` over the external layers the captured project inputs name and
 the shared project settings,
-and the same gate resolver `magistr_gate all` runs (shared as
-`WorkspaceEvidence::gate_contracts` with a loop that runs without a
+and the same check resolver `magistr_check all` runs (shared as
+`WorkspaceEvidence::check_contracts` with a loop that runs without a
 writer). `writer_config` attaches it to the
 `NativeConfig` every production writer is admitted on — the MCP service and
-cockpit host — and the `native-write-path` gate (rule 8)
+cockpit host — and the `native-write-path` check (rule 8)
 refuses a production admission without it; the MCP service and the cockpit
 refuse a writer config that lacks it before taking the lease. Every observation and every
 command runs outside the engine lock, the ledger lock and any workspace
@@ -123,7 +123,7 @@ returns its admission and execution outcome intact and settles the receipt
 a goal rollover keeps its record and never reaches the task that reused
 the name; the MCP adapter reports `stale_result` with the receipt, and host
 runners report an unrecorded result. An observation that cannot be taken
-refuses the admission before anything runs: an unobservable gate is never
+refuses the admission before anything runs: an unobservable check is never
 recorded as evidence.
 
 ### Reusing checks
@@ -158,7 +158,7 @@ cannot be combined with `reuse_only: true`.
 
 Known local test commands are eligible by default. Local Python/JavaScript
 verification scripts also require their script file explicitly named in the input
-closure; project gate policy can disable reuse. The fingerprint observes actual
+closure; project check policy can disable reuse. The fingerprint observes actual
 Python interpreters and installed distributions as well as the selected tools
 and environment. Declared inputs must include all dependencies; external or
 volatile checks must disable reuse.
@@ -221,7 +221,7 @@ first: the current goal must be
 scoped `task:<id>`; the verification task is the caller's `task:` reference
 (a task of the current run) or, absent one, the instance the run's latest
 receipt landed on, and the completion is stored with that reference so it
-always names its task. For every gate contract the project requires, and for
+always names its task. For every check contract the project requires, and for
 every required verified receipt recorded on that instance, the latest receipt
 must have settled `Applied`, passed, been run by a server, run the configured
 command, seen the source and the external configuration unchanged during
@@ -230,10 +230,10 @@ external configuration and acceptance revision current now — each judged
 on its own and named in the refusal; a new owner generation of the same
 bytes is not a change
 ([configuration evidence](configuration.md#configuration-evidence)). Anything else is
-`outstanding` with its reason, and the refusal lists every outstanding gate
+`outstanding` with its reason, and the refusal lists every outstanding check
 and what re-running it would satisfy; earlier failures a later pass
 superseded are reported as `recovered`. A self-reported pass neither
-certifies a configured gate nor blocks. `plan_set_status(done)` and
+certifies a configured check nor blocks. `plan_set_status(done)` and
 accepting a `done` status proposal are refused toward `plan_complete_task`.
 `run_finish`'s report separates `recovered_failures` from
 `outstanding_failures`, and its failed-required warning names only the
@@ -247,7 +247,7 @@ process settles the check, otherwise the source digests are compared
 named; receipt pruning follows the explicit retention policy above. Engines opened without the
 capability (tests that never complete a task) record source-less checks
 and are refused every completion with `NoEvidenceCapability`; the
-`native-write-path` gate's rule 8 is supplementary — it keeps a production
+`native-write-path` check's rule 8 is supplementary — it keeps a production
 writer from being admitted into that refusal rather than being the only
 thing that prevents a permissive completion. A task born `done` (an import,
 a tracker pull, a historical record) is a record, not a completion, and is
@@ -364,7 +364,7 @@ next request and restore its own persisted execution.
 One project publisher supplies the shared sequence and owner epoch. A host can
 start it after opening its engines; publication binds all existing execution
 views before the host serves clients. Run
-events and Magistr phase/gate-output events also carry `execution_key`.
+events and Magistr phase/check-output events also carry `execution_key`.
 The CLI feed delivers those events only to the matching context while
 advancing the cursor for every decoded frame. Shared plan, reasoning and
 request events reach every context. Snapshot readers use the same contextual

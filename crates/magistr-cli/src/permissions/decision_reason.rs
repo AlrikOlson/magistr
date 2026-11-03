@@ -9,7 +9,7 @@ pub enum DecisionReason {
     ProfileDefault,
     /// Matched an explicit auto-allow rule.
     AutoAllowRule(String),
-    /// Matched a batch-approval pattern (e.g., quality gate command).
+    /// Matched a batch-approval pattern (e.g., check command).
     BatchApproval(String),
     /// Tightened by the org's governance policy — the rule's id.
     GovernancePolicy(String),

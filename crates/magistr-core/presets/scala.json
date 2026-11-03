@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "sbt compile",
     "test": "sbt test",
     "lint": "sbt scalafmtCheckAll"

@@ -11,14 +11,14 @@ use super::profile_action::ProfileAction;
 ///
 /// Checks in order:
 /// 1. Explicit auto-allow rules (from config)
-/// 2. Batch approval patterns (quality gate commands)
+/// 2. Batch approval patterns (check commands)
 /// 3. Profile default for the risk level
 pub fn evaluate(
     tool_name: &str,
     tool_input: &serde_json::Value,
     profile: PermissionProfile,
     auto_rules: &[AutoAllowRule],
-    gate_commands: &[String],
+    check_commands: &[String],
 ) -> PermissionDecision {
     let risk = classify_risk(tool_name, tool_input);
 
@@ -34,17 +34,17 @@ pub fn evaluate(
         }
     }
 
-    // Check batch approval for quality gate commands
+    // Check batch approval for check commands
     if tool_name == "Bash"
         && let Some(cmd) = tool_input.get("command").and_then(|v| v.as_str())
     {
-        for gate_cmd in gate_commands {
-            if cmd.trim() == gate_cmd.trim() || cmd.contains(gate_cmd.as_str()) {
+        for check_cmd in check_commands {
+            if cmd.trim() == check_cmd.trim() || cmd.contains(check_cmd.as_str()) {
                 return PermissionDecision {
                     tool_name: tool_name.to_string(),
                     risk,
                     action: ProfileAction::Allow,
-                    reason: DecisionReason::BatchApproval(gate_cmd.clone()),
+                    reason: DecisionReason::BatchApproval(check_cmd.clone()),
                 };
             }
         }

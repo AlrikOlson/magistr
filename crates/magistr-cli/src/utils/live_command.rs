@@ -1,6 +1,6 @@
 //! Run a shell command under a pseudo-terminal and stream what it writes.
 //!
-//! [`run_command_live`] is the runner behind every quality gate. The
+//! [`run_command_live`] is the runner behind every check. The
 //! command sees a tty — colours, progress bars, its own width — every
 //! task it writes reaches the caller's sink raw and in order while it
 //! runs, and the result carries the escape-stripped transcript the trace
@@ -8,7 +8,7 @@
 //! will not open) the same owned process runs on pipes and the sink gets
 //! each task as it lands: a text-only pane rather than a blank one. The
 //! process mechanics — the group, the cap, the cancel, the graceful end —
-//! are [`magistr_process`]'s; what this module decides is that a gate is
+//! are [`magistr_process`]'s; what this module decides is that a check is
 //! a configured shell line on a terminal.
 
 use std::path::Path;
@@ -48,7 +48,7 @@ pub async fn run_command_live(
     };
     if !process.is_terminal() {
         tracing::debug!(
-            target: "magistr::gate",
+            target: "magistr::check",
             "no pty for the command, running it on pipes"
         );
         let outcome = run_guarded(process, cancel, &mut sink).await;

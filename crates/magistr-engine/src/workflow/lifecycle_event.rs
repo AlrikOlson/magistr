@@ -16,10 +16,10 @@ pub enum LifecycleEvent {
     OnIterationStart,
     /// Fired at the end of an iteration.
     OnIterationEnd,
-    /// Fired when all quality gates pass.
-    OnGatePass,
-    /// Fired when a quality gate fails.
-    OnGateFail,
+    /// Fired when all checks pass.
+    OnCheckPass,
+    /// Fired when a check fails.
+    OnCheckFail,
 }
 
 impl fmt::Display for LifecycleEvent {
@@ -29,8 +29,8 @@ impl fmt::Display for LifecycleEvent {
             Self::OnExit(phase) => write!(f, "on_exit({phase})"),
             Self::OnIterationStart => write!(f, "on_iteration_start"),
             Self::OnIterationEnd => write!(f, "on_iteration_end"),
-            Self::OnGatePass => write!(f, "on_gate_pass"),
-            Self::OnGateFail => write!(f, "on_gate_fail"),
+            Self::OnCheckPass => write!(f, "on_check_pass"),
+            Self::OnCheckFail => write!(f, "on_check_fail"),
         }
     }
 }

@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "flutter analyze --no-pub",
     "test": "flutter test",
     "lint": "flutter analyze --fatal-infos --fatal-warnings"

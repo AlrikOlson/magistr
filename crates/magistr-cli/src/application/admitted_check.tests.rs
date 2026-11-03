@@ -1,18 +1,18 @@
 use super::*;
 
 #[tokio::test]
-async fn a_host_gate_reuses_its_actual_execution_and_explicit_reruns_still_run() {
+async fn a_host_check_reuses_its_actual_execution_and_explicit_reruns_still_run() {
     let tmp = tempfile::tempdir().unwrap();
     let (engines, root) = host(&tmp);
     std::fs::create_dir_all(root.join(".magistr")).unwrap();
     let config = serde_json::json!({
         "project":{"name":"test","description":"","type":"cli"},
         "stack":{"language":"rust","framework":"none","package_manager":"cargo","test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
-        "quality_gate":{"check":"printf checked","test":"true","lint":"true"},
+        "checks":{"check":"printf checked","test":"true","lint":"true"},
         "format":{"extensions":["rs"],"command":"cargo fmt"},
         "testing":{"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
         "reference_repos":[],"state_prefix":"test",
-        "verification":{"gates":{"check":{"reuse":true,"inputs":["notes.txt"],"resources":[]}}}
+        "verification":{"checks":{"check":{"reuse":true,"inputs":["notes.txt"],"resources":[]}}}
     });
     std::fs::write(root.join(".magistr/project.json"), config.to_string()).unwrap();
     goal(&engines, "verify");
@@ -26,7 +26,7 @@ async fn a_host_gate_reuses_its_actual_execution_and_explicit_reruns_still_run()
     )
     .unwrap();
     assert!(admitted.reuse(&engines).unwrap().is_none());
-    let run = crate::utils::gate::run_gate(
+    let run = crate::utils::check::run_check(
         "check",
         "printf checked",
         true,
@@ -138,7 +138,7 @@ fn admission_binds_the_step_and_the_source_before_the_run_and_settles_both() {
     let before = admitted.source().expect("observation").revision.clone();
     assert!(!admitted.check_result_id().is_empty());
 
-    // An external edit while the "gate" runs: observed, never journaled.
+    // An external edit while the "check" runs: observed, never journaled.
     std::fs::write(root.join("notes.txt"), "beta\n").expect("external edit");
 
     let settled = admitted
@@ -207,7 +207,7 @@ fn a_superseded_goal_settles_stale_with_the_outcome_and_check_result_intact() {
     let original = admitted.target().clone();
     let check_result_id = admitted.check_result_id().to_owned();
 
-    // The agent shipped and rolled the goal over while the gate ran;
+    // The agent shipped and rolled the goal over while the check ran;
     // the same step name in the new run is a different instance.
     engines.run_finish(vec![], None).expect("shipped");
     goal(&engines, "verify");
@@ -296,21 +296,21 @@ use std::collections::BTreeMap;
 
 use magistr_engine::native::CompletionRefusal;
 
-/// A gate configuration whose standard gates and every named custom gate
+/// A check configuration whose standard checks and every named custom check
 /// run `true`.
-fn gates_json(custom: &[&str]) -> String {
+fn checks_json(custom: &[&str]) -> String {
     serde_json::json!({
         "project": { "name": "p", "description": "", "type": "cli" },
         "stack": {
             "language": "rust", "framework": "none", "package_manager": "cargo",
             "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"
         },
-        "quality_gate": { "check": "true", "test": "true", "lint": "true" },
+        "checks": { "check": "true", "test": "true", "lint": "true" },
         "format": { "extensions": ["rs"], "command": "true" },
         "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
         "reference_repos": [],
         "state_prefix": "p",
-        "custom_gates": custom
+        "custom_checks": custom
             .iter()
             .map(|name| serde_json::json!({ "name": name, "command": "true", "required": true }))
             .collect::<Vec<_>>()
@@ -323,7 +323,7 @@ fn gates_json(custom: &[&str]) -> String {
 fn governed_host(tmp: &tempfile::TempDir) -> (NativeEngines, PathBuf, PathBuf) {
     let root = tmp.path().join("project");
     std::fs::create_dir_all(root.join(".magistr")).expect("project directory");
-    std::fs::write(root.join(".magistr/project.json"), gates_json(&[])).expect("gates");
+    std::fs::write(root.join(".magistr/project.json"), checks_json(&[])).expect("checks");
     std::fs::write(root.join("notes.txt"), "alpha\n").expect("source");
     let policy = tmp.path().join("policy.toml");
     std::fs::write(&policy, "[security]\nredaction=true\n").expect("policy");
@@ -339,7 +339,7 @@ fn governed_host(tmp: &tempfile::TempDir) -> (NativeEngines, PathBuf, PathBuf) {
     (engines, root, policy)
 }
 
-fn passing_gate(engines: &NativeEngines, root: &Path, name: &str) -> SettledCheck {
+fn passing_check(engines: &NativeEngines, root: &Path, name: &str) -> SettledCheck {
     AdmittedCheck::admit(engines, root, None, name, "true".into(), true)
         .expect("admitted")
         .settle(engines, CheckExecution::Exited { code: 0 }, "ok".into())
@@ -353,26 +353,26 @@ fn outstanding(refusal: &CompletionRefusal) -> BTreeMap<String, String> {
     evidence
         .outstanding
         .iter()
-        .map(|gate| (gate.gate.clone(), gate.reason.clone()))
+        .map(|check| (check.check.clone(), check.reason.clone()))
         .collect()
 }
 
 #[test]
-fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drift() {
+fn an_external_policy_or_the_command_scope_edited_around_a_check_is_evidence_drift() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let (engines, root, policy) = governed_host(&tmp);
     goal(&engines, "verify");
     for name in ["check", "test", "lint"] {
-        let settled = passing_gate(&engines, &root, name);
+        let settled = passing_check(&engines, &root, name);
         assert_eq!(settled.freshness(), Some(&SourceFreshness::Unchanged));
     }
     let evidence = engines
         .run_verify_completion("task:test", Some("verify"))
-        .expect("every required gate has current evidence");
+        .expect("every required check has current evidence");
     assert!(evidence.is_complete());
     assert!(!evidence.config_digest.is_empty());
 
-    // The organization policy changes after the gates ran; no source byte
+    // The organization policy changes after the checks ran; no source byte
     // moves. The evidence no longer applies, and says why.
     std::fs::write(&policy, "[security]\nredaction=false\n").expect("policy edit");
     let refusal = engines
@@ -390,11 +390,11 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
     assert_eq!(reasons.len(), 3);
     assert!(
         reasons.values().all(|reason| reason
-            .contains("the applicable external configuration changed since the gate ran")),
+            .contains("the applicable external configuration changed since the check ran")),
         "{refusal}"
     );
 
-    // A policy edited while a gate runs is named at settlement.
+    // A policy edited while a check runs is named at settlement.
     let admitted = AdmittedCheck::admit(&engines, &root, None, "check", "true".into(), true)
         .expect("admitted");
     std::fs::write(&policy, "[security]\nredaction=true\n").expect("policy edit");
@@ -412,13 +412,13 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
         .expect_err("a reconfiguration during the run is not evidence");
     assert!(
         outstanding(&refusal)["check"]
-            .contains("configuration changed while the gate ran: org-policy"),
+            .contains("configuration changed while the check ran: org-policy"),
         "{refusal}"
     );
 
     // Re-run under the current policy: the latest attempts govern.
     for name in ["check", "test", "lint"] {
-        passing_gate(&engines, &root, name);
+        passing_check(&engines, &root, name);
     }
     assert!(
         engines
@@ -426,12 +426,12 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
             .is_ok()
     );
 
-    // The command scope widens after the gates: the gate configuration is a
+    // The command scope widens after the checks: the check configuration is a
     // source input, so the old check_results read as a source change, and the
     // new contract has no check_result at all.
     std::fs::write(
         root.join(".magistr/project.json"),
-        gates_json(&["structure"]),
+        checks_json(&["structure"]),
     )
     .expect("scope edit");
     let refusal = engines
@@ -443,11 +443,11 @@ fn an_external_policy_or_the_command_scope_edited_around_a_gate_is_evidence_drif
         "{refusal}"
     );
     assert!(
-        reasons["check"].contains("the source changed since the gate ran"),
+        reasons["check"].contains("the source changed since the check ran"),
         "{refusal}"
     );
     for name in ["check", "test", "lint", "structure"] {
-        passing_gate(&engines, &root, name);
+        passing_check(&engines, &root, name);
     }
     assert!(
         engines
@@ -467,7 +467,7 @@ async fn real_host_reuses_narrowed_inputs_and_promotes_evidence_for_completion()
     let config = serde_json::json!({
         "project":{"name":"test","description":"","type":"cli"},
         "stack":{"language":"rust","framework":"none","package_manager":"cargo","test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
-        "quality_gate":{"check":command,"test":"cargo test","lint":"cargo clippy"},
+        "checks":{"check":command,"test":"cargo test","lint":"cargo clippy"},
         "format":{"extensions":["rs"],"command":"cargo fmt"},
         "testing":{"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
         "reference_repos":[],"state_prefix":"test"
@@ -488,7 +488,7 @@ async fn real_host_reuses_narrowed_inputs_and_promotes_evidence_for_completion()
     engines.start_step("verify").unwrap();
     let first =
         AdmittedCheck::admit(&engines, &root, None, "check", command.into(), false).unwrap();
-    let run = crate::utils::gate::run_gate(
+    let run = crate::utils::check::run_check(
         "check",
         command,
         false,

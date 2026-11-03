@@ -31,7 +31,7 @@ fn any_shorthand_makes_the_policy_set() {
             ..GovernancePolicy::default()
         },
         GovernancePolicy {
-            required_gates: vec!["test".into()],
+            required_checks: vec!["test".into()],
             ..GovernancePolicy::default()
         },
         GovernancePolicy {
@@ -54,7 +54,7 @@ fn an_allowlisted_tool_passes_and_an_unlisted_one_is_denied() {
     );
     assert_eq!(
         engine
-            .evaluate(&PolicyRequest::tool("mcp__magistr__gate"))
+            .evaluate(&PolicyRequest::tool("mcp__magistr__check"))
             .effect,
         PolicyEffect::Allow
     );
@@ -82,7 +82,7 @@ fn the_denylist_beats_the_allowlist() {
 
 #[test]
 fn the_allowlist_does_not_fire_on_a_request_with_no_tool() {
-    // A model-only or gate-only request must not be denied by a *tool*
+    // A model-only or check-only request must not be denied by a *tool*
     // allowlist it says nothing about.
     let engine = tool_policy().compile();
     let request = PolicyRequest::new().with_model("claude-opus-5");
@@ -114,34 +114,34 @@ fn a_protected_path_is_denied_but_overridable() {
     );
 }
 
-// ── Quality gates ──────────────────────────────────────────────────
+// ── Checks ──────────────────────────────────────────────────
 
 #[test]
-fn missing_required_gates_names_what_did_not_pass() {
+fn missing_required_checks_names_what_did_not_pass() {
     let policy = GovernancePolicy {
-        required_gates: vec!["check".into(), "test".into(), "lint".into()],
+        required_checks: vec!["check".into(), "test".into(), "lint".into()],
         ..GovernancePolicy::default()
     };
     assert!(
         policy
-            .missing_required_gates(&["check", "test", "lint"])
+            .missing_required_checks(&["check", "test", "lint"])
             .is_empty()
     );
     assert_eq!(
-        policy.missing_required_gates(&["Check", "lint"]),
+        policy.missing_required_checks(&["Check", "lint"]),
         vec!["test".to_string()]
     );
     assert_eq!(
-        policy.missing_required_gates::<&str>(&[]),
+        policy.missing_required_checks::<&str>(&[]),
         vec!["check".to_string(), "test".to_string(), "lint".to_string()]
     );
 }
 
 #[test]
-fn a_policy_with_no_required_gates_never_reports_one_missing() {
+fn a_policy_with_no_required_checks_never_reports_one_missing() {
     let policy = GovernancePolicy::default();
-    assert!(policy.missing_required_gates::<&str>(&[]).is_empty());
-    assert!(!policy.allow_gate_bypass);
+    assert!(policy.missing_required_checks::<&str>(&[]).is_empty());
+    assert!(!policy.allow_check_bypass);
 }
 
 // ── Model governance ───────────────────────────────────────────────
@@ -232,7 +232,7 @@ fn an_absent_policy_deserializes_to_the_empty_one() {
 #[test]
 fn an_empty_policy_serializes_to_an_empty_object() {
     let json = serde_json::to_string(&GovernancePolicy::default()).expect("serialize");
-    assert_eq!(json, r#"{"allow_gate_bypass":false}"#);
+    assert_eq!(json, r#"{"allow_check_bypass":false}"#);
 }
 
 #[test]

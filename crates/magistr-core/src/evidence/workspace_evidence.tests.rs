@@ -14,12 +14,12 @@ fn project(root: &Path) {
                 "language": "rust", "framework": "none", "package_manager": "cargo",
                 "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": { "check": "cargo check", "test": "cargo test", "lint": "cargo clippy" },
+            "checks": { "check": "cargo check", "test": "cargo test", "lint": "cargo clippy" },
             "format": { "extensions": ["rs"], "command": "cargo fmt" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
             "reference_repos": [],
             "state_prefix": "p",
-            "custom_gates": [
+            "custom_checks": [
                 { "name": "structure", "command": "./lint.sh", "required": true },
                 { "name": "optional", "command": "./opt.sh", "required": false }
             ]
@@ -111,7 +111,7 @@ fn an_external_layer_edit_moves_the_configuration_with_every_source_byte_unchang
         vec![ConfigLayer::OrgPolicy, ConfigLayer::User]
     );
 
-    // The user layer appears while the gate runs; the tree is untouched.
+    // The user layer appears while the check runs; the tree is untouched.
     fs::write(
         dir.path().join("external/config.toml"),
         "[telemetry]\nconsent='off'\n",
@@ -155,10 +155,10 @@ fn an_external_layer_edit_moves_the_configuration_with_every_source_byte_unchang
 }
 
 #[test]
-fn a_gate_configuration_edit_moves_the_revision_and_the_contracts() {
+fn a_check_configuration_edit_moves_the_revision_and_the_contracts() {
     let (_dir, root, evidence) = rig();
     let before = evidence.observe().unwrap().observation();
-    let contracts = evidence.required_gates().unwrap();
+    let contracts = evidence.required_checks().unwrap();
     assert_eq!(
         contracts
             .iter()
@@ -169,10 +169,10 @@ fn a_gate_configuration_edit_moves_the_revision_and_the_contracts() {
             ("test", "cargo test", CheckType::Test),
             ("structure", "./lint.sh", CheckType::Lint),
         ],
-        "required custom gates in, optional ones out"
+        "required custom checks in, optional ones out"
     );
     assert_eq!(
-        WorkspaceEvidence::gate_contracts(&root).unwrap(),
+        WorkspaceEvidence::check_contracts(&root).unwrap(),
         contracts,
         "the port and the shared resolver are one"
     );
@@ -193,7 +193,7 @@ fn a_gate_configuration_edit_moves_the_revision_and_the_contracts() {
         "the project settings are also shared configuration"
     );
     assert_eq!(
-        evidence.required_gates().unwrap()[1].command,
+        evidence.required_checks().unwrap()[1].command,
         "cargo nextest run"
     );
 }
@@ -210,9 +210,9 @@ fn a_missing_root_or_configuration_refuses_in_words() {
     assert!(refused.contains("does not exist"), "{refused}");
     let bare = WorkspaceEvidence::new(dir.path(), &resolve);
     assert!(
-        bare.required_gates()
+        bare.required_checks()
             .unwrap_err()
-            .contains("read gate configuration")
+            .contains("read check configuration")
     );
 }
 
@@ -275,8 +275,8 @@ fn linked_copy_reads_and_writes_shared_settings_and_observes_their_changes() {
         "p"
     );
     assert_eq!(
-        WorkspaceEvidence::gate_contracts(&linked).unwrap(),
-        WorkspaceEvidence::gate_contracts(&main).unwrap()
+        WorkspaceEvidence::check_contracts(&linked).unwrap(),
+        WorkspaceEvidence::check_contracts(&main).unwrap()
     );
     let evidence = WorkspaceEvidence::from_inputs(&inputs);
     let witness = evidence.observe().unwrap();
@@ -295,7 +295,7 @@ fn linked_copy_reads_and_writes_shared_settings_and_observes_their_changes() {
     assert_eq!(before.source_digest, after.source_digest);
     assert_ne!(before.config_digest, after.config_digest);
     assert_eq!(
-        evidence.required_gates().unwrap()[1].command,
+        evidence.required_checks().unwrap()[1].command,
         "cargo nextest run"
     );
     assert!(!linked.join(".magistr/project.json").exists());
@@ -344,13 +344,13 @@ fn deadline_precedence_and_origin_are_shared_by_live_and_native_checks() {
             TimeoutOrigin::Project,
         ),
         (
-            serde_json::json!({"timeout_secs": 75, "gates": {"structure": {"timeout_secs": 25}}}),
+            serde_json::json!({"timeout_secs": 75, "checks": {"structure": {"timeout_secs": 25}}}),
             None,
             25,
-            TimeoutOrigin::Gate,
+            TimeoutOrigin::Check,
         ),
         (
-            serde_json::json!({"timeout_secs": 75, "gates": {"structure": {"timeout_secs": 25}}}),
+            serde_json::json!({"timeout_secs": 75, "checks": {"structure": {"timeout_secs": 25}}}),
             Some(5),
             5,
             TimeoutOrigin::PerCall,
@@ -363,7 +363,7 @@ fn deadline_precedence_and_origin_are_shared_by_live_and_native_checks() {
             .unwrap();
         assert_eq!((budget.seconds, budget.origin), (seconds, origin));
         assert_eq!(
-            crate::gates::execution_policy(&root, "structure", "./lint.sh", per_call)
+            crate::checks::execution_policy(&root, "structure", "./lint.sh", per_call)
                 .unwrap()
                 .0,
             seconds
@@ -376,19 +376,20 @@ fn deadline_precedence_and_origin_are_shared_by_live_and_native_checks() {
                 .is_err()
         );
         assert!(
-            crate::gates::execution_policy(&root, "structure", "./lint.sh", Some(invalid)).is_err()
+            crate::checks::execution_policy(&root, "structure", "./lint.sh", Some(invalid))
+                .is_err()
         );
     }
 }
 
 #[test]
-fn configured_gate_scopes_deadlines_and_reuse_require_the_configured_command() {
+fn configured_check_scopes_deadlines_and_reuse_require_the_configured_command() {
     let (_dir, root, evidence) = rig();
     let path = root.join(".magistr/project.json");
     let mut config: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
     config["verification"] = serde_json::json!({
         "timeout_secs": 75,
-        "gates": {"structure": {"inputs": ["main.rs"], "reuse": true, "timeout_secs": 25}}
+        "checks": {"structure": {"inputs": ["main.rs"], "reuse": true, "timeout_secs": 25}}
     });
     fs::write(&path, config.to_string()).unwrap();
     assert_eq!(

@@ -39,7 +39,7 @@ async fn empty_registry_configures_each_path_only_when_opened() {
         serde_json::json!({
  "project": {"name": "fixture", "type": "cli"},
  "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
- "quality_gate": {"check": "", "test": "", "lint": ""},
+ "checks": {"check": "", "test": "", "lint": ""},
  "format": {"command": "", "extensions": []},
  "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
  "reference_repos": [], "state_prefix": "fixture", "plan_exports": false

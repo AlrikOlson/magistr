@@ -37,7 +37,7 @@ fn section_is_bounded_by_the_shared_markers() {
 }
 
 #[test]
-fn section_lists_the_gate_commands_as_verification() {
+fn section_lists_the_check_commands_as_verification() {
     let section = build_section(&rust_vars());
     assert!(section.contains("This is a Rust project."));
     assert!(section.contains("- `cargo check --all-targets`"));
@@ -46,7 +46,7 @@ fn section_lists_the_gate_commands_as_verification() {
 }
 
 #[test]
-fn section_omits_verification_without_gate_commands() {
+fn section_omits_verification_without_check_commands() {
     let section = build_section(&HashMap::new());
     assert!(!section.contains("## Verification"));
     assert!(section.trim_end().ends_with(CLAUDE_MD_END_MARKER));

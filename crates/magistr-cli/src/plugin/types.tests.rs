@@ -7,7 +7,7 @@ fn kind_label() {
     assert_eq!(PluginKind::Detection.label(), "detection");
     assert_eq!(PluginKind::Template.label(), "template");
     assert_eq!(PluginKind::WorkflowStep.label(), "workflow-step");
-    assert_eq!(PluginKind::QualityGate.label(), "quality-gate");
+    assert_eq!(PluginKind::Check.label(), "check");
 }
 
 #[test]
@@ -15,7 +15,7 @@ fn kind_display() {
     assert_eq!(format!("{}", PluginKind::Detection), "detection");
     assert_eq!(format!("{}", PluginKind::Template), "template");
     assert_eq!(format!("{}", PluginKind::WorkflowStep), "workflow-step");
-    assert_eq!(format!("{}", PluginKind::QualityGate), "quality-gate");
+    assert_eq!(format!("{}", PluginKind::Check), "check");
 }
 
 #[test]
@@ -23,7 +23,7 @@ fn kind_is_executable() {
     assert!(!PluginKind::Detection.is_executable());
     assert!(!PluginKind::Template.is_executable());
     assert!(PluginKind::WorkflowStep.is_executable());
-    assert!(PluginKind::QualityGate.is_executable());
+    assert!(PluginKind::Check.is_executable());
 }
 
 /// The retired `backend` kind is no variant at all — the enum cannot name
@@ -46,7 +46,7 @@ fn kind_serde_round_trip() {
         PluginKind::Detection,
         PluginKind::Template,
         PluginKind::WorkflowStep,
-        PluginKind::QualityGate,
+        PluginKind::Check,
     ] {
         let toml_str = format!("kind = \"{}\"", kind.label());
         #[derive(Deserialize)]
@@ -193,12 +193,12 @@ fn manifest_unknown_kind_is_a_parse_error() {
 #[test]
 fn manifest_executable_plugin_full() {
     let toml = r#"
-            name = "sonarqube-gate"
+            name = "sonarqube-check"
             version = "1.0.0"
-            description = "SonarQube quality gate"
-            kind = "quality-gate"
+            description = "SonarQube check"
+            kind = "check"
             author = "magistr-plugins"
-            entrypoint = "bin/sonarqube-gate"
+            entrypoint = "bin/sonarqube-check"
             permissions = ["network", "env-read"]
 
             [[dependencies]]
@@ -209,9 +209,9 @@ fn manifest_executable_plugin_full() {
             jig_version = "0.2.0"
         "#;
     let manifest = PluginManifest::from_toml(toml).unwrap();
-    assert_eq!(manifest.name, "sonarqube-gate");
-    assert_eq!(manifest.kind, PluginKind::QualityGate);
-    assert_eq!(manifest.entrypoint.as_deref(), Some("bin/sonarqube-gate"));
+    assert_eq!(manifest.name, "sonarqube-check");
+    assert_eq!(manifest.kind, PluginKind::Check);
+    assert_eq!(manifest.entrypoint.as_deref(), Some("bin/sonarqube-check"));
     assert_eq!(
         manifest.permissions,
         vec![PluginPermission::Network, PluginPermission::EnvRead]
@@ -223,17 +223,17 @@ fn manifest_executable_plugin_full() {
 }
 
 #[test]
-fn manifest_quality_gate_plugin() {
+fn manifest_checks_plugin() {
     let toml = r#"
-            name = "sonarqube-gate"
+            name = "sonarqube-check"
             version = "0.5.0"
-            kind = "quality-gate"
-            entrypoint = "bin/sonar-gate"
+            kind = "check"
+            entrypoint = "bin/sonar-check"
             permissions = ["network", "file-read"]
         "#;
     let manifest = PluginManifest::from_toml(toml).unwrap();
-    assert_eq!(manifest.kind, PluginKind::QualityGate);
-    assert_eq!(manifest.entrypoint.as_deref(), Some("bin/sonar-gate"));
+    assert_eq!(manifest.kind, PluginKind::Check);
+    assert_eq!(manifest.entrypoint.as_deref(), Some("bin/sonar-check"));
     assert_eq!(manifest.permissions.len(), 2);
 }
 
@@ -257,7 +257,7 @@ fn manifest_executable_round_trip() {
         name: "my-backend".to_string(),
         version: "1.0.0".to_string(),
         description: None,
-        kind: PluginKind::QualityGate,
+        kind: PluginKind::Check,
         author: None,
         entrypoint: Some("bin/my-backend".to_string()),
         permissions: vec![PluginPermission::Network, PluginPermission::EnvRead],
@@ -284,7 +284,7 @@ fn validate_executable_without_entrypoint() {
         name: "no-entry".to_string(),
         version: "1.0.0".to_string(),
         description: None,
-        kind: PluginKind::QualityGate,
+        kind: PluginKind::Check,
         author: None,
         entrypoint: None,
         permissions: Vec::new(),
@@ -320,7 +320,7 @@ fn validate_valid_executable() {
         name: "good-backend".to_string(),
         version: "1.0.0".to_string(),
         description: None,
-        kind: PluginKind::QualityGate,
+        kind: PluginKind::Check,
         author: None,
         entrypoint: Some("bin/backend".to_string()),
         permissions: vec![PluginPermission::Network],
@@ -365,7 +365,7 @@ fn dependency_optional_version() {
     let toml = r#"
             name = "test"
             version = "1.0.0"
-            kind = "quality-gate"
+            kind = "check"
             entrypoint = "bin/test"
 
             [[dependencies]]
@@ -538,7 +538,7 @@ fn installed_plugin_json_round_trip_with_new_fields() {
             name: "my-backend".to_string(),
             version: "1.0.0".to_string(),
             description: Some("A backend plugin".to_string()),
-            kind: PluginKind::QualityGate,
+            kind: PluginKind::Check,
             author: Some("Author".to_string()),
             entrypoint: Some("bin/backend".to_string()),
             permissions: vec![PluginPermission::Network, PluginPermission::EnvRead],

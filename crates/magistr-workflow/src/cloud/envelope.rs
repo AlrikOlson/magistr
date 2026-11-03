@@ -307,13 +307,13 @@ mod tests {
         assert_valid(&env);
     }
 
-    /// The approval-gate kind (webapp-approval-gates): a run/gate envelope —
+    /// The approval kind (webapp-approval-gates): a run/approval envelope —
     /// built exactly as `cloud::build::from_approval` builds it — must satisfy the
-    /// SAME canonical schema the backend validates against, or a gate could
+    /// SAME canonical schema the backend validates against, or a check could
     /// never reach the workspace to be answered.
     #[test]
     fn approval_envelope_validates() {
-        let gate = crate::run::approval::open(
+        let check = crate::run::approval::open(
             "b7e2c4a0-1f3d-4e5b-8a9c-2d6f0e4b8c1a".into(),
             "Deploy the new billing Worker to production now?",
             "All tests pass; rollback is one redeploy.",
@@ -331,11 +331,11 @@ mod tests {
             3600,
             chrono::Utc::now(),
         )
-        .expect("a valid gate");
-        let env = crate::cloud::build::from_approval("magistr-676f38", &gate, Some("deploy-31g"));
+        .expect("a valid check");
+        let env = crate::cloud::build::from_approval("magistr-676f38", &check, Some("deploy-31g"));
         assert!(
             env.edges.iter().any(|e| e.target == "step:deploy-31g"),
-            "the gate must carry its part_of edge to the paused task"
+            "the check must carry its part_of edge to the paused task"
         );
         assert_valid(&env);
     }

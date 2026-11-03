@@ -27,7 +27,7 @@ fn domain_state_session_defaults() {
 fn domain_state_workflow_defaults() {
     let state = DomainState::default();
     assert!(state.workflow.workflow_phase.is_none());
-    assert!(state.workflow.gate_results.is_empty());
+    assert!(state.workflow.check_results.is_empty());
     assert!(state.workflow.loop_progress.is_none());
 }
 

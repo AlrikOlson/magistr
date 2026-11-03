@@ -10,12 +10,12 @@ The native stdio test uses the freshly built executable in `target/debug`.
 | Check | Actual result | What it establishes |
 | --- | --- | --- |
 | Context unit tests | 5 passed | Unknown/scoped phase, canonical check resolver, read descriptor, malformed selectors, bounded Unicode evidence |
-| MCP service integration | 13 passed | Real rmcp queries and refusals, discovery, native gate recording and existing behavior |
+| MCP service integration | 13 passed | Real rmcp queries and refusals, discovery, native check recording and existing behavior |
 | Service owner integration | 6 passed | Native admission, lease lifetime, role coexistence, copied roots and Windows feed refusal |
 | Independent adapter contracts | 26 passed | Shipped decoder, renderer and handlers, action confirmation and bounded check limits, changed target/command refusal, two raw reads, stale replies, cancellation, missing/incompatible servers, duplicate clicks, coexistence and text fallback |
 | Native stdio boundary | Passed | A new isolated fixture's genuine Magistr MCP service is decoded by the shipped adapter; explicitly announced phase, canonical step and durable check result are read back |
 | Rust formatting and CLI Clippy | Passed | Affected native code formats and compiles without Clippy warnings |
-| Structure and native-write-path gates | Passed | Existing facade, dependency and native ownership checks; early runs observed intervening source edits, so their receipts do not claim a single unchanged final tree |
+| Structure and native-write-path checks | Passed | Existing facade, dependency and native ownership checks; early runs observed intervening source edits, so their receipts do not claim a single unchanged final tree |
 | Plugin/marketplace validation | Passed | Claude accepts both manifests and the package layout |
 | Installed lifecycle | Passed | Upgrade to 0.1.6, exact cached runtime files, disable/enable, uninstall/catalog removal and reinstall; unrelated plugins/settings and protected checkout files retain their values |
 | Official Mod test harness | Refused before tests ran | Host rollout restriction below |
@@ -104,7 +104,7 @@ claude plugin test plugins/magistr
 ```
 
 Record actual commands through `check_step`, and run the applicable
-`structure` and `native-write-path` named gates through `magistr_gate`.
+`structure` and `native-write-path` named checks through `magistr_check`.
 Keep verification focused. These adapter changes do not require workspace
 reference compatibility, release smoke/latency or desktop/terminal goldens.
 

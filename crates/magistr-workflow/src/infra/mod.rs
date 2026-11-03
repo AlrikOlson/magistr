@@ -14,7 +14,7 @@ mod resolve_project_id_from;
 pub mod seq_key;
 pub mod session;
 #[cfg(test)]
-pub mod source_gate;
+pub mod source_check;
 mod store_read;
 pub(crate) mod store_stamp;
 mod stored_ref_words;

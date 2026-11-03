@@ -1,4 +1,4 @@
-//! The desktop's hygiene gates, run for real against temp trees:
+//! The desktop's hygiene checks, run for real against temp trees:
 //! `scripts/lint-structure.sh` rule 5 refuses an `allow(dead_code)` /
 //! `allow(unused)` under `crates/magistr-desktop`, and
 //! `scripts/lint-duplication.sh` refuses a file copied from the owner tree
@@ -22,7 +22,7 @@ fn write(dir: &Path, rel: &str, content: &str) {
     std::fs::write(path, content).expect("write");
 }
 
-/// The script the way the gate runs it: through `sh -c`, which follows
+/// The script the way the check runs it: through `sh -c`, which follows
 /// its shebang to bash on every platform (on Windows, Git's).
 fn run(name: &str, root: &Path) -> Output {
     let script = script(name).to_string_lossy().replace('\\', "/");
@@ -85,7 +85,7 @@ fn structure_lint_refuses_an_allow_dead_code_under_the_desktop_crate() {
     );
     let out = run("lint-structure.sh", tmp.path());
     let log = text(&out);
-    assert!(!out.status.success(), "gate stayed green:\n{log}");
+    assert!(!out.status.success(), "check stayed green:\n{log}");
     assert!(
         log.contains("crates/magistr-desktop/src/render/stale.rs") && log.contains("dead_code"),
         "{log}"
@@ -127,7 +127,7 @@ fn structure_lint_ignores_the_words_outside_an_attribute() {
 // --- lint-duplication -------------------------------------------------------
 
 #[test]
-fn duplication_gate_accepts_distinct_trees() {
+fn duplication_check_accepts_distinct_trees() {
     let tmp = TempDir::new().expect("tempdir");
     write(
         tmp.path(),
@@ -144,7 +144,7 @@ fn duplication_gate_accepts_distinct_trees() {
 }
 
 #[test]
-fn duplication_gate_refuses_a_byte_identical_copy() {
+fn duplication_check_refuses_a_byte_identical_copy() {
     let tmp = TempDir::new().expect("tempdir");
     write(
         tmp.path(),
@@ -158,7 +158,7 @@ fn duplication_gate_refuses_a_byte_identical_copy() {
     );
     let out = run("lint-duplication.sh", tmp.path());
     let log = text(&out);
-    assert!(!out.status.success(), "gate stayed green:\n{log}");
+    assert!(!out.status.success(), "check stayed green:\n{log}");
     assert!(
         log.contains("byte-identical")
             && log.contains("crates/magistr-cli/src/application/grid.rs"),
@@ -167,7 +167,7 @@ fn duplication_gate_refuses_a_byte_identical_copy() {
 }
 
 #[test]
-fn duplication_gate_refuses_a_renamed_clone() {
+fn duplication_check_refuses_a_renamed_clone() {
     let tmp = TempDir::new().expect("tempdir");
     write(
         tmp.path(),
@@ -181,7 +181,7 @@ fn duplication_gate_refuses_a_renamed_clone() {
     write(tmp.path(), "crates/magistr-desktop/src/buffer.rs", &clone);
     let out = run("lint-duplication.sh", tmp.path());
     let log = text(&out);
-    assert!(!out.status.success(), "gate stayed green:\n{log}");
+    assert!(!out.status.success(), "check stayed green:\n{log}");
     assert!(
         log.contains("clone") && log.contains("crates/magistr-desktop/src/buffer.rs"),
         "{log}"
@@ -189,7 +189,7 @@ fn duplication_gate_refuses_a_renamed_clone() {
 }
 
 #[test]
-fn duplication_gate_ignores_the_owner_trees_internal_duplication() {
+fn duplication_check_ignores_the_owner_trees_internal_duplication() {
     let tmp = TempDir::new().expect("tempdir");
     write(
         tmp.path(),
@@ -211,22 +211,22 @@ fn duplication_gate_ignores_the_owner_trees_internal_duplication() {
 }
 
 #[test]
-fn duplication_gate_is_wired_as_a_required_custom_gate() {
+fn duplication_check_is_wired_as_a_required_custom_check() {
     let config = std::fs::read_to_string(
         Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../..")).join(".magistr/project.json"),
     )
     .expect("read project.json");
     let json: serde_json::Value = serde_json::from_str(&config).expect("parse project.json");
-    let gates = json["custom_gates"].as_array().expect("custom_gates");
+    let checks = json["custom_checks"].as_array().expect("custom_checks");
     for (name, command) in [
         ("duplication", "./scripts/lint-duplication.sh"),
-        ("machete", "./scripts/machete-gate.sh"),
+        ("machete", "./scripts/machete-check.sh"),
     ] {
         assert!(
-            gates
+            checks
                 .iter()
                 .any(|g| g["name"] == name && g["command"] == command && g["required"] == true),
-            "{name} is not a required custom gate: {gates:?}"
+            "{name} is not a required custom check: {checks:?}"
         );
     }
 }

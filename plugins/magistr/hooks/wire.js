@@ -178,7 +178,7 @@ export function validate(kind, raw) {
     if (v.check_result != null) {
       if (
         !record(v.check_result) ||
-        typeof v.check_result.gate !== 'string' ||
+        typeof v.check_result.check !== 'string' ||
         !record(v.check_result.target)
       )
         throw new Error('The check result could not be read.')
@@ -242,7 +242,7 @@ export function validate(kind, raw) {
   return v
 }
 export function validateAction(kind, value, target) {
-  if (kind === 'gate') {
+  if (kind === 'check') {
     if (
       typeof value.passed !== 'boolean' ||
       typeof value.recorded !== 'boolean'
@@ -250,7 +250,7 @@ export function validateAction(kind, value, target) {
       throw new Error(
         'The check returned an unsupported result. Inspect its recorded evidence.',
       )
-    const runs = value.gates ?? [value]
+    const runs = value.checks ?? [value]
     if (
       !Array.isArray(runs) ||
       !runs.length ||

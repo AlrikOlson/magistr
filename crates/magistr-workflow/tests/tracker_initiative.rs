@@ -77,7 +77,7 @@ async fn the_roof_is_ensured_with_the_plans_derived_state() {
 /// every existing test and every provider without config.
 #[tokio::test]
 async fn no_roof_is_attempted_without_a_name() {
-    let mut e = engine_with(&[("loner", Some("Gate house"), TaskStatus::ToDo)]);
+    let mut e = engine_with(&[("loner", Some("Check house"), TaskStatus::ToDo)]);
     let t = FakeTracker::new(PROVIDER);
 
     let report = project_all(&mut e, &t, None).await.expect("project");
@@ -113,7 +113,7 @@ async fn a_second_push_rewrites_no_roof() {
 #[tokio::test]
 async fn an_unassigned_task_still_counts_toward_the_roofs_state() {
     let mut e = engine_with(&[
-        ("grouped", Some("Gate house"), TaskStatus::ToDo),
+        ("grouped", Some("Check house"), TaskStatus::ToDo),
         ("loner", None, TaskStatus::InProgress),
     ]);
     let t = FakeTracker::new(PROVIDER);
@@ -122,7 +122,7 @@ async fn an_unassigned_task_still_counts_toward_the_roofs_state() {
 
     assert_eq!(
         t.features(),
-        vec![("Gate house".to_string(), FeatureState::NotStarted)],
+        vec![("Check house".to_string(), FeatureState::NotStarted)],
         "precondition: the only container has not started"
     );
     assert_eq!(

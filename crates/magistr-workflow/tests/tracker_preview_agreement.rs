@@ -10,17 +10,17 @@
 //!
 //! # Why it happened, and why prose could not have prevented it
 //!
-//! The projector has TWO skip gates. The first is cheap and pre-I/O: is the raw
+//! The projector has TWO skip checks. The first is cheap and pre-I/O: is the raw
 //! item's `content_hash` what we last wrote? The second runs after `fetch_one`
 //! and `reconcile_fields`: is the RECONCILED item's hash what we last wrote —
 //! and that second hash is also the one it STORES. The CLI's preview
-//! reimplemented gate one and knew nothing of gate two.
+//! reimplemented check one and knew nothing of check two.
 //!
-//! The two gates disagree permanently wherever the ownership table hands a
+//! The two checks disagree permanently wherever the ownership table hands a
 //! field to the team. `State`, `Labels` and `Assignee` are all `Owner::Theirs`
 //! by default, and all three are inside `content_hash`. So a task whose Linear
-//! state moved on without us mismatches gate one on every run forever, while
-//! gate two correctly skips it forever.
+//! state moved on without us mismatches check one on every run forever, while
+//! check two correctly skips it forever.
 //!
 //! # The refuted hypothesis
 //!
@@ -122,7 +122,7 @@ async fn a_tracker_owned_state_edit_makes_the_projector_skip_and_the_preview_mus
 
     // (2) The plan finishes the task. This moves a field we DO author — the
     // provenance footer carries `status`, and the body is `Owner::Ours` — so
-    // the cheap gate mismatches and a real reconciling write happens.
+    // the cheap check mismatches and a real reconciling write happens.
     e.set_status("a", TaskStatus::InProgress).expect("start");
     e.set_status("a", TaskStatus::Done).expect("finish");
 
@@ -138,7 +138,7 @@ async fn a_tracker_owned_state_edit_makes_the_projector_skip_and_the_preview_mus
     // (3) THE PERMANENT DIVERGENCE IS NOW SET. What we stored is what we SENT:
     // the new footer plus THEIR `InProgress`. What the raw item says is the new
     // footer plus the plan's `Done`. Those two can never converge, because the
-    // plan's state is not ours to send — so the cheap gate mismatches on every
+    // plan's state is not ours to send — so the cheap check mismatches on every
     // future run, and the old preview announced a pending update on every
     // future run. Nothing changes from here on.
     let writes_before = t.writes();
@@ -252,7 +252,7 @@ async fn an_edit_to_a_field_we_author_is_still_predicted_and_still_written() {
 }
 
 /// The unchanged case must stay exactly as certain as it was: this is the
-/// projector's own first gate, character for character, and a fix that made it
+/// projector's own first check, character for character, and a fix that made it
 /// fuzzy would turn every no-op run into noise.
 #[tokio::test]
 async fn a_genuinely_unchanged_task_is_still_reported_certain() {

@@ -444,7 +444,7 @@ impl PlanEngine {
 
     /// Every task whose name cannot serve as a node label, with the reason.
     /// The data-side half of constraint C8 — `doctor` reports it, and it is the
-    /// gate that stops the sentence style leaking back in.
+    /// check that stops the sentence style leaking back in.
     #[must_use]
     pub fn tasks_without_usable_names(&self) -> Vec<(String, String)> {
         self.plan
@@ -1345,7 +1345,7 @@ impl PlanEngine {
     /// times returned **137,772 B (~34.4k tok)** — 41% past the very bound this
     /// cap was derived from. The worst case was never `sum of the top N`, it
     /// was `N × max`, and picking the wrong extreme instance is how a measured
-    /// gate ends up guarding a number nothing enforces.
+    /// check ends up guarding a number nothing enforces.
     ///
     /// Deduplicating is what makes the derivation true, so `ids` is a SET: the
     /// cap is checked against the distinct count and each record is answered
@@ -1546,7 +1546,7 @@ mod tests {
         e.set_feature("berth-draft-limits", Some("Quayside".into()))
             .expect("a place name is fine");
         e.set_feature("berth-allocation-races", Some(region::UNPLACED.into()))
-            .expect("the unplaced region must survive its own gate");
+            .expect("the unplaced region must survive its own check");
     }
 
     /// Clearing is not naming, so it cannot fail the name check.
@@ -2947,7 +2947,7 @@ mod tests {
     /// A plan this project has never had, and never will: `(id, priority,
     /// blocked)` for a greenhouse-controls plan.
     ///
-    /// Foreign on purpose. A gate that says "next skips blockers" while
+    /// Foreign on purpose. A check that says "next skips blockers" while
     /// reading magistr's own tasks can pass on an accident of how the
     /// real plan happens to be ordered; this table is the only data these
     /// tests see, and [`engine_from`] takes it as a parameter so a second
@@ -2990,7 +2990,7 @@ mod tests {
 
     /// The worst case is COMPUTED from the table, never named.
     ///
-    /// Naming the sample is how this kind of gate rots: the table gets a new
+    /// Naming the sample is how this kind of check rots: the table gets a new
     /// row, the named task stops being the hard case, and the test keeps
     /// passing for a reason that has nothing to do with what it claims. So the
     /// test derives two answers — what a scheduler blind to blockers would say
@@ -3103,7 +3103,7 @@ mod tests {
     /// em-dash and the tail; an unblocked row has an empty tail.
     ///
     /// Foreign on purpose, like [`GREENHOUSE`], and SPLIT on purpose. Splitting
-    /// the title is what lets the truncation gate derive which row is the hard
+    /// the title is what lets the truncation check derive which row is the hard
     /// case and assert that the blocker prose really does fall past the cut,
     /// instead of trusting a hand-counted character offset that the next edit
     /// to these strings would silently invalidate.
@@ -3231,7 +3231,7 @@ mod tests {
         assert!(
             headline.chars().count() >= PlanEngine::STATUS_TITLE_LEN,
             "'{id}' must have a headline at least {} chars long, or its blocker \
-             prose is not actually lost to truncation and the gate is vacuous; \
+             prose is not actually lost to truncation and the check is vacuous; \
              got {}",
             PlanEngine::STATUS_TITLE_LEN,
             headline.chars().count()
@@ -3303,7 +3303,7 @@ mod tests {
                 .count() as u64
         };
 
-        // The premise. Two ways this gate can go vacuous: if every kind has the
+        // The premise. Two ways this check can go vacuous: if every kind has the
         // same tally, a `status()` that answered one number for all four would
         // pass; and if no kind has zero, "reports 0 rather than vanishing" is
         // never exercised.

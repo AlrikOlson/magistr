@@ -199,7 +199,7 @@ fn a_remote_retitle_becomes_a_title_proposal_and_the_title_does_not_move() {
     );
 }
 
-/// The ownership gate. A project that sets Title to Ours has said the plan
+/// The ownership check. A project that sets Title to Ours has said the plan
 /// wins: re-asserting it is push's business, and proposing it here would
 /// launder a remote overwrite into a polite suggestion. Theirs means the
 /// team decided title divergence is not a conversation at all.

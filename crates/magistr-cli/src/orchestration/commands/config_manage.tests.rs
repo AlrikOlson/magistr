@@ -34,7 +34,7 @@ fn config_check_valid_project_json_passes() {
                 "linter": "clippy",
                 "formatter": "rustfmt"
             },
-            "quality_gate": {
+            "checks": {
                 "check": "cargo check",
                 "test": "cargo test",
                 "lint": "cargo clippy"

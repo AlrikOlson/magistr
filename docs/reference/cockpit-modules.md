@@ -5,7 +5,7 @@ application owns sessions, workflow and source resources. The desktop owns
 native input, accessible HTML, layout and bounded presentation.
 There is one desktop executable and no terminal renderer.
 
-The module inventory below is checked by `scripts/interface-index-gate.py`.
+The module inventory below is checked by `scripts/interface-index-check.py`.
 Each retained implementation and harness is named, including the separate
 desktop workspace. Companion Rust tests live beside their owners.
 
@@ -23,7 +23,7 @@ desktop workspace. Companion Rust tests live beside their owners.
 | Immutable attachment input, addressed staging and native selection | `crates/magistr-application/src/sessions/prompt_input.rs`, `crates/magistr-cli/src/application/session_attachments.rs`, `crates/magistr-desktop/src/attachments.rs`, `crates/magistr-desktop/ui/attachments.mjs` and `crates/magistr-desktop/tests/attachment_journey.py` |
 | Saved drafts, stable attachment selections and appearance | `crates/magistr-cli/src/application/session_drafts.rs`, `crates/magistr-cli/src/agent/persistence/draft.rs`, `crates/magistr-cli/src/application/desktop_preferences.rs` and `crates/magistr-desktop/tests/draft_persistence_journey.py` |
 | Native window, keyboard, pointer, clipboard, requests and Quit | `crates/magistr-desktop/tests/native_window.py` and its Swift driver |
-| Source/index fitness, contrast, icon and current captures | `scripts/interface-index-gate.py`, `scripts/desktop-visual-gate.py` |
+| Source/index fitness, contrast, icon and current captures | `scripts/interface-index-check.py`, `scripts/desktop-visual-check.py` |
 
 | Work admission, retained run state and boundary controls | `crates/magistr-cli/src/orchestration/hosted_work.rs`, `crates/magistr-cli/src/orchestration/loop_driver/control.rs`, `crates/magistr-desktop/src/work.rs` and `crates/magistr-desktop/tests/work_journey.py` |
 

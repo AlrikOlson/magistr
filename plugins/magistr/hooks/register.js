@@ -304,7 +304,7 @@ async function action($, kind, target) {
       )
     const timeLimit = Number(model.checkTimeLimit)
     if (
-      kind === 'gate' &&
+      kind === 'check' &&
       (!/^\d+$/.test(model.checkTimeLimit) ||
         !Number.isSafeInteger(timeLimit) ||
         timeLimit < 1 ||
@@ -312,7 +312,7 @@ async function action($, kind, target) {
     )
       throw new Error('Choose a time limit from 1 to 1800 seconds.')
     const label =
-      kind === 'gate'
+      kind === 'check'
         ? 'Run check'
         : kind === 'step'
           ? 'Start step'
@@ -320,10 +320,10 @@ async function action($, kind, target) {
             ? 'Choose feature'
             : 'Mark started'
     const title =
-      kind === 'gate'
+      kind === 'check'
         ? target.commands.map((c) => c.command).join('; ')
         : target.title || target.feature
-    if (kind === 'gate' && title.length > 400)
+    if (kind === 'check' && title.length > 400)
       throw new Error(
         'This command is too long to review here. Inspect and run it with your usual workflow.',
       )
@@ -332,7 +332,7 @@ async function action($, kind, target) {
       ': ' +
       clean(title, 400) +
       '?' +
-      (kind === 'gate' ? '\nTime limit: ' + timeLimit + ' seconds.' : '')
+      (kind === 'check' ? '\nTime limit: ' + timeLimit + ' seconds.' : '')
     const answer = await $.ui.ask(confirmation, ['Cancel', label])
     if (
       answer !== label ||
@@ -391,7 +391,7 @@ async function action($, kind, target) {
       throw new Error(
         'This work is no longer the next ready item. Review the plan.',
       )
-    if (kind === 'gate') {
+    if (kind === 'check') {
       if (!model.slots.run.value.active_step)
         throw new Error(
           'Start an explicitly chosen step before recording a check.',
@@ -414,16 +414,16 @@ async function action($, kind, target) {
     model.pending = label + ' requested…'
     redraw($)
     const operation =
-      kind === 'gate'
-        ? 'magistr_gate'
+      kind === 'check'
+        ? 'magistr_check'
         : kind === 'step'
           ? 'start_step'
           : kind === 'focus'
             ? 'plan_focus_set'
             : 'plan_start_task'
     const args =
-      kind === 'gate'
-        ? { gate: target.key, timeout_secs: timeLimit }
+      kind === 'check'
+        ? { check: target.key, timeout_secs: timeLimit }
         : kind === 'step'
           ? { step_id: target.id }
           : kind === 'focus'
@@ -445,7 +445,7 @@ async function action($, kind, target) {
         '" for "' +
         clean(title, 400) +
         '" in the Magistr pane.' +
-        (kind === 'gate' ? ' Time limit: ' + timeLimit + ' seconds.' : ''),
+        (kind === 'check' ? ' Time limit: ' + timeLimit + ' seconds.' : ''),
     })
     if (reply?.deny || reply?.isError) {
       // Only an explicit permission refusal proves the tool was not submitted.
@@ -463,7 +463,7 @@ async function action($, kind, target) {
       model.uncertain = true
       return
     }
-    if (kind === 'gate') {
+    if (kind === 'check') {
       if (
         typeof result.passed !== 'boolean' ||
         typeof result.recorded !== 'boolean'
@@ -476,9 +476,9 @@ async function action($, kind, target) {
           ? 'Check passed and was recorded.'
           : 'Check passed, but was not recorded. ' + clean(result.note, 350)
         : 'Check did not pass. Inspect its evidence.'
-      if (result.gates?.some((g) => !g.passed))
+      if (result.checks?.some((g) => !g.passed))
         model.notice = 'Some checks did not pass. Inspect each recorded result.'
-      model.detail = { gate: result }
+      model.detail = { check: result }
     } else {
       model.notice =
         kind === 'step'

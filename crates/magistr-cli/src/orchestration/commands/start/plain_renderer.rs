@@ -357,7 +357,7 @@ fn tool_title(name: &str, input: &Value) -> String {
             input["purpose"].as_str().unwrap_or("Record finding")
         ),
         "check_step" => format!("Check: {}", input["name"].as_str().unwrap_or("Run check")),
-        "magistr_gate" => format!("Check: {}", input["gate"].as_str().unwrap_or("Run check")),
+        "magistr_check" => format!("Check: {}", input["check"].as_str().unwrap_or("Run check")),
         "arrange_steps" => format!("Plan: {}", input["title"].as_str().unwrap_or("Update plan")),
         "start_step" => "Start planned work".into(),
         "finish_step" => "Finish planned work".into(),

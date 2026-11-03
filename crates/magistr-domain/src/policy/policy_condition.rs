@@ -27,8 +27,8 @@ pub enum PolicyCondition {
     Path { pattern: String },
     /// The session's model matches a glob.
     Model { pattern: String },
-    /// The gate name matches a glob.
-    Gate { pattern: String },
+    /// The check name matches a glob.
+    Check { pattern: String },
     /// The request's own risk classification is at least this tier.
     RiskAtLeast { tier: RiskTier },
     /// At least one inner condition holds.
@@ -72,10 +72,10 @@ impl PolicyCondition {
         }
     }
 
-    /// A condition on the gate name.
+    /// A condition on the check name.
     #[must_use]
-    pub fn gate(pattern: impl Into<String>) -> Self {
-        PolicyCondition::Gate {
+    pub fn check(pattern: impl Into<String>) -> Self {
+        PolicyCondition::Check {
             pattern: pattern.into(),
         }
     }
@@ -98,10 +98,10 @@ impl PolicyCondition {
         PolicyCondition::AllOf { conditions }
     }
 
-    /// Negation. Named `negate` rather than `not` so it cannot be
+    /// Negation. Named `necheck` rather than `not` so it cannot be
     /// mistaken for `core::ops::Not::not`, which this is not.
     #[must_use]
-    pub fn negate(condition: PolicyCondition) -> Self {
+    pub fn necheck(condition: PolicyCondition) -> Self {
         PolicyCondition::Not {
             condition: Box::new(condition),
         }
@@ -132,10 +132,10 @@ impl PolicyCondition {
                 .model
                 .as_deref()
                 .is_some_and(|model| glob_match(pattern, model)),
-            PolicyCondition::Gate { pattern } => request
-                .gate
+            PolicyCondition::Check { pattern } => request
+                .check
                 .as_deref()
-                .is_some_and(|gate| glob_match(pattern, gate)),
+                .is_some_and(|check| glob_match(pattern, check)),
             PolicyCondition::RiskAtLeast { tier } => request.risk.is_some_and(|risk| risk >= *tier),
             PolicyCondition::AnyOf { conditions } => conditions.iter().any(|c| c.matches(request)),
             PolicyCondition::AllOf { conditions } => conditions.iter().all(|c| c.matches(request)),

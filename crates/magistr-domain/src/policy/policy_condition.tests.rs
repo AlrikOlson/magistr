@@ -18,14 +18,14 @@ fn a_leaf_over_an_absent_field_is_false_not_true() {
     assert!(!PolicyCondition::command("*").matches(&empty));
     assert!(!PolicyCondition::path("*").matches(&empty));
     assert!(!PolicyCondition::model("*").matches(&empty));
-    assert!(!PolicyCondition::gate("*").matches(&empty));
+    assert!(!PolicyCondition::check("*").matches(&empty));
     assert!(!PolicyCondition::risk_at_least(RiskTier::Low).matches(&empty));
 }
 
 #[test]
 fn tool_and_command_match_by_glob() {
     assert!(PolicyCondition::tool("Bash").matches(&bash("ls")));
-    assert!(PolicyCondition::tool("mcp__*").matches(&PolicyRequest::tool("mcp__magistr__gate")));
+    assert!(PolicyCondition::tool("mcp__*").matches(&PolicyRequest::tool("mcp__magistr__check")));
     assert!(PolicyCondition::command("*rm -rf*").matches(&bash("sudo rm -rf /tmp")));
     assert!(!PolicyCondition::command("*rm -rf*").matches(&bash("ls -la")));
 }
@@ -57,7 +57,7 @@ fn combinators_compose_the_leaves() {
             PolicyCondition::command("*--force*"),
             PolicyCondition::command("*rm -rf*"),
         ]),
-        PolicyCondition::negate(PolicyCondition::command("*--dry-run*")),
+        PolicyCondition::necheck(PolicyCondition::command("*--dry-run*")),
     ]);
     assert!(condition.matches(&request));
     assert!(!condition.matches(&bash("git push --force --dry-run")));
@@ -74,7 +74,7 @@ fn empty_combinators_take_the_neutral_element() {
 fn round_trips_through_the_roster_json() {
     let condition = PolicyCondition::all_of(vec![
         PolicyCondition::tool("Bash"),
-        PolicyCondition::negate(PolicyCondition::command("cargo *")),
+        PolicyCondition::necheck(PolicyCondition::command("cargo *")),
         PolicyCondition::risk_at_least(RiskTier::High),
     ]);
     let json = serde_json::to_string(&condition).expect("serialize");

@@ -258,7 +258,7 @@ impl RegionAudit {
 /// Audit a region map.
 ///
 /// Takes `(task id, region)` pairs rather than reading the plan, so the
-/// gate can be driven with a table this project has never held. A check only
+/// check can be driven with a table this project has never held. A check only
 /// ever run against live data proves something about today's 520 tasks and
 /// nothing about the next one anybody writes.
 ///

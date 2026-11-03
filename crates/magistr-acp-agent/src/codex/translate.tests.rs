@@ -5,7 +5,7 @@ use serde_json::json;
 fn mcp_tools_publish_actual_arguments_results_and_failure() {
     let mut translator = Translator::default();
     let result = json!({"content":[{"type":"text","text":"check failed"}],"structuredContent":{"name":"check","passed":false,"exit_code":1}});
-    let item = json!({"id":"gate","type":"mcpToolCall","server":"magistr","tool":"check_step","arguments":{"name":"check","command":"cargo check"},"status":"failed","result":result});
+    let item = json!({"id":"check","type":"mcpToolCall","server":"magistr","tool":"check_step","arguments":{"name":"check","command":"cargo check"},"status":"failed","result":result});
     let updates = translator
         .notification("item/completed", &json!({"item":item}))
         .unwrap();

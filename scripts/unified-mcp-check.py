@@ -96,7 +96,7 @@ def fixture(root):
         "project":{"name":"unified-test","description":"","type":"cli"},
         "stack":{"language":"rust","framework":"none","package_manager":"cargo",
                  "test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
-        "quality_gate":{"check":"true","test":"true","lint":"true"},
+        "checks":{"check":"true","test":"true","lint":"true"},
         "format":{"command":"true","extensions":["rs"]},
         "plan_exports":False, "plan_backend":"native",
         "testing":{"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},

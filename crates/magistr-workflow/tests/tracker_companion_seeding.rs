@@ -2,7 +2,7 @@
 //! from a lane that can create, and the copy is made where neither adapter can
 //! see it.
 //!
-//! The decision these gates hold: a GitHub Projects v2 board is not
+//! The decision these checks hold: a GitHub Projects v2 board is not
 //! a destination you switch TO — a board item wraps an issue that already
 //! exists, so the board is a COMPANION to an issues lane. The seed is what makes
 //! that companion useful, and two things about it are easy to get wrong in ways
@@ -62,7 +62,7 @@ fn task_of<'a>(e: &'a PlanEngine, id: &str) -> &'a magistr_workflow::plan::domai
         .expect("task exists")
 }
 
-/// THE gate. A task the issues lane has already filed reaches the board's lane
+/// THE check. A task the issues lane has already filed reaches the board's lane
 /// carrying the ISSUES lane's coordinate — the exact `owner/repo#number` a board
 /// item needs — and a task the issues lane has never filed is left alone rather
 /// than given a made-up one.

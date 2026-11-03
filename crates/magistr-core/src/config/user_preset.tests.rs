@@ -13,7 +13,7 @@ fn loads_valid_user_preset() {
     std::fs::write(
         dir.path().join("rust.json"),
         r#"{
-                "quality_gate": {
+                "checks": {
                     "check": "cargo check --all-features"
                 }
             }"#,
@@ -24,11 +24,11 @@ fn loads_valid_user_preset() {
     assert!(result.is_some());
     let preset = result.unwrap();
     assert_eq!(
-        preset.quality_gate.as_ref().unwrap().check.as_deref(),
+        preset.checks.as_ref().unwrap().check.as_deref(),
         Some("cargo check --all-features")
     );
     // Unset fields remain None
-    assert!(preset.quality_gate.as_ref().unwrap().test.is_none());
+    assert!(preset.checks.as_ref().unwrap().test.is_none());
     assert!(preset.format.is_none());
 }
 
@@ -48,7 +48,7 @@ fn ignores_wrong_language() {
     let dir = tempfile::TempDir::new().unwrap();
     std::fs::write(
         dir.path().join("python.json"),
-        r#"{"quality_gate": {"test": "pytest -x"}}"#,
+        r#"{"checks": {"test": "pytest -x"}}"#,
     )
     .unwrap();
 
@@ -70,7 +70,7 @@ fn full_override_all_fields() {
     std::fs::write(
         dir.path().join("typescript.json"),
         r#"{
-                "quality_gate": {
+                "checks": {
                     "check": "tsc --noEmit",
                     "test": "vitest run",
                     "lint": "biome check"
@@ -91,7 +91,7 @@ fn full_override_all_fields() {
     let result = load_user_override_from_dir(dir.path(), Language::TypeScript).unwrap();
     let preset = result.unwrap();
     assert_eq!(
-        preset.quality_gate.as_ref().unwrap().lint.as_deref(),
+        preset.checks.as_ref().unwrap().lint.as_deref(),
         Some("biome check")
     );
     assert_eq!(

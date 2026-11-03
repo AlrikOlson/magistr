@@ -45,7 +45,7 @@ use crate::tracker::registry::{ProviderBuild, ProviderRegistration};
 /// It is both the string a human types into `--provider` and the answer this
 /// adapter gives to [`TrackerPort::provider`]. Those two were separate literals
 /// once; binding them here makes the drift between them unrepresentable within
-/// this file, and the truth gate in `tests/tracker_provider_registry.rs` covers
+/// this file, and the truth check in `tests/tracker_provider_registry.rs` covers
 /// the failure that remains possible — a registration block copied into a
 /// sibling adapter and only half-renamed.
 pub const PROVIDER: &str = "github";

@@ -19,13 +19,13 @@ use super::policy_rule::PolicyRule;
 /// [`PolicyEngine`], so there is exactly one evaluation path and no
 /// second mechanism that can disagree with the first.
 ///
-/// The gate half (`required_gates`, `allow_gate_bypass`) is not a
-/// per-request question — it asks whether a *set* of gates ran — so it
-/// stays as [`missing_required_gates`] rather than being forced through
+/// The check half (`required_checks`, `allow_check_bypass`) is not a
+/// per-request question — it asks whether a *set* of checks ran — so it
+/// stays as [`missing_required_checks`] rather than being forced through
 /// the engine.
 ///
 /// [`compile`]: GovernancePolicy::compile
-/// [`missing_required_gates`]: GovernancePolicy::missing_required_gates
+/// [`missing_required_checks`]: GovernancePolicy::missing_required_checks
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GovernancePolicy {
     /// Hand-written rules, in full generality.
@@ -46,13 +46,13 @@ pub struct GovernancePolicy {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub protected_paths: Vec<String>,
 
-    /// Gate names that must have passed before work counts as done.
+    /// Check names that must have passed before work counts as done.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub required_gates: Vec<String>,
+    pub required_checks: Vec<String>,
 
-    /// Whether a developer may run past a missing required gate.
+    /// Whether a developer may run past a missing required check.
     #[serde(default)]
-    pub allow_gate_bypass: bool,
+    pub allow_check_bypass: bool,
 
     /// Globs for the only models permitted. Empty means "no allowlist".
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -79,7 +79,7 @@ impl GovernancePolicy {
             || !self.tool_allowlist.is_empty()
             || !self.tool_denylist.is_empty()
             || !self.protected_paths.is_empty()
-            || !self.required_gates.is_empty()
+            || !self.required_checks.is_empty()
             || !self.approved_models.is_empty()
             || self.max_model_tier.is_some()
     }
@@ -88,7 +88,7 @@ impl GovernancePolicy {
     /// that keeps an ungoverned roster free of an empty `policy` block.
     #[must_use]
     pub fn is_unset(&self) -> bool {
-        !self.is_set() && !self.allow_gate_bypass && self.fallback_model.is_none()
+        !self.is_set() && !self.allow_check_bypass && self.fallback_model.is_none()
     }
 
     /// Desugar the shorthands and return the one engine that decides.
@@ -172,14 +172,14 @@ impl GovernancePolicy {
         PolicyEngine::new(rules)
     }
 
-    /// The required gates that are not in `passed`, in policy order.
+    /// The required checks that are not in `passed`, in policy order.
     ///
-    /// A gate the project never configured reports as passed elsewhere in
+    /// A check the project never configured reports as passed elsewhere in
     /// the system ("skipped, no command"), which is exactly the hole this
-    /// closes: the caller passes only the gates that actually ran green.
+    /// closes: the caller passes only the checks that actually ran green.
     #[must_use]
-    pub fn missing_required_gates<S: AsRef<str>>(&self, passed: &[S]) -> Vec<String> {
-        self.required_gates
+    pub fn missing_required_checks<S: AsRef<str>>(&self, passed: &[S]) -> Vec<String> {
+        self.required_checks
             .iter()
             .filter(|required| {
                 !passed
@@ -225,7 +225,7 @@ impl GovernancePolicy {
     ) -> PolicyCondition {
         PolicyCondition::all_of(vec![
             present,
-            PolicyCondition::negate(PolicyCondition::any_of(listed.collect())),
+            PolicyCondition::necheck(PolicyCondition::any_of(listed.collect())),
         ])
     }
 }

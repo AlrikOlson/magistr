@@ -50,7 +50,7 @@ def cohesive(tree, relative, text):
 
 
 def long_functions(text):
-    # Preserve the existing gate's line-based measurement while removing awk
+    # Preserve the existing check's line-based measurement while removing awk
     # startup for each file. Imported crates use their stricter lexical ratchet.
     lines = text.splitlines()
     start = 0
@@ -85,7 +85,7 @@ def check(tree, generate=False):
         return 0
     errors = []
     if (tree.root / "crates/magistr-workspace").is_dir():
-        result = subprocess.run([sys.executable, "-B", str(tree.root / "scripts/workspace-structure-gate.py"),
+        result = subprocess.run([sys.executable, "-B", str(tree.root / "scripts/workspace-structure-check.py"),
                                  str(tree.root)])
         if result.returncode:
             errors.append("ERROR: workspace structure ratchet failed")

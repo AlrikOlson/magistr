@@ -128,15 +128,15 @@ fn format_prompt(config: &ProjectConfig) -> String {
     prompt.push_str(&format!("- Formatter: {}\n", config.stack.formatter));
     prompt.push('\n');
 
-    // Quality gates
-    prompt.push_str("## Quality Gates\n\n");
+    // Checks
+    prompt.push_str("## Checks\n\n");
     prompt.push_str("Run these commands to validate changes:\n\n");
-    prompt.push_str(&format!("- **Check:** `{}`\n", config.quality_gate.check));
-    prompt.push_str(&format!("- **Test:** `{}`\n", config.quality_gate.test));
-    prompt.push_str(&format!("- **Lint:** `{}`\n", config.quality_gate.lint));
-    if !config.custom_gates.is_empty() {
-        prompt.push_str("\n**Custom gates:**\n");
-        for cg in &config.custom_gates {
+    prompt.push_str(&format!("- **Check:** `{}`\n", config.checks.check));
+    prompt.push_str(&format!("- **Test:** `{}`\n", config.checks.test));
+    prompt.push_str(&format!("- **Lint:** `{}`\n", config.checks.lint));
+    if !config.custom_checks.is_empty() {
+        prompt.push_str("\n**Custom checks:**\n");
+        for cg in &config.custom_checks {
             let req = if cg.required { "required" } else { "optional" };
             prompt.push_str(&format!("- **{}** ({req}): `{}`\n", cg.name, cg.command));
         }

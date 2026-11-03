@@ -36,7 +36,7 @@ impl Project {
             r#"{"project": {"name": "t", "description": "", "type": "cli"},
                 "stack": {"language": "rust", "framework": "none", "package_manager": "cargo",
                     "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"},
-                "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+                "checks": {"check": "true", "test": "true", "lint": "true"},
                 "format": {"extensions": ["rs"], "command": "true"},
                 "testing": {"companion_pattern": "{name}.tests.rs", "test_dir": "alongside"},
                 "reference_repos": [], "state_prefix": "t",
@@ -262,7 +262,7 @@ fn writes_outside_the_frozen_tree_pass() {
 }
 
 #[test]
-fn a_project_without_a_ratchet_declaration_is_never_gated() {
+fn a_project_without_a_ratchet_declaration_is_never_checkd() {
     let project = Project::new(false);
     project.set_goal("task:unrelated");
     let out = project.guard("crates/magistr-gui/src/App.svelte");
@@ -309,7 +309,7 @@ fn the_freeze_is_declared_not_hardcoded() {
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
 }
 
-/// The gate the hook depends on is wired: the settings template every
+/// The check the hook depends on is wired: the settings template every
 /// generated `.claude/settings.json` comes from routes the file-editing tools
 /// at `magistr-guard.sh write`. Without the matcher the binary above is never
 /// asked. The repository's own setup is generated from this template and not

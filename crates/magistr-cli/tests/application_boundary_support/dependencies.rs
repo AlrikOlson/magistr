@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 
 /// Pin declarations as well as resolution: disabled optional dependencies and
 /// target-specific aliases must not smuggle adapter capabilities into contracts.
-/// The domain's own architecture gate enforces its serialization-only closure.
+/// The domain's own architecture check enforces its serialization-only closure.
 pub(super) fn check(metadata: &Value) -> Vec<String> {
     let mut errors = Vec::new();
     let Some(packages) = metadata["packages"].as_array() else {

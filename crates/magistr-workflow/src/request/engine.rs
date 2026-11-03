@@ -388,7 +388,7 @@ impl RequestEngine {
     }
 
     /// How many requests are currently ready to raise — the count source for the
-    /// `plan_status` ready-request badge. Same gate as
+    /// `plan_status` ready-request badge. Same check as
     /// [`Self::ready`] with no relevance hints.
     pub fn ready_count(&self, min_confidence: f64) -> usize {
         self.ready(min_confidence, &[], usize::MAX).len()

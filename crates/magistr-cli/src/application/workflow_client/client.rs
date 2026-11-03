@@ -53,7 +53,7 @@ impl EngineClient {
     /// Admit this process as the host of the project the configuration
     /// names and open its engines. The configuration must carry the
     /// project's verification evidence capability — the host attaches it
-    /// through its writer config — because a host records gates and
+    /// through its writer config — because a host records checks and
     /// completes tasks, and neither may happen unbound from the source;
     /// a configuration without it is refused before any lease is taken.
     ///

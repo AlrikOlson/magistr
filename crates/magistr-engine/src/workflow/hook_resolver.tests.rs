@@ -41,12 +41,12 @@ fn returns_matching_hooks_only() {
 #[test]
 fn preserves_declaration_order() {
     let hooks = vec![
-        hook(LifecycleEvent::OnGatePass, "first"),
-        hook(LifecycleEvent::OnGatePass, "second"),
-        hook(LifecycleEvent::OnGatePass, "third"),
+        hook(LifecycleEvent::OnCheckPass, "first"),
+        hook(LifecycleEvent::OnCheckPass, "second"),
+        hook(LifecycleEvent::OnCheckPass, "third"),
     ];
 
-    let resolved = HookResolver::resolve(&LifecycleEvent::OnGatePass, &hooks);
+    let resolved = HookResolver::resolve(&LifecycleEvent::OnCheckPass, &hooks);
     assert_eq!(resolved.len(), 3);
     assert_eq!(resolved[0].display_name(), "first");
     assert_eq!(resolved[1].display_name(), "second");
@@ -56,11 +56,11 @@ fn preserves_declaration_order() {
 #[test]
 fn no_match_returns_empty() {
     let hooks = vec![
-        hook(LifecycleEvent::OnGatePass, "tool_a"),
+        hook(LifecycleEvent::OnCheckPass, "tool_a"),
         hook(LifecycleEvent::OnEnter(WorkflowPhase::Planning), "tool_b"),
     ];
 
-    let resolved = HookResolver::resolve(&LifecycleEvent::OnGateFail, &hooks);
+    let resolved = HookResolver::resolve(&LifecycleEvent::OnCheckFail, &hooks);
     assert!(resolved.is_empty());
 }
 

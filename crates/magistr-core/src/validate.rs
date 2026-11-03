@@ -1,63 +1,67 @@
-//! Quality gate types and project config loading.
+//! Check types and project config loading.
 //!
-//! Contains the pure data types (`Gate`, `GateResult`, `ValidationResult`) and
-//! synchronous helpers (`load_project_config`, `gate_command`). Async gate
+//! Contains the pure data types (`StandardCheck`, `StandardCheckResult`, `ValidationResult`) and
+//! synchronous helpers (`load_project_config`, `standard_check_command`). Async check
 //! execution stays in the CLI crate (`src/detection/validate.rs`).
 
 use std::path::Path;
 use std::time::Duration;
 
 use crate::error::{MagistrError, Result};
-use crate::types::{ProjectConfig, QualityGate};
+use crate::types::{ProjectConfig, StandardChecks};
 
-/// A quality gate step.
+/// A check step.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Gate {
+pub enum StandardCheck {
     Check,
     Test,
     Lint,
 }
 
-impl Gate {
+impl StandardCheck {
     pub fn label(&self) -> &'static str {
         match self {
-            Gate::Check => "check",
-            Gate::Test => "test",
-            Gate::Lint => "lint",
+            StandardCheck::Check => "check",
+            StandardCheck::Test => "test",
+            StandardCheck::Lint => "lint",
         }
     }
 
-    pub fn all() -> [Gate; 3] {
-        [Gate::Check, Gate::Test, Gate::Lint]
+    pub fn all() -> [StandardCheck; 3] {
+        [
+            StandardCheck::Check,
+            StandardCheck::Test,
+            StandardCheck::Lint,
+        ]
     }
 }
 
-impl std::fmt::Display for Gate {
+impl std::fmt::Display for StandardCheck {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.label())
     }
 }
 
-/// Result of running a single quality gate.
+/// Result of running a single check.
 #[derive(Debug, Clone)]
-pub struct GateResult {
-    pub gate: Gate,
+pub struct StandardCheckResult {
+    pub check: StandardCheck,
     pub passed: bool,
     pub duration: Duration,
     pub output: String,
     pub command: String,
 }
 
-impl GateResult {
+impl StandardCheckResult {
     pub fn status_label(&self) -> &'static str {
         if self.passed { "PASS" } else { "FAIL" }
     }
 }
 
-/// Results from running all quality gates.
+/// Results from running all checks.
 #[derive(Debug, Clone)]
 pub struct ValidationResult {
-    pub results: Vec<GateResult>,
+    pub results: Vec<StandardCheckResult>,
 }
 
 impl ValidationResult {
@@ -78,12 +82,12 @@ impl ValidationResult {
     }
 }
 
-/// Get the shell command for a gate from the quality gate config.
-pub fn gate_command(qg: &QualityGate, gate: Gate) -> &str {
-    match gate {
-        Gate::Check => &qg.check,
-        Gate::Test => &qg.test,
-        Gate::Lint => &qg.lint,
+/// Get the shell command for a check from the check config.
+pub fn standard_check_command(qg: &StandardChecks, check: StandardCheck) -> &str {
+    match check {
+        StandardCheck::Check => &qg.check,
+        StandardCheck::Test => &qg.test,
+        StandardCheck::Lint => &qg.lint,
     }
 }
 

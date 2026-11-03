@@ -5,7 +5,7 @@
 //!
 //! - **Declarative plugins** — detection rules and scaffold templates
 //!   (no executable code, just config + templates)
-//! - **Executable plugins** — workflow steps and quality gates that run as
+//! - **Executable plugins** — workflow steps and checks that run as
 //!   subprocesses with declared permissions
 //!
 //! No kind reaches a model: that is ACP's job (`magistr acp-agent`), and the
@@ -24,7 +24,7 @@ const RETIRED_BACKEND_KIND: &str = "backend";
 /// What a manifest still declaring the retired `backend` kind is told.
 const BACKEND_KIND_RETIRED: &str = "plugin kind \"backend\" was retired: a model is reached over ACP only — \
      `magistr acp-agent --provider claude|codex|openai|gemini|ollama` serves the providers and any native \
-     ACP agent on PATH is spoken to as-is; quality-gate and workflow-step plugins are unaffected";
+     ACP agent on PATH is spoken to as-is; check and workflow-step plugins are unaffected";
 
 /// What kind of functionality a plugin provides.
 ///
@@ -38,8 +38,8 @@ pub enum PluginKind {
     Template,
     /// Custom workflow step (pre/post hooks in the iteration loop).
     WorkflowStep,
-    /// Custom quality gate (e.g., SonarQube, license compliance).
-    QualityGate,
+    /// Custom check (e.g., SonarQube, license compliance).
+    Check,
 }
 
 impl PluginKind {
@@ -50,14 +50,14 @@ impl PluginKind {
             Self::Detection => "detection",
             Self::Template => "template",
             Self::WorkflowStep => "workflow-step",
-            Self::QualityGate => "quality-gate",
+            Self::Check => "check",
         }
     }
 
     /// Whether this plugin kind requires an entrypoint (executable plugins).
     #[must_use]
     pub fn is_executable(self) -> bool {
-        matches!(self, Self::WorkflowStep | Self::QualityGate)
+        matches!(self, Self::WorkflowStep | Self::Check)
     }
 }
 
@@ -169,7 +169,7 @@ pub struct PluginManifest {
     #[serde(default)]
     pub author: Option<String>,
     /// Path to the plugin entrypoint (binary or cdylib), relative to plugin dir.
-    /// Required for executable plugin kinds (workflow-step, quality-gate).
+    /// Required for executable plugin kinds (workflow-step, check).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entrypoint: Option<String>,
     /// Permissions this plugin requires.
@@ -337,15 +337,15 @@ pub enum PluginRequest {
     Activate { id: u64, project_dir: String },
     /// Deactivate the plugin (graceful shutdown).
     Deactivate { id: u64 },
-    /// Run a quality gate check.
-    #[serde(rename = "gate.run")]
-    GateRun {
+    /// Run a check.
+    #[serde(rename = "check.run")]
+    CheckRun {
         id: u64,
-        /// Gate name to run (e.g., "sonarqube", "license").
-        gate_name: String,
+        /// Check name to run (e.g., "sonarqube", "license").
+        check_name: String,
         /// Project directory to check.
         project_dir: String,
-        /// Optional gate-specific configuration as JSON.
+        /// Optional check-specific configuration as JSON.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         config: Option<serde_json::Value>,
     },
@@ -402,7 +402,7 @@ impl PluginRequest {
             Self::Init { id, .. }
             | Self::Activate { id, .. }
             | Self::Deactivate { id }
-            | Self::GateRun { id, .. }
+            | Self::CheckRun { id, .. }
             | Self::WorkflowStepRun { id, .. }
             | Self::StorageStore { id, .. }
             | Self::StorageGet { id, .. }
@@ -425,9 +425,9 @@ pub enum PluginResponse {
     ActivateOk { id: u64 },
     /// Plugin deactivated.
     DeactivateOk { id: u64 },
-    /// A single finding from a quality gate (streamed incrementally).
-    #[serde(rename = "gate.finding")]
-    GateFinding {
+    /// A single finding from a check (streamed incrementally).
+    #[serde(rename = "check.finding")]
+    CheckFinding {
         id: u64,
         /// File path where the finding was detected (if applicable).
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -443,11 +443,11 @@ pub enum PluginResponse {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         rule_id: Option<String>,
     },
-    /// Quality gate completed.
-    #[serde(rename = "gate.done")]
-    GateDone {
+    /// Check completed.
+    #[serde(rename = "check.done")]
+    CheckDone {
         id: u64,
-        /// Whether the gate passed overall.
+        /// Whether the check passed overall.
         passed: bool,
         /// Human-readable summary.
         summary: String,
@@ -515,8 +515,8 @@ impl PluginResponse {
             Self::InitOk { id, .. }
             | Self::ActivateOk { id }
             | Self::DeactivateOk { id }
-            | Self::GateFinding { id, .. }
-            | Self::GateDone { id, .. }
+            | Self::CheckFinding { id, .. }
+            | Self::CheckDone { id, .. }
             | Self::WorkflowStepProgress { id, .. }
             | Self::WorkflowStepFinding { id, .. }
             | Self::WorkflowStepDone { id, .. }

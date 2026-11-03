@@ -11,15 +11,15 @@ manifest detection).\n# Amend by hand: this table is workspace `command`'s allow
 /// Token mode applies verified writes without asking the agent to confirm
 /// its own request. The same policy covers text edits, moves, overwriting
 /// copies and script batches. Parse verification, staleness checks and the
-/// journal remain active; `edit.force_confirm` restores confirmation gates.
+/// journal remain active; `edit.force_confirm` restores confirmation checks.
 const CONFIRM_MODE: &str = "\n# Unattended work applies verified writes without a second confirmation.\n# Set edit.force_confirm to require confirmation for gated operations.\n[edit]\nconfirm_mode = \"token\"\n";
 
-/// The gate commands `magistr init` seeds into `.magistr/workspace.toml [commands]`.
+/// The check commands `magistr init` seeds into `.magistr/workspace.toml [commands]`.
 ///
 /// The table is a human's: it is written once, when the project has none,
 /// and never touched again by the scaffold. When `magistr` is on PATH
 /// its own `init` runs first so manifest-detected commands (`cargo-test`,
-/// npm scripts, …) land beside the gate keys; the gate keys are then
+/// npm scripts, …) land beside the check keys; the check keys are then
 /// appended only if that seeding left them out.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct WorkspaceSeed {
@@ -39,9 +39,9 @@ impl WorkspaceSeed {
                 .map(|v| (key.to_owned(), v.to_owned(), provenance.to_owned()))
         };
         let commands = [
-            pick("check", "check_cmd", "project.json quality_gate.check"),
-            pick("test", "test_cmd", "project.json quality_gate.test"),
-            pick("lint", "lint_cmd", "project.json quality_gate.lint"),
+            pick("check", "check_cmd", "project.json checks.check"),
+            pick("test", "test_cmd", "project.json checks.test"),
+            pick("lint", "lint_cmd", "project.json checks.lint"),
             pick("format", "format_cmd", "project.json format.command"),
         ]
         .into_iter()
@@ -50,8 +50,8 @@ impl WorkspaceSeed {
         Self { commands }
     }
 
-    /// Build from a loaded project config: the three quality gates, every
-    /// custom gate (keyed by its name) and the formatter.
+    /// Build from a loaded project config: the three checks, every
+    /// custom check (keyed by its name) and the formatter.
     #[must_use]
     pub fn from_project_config(config: &magistr_core::types::ProjectConfig) -> Self {
         let mut commands = Vec::new();
@@ -61,19 +61,15 @@ impl WorkspaceSeed {
                 commands.push((key.to_owned(), line.to_owned(), provenance));
             }
         };
-        let gate = &config.quality_gate;
-        push(
-            "check",
-            &gate.check,
-            "project.json quality_gate.check".into(),
-        );
-        push("test", &gate.test, "project.json quality_gate.test".into());
-        push("lint", &gate.lint, "project.json quality_gate.lint".into());
-        for custom in &config.custom_gates {
+        let check = &config.checks;
+        push("check", &check.check, "project.json checks.check".into());
+        push("test", &check.test, "project.json checks.test".into());
+        push("lint", &check.lint, "project.json checks.lint".into());
+        for custom in &config.custom_checks {
             push(
                 &custom.name,
                 &custom.command,
-                format!("project.json custom_gates.{}", custom.name),
+                format!("project.json custom_checks.{}", custom.name),
             );
         }
         push(
@@ -90,7 +86,7 @@ impl WorkspaceSeed {
         self.commands.is_empty()
     }
 
-    /// How `body`'s `[commands]` table disagrees with this seed: a gate key
+    /// How `body`'s `[commands]` table disagrees with this seed: a check key
     /// the table does not declare, or one it runs with a different command
     /// line. One human sentence per finding; empty means no drift.
     #[must_use]
@@ -180,7 +176,7 @@ impl WorkspaceSeed {
     /// the file needs nothing: the current content read while planning and
     /// the body to write. A file that already declares `[commands]` keeps
     /// its table; otherwise the native lockfile/manifest detection
-    /// (`magistr workspace init`) seeds the table first and the gate keys
+    /// (`magistr workspace init`) seeds the table first and the check keys
     /// are folded in. The confirm mode is a separate question asked of every
     /// project, appended last so a later `[commands]` merge never lands in
     /// the `[edit]` table.

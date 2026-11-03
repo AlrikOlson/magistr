@@ -122,7 +122,7 @@ pub(crate) const NEXT_WORKFLOW_INSTRUCTIONS: &str = r#"## Workflow
 Follow the Research-Plan-Execute-Verify workflow from the project rules.
 Call `magistr_set_phase` at each phase transition to record the current workflow phase.
 
-The plan, plan and gates live in native Magistr state. Start with `context`; use `discover` for advanced operation schemas and `execute` with `magistr.call(name, args)` to call them. Common work uses the direct tools below:
+The plan, plan and checks live in native Magistr state. Start with `context`; use `discover` for advanced operation schemas and `execute` with `magistr.call(name, args)` to call them. Common work uses the direct tools below:
 
 Choose `verification: "focused"` for bounded work and run the relevant checks. A full suite requires an explicit request or a stated cross-cutting risk.
 
@@ -130,7 +130,7 @@ Choose `verification: "focused"` for bounded work and run the relevant checks. A
 - `plan_next` → select pending work only when there is no resumable in-progress task; `plan_start_task(id)` starts a pending task once
 - `run_open` + `arrange_steps` → create a missing goal and plan; keep the matching unfinished goal and saved plan when resuming
 - `decision_record` → record the plan, material findings and investigations as work proceeds, then the verified outcome
-- `check_step` / `magistr_gate` → every quality gate, recorded with its real exit code
+- `check_step` / `magistr_check` → every check, recorded with its real exit code
 - `plan_complete_task(id, step_ref: "step:<id>")` + `run_finish` → done
 
 ### Execute Phase — restrictions
@@ -138,11 +138,11 @@ Choose `verification: "focused"` for bounded work and run the relevant checks. A
 During Execute, implement and test the change, recording material findings and investigations as they occur. Do NOT:
 - Call `plan_complete_task` or `plan_add_task` — plan updates belong in Verify
 - Commit code — commits belong in Verify
-- Run full quality gates — save that for Verify (periodic `cargo check` is fine)
+- Run full checks — save that for Verify (periodic `cargo check` is fine)
 
 ### Verify Phase — /next-specific steps
 
-After quality gates pass (each recorded through `check_step`), complete these additional steps:
+After checks pass (each recorded through `check_step`), complete these additional steps:
 
 1. **Update the plan** (MANDATORY)
    - `plan_complete_task(id: "<task>", step_ref: "step:<verify step>")` for the task you implemented
@@ -154,7 +154,7 @@ After quality gates pass (each recorded through `check_step`), complete these ad
    - Include only files within the authorized change; preserve other sessions' work
 4. **Append summary** to `.magistr/iteration-log.md`
 5. **Mark done** — call `magistr_set_phase(phase: "done")`
-6. **Report** what was done, quality gate status, and what's next (`plan_next`)
+6. **Report** what was done, check status, and what's next (`plan_next`)
 
 **IMPORTANT — MANDATORY STOP RULE:**
 - After completing the verify phase, you MUST STOP. End your turn. Do not continue.
@@ -168,7 +168,7 @@ Prefix each plan entry with its workflow phase tag:
 - `[Research]` — web search, documentation scraping
 - `[Plan]` — reading, exploring, writing the run plan
 - `[Execute]` — writing code, tests, TDD
-- `[Verify]` — quality gate, plan update, commit
+- `[Verify]` — check, plan update, commit
 
 **Plan Entry Status Updates (REQUIRED):**
 Keep plan entry statuses up to date — the run's step plan retains each step's status.

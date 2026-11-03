@@ -1,16 +1,16 @@
 use std::time::Duration;
 
 use super::*;
-use crate::utils::gate::{GateRun, GateVerdict};
-use crate::validate::{Gate, ProjectValidation as ValidationResult};
+use crate::utils::check::{CheckRun, CheckVerdict};
+use crate::validate::{ProjectValidation as ValidationResult, StandardCheck};
 
-fn make_gate_result(gate: Gate, passed: bool, output: &str) -> GateRun {
-    GateRun {
-        name: gate.label().into(),
+fn make_check_result(check: StandardCheck, passed: bool, output: &str) -> CheckRun {
+    CheckRun {
+        name: check.label().into(),
         verdict: if passed {
-            GateVerdict::Passed
+            CheckVerdict::Passed
         } else {
-            GateVerdict::Failed
+            CheckVerdict::Failed
         },
         required: true,
         exit_code: if passed { 0 } else { 1 },
@@ -18,7 +18,7 @@ fn make_gate_result(gate: Gate, passed: bool, output: &str) -> GateRun {
         queue_duration: std::time::Duration::ZERO,
         duration: Duration::from_millis(100),
         output: output.to_string(),
-        command: format!("test-cmd-{}", gate.label()),
+        command: format!("test-cmd-{}", check.label()),
     }
 }
 
@@ -164,10 +164,10 @@ fn parse_colon_rejects_non_file() {
 // ── Integration: format_annotations ────────────────────────
 
 #[test]
-fn format_annotations_skips_passing_gates() {
+fn format_annotations_skips_passing_checks() {
     let result = ValidationResult {
         checks: vec![],
-        results: vec![make_gate_result(Gate::Check, true, "all good")],
+        results: vec![make_check_result(StandardCheck::Check, true, "all good")],
     };
     let output = format_annotations(&result);
     assert!(output.is_empty());
@@ -177,14 +177,14 @@ fn format_annotations_skips_passing_gates() {
 fn format_annotations_emits_general_error_for_unparseable_output() {
     let result = ValidationResult {
         checks: vec![],
-        results: vec![make_gate_result(
-            Gate::Test,
+        results: vec![make_check_result(
+            StandardCheck::Test,
             false,
             "FAILED: 3 tests failed",
         )],
     };
     let output = format_annotations(&result);
-    assert!(output.contains("::error title=test::test gate failed"));
+    assert!(output.contains("::error title=test::test check failed"));
 }
 
 #[test]
@@ -192,20 +192,24 @@ fn format_annotations_emits_file_annotations_for_parseable_output() {
     let output_text = "error[E0308]: mismatched types\n  --> src/main.rs:10:5\n  |\n";
     let result = ValidationResult {
         checks: vec![],
-        results: vec![make_gate_result(Gate::Check, false, output_text)],
+        results: vec![make_check_result(StandardCheck::Check, false, output_text)],
     };
     let output = format_annotations(&result);
     assert!(output.contains("::error file=src/main.rs,line=10,col=5,title=check::"));
 }
 
 #[test]
-fn format_annotations_handles_multiple_failed_gates() {
+fn format_annotations_handles_multiple_failed_checks() {
     let result = ValidationResult {
         checks: vec![],
         results: vec![
-            make_gate_result(Gate::Check, true, "ok"),
-            make_gate_result(Gate::Test, false, "src/lib.rs:20: error: assertion failed"),
-            make_gate_result(Gate::Lint, false, "  --> src/util.rs:5:1\n"),
+            make_check_result(StandardCheck::Check, true, "ok"),
+            make_check_result(
+                StandardCheck::Test,
+                false,
+                "src/lib.rs:20: error: assertion failed",
+            ),
+            make_check_result(StandardCheck::Lint, false, "  --> src/util.rs:5:1\n"),
         ],
     };
     let output = format_annotations(&result);
@@ -216,27 +220,28 @@ fn format_annotations_handles_multiple_failed_gates() {
 }
 
 #[test]
-fn format_annotations_preserves_custom_and_archetype_gate_names() {
-    let mut archetype = make_gate_result(Gate::Check, false, "src/main.rs:8: error: failed");
+fn format_annotations_preserves_custom_and_archetype_check_names() {
+    let mut archetype =
+        make_check_result(StandardCheck::Check, false, "src/main.rs:8: error: failed");
     archetype.name = "check:website".into();
-    let mut custom = make_gate_result(Gate::Lint, false, "custom check failed");
+    let mut custom = make_check_result(StandardCheck::Lint, false, "custom check failed");
     custom.name = "architecture".into();
     let output = format_annotations(&ValidationResult {
         checks: vec![],
         results: vec![archetype, custom],
     });
     assert!(output.contains("title=check%3Awebsite::"));
-    assert!(output.contains("::error title=architecture::architecture gate failed"));
+    assert!(output.contains("::error title=architecture::architecture check failed"));
 }
 
 #[test]
-fn custom_gate_annotations_escape_workflow_command_delimiters() {
-    let mut gate = make_gate_result(Gate::Check, false, "failed");
-    gate.name = "check:website,1\n::notice::injected".into();
-    gate.command = "first\r\nsecond%".into();
+fn custom_check_annotations_escape_workflow_command_delimiters() {
+    let mut check = make_check_result(StandardCheck::Check, false, "failed");
+    check.name = "check:website,1\n::notice::injected".into();
+    check.command = "first\r\nsecond%".into();
     let output = format_annotations(&ValidationResult {
         checks: vec![],
-        results: vec![gate],
+        results: vec![check],
     });
     assert_eq!(output.lines().count(), 1);
     assert!(output.contains("title=check%3Awebsite%2C1%0A%3A%3Anotice%3A%3Ainjected::"));

@@ -6,7 +6,7 @@ fn project(dir: &Path, lint_cmd: &str) {
         "project": {"name": "t", "description": "", "type": "cli"},
         "stack": {"language": "rust", "framework": "none", "package_manager": "cargo",
                   "test_framework": "cargo-nextest", "linter": "clippy", "formatter": "rustfmt"},
-        "quality_gate": {"check": "cargo check", "test": "cargo test", "lint": lint_cmd},
+        "checks": {"check": "cargo check", "test": "cargo test", "lint": lint_cmd},
         "format": {"command": "cargo fmt", "extensions": ["rs"]},
         "spec": {"file": "PLAN.md", "unchecked_pattern": "^- \\\\[ \\\\]"},
         "state_prefix": "t",
@@ -55,7 +55,7 @@ fn matching_files_pass() {
 }
 
 #[test]
-fn a_changed_gate_is_a_warning_naming_both_sides() {
+fn a_changed_check_is_a_warning_naming_both_sides() {
     let tmp = tempfile::tempdir().expect("tempdir");
     project(tmp.path(), "cargo clippy -- -D warnings");
     workspace(tmp.path(), "cargo clippy");

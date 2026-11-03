@@ -24,7 +24,7 @@ crates/magistr-cli/src/core/error.rs
 crates/magistr-cli/src/core/paths.rs
 crates/magistr-cli/src/core/types/preset_layer.rs
 crates/magistr-cli/src/core/types/preset.rs
-crates/magistr-cli/src/core/types/quality_gate.rs
+crates/magistr-cli/src/core/types/standard_checks.rs
 crates/magistr-cli/src/core/types/stack.rs
 crates/magistr-cli/src/detection/validate.rs
 crates/magistr-cli/src/mcp_tools/mod.rs
@@ -33,10 +33,10 @@ crates/magistr-cli/src/orchestration/workflow/watcher.rs
 crates/magistr-cli/src/output/envelope.rs
 crates/magistr-cli/src/output/renderer.rs
 crates/magistr-cli/src/plugin/discovery.rs
-crates/magistr-cli/src/plugin/gate_trait.rs
-crates/magistr-cli/src/plugin/gates/license.rs
-crates/magistr-cli/src/plugin/gates/sbom.rs
-crates/magistr-cli/src/plugin/gates/sonarqube.rs
+crates/magistr-cli/src/plugin/check_trait.rs
+crates/magistr-cli/src/plugin/checks/license.rs
+crates/magistr-cli/src/plugin/checks/sbom.rs
+crates/magistr-cli/src/plugin/checks/sonarqube.rs
 crates/magistr-cli/src/plugin/index.rs
 crates/magistr-cli/src/plugin/lifecycle.rs
 crates/magistr-cli/src/plugin/loader.rs

@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "npx tsc --noEmit",
     "test": "npx jest --passWithNoTests"
   },

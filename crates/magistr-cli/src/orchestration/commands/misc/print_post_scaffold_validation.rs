@@ -4,14 +4,11 @@ use crate::validate;
 /// Run post-scaffold validation and print results.
 pub async fn print_post_scaffold_validation(dir: &std::path::Path) {
     eprintln!();
-    eprintln!(
-        "{}",
-        fmt::info("Validating scaffold (running quality gates)...")
-    );
+    eprintln!("{}", fmt::info("Validating scaffold (running checks)..."));
 
     // Validate the commands the project actually keeps after reinitialization.
     let configured = validate::load_project_config(dir)
-        .map(|config| config.quality_gate)
+        .map(|config| config.checks)
         .ok();
     let Some(configured) = configured else {
         eprintln!(
@@ -32,7 +29,7 @@ pub async fn print_post_scaffold_validation(dir: &std::path::Path) {
     let results = validate::post_scaffold_check(&configured, dir).await;
 
     if results.is_empty() {
-        eprintln!("  {}", fmt::dim("(no quality gate commands configured)"));
+        eprintln!("  {}", fmt::dim("(no check commands configured)"));
         return;
     }
 
@@ -41,7 +38,7 @@ pub async fn print_post_scaffold_validation(dir: &std::path::Path) {
         eprintln!(
             "  {} {} ({:.1}s)",
             r.status_icon(),
-            r.gate.label(),
+            r.check.label(),
             r.duration.as_secs_f64(),
         );
     }
@@ -50,11 +47,11 @@ pub async fn print_post_scaffold_validation(dir: &std::path::Path) {
         eprintln!();
         eprintln!(
             "  {}",
-            fmt::yellow("⚠ Some gates failed. The scaffold was still created, but")
+            fmt::yellow("⚠ Some checks failed. The scaffold was still created, but")
         );
         eprintln!(
             "  {}",
-            fmt::yellow("  your quality gate commands may need adjustment.")
+            fmt::yellow("  your check commands may need adjustment.")
         );
         eprintln!(
             "  {}",

@@ -20,12 +20,12 @@ pub(crate) struct CommandOutcome {
 
 /// Max chars of command output retained in the check `details`.
 pub(crate) const CHECK_OUTPUT_TAIL: usize = 4000;
-/// A verified check command is killed after this long so a hung gate can't pin
+/// A verified check command is killed after this long so a hung check can't pin
 /// a slot forever.
 ///
 /// Public because [`crate::mcp::steps::STEP_TTL_MS`] is *derived* from it: a
-/// step retention window shorter than the longest a gate may run would mark a
-/// still-running gate `failed`.
+/// step retention window shorter than the longest a check may run would mark a
+/// still-running check `failed`.
 pub(crate) const CHECK_TIMEOUT_SECS: u64 = super::CheckOptions::MAX_TIMEOUT_SECS;
 /// How long the group gets after `SIGTERM` before `SIGKILL` on a timeout.
 const KILL_GRACE: Duration = Duration::from_secs(5);
@@ -51,7 +51,7 @@ async fn run_check_command_with_timeout(
     cmd: &str,
     cwd: Option<&Path>,
     timeout_secs: u64,
-    schedule: &magistr_process::GateSchedule,
+    schedule: &magistr_process::CheckSchedule,
 ) -> CommandOutcome {
     let started = std::time::Instant::now();
     let cancel = CancellationToken::new();
@@ -59,7 +59,7 @@ async fn run_check_command_with_timeout(
         .map(Path::to_path_buf)
         .or_else(|| std::env::current_dir().ok())
         .unwrap_or_default();
-    let _permit = match magistr_process::acquire_gate(
+    let _permit = match magistr_process::acquire_check(
         &root,
         cmd,
         schedule,
@@ -168,7 +168,7 @@ impl RunUseCases {
                         .options
                         .timeout_secs
                         .unwrap_or(super::CheckOptions::DEFAULT_TIMEOUT_SECS),
-                    &magistr_process::GateSchedule {
+                    &magistr_process::CheckSchedule {
                         max_parallel: request.options.max_parallel.unwrap_or(4),
                         resources: request.options.resources.clone(),
                     },

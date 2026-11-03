@@ -10,13 +10,13 @@ pub struct CheckBudget {
 impl CheckBudget {
     pub fn resolve(
         per_call: Option<u64>,
-        gate: Option<u64>,
+        check: Option<u64>,
         project: Option<u64>,
     ) -> Result<Self, String> {
         let (seconds, origin) = if let Some(seconds) = per_call {
             (seconds, TimeoutOrigin::PerCall)
-        } else if let Some(seconds) = gate {
-            (seconds, TimeoutOrigin::Gate)
+        } else if let Some(seconds) = check {
+            (seconds, TimeoutOrigin::Check)
         } else if let Some(seconds) = project {
             (seconds, TimeoutOrigin::Project)
         } else {

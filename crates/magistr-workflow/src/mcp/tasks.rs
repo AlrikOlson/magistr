@@ -1,8 +1,8 @@
-//! SEP-2663 Tasks: a long gate stops holding the tool call open.
+//! SEP-2663 Tasks: a long check stops holding the tool call open.
 //!
 //! `check_step` with a `command` is the one tool in this server that provably
 //! blocks for minutes: running `cargo test --workspace` inside a single
-//! `tools/call` is how this project's own gates are recorded, and it is ~90s
+//! `tools/call` is how this project's own checks are recorded, and it is ~90s
 //! cold. Every other tool here returns in single-digit milliseconds. Tasks are
 //! the protocol's answer: the server materializes a handle, returns it
 //! immediately, and the client polls `tasks/get` for the real result.
@@ -84,10 +84,10 @@ use rmcp::{
 use super::progress::Heartbeat;
 
 /// The one tool whose `tools/call` is worth converting into a task.
-pub const LONG_GATE_TOOL: &str = "check_step";
+pub const LONG_CHECK_TOOL: &str = "check_step";
 
-/// The argument whose presence makes [`LONG_GATE_TOOL`] actually do work.
-pub const LONG_GATE_ARG: &str = "command";
+/// The argument whose presence makes [`LONG_CHECK_TOOL`] actually do work.
+pub const LONG_CHECK_ARG: &str = "command";
 
 /// Suggested `tasks/get` polling interval, in milliseconds.
 ///
@@ -96,11 +96,11 @@ pub const LONG_GATE_ARG: &str = "command";
 /// polls, and a human watching sees one rhythm rather than two.
 pub const TASK_POLL_INTERVAL_MS: u64 = 2_000;
 
-/// Retention/deadline for a gate task, in milliseconds.
+/// Retention/deadline for a check task, in milliseconds.
 ///
 /// **Derived, not chosen.** A non-terminal task whose TTL elapses is marked
-/// `failed` by rmcp's opportunistic sweep, so a TTL below the longest a gate is
-/// allowed to run would kill legitimate work. `run_check_command` caps a gate at
+/// `failed` by rmcp's opportunistic sweep, so a TTL below the longest a check is
+/// allowed to run would kill legitimate work. `run_check_command` caps a check at
 /// `CHECK_TIMEOUT_SECS`, so the TTL is that plus a minute of slack. Deriving it
 /// means raising the command timeout cannot silently orphan this constant.
 pub const TASK_TTL_MS: u64 = (crate::run::mcp::CHECK_TIMEOUT_SECS + 60) * 1_000;
@@ -112,9 +112,9 @@ pub const TASK_TTL_MS: u64 = (crate::run::mcp::CHECK_TIMEOUT_SECS + 60) * 1_000;
 /// value instead of inferring it from wire behaviour.
 #[must_use]
 pub fn wants_task(tool: &str, arguments: Option<&JsonObject>) -> bool {
-    tool == LONG_GATE_TOOL
+    tool == LONG_CHECK_TOOL
         && arguments.is_some_and(|args| {
-            args.get(LONG_GATE_ARG)
+            args.get(LONG_CHECK_ARG)
                 .and_then(serde_json::Value::as_str)
                 .is_some_and(|cmd| !cmd.trim().is_empty())
         })
@@ -150,7 +150,7 @@ impl Eligibility {
         // opt-in tracing; the caller's tool lifecycle reports actual progress.
         let declared = client_declared_tasks(context);
         tracing::debug!(
-            "magistr: {tool} is a long gate; client {} the tasks extension \
+            "magistr: {tool} is a long check; client {} the tasks extension \
              ({}) — SEP-2663",
             if declared {
                 "DECLARED"
@@ -288,7 +288,7 @@ mod tests {
     }
 
     #[test]
-    fn a_run_check_with_a_command_is_the_long_gate() {
+    fn a_run_check_with_a_command_is_the_long_check() {
         assert!(wants_task(
             "check_step",
             Some(&args(
@@ -357,15 +357,15 @@ mod tests {
     }
 
     /// The TTL is not a taste choice: a task marked `failed` while its command
-    /// is still legitimately running would report a gate that never finished as
+    /// is still legitimately running would report a check that never finished as
     /// a failure. Asserting the ORDER, not the literal, is what survives someone
     /// raising the command timeout.
     #[test]
-    fn the_task_ttl_outlives_the_longest_a_gate_may_run() {
-        let gate_ceiling_ms = crate::run::mcp::CHECK_TIMEOUT_SECS * 1_000;
+    fn the_task_ttl_outlives_the_longest_a_check_may_run() {
+        let check_ceiling_ms = crate::run::mcp::CHECK_TIMEOUT_SECS * 1_000;
         assert!(
-            TASK_TTL_MS > gate_ceiling_ms,
-            "TTL {TASK_TTL_MS}ms must exceed the {gate_ceiling_ms}ms command timeout"
+            TASK_TTL_MS > check_ceiling_ms,
+            "TTL {TASK_TTL_MS}ms must exceed the {check_ceiling_ms}ms command timeout"
         );
     }
 

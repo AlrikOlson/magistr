@@ -1,9 +1,9 @@
 //! Native workflow tools. All source operations belong to the workspace owner.
 
+pub(crate) mod check;
+mod check_batch;
 mod format;
 mod format_runs;
-pub(crate) mod gate;
-mod gate_batch;
 pub(crate) mod hooks;
 mod init;
 mod owner_attach;
@@ -29,15 +29,15 @@ use magistr_mcp::SdkMcpServer;
 /// `project_root` is the absolute path to the project directory. All tool
 /// operations are sandboxed to this directory.
 pub fn build_server(project_root: PathBuf) -> SdkMcpServer {
-    let root_gate = project_root.clone();
+    let root_check = project_root.clone();
     let root_format = project_root.clone();
     let root_hooks = project_root.clone();
     let root_init = project_root;
     // ── Workflow phase tool ──────────────────────────────────────────────────
     let set_phase_tool = set_phase::build_set_phase_tool();
 
-    // ── Quality gate & format tools ─────────────────────────────────────────
-    let gate_tool = gate::build_gate_tool(root_gate);
+    // ── Check & format tools ─────────────────────────────────────────
+    let check_tool = check::build_check_tool(root_check);
     let format_tool = format::build_format_tool(root_format);
 
     // ── Init tool ────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ pub fn build_server(project_root: PathBuf) -> SdkMcpServer {
     let mut server = SdkMcpServer::new("magistr")
         .version(env!("CARGO_PKG_VERSION"))
         .tool(set_phase_tool)
-        .tool(gate_tool)
+        .tool(check_tool)
         .tool(format_tool)
         .tool(init_tool);
 
@@ -90,7 +90,7 @@ fn extract_executable(command: &str) -> Option<&str> {
 
 /// Validate that executables required by the project config are on PATH.
 ///
-/// Reads `.magistr/project.json`, extracts the first word from each gate/format
+/// Reads `.magistr/project.json`, extracts the first word from each check/format
 /// command, and checks availability with `which`. Returns a list of warning
 /// strings for any missing executables.
 fn validate_project_executables(project_root: &Path) -> Vec<String> {
@@ -109,8 +109,8 @@ fn validate_project_executables(project_root: &Path) -> Vec<String> {
 
     let mut executables_to_check: Vec<&str> = Vec::new();
 
-    // Extract executables from quality gate commands
-    if let Some(qg) = config.get("quality_gate") {
+    // Extract executables from check commands
+    if let Some(qg) = config.get("checks") {
         for key in &["check", "test", "lint"] {
             if let Some(cmd) = qg.get(key).and_then(|v| v.as_str())
                 && let Some(exe) = extract_executable(cmd)
@@ -154,7 +154,7 @@ pub(crate) async fn run_transport(
         tracing::warn!(target: "magistr::mcp", "{warning}");
     }
 
-    // The magistr engines resolve identity and run gates relative to
+    // The magistr engines resolve identity and run checks relative to
     // the working directory; pin it to the project root the client named.
     if let Err(e) = std::env::set_current_dir(&project_root) {
         tracing::warn!(target: "magistr::mcp", "could not enter {}: {e}", project_root.display());

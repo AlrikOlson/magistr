@@ -35,7 +35,7 @@ pub use silent::SilentRenderer;
 // Public API re-exports not yet consumed by command handlers.
 // Will be wired incrementally as handlers are converted to CommandResult.
 #[allow(unused_imports)]
-pub use envelope::{Envelope, ErrorEnvelope, GateOutput, error};
+pub use envelope::{Envelope, ErrorEnvelope, ValidationCheckOutput, error};
 
 /// Create the appropriate renderer based on CLI flags.
 ///

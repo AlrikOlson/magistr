@@ -86,17 +86,17 @@ async fn json_keeps_tool_updates_user_results_and_terminal_bytes() {
 }
 
 #[tokio::test]
-async fn plain_tool_updates_show_command_output_and_gate_outcome() {
+async fn plain_tool_updates_show_command_output_and_check_outcome() {
     use agent_client_protocol::schema::v1::{
         SessionUpdate, ToolCall, ToolCallStatus, ToolCallUpdate, ToolCallUpdateFields,
     };
     let (mut session, tx) = mock_session();
     tx.send(Ok(text_msg("I’m checking the change."))).unwrap();
     let call = SessionUpdate::ToolCall(
-        ToolCall::new("gate", "mcp__magistr__check_step")
+        ToolCall::new("check", "mcp__magistr__check_step")
             .raw_input(serde_json::json!({"name":"check","command":"cargo check"})),
     );
-    let update = SessionUpdate::ToolCallUpdate(ToolCallUpdate::new("gate",
+    let update = SessionUpdate::ToolCallUpdate(ToolCallUpdate::new("check",
         ToolCallUpdateFields::new().status(ToolCallStatus::Completed).raw_output(
             serde_json::json!({"content":[],"structuredContent":{"name":"check","passed":true,"exit_code":0,"details":"workspace compiled"}}))));
     for event in [call, update] {

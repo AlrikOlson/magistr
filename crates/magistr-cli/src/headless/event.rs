@@ -11,12 +11,12 @@ use serde::Serialize;
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "event", content = "data", rename_all = "snake_case")]
 pub enum HeadlessEvent {
-    /// A quality gate is starting.
-    GateStart { name: String },
-    /// A quality gate passed.
-    GatePass { name: String, duration_ms: u64 },
-    /// A quality gate failed.
-    GateFail {
+    /// A check is starting.
+    CheckStart { name: String },
+    /// A check passed.
+    CheckPass { name: String, duration_ms: u64 },
+    /// A check failed.
+    CheckFail {
         name: String,
         duration_ms: u64,
         output: Option<String>,

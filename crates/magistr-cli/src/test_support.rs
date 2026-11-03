@@ -10,7 +10,7 @@
 //!
 //! ## Mock trait implementations
 //!
-//! - [`MockGatePlugin`] — configurable `GatePlugin` that records calls
+//! - [`MockCheckPlugin`] — configurable `CheckPlugin` that records calls
 //! - [`MockOutputRenderer`] — captures all output for assertion
 //! - [`MockHeadlessRenderer`] — captures emitted `HeadlessEvent`s
 //!
@@ -176,35 +176,37 @@ impl MockProjectDir {
     }
 }
 
-// ── Mock GatePlugin ─────────────────────────────────────────────────────────
+// ── Mock CheckPlugin ─────────────────────────────────────────────────────────
 
-use crate::plugin::gate_trait::{GateConfig, GateFinding, GateOutcome, GatePlugin};
+use crate::plugin::check_trait::{
+    CheckFinding, CheckPlugin, CheckPluginConfig, PluginCheckOutcome,
+};
 use crate::plugin::types::PluginError;
 
-/// Mock implementation of [`GatePlugin`] for testing.
+/// Mock implementation of [`CheckPlugin`] for testing.
 ///
-/// Configurable to return pass/fail outcomes and records all gate runs
+/// Configurable to return pass/fail outcomes and records all check runs
 /// for later assertion.
-pub struct MockGatePlugin {
+pub struct MockCheckPlugin {
     plugin_name: String,
-    gates: Vec<String>,
-    /// Pre-configured outcome to return on each `run_gate` call.
-    pub outcome: GateOutcome,
-    /// Recorded gate runs (gate name, project dir).
+    checks: Vec<String>,
+    /// Pre-configured outcome to return on each `run_check` call.
+    pub outcome: PluginCheckOutcome,
+    /// Recorded check runs (check name, project dir).
     pub calls: Vec<(String, String)>,
 }
 
-impl MockGatePlugin {
-    /// Create a mock gate plugin that always passes.
+impl MockCheckPlugin {
+    /// Create a mock check plugin that always passes.
     #[must_use]
     pub fn passing(name: impl Into<String>) -> Self {
         let name = name.into();
         Self {
             plugin_name: name.clone(),
-            gates: vec![name.clone()],
-            outcome: GateOutcome {
+            checks: vec![name.clone()],
+            outcome: PluginCheckOutcome {
                 passed: true,
-                gate_name: name,
+                check_name: name,
                 findings: Vec::new(),
                 summary: "All checks passed".to_string(),
                 duration: std::time::Duration::from_millis(10),
@@ -213,17 +215,17 @@ impl MockGatePlugin {
         }
     }
 
-    /// Create a mock gate plugin that always fails with the given findings.
+    /// Create a mock check plugin that always fails with the given findings.
     #[must_use]
-    pub fn failing(name: impl Into<String>, findings: Vec<GateFinding>) -> Self {
+    pub fn failing(name: impl Into<String>, findings: Vec<CheckFinding>) -> Self {
         let name = name.into();
         let summary = format!("{} finding(s)", findings.len());
         Self {
             plugin_name: name.clone(),
-            gates: vec![name.clone()],
-            outcome: GateOutcome {
+            checks: vec![name.clone()],
+            outcome: PluginCheckOutcome {
                 passed: false,
-                gate_name: name,
+                check_name: name,
                 findings,
                 summary,
                 duration: std::time::Duration::from_millis(10),
@@ -232,25 +234,25 @@ impl MockGatePlugin {
         }
     }
 
-    /// Set which gate names this plugin supports.
+    /// Set which check names this plugin supports.
     #[must_use]
-    pub fn with_gates(mut self, gates: Vec<String>) -> Self {
-        self.gates = gates;
+    pub fn with_checks(mut self, checks: Vec<String>) -> Self {
+        self.checks = checks;
         self
     }
 }
 
-impl GatePlugin for MockGatePlugin {
-    fn run_gate(
+impl CheckPlugin for MockCheckPlugin {
+    fn run_check(
         &mut self,
-        config: GateConfig,
+        config: CheckPluginConfig,
     ) -> std::pin::Pin<
-        Box<dyn std::future::Future<Output = Result<GateOutcome, PluginError>> + Send + '_>,
+        Box<dyn std::future::Future<Output = Result<PluginCheckOutcome, PluginError>> + Send + '_>,
     > {
         self.calls
-            .push((config.gate_name.clone(), config.project_dir.clone()));
+            .push((config.check_name.clone(), config.project_dir.clone()));
         let mut outcome = self.outcome.clone();
-        outcome.gate_name = config.gate_name;
+        outcome.check_name = config.check_name;
         Box::pin(async move { Ok(outcome) })
     }
 
@@ -258,8 +260,8 @@ impl GatePlugin for MockGatePlugin {
         &self.plugin_name
     }
 
-    fn supported_gates(&self) -> &[String] {
-        &self.gates
+    fn supported_checks(&self) -> &[String] {
+        &self.checks
     }
 }
 

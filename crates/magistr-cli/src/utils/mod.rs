@@ -1,7 +1,7 @@
+pub mod check;
 pub mod child_guard;
 pub mod format;
 pub mod fuzzy;
-pub mod gate;
 pub mod live_command;
 pub mod panic;
 pub mod shutdown;

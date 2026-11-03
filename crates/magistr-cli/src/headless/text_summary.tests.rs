@@ -1,13 +1,13 @@
 use super::*;
 
 #[test]
-fn emit_gate_pass_shows_checkmark() {
+fn emit_check_pass_shows_checkmark() {
     let renderer = TextSummaryRenderer::new();
     let mut buf = Vec::new();
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GatePass {
+            HeadlessEvent::CheckPass {
                 name: "check".into(),
                 duration_ms: 1234,
             },
@@ -20,13 +20,13 @@ fn emit_gate_pass_shows_checkmark() {
 }
 
 #[test]
-fn emit_gate_fail_shows_cross() {
+fn emit_check_fail_shows_cross() {
     let renderer = TextSummaryRenderer::new();
     let mut buf = Vec::new();
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GateFail {
+            HeadlessEvent::CheckFail {
                 name: "test".into(),
                 duration_ms: 5678,
                 output: Some("3 tests failed".into()),
@@ -83,7 +83,7 @@ fn no_ansi_escape_codes_in_output() {
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GatePass {
+            HeadlessEvent::CheckPass {
                 name: "lint".into(),
                 duration_ms: 100,
             },

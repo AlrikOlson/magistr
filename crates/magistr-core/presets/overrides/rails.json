@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "bundle exec rails db:migrate:status",
     "test": "bundle exec rails test"
   },

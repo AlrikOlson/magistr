@@ -6,13 +6,13 @@ use super::risk_tier::RiskTier;
 ///
 /// Every field is optional because policy runs at several points in the
 /// system — a tool call knows its tool name and maybe a command or a
-/// path, a session start knows only its model, a gate run knows only its
-/// gate name. A condition over a field the request does not carry never
+/// path, a session start knows only its model, a check run knows only its
+/// check name. A condition over a field the request does not carry never
 /// matches, so an under-populated request can only ever be *more*
 /// permissive than a fully populated one — never less.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PolicyRequest {
-    /// The tool being invoked, e.g. `Bash` or `mcp__magistr__gate`.
+    /// The tool being invoked, e.g. `Bash` or `mcp__magistr__check`.
     pub tool: Option<String>,
     /// The shell command, when the tool runs one.
     pub command: Option<String>,
@@ -26,8 +26,8 @@ pub struct PolicyRequest {
     pub model: Option<String>,
     /// The caller's own risk classification.
     pub risk: Option<RiskTier>,
-    /// The quality gate being run.
-    pub gate: Option<String>,
+    /// The check being run.
+    pub check: Option<String>,
 }
 
 impl PolicyRequest {
@@ -75,10 +75,10 @@ impl PolicyRequest {
         self
     }
 
-    /// Set the gate name (self-consuming builder).
+    /// Set the check name (self-consuming builder).
     #[must_use]
-    pub fn with_gate(mut self, gate: impl Into<String>) -> Self {
-        self.gate = Some(gate.into());
+    pub fn with_check(mut self, check: impl Into<String>) -> Self {
+        self.check = Some(check.into());
         self
     }
 
@@ -98,8 +98,8 @@ impl PolicyRequest {
         if let Some(model) = &self.model {
             parts.push(format!("model={model}"));
         }
-        if let Some(gate) = &self.gate {
-            parts.push(format!("gate={gate}"));
+        if let Some(check) = &self.check {
+            parts.push(format!("check={check}"));
         }
         if let Some(risk) = self.risk {
             parts.push(format!("risk={risk}"));

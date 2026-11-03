@@ -9,7 +9,7 @@
 
 extern crate alloc;
 
-pub mod gate;
+pub mod check;
 pub mod identity;
 pub mod policy;
 pub mod workflow;

@@ -64,7 +64,7 @@ class Onboarding(unittest.TestCase):
         self.assertIn('model="chosen"', config.read_text())
         settings = self.root / ".magistr/project.json"
         configured = json.loads(settings.read_text())
-        configured["quality_gate"]["test"] = "custom-test-command --focused"
+        configured["checks"]["test"] = "custom-test-command --focused"
         settings.write_text(json.dumps(configured))
         self.run_cli("init", "--yes")
         self.assertIn("custom-test-command --focused", (self.root / "CLAUDE.md").read_text())
@@ -124,8 +124,8 @@ class Onboarding(unittest.TestCase):
         project = json.loads((self.root / ".magistr/project.json").read_text())
         self.assertEqual(project["project"]["type"], "library")
         self.assertEqual(project["project"]["description"], "Interactive setup acceptance")
-        self.assertEqual(project["quality_gate"]["check"], "cargo check --locked")
-        self.assertEqual(project["quality_gate"]["test"], "cargo test --lib")
+        self.assertEqual(project["checks"]["check"], "cargo check --locked")
+        self.assertEqual(project["checks"]["test"], "cargo test --lib")
         self.assertFalse((self.root / "target").exists())
 
     def test_terminal_decline_leaves_project_untouched(self):

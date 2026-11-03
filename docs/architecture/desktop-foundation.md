@@ -123,7 +123,7 @@ remain retained. Later unattended attempts selected the reported Japanese
 source but produced Latin text; the
 [failed observation](../evidence/desktop-foundation/diagnostics/unavailable-ime-automation.json)
 is retained too. Automatic input-method activation is therefore unavailable
-in the final journey gate. The observer needs a separate owning diagnostic;
+in the final journey check. The observer needs a separate owning diagnostic;
 this proof does not claim reliable unattended IME coverage.
 
 VoiceOver was actually running. Its caption panel was captured and read using
@@ -184,7 +184,7 @@ real approvals or persisted workflow evidence.
 
 Pointer and keyboard sequences were exercised in actual windows. Status uses
 words as well as color. Foreground/focus contrast, the existing Magistr icon and
-native dark/light/narrow captures are audited with the focused artifact gate.
+native dark/light/narrow captures are audited with the focused artifact check.
 The fixture has no animated motion; production motion must use model ticks and
 respect reduced motion. Rich authored source text and drafts remain exact; the
 renderer presents semantic documents rather than maintaining a second history.

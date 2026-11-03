@@ -20,13 +20,13 @@ fn lint_diagnostic_display() {
 #[test]
 fn lint_diagnostic_display_no_line() {
     let d = LintDiagnostic {
-        rule: "missing-gates",
+        rule: "missing-checks",
         severity: Severity::Error,
-        message: "No quality gates".into(),
+        message: "No checks".into(),
         line: None,
         fix: None,
     };
     let s = d.to_string();
-    assert!(s.contains("[error] missing-gates:"));
+    assert!(s.contains("[error] missing-checks:"));
     assert!(!s.contains("fix:"));
 }

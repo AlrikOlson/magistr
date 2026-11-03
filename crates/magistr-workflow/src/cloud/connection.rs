@@ -224,7 +224,7 @@ mod tests {
         }
     }
 
-    /// ACCEPTANCE, and the gate that was missing: with NO environment at all, a
+    /// ACCEPTANCE, and the check that was missing: with NO environment at all, a
     /// stored connection still resolves.
     ///
     /// This is the exact shape of the reported failure — `sync push` in a plain

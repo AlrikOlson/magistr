@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use super::project_role::ProjectRole;
-use super::quality_gate::{FormatConfig, QualityGate, TestingConfig};
+use super::standard_checks::{FormatConfig, StandardChecks, TestingConfig};
 
 /// A single archetype within a polyglot project.
 ///
@@ -26,8 +26,8 @@ pub struct Archetype {
     pub root: PathBuf,
     /// Role within the repository.
     pub role: ProjectRole,
-    /// Quality gate commands for this archetype.
-    pub quality_gate: QualityGate,
+    /// Check commands for this archetype.
+    pub checks: StandardChecks,
     /// Code formatter configuration.
     pub format: FormatConfig,
     /// Test runner and file placement configuration.

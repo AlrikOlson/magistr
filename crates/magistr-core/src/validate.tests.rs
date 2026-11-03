@@ -1,20 +1,20 @@
 use super::*;
 
 #[test]
-fn gate_labels() {
-    assert_eq!(Gate::Check.label(), "check");
-    assert_eq!(Gate::Test.label(), "test");
-    assert_eq!(Gate::Lint.label(), "lint");
+fn check_labels() {
+    assert_eq!(StandardCheck::Check.label(), "check");
+    assert_eq!(StandardCheck::Test.label(), "test");
+    assert_eq!(StandardCheck::Lint.label(), "lint");
 }
 
 #[test]
-fn gate_display() {
-    assert_eq!(format!("{}", Gate::Check), "check");
+fn check_display() {
+    assert_eq!(format!("{}", StandardCheck::Check), "check");
 }
 
 #[test]
-fn gate_all() {
-    let all = Gate::all();
+fn check_all() {
+    let all = StandardCheck::all();
     assert_eq!(all.len(), 3);
 }
 
@@ -22,15 +22,15 @@ fn gate_all() {
 fn validation_result_all_passed() {
     let result = ValidationResult {
         results: vec![
-            GateResult {
-                gate: Gate::Check,
+            StandardCheckResult {
+                check: StandardCheck::Check,
                 passed: true,
                 duration: Duration::from_secs(1),
                 output: String::new(),
                 command: "cargo check".into(),
             },
-            GateResult {
-                gate: Gate::Test,
+            StandardCheckResult {
+                check: StandardCheck::Test,
                 passed: true,
                 duration: Duration::from_secs(2),
                 output: String::new(),
@@ -48,15 +48,15 @@ fn validation_result_all_passed() {
 fn validation_result_with_failure() {
     let result = ValidationResult {
         results: vec![
-            GateResult {
-                gate: Gate::Check,
+            StandardCheckResult {
+                check: StandardCheck::Check,
                 passed: true,
                 duration: Duration::from_secs(1),
                 output: String::new(),
                 command: "cargo check".into(),
             },
-            GateResult {
-                gate: Gate::Test,
+            StandardCheckResult {
+                check: StandardCheck::Test,
                 passed: false,
                 duration: Duration::from_secs(2),
                 output: "test failed".into(),
@@ -70,16 +70,16 @@ fn validation_result_with_failure() {
 }
 
 #[test]
-fn gate_result_status_label() {
-    let pass = GateResult {
-        gate: Gate::Check,
+fn check_result_status_label() {
+    let pass = StandardCheckResult {
+        check: StandardCheck::Check,
         passed: true,
         duration: Duration::ZERO,
         output: String::new(),
         command: String::new(),
     };
-    let fail = GateResult {
-        gate: Gate::Check,
+    let fail = StandardCheckResult {
+        check: StandardCheck::Check,
         passed: false,
         duration: Duration::ZERO,
         output: String::new(),
@@ -90,22 +90,31 @@ fn gate_result_status_label() {
 }
 
 #[test]
-fn gate_command_maps_correctly() {
-    let qg = QualityGate {
+fn check_command_maps_correctly() {
+    let qg = StandardChecks {
         check: "cargo check".into(),
         test: "cargo test".into(),
         lint: "cargo clippy".into(),
     };
-    assert_eq!(gate_command(&qg, Gate::Check), "cargo check");
-    assert_eq!(gate_command(&qg, Gate::Test), "cargo test");
-    assert_eq!(gate_command(&qg, Gate::Lint), "cargo clippy");
+    assert_eq!(
+        standard_check_command(&qg, StandardCheck::Check),
+        "cargo check"
+    );
+    assert_eq!(
+        standard_check_command(&qg, StandardCheck::Test),
+        "cargo test"
+    );
+    assert_eq!(
+        standard_check_command(&qg, StandardCheck::Lint),
+        "cargo clippy"
+    );
 }
 
 fn current_settings(dir: &Path) -> String {
     let config = serde_json::json!({
         "project": {"name": "settings-test", "type": "cli"},
         "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
-        "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+        "checks": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "", "extensions": []},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false

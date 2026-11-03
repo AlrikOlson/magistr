@@ -71,8 +71,8 @@ tooling.
 - Select verification by the changed behavior, affected dependencies, and
   acceptance criteria. Explicitly set `verification: "focused"` for bounded
   changes, including code and plan tasks, and record the relevant checks.
-  Use `verification: "full"` and `magistr_gate(gate: "all")` only when the user
-  requests the full suite or a concrete cross-cutting risk needs every gate;
+  Use `verification: "full"` and `magistr_check(check: "all")` only when the user
+  requests the full suite or a concrete cross-cutting risk needs every check;
   state the reason first. New goals default to focused; saved goals
   retain their promised verification. An active run step supplies recording
   context. Inspect `passed`,
@@ -80,7 +80,7 @@ tooling.
 - Declare complete check inputs and reuse valid recorded evidence. Use
   `check_step(reuse_only: true)` when asking whether a previous result can be
   reused: a miss records that nothing ran. Do not launch another command merely
-  because metadata, gate requiredness or elapsed time changed. Narrowed scopes
+  because metadata, check requiredness or elapsed time changed. Narrowed scopes
   require retained path-level proof; missing proof is a stated limit, never a
   fabricated pass. A new execution needs changed relevant inputs, a failure or
   an unmet acceptance criterion.
@@ -92,7 +92,7 @@ tooling.
   step is active. This is a valid command result but not proof of work.
   During implementation, required checks must pass and be recorded. If step
   context was missing, recover the existing verification step and rerun the
-  affected gates once to retry recording. If recording still fails, preserve
+  affected checks once to retry recording. If recording still fails, preserve
   the checkpoint and report the blocker; do not repeat green unrecorded runs.
 - For targeted `check_step`, supply the actual `command` and check type:
   `test`, `lint`, `typecheck`, `build`, `review`, or `manual`. The server must
@@ -102,9 +102,9 @@ tooling.
   command, configuration, tools and environment still match. Read its original
   `check_result_id`; reuse has no new exit code. Use `reuse: false` for a deliberate
   rerun. Reviews, builds and network-dependent checks never inherit reuse from
-  ordinary test commands. Configure custom gate reuse explicitly only when its
+  ordinary test commands. Configure custom check reuse explicitly only when its
   inputs fully describe the result.
-  Gate batches stop scheduling after a required failure; `diagnostic: true`
+  Check batches stop scheduling after a required failure; `diagnostic: true`
   collects all results. Cargo commands sharing a target directory serialize;
   independent resources may overlap. Budgets and resource declarations live in
   `verification` in project.json; `timeout_secs` overrides one check's budget.
@@ -124,6 +124,6 @@ tooling.
 If the required Magistr connection is unavailable, report that connection and
 preserve current state. Do not substitute another store or claim a native
 lifecycle operation completed. Native lifecycle guards apply in every host;
-host hooks are additional mechanics, not acceptance or recorded gate evidence.
+host hooks are additional mechanics, not acceptance or recorded check evidence.
 
 {{reasoning_guidance}}

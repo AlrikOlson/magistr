@@ -12,7 +12,7 @@ from summarize_pilot import trial_row
 INSTRUCTION = """
 Verify the tools installed in this small project. Use the generated Magistr and
 Workspace MCP tools, and follow their schemas and confirmation-token responses.
-1. Inspect project checks. Run the test gate and report it as unconfigured.
+1. Inspect project checks. Run the test check and report it as unconfigured.
 2. Create probe.md using files(create), read its content hash, then populate it
    with edit(replace_text), old:"", new:"native writes work\\n" and expectedHash.
 3. Repeat an empty-anchor edit against that populated file. It must refuse;
@@ -30,7 +30,7 @@ import json
 from pathlib import Path
 root = Path('/workspace')
 config = json.loads((root / '.magistr/project.json').read_text())
-assert all(config['quality_gate'][name] == '' for name in ('check','test','lint'))
+assert all(config['checks'][name] == '' for name in ('check','test','lint'))
 assert (root / 'probe.md').read_text() == 'native writes work\\n'
 assert (root / 'queued.txt').read_text() == 'queued writes work\\n'
 Path('/logs/verifier/reward.txt').write_text('1')
@@ -101,7 +101,7 @@ def main():
         raise RuntimeError("Integration did not produce exactly one result")
     row = trial_row(paths[0], "integration")
     calls = row["mcp_calls"]
-    required = ("files", "read", "edit", "script", "magistr_gate")
+    required = ("files", "read", "edit", "script", "magistr_check")
     used = all(any(name.endswith("/" + tool) for name in calls) for tool in required)
     receipt = {
         "passed": runs[0]["exit_code"] == 0 and row["status"] == "passed" and used,

@@ -83,17 +83,17 @@ fn bun_without_lockfile_generates_only_declared_checks_and_explicit_choices() {
     assert_eq!(stack.test_framework, magistr::types::TestFramework::Unknown);
     let tree = magistr_core::detection::detect::build_project_tree(dir).unwrap();
     let mut pipeline = ScaffoldPipeline::polyglot(&tree);
-    pipeline.selections.quality_gate = Some(magistr::scaffold::research::RecommendedQualityGate {
+    pipeline.selections.checks = Some(magistr::scaffold::research::RecommendedChecks {
         check: Some("bun run explicit-check.ts".into()),
         test: None,
         lint: None,
     });
     pipeline.generate(dir).unwrap();
     let pj = read_project_json(dir);
-    for gates in [&pj["quality_gate"], &pj["archetypes"][0]["quality_gate"]] {
-        assert_eq!(gates["check"], "bun run explicit-check.ts");
-        assert_eq!(gates["test"], "bun run test");
-        assert_eq!(gates["lint"], "");
+    for checks in [&pj["checks"], &pj["archetypes"][0]["checks"]] {
+        assert_eq!(checks["check"], "bun run explicit-check.ts");
+        assert_eq!(checks["test"], "bun run test");
+        assert_eq!(checks["lint"], "");
     }
     assert_eq!(pj["format"]["command"], "");
 }
@@ -112,7 +112,7 @@ fn missing_project_tools_do_not_enter_generated_command_allowlist() {
         .unwrap();
     let pj = read_project_json(tmp.path());
     assert_eq!(
-        pj["quality_gate"],
+        pj["checks"],
         serde_json::json!({"check":"","test":"","lint":""})
     );
     assert_eq!(pj["format"]["command"], "");
@@ -148,23 +148,13 @@ fn pipeline_rust_project() {
     assert_eq!(pj["stack"]["language"], "rust");
     assert_eq!(pj["project"]["name"], "my-rust-api");
     assert!(
-        pj["quality_gate"]["check"]
+        pj["checks"]["check"]
             .as_str()
             .unwrap()
             .contains("cargo check")
     );
-    assert!(
-        pj["quality_gate"]["test"]
-            .as_str()
-            .unwrap()
-            .contains("cargo")
-    );
-    assert!(
-        pj["quality_gate"]["lint"]
-            .as_str()
-            .unwrap()
-            .contains("clippy")
-    );
+    assert!(pj["checks"]["test"].as_str().unwrap().contains("cargo"));
+    assert!(pj["checks"]["lint"].as_str().unwrap().contains("clippy"));
 
     // CLAUDE.md exists and references the project.
     let claude = std::fs::read_to_string(dir.join("CLAUDE.md")).unwrap();
@@ -395,7 +385,7 @@ fn pipeline_config_round_trip_all_detected_fields() {
         stack.language.to_string().to_lowercase()
     );
     assert_eq!(pj["project"]["name"], stack.project_name);
-    assert!(pj["quality_gate"]["check"].is_string());
-    assert!(pj["quality_gate"]["test"].is_string());
-    assert!(pj["quality_gate"]["lint"].is_string());
+    assert!(pj["checks"]["check"].is_string());
+    assert!(pj["checks"]["test"].is_string());
+    assert!(pj["checks"]["lint"].is_string());
 }

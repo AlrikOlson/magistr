@@ -4,11 +4,11 @@
 //! magistr tool families served by [`UnifiedService`]. Other tools,
 //! resources, and step methods delegate with the original request context.
 //!
-//! `magistr_gate` runs every gate on Magistr's own pty runner, streaming its
+//! `magistr_check` runs every check on Magistr's own pty runner, streaming its
 //! output to the feed, and records the run through the composition
 //! boundary's [`AdmittedCheck`] — the same admission and settlement the loop
-//! driver uses for the gates it runs — on the step named as active at the
-//! time. Without a step the gate still runs and the answer says
+//! driver uses for the checks it runs — on the step named as active at the
+//! time. Without a step the check still runs and the answer says
 //! `recorded: false` and why.
 //!
 //! `magistr_set_phase` validates run state before transitioning, announces
@@ -33,7 +33,7 @@ use magistr_engine::native::{
 };
 
 use crate::application::AdmittedCheck;
-use magistr_engine::{GateOutput, MagistrFrame, RunGuardState, WorkflowPhase};
+use magistr_engine::{CheckBytes, MagistrFrame, RunGuardState, WorkflowPhase};
 use magistr_mcp::{SdkMcpServer, ToolContent, ToolResult};
 use magistr_workflow::infra::Family;
 use magistr_workflow::mcp::UnifiedService;
@@ -47,11 +47,11 @@ use rmcp::service::{RequestContext, RoleServer};
 use rmcp::{ErrorData, ServerHandler};
 use serde_json::{Value, json};
 
-use super::gate::{GateSpec, gate_json, resolve_gates};
+use super::check::{CheckSpec, check_json, resolve_checks};
 use super::plan_export::PlanExport;
 
 const INSTRUCTIONS: &str = "magistr — project workflow server. \
-`magistr_*` tools run quality gates (magistr_gate, recorded through check_step), \
+`magistr_*` tools run checks (magistr_check, recorded through check_step), \
 formatting, phase transitions, hooks and safe file operations for this project. \
 The decision_*/run_*/plan_*/request_* families below are magistr, served \
 in-process on the same store as Magistr's own views.";
@@ -64,7 +64,7 @@ pub struct MagistrService {
     tools: Arc<SdkMcpServer>,
     unified: UnifiedService,
     /// The admitted writer over the very engines `unified` serves: what this
-    /// server's own mutations — a gate it ran, a phase it recorded — go
+    /// server's own mutations — a check it ran, a phase it recorded — go
     /// through, so they are the same handler on the same engines as a tool
     /// call from the agent. Cloning a service shares it; the lease releases
     /// with the last clone.
@@ -73,7 +73,7 @@ pub struct MagistrService {
     context: Arc<super::view_context::ContextState>,
     /// The admission this service runs under: the project identity, the
     /// service-role lease, and the live-feed socket the engines broadcast on
-    /// (kept so a gate this server runs itself can stream its bytes there
+    /// (kept so a check this server runs itself can stream its bytes there
     /// too). The owner endpoint (`owner_attach`) is keyed by it.
     pub(super) authority: Arc<ProjectAuthority>,
 }
@@ -159,7 +159,7 @@ impl MagistrService {
         let name = request.name.to_string();
         let args = Value::Object(request.arguments.clone().unwrap_or_default());
         match name.as_str() {
-            "magistr_gate" => self.gate(&args).await,
+            "magistr_check" => self.check(&args).await,
             "magistr_context" => self.view_context(&args),
             "magistr_set_phase" => {
                 let Some(phase) = args.get("phase").and_then(Value::as_str) else {
@@ -240,11 +240,11 @@ impl MagistrService {
         Ok(result)
     }
 
-    /// `magistr_gate`: resolve the gate set from project.json, run each gate
+    /// `magistr_check`: resolve the check set from project.json, run each check
     /// on the pty runner and record it on the active step when there is one.
-    async fn gate(&self, args: &Value) -> Result<CallToolResult, ErrorData> {
-        let Some(gate) = args.get("gate").and_then(Value::as_str) else {
-            return Err(ErrorData::invalid_params("missing 'gate' parameter", None));
+    async fn check(&self, args: &Value) -> Result<CallToolResult, ErrorData> {
+        let Some(check) = args.get("check").and_then(Value::as_str) else {
+            return Err(ErrorData::invalid_params("missing 'check' parameter", None));
         };
         let timeout_secs = args
             .get("timeout_secs")
@@ -253,7 +253,7 @@ impl MagistrService {
         let config = crate::validate::load_project_config(&self.project_root).map_err(|e| {
             ErrorData::internal_error(format!("Failed to load project config: {e}"), None)
         })?;
-        let specs = match resolve_gates(&config, gate) {
+        let specs = match resolve_checks(&config, check) {
             Ok(specs) => specs,
             Err(message) => return Ok(to_call_tool_result(ToolResult::error(message))),
         };
@@ -276,27 +276,27 @@ impl MagistrService {
             timeout_secs: (timeout_secs != 0).then_some(timeout_secs),
             ..Default::default()
         };
-        let mut results = super::gate_batch::run_batch(
+        let mut results = super::check_batch::run_batch(
             specs,
             config.verification.max_parallel,
             diagnostic,
             |spec| {
                 let options = options.clone();
-                async move { self.run_gate(&spec, timeout_secs, options).await }
+                async move { self.run_check(&spec, timeout_secs, options).await }
             },
         )
         .await;
 
-        // A polyglot project resolves one standard gate to several specs —
+        // A polyglot project resolves one standard check to several specs —
         // any multi-spec answer takes the grouped shape, not only `all`.
-        let body = if gate == "all" || results.len() != 1 {
+        let body = if check == "all" || results.len() != 1 {
             let all_passed = results.iter().all(|r| {
                 let passed = r["passed"].as_bool().unwrap_or(false);
                 let required = r["required"].as_bool().unwrap_or(true);
                 passed || !required
             });
             // A run the trace did not see must say so at the top, not only
-            // on each gate — a green `all` that recorded nothing is the
+            // on each check — a green `all` that recorded nothing is the
             // failure this flag exists for.
             let unrecorded: Vec<&Value> = results
                 .iter()
@@ -304,7 +304,7 @@ impl MagistrService {
                 .collect();
             let recorded = unrecorded.is_empty();
             let note = unrecorded_all_note(&unrecorded);
-            let mut body = json!({ "passed": all_passed, "recorded": recorded, "gates": results });
+            let mut body = json!({ "passed": all_passed, "recorded": recorded, "checks": results });
             if let Some(note) = note {
                 body["note"] = json!(note);
             }
@@ -317,19 +317,19 @@ impl MagistrService {
         )))
     }
 
-    /// One gate: run on the pty runner, then recorded — on the step that is
+    /// One check: run on the pty runner, then recorded — on the step that is
     /// active as the run starts, named explicitly — through the same
-    /// `run_record_gate` the loop driver records its gates with. The
+    /// `run_record_check` the loop driver records its checks with. The
     /// command runs exactly once whether or not there is a step to record
     /// it on; without one the answer says so and why.
-    async fn run_gate(
+    async fn run_check(
         &self,
-        spec: &GateSpec,
+        spec: &CheckSpec,
         timeout_secs: u64,
         options: magistr_engine::native::CheckOptions,
     ) -> Value {
         // Named *before* the run, so the record lands where the caller
-        // stood when it asked — never on a step started while the gate ran
+        // stood when it asked — never on a step started while the check ran
         // — and the check_result observes the source as it is at this moment.
         let admission = AdmittedCheck::admit_with_options(
             &self.engines,
@@ -344,22 +344,22 @@ impl MagistrService {
             match admission.reuse(&self.engines) {
                 Ok(Some(settled)) => {
                     let check_result = settled.check_result();
-                    return json!({"gate":spec.name,"command":spec.command,"required":spec.required,
+                    return json!({"check":spec.name,"command":spec.command,"required":spec.required,
                         "passed":check_result.passed(),"verdict":"reused","verified":check_result.verified(),
                         "recorded":settled.is_applied(),"check_result":check_result.id,"execution":check_result.execution(),
                         "source_revision":check_result.source.as_ref().map(|source| &source.revision),
                         "source_freshness":check_result.freshness,"step_id":admission.target().step_id});
                 }
                 Err(error) => {
-                    return json!({"gate":spec.name,"required":spec.required,"passed":false,
+                    return json!({"check":spec.name,"required":spec.required,"passed":false,
                     "recorded":false,"check_result":admission.check_result_id(),"note":error.to_string()});
                 }
                 Ok(None) => {}
             }
         }
-        // A gate this server runs is live on the feed socket: every task
-        // goes out on the host's own family as a typed gate-output frame
-        // keyed by the gate, the event the cockpit's engine feed folds into
+        // A check this server runs is live on the feed socket: every task
+        // goes out on the host's own family as a typed check-output frame
+        // keyed by the check, the event the cockpit's engine feed folds into
         // its terminal store. A frame nobody is attached for is dropped,
         // which is the library's documented degraded mode, not an error.
         let feed = self
@@ -367,17 +367,17 @@ impl MagistrService {
             .feed()
             .cloned()
             .map(|feed| feed.with_execution(self.engines.config().execution_context().key()));
-        let gate = spec.name.clone();
+        let check = spec.name.clone();
         let stream = move |bytes: &[u8]| {
             if let Some(feed) = &feed {
-                let output = GateOutput {
-                    gate: gate.clone(),
+                let output = CheckBytes {
+                    check: check.clone(),
                     bytes: bytes.to_vec(),
                 };
-                let _ = feed.emit(Family::Magistr, &MagistrFrame::GateOutput(output));
+                let _ = feed.emit(Family::Magistr, &MagistrFrame::CheckBytes(output));
             }
         };
-        let run = crate::utils::gate::run_gate(
+        let run = crate::utils::check::run_check(
             &spec.name,
             &spec.command,
             spec.required,
@@ -387,8 +387,8 @@ impl MagistrService {
             stream,
         )
         .await;
-        let mut result = gate_json(&run);
-        result["gate"] = json!(spec.name);
+        let mut result = check_json(&run);
+        result["check"] = json!(spec.name);
         result["required"] = json!(spec.required);
 
         let admission = match admission {
@@ -481,7 +481,7 @@ impl MagistrService {
 
 /// The junit failures a recorded check parsed, as rows beside the ones the
 /// output scan found — each test once, whichever scan named it first.
-fn junit_rows(check: &Check, rows: &mut Vec<magistr_core::GateFailureRow>) {
+fn junit_rows(check: &Check, rows: &mut Vec<magistr_core::CheckFailureRow>) {
     let Some(results) = check.results.as_ref() else {
         return;
     };
@@ -494,8 +494,8 @@ fn junit_rows(check: &Check, rows: &mut Vec<magistr_core::GateFailureRow>) {
             Some(m) => format!("{name}: {}", m.lines().next().unwrap_or_default()),
             None => name.to_owned(),
         };
-        rows.push(magistr_core::GateFailureRow {
-            severity: magistr_core::GateRowSeverity::TestFailure,
+        rows.push(magistr_core::CheckFailureRow {
+            severity: magistr_core::CheckRowSeverity::TestFailure,
             code: None,
             message,
             file: None,
@@ -505,30 +505,30 @@ fn junit_rows(check: &Check, rows: &mut Vec<magistr_core::GateFailureRow>) {
     }
 }
 
-/// The note on a gate that ran but was not recorded: the reason in
+/// The note on a check that ran but was not recorded: the reason in
 /// `check_step`'s own words, and the remedy. The remedy names *this*
 /// server because a step started through another process's engine is
 /// invisible here until that process saves (tas-run-state-two-servers).
 fn unrecorded_note(reason: &str) -> String {
     format!(
         "not recorded: {reason} (a check needs an active run step in this server: \
-         run_open → arrange_steps → start_step, then re-run the gate)"
+         run_open → arrange_steps → start_step, then re-run the check)"
     )
 }
 
-/// The top-level note on a `magistr_gate(all)` run with unrecorded gates:
-/// every gate that was not recorded, grouped by reason, so a green run that
-/// left no trace is visible without reading each gate. `None` when every
-/// gate was recorded.
+/// The top-level note on a `magistr_check(all)` run with unrecorded checks:
+/// every check that was not recorded, grouped by reason, so a green run that
+/// left no trace is visible without reading each check. `None` when every
+/// check was recorded.
 fn unrecorded_all_note(unrecorded: &[&Value]) -> Option<String> {
     if unrecorded.is_empty() {
         return None;
     }
-    // Group by the gate's note, preserving first-seen order.
+    // Group by the check's note, preserving first-seen order.
     let mut groups: Vec<(&str, Vec<&str>)> = Vec::new();
-    for gate in unrecorded {
-        let note = gate["note"].as_str().unwrap_or("not recorded");
-        let name = gate["gate"].as_str().unwrap_or("?");
+    for check in unrecorded {
+        let note = check["note"].as_str().unwrap_or("not recorded");
+        let name = check["check"].as_str().unwrap_or("?");
         match groups.iter_mut().find(|(n, _)| *n == note) {
             Some((_, names)) => names.push(name),
             None => groups.push((note, vec![name])),

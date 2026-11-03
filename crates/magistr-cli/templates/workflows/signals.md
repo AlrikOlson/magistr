@@ -26,7 +26,7 @@ and appropriate dismiss/snooze action for refuted claims.
 Use `request_ready` and lifecycle responses to decide what to raise. Promote
 actionable requests to the plan's ideas with `request_promote` when the requested triage
 scope authorizes it; otherwise raise the concrete recommendation. Respect
-native confidence/lifecycle gates. Promotion never starts implementation.
+native confidence/lifecycle checks. Promotion never starts implementation.
 
 Report request, evidence, recorded transition, and next candidate. Do not repeat
 unchanged non-actionable feedback, reset run state, open another store, or

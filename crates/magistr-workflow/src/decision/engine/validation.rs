@@ -3,7 +3,7 @@
 //! Three groups live here:
 //!
 //! * **Soft prefix/purpose validators** (`validate_thought_prefix`,
-//!   `validate_rationale`, `validate_purpose`) gate the strict-mode
+//!   `validate_rationale`, `validate_purpose`) check the strict-mode
 //!   prose checks. Each returns `true` when the corresponding config
 //!   toggle is off.
 //! * **Hard validators** (`validate_required_fields`,

@@ -177,7 +177,7 @@ impl RunEngine {
             self.check_results
                 .update(&admission.check_result_id, |check_result| {
                     if check_result.target != admission.target
-                        || check_result.gate != admission.request.name
+                        || check_result.check != admission.request.name
                         || check_result.check_type != admission.request.check_type
                         || check_result.command != admission.request.command
                         || check_result.required != admission.request.required
@@ -342,7 +342,7 @@ fn check_from_check_result(check_result: &CheckResult) -> Result<Check, RunError
     Ok(Check {
         check_result_id: Some(check_result.id.clone()),
         check_type: check_result.check_type.clone(),
-        name: check_result.gate.clone(),
+        name: check_result.check.clone(),
         passed: outcome.passed,
         details: outcome.details.clone(),
         required: check_result.required,

@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "./gradlew compileKotlin",
     "test": "./gradlew test",
     "lint": "ktlint"

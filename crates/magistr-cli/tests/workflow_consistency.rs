@@ -176,7 +176,7 @@ async fn an_attached_command_is_current_on_every_capability_and_observer() {
 }
 
 #[test]
-fn shared_run_capabilities_and_observers_retain_a_recorded_gate() {
+fn shared_run_capabilities_and_observers_retain_a_recorded_check() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cfg = config(&tmp);
     let host = writer(&cfg, WriterRole::Host);
@@ -190,9 +190,9 @@ fn shared_run_capabilities_and_observers_retain_a_recorded_gate() {
         .expect("step");
     host.start_step("verify").expect("start");
 
-    // The service view records a gate on the same admitted step.
+    // The service view records a check on the same admitted step.
     let check = service
-        .run_record_gate(
+        .run_record_check(
             Some("verify"),
             "lint",
             "cargo clippy".into(),

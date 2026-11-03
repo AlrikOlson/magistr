@@ -11,13 +11,13 @@ not run, whatever the reference tree's own matrix says.
 | --- | --- |
 | Rust | 1.95.0 stable (`59807616e 2026-04-14`), cargo 1.95.0; `rust-version = "1.95"` on `magistr-workspace`, `1.89` on `magistr-cli` |
 | Edition | 2024 |
-| Lock policy | every gate runs `--locked`; `Cargo.lock` is the record |
+| Lock policy | every check runs `--locked`; `Cargo.lock` is the record |
 
 ## Platforms actually run
 
 | Platform | Hardware | What ran on it |
 | --- | --- | --- |
-| macOS 26.5.2 (Darwin 25.5.0), `aarch64-apple-darwin` | Apple M5 Max, 18 cores, 48 GiB | every required gate, the served conformance suites, the reference comparison, the release smoke and the three perf profiles |
+| macOS 26.5.2 (Darwin 25.5.0), `aarch64-apple-darwin` | Apple M5 Max, 18 cores, 48 GiB | every required check, the served conformance suites, the reference comparison, the release smoke and the three perf profiles |
 
 Not run: Linux and Windows. The reference tree's Windows recordings are
 reference evidence only. Known native differences on Windows are recorded, not
@@ -30,9 +30,9 @@ directory ACL, and `kill_on_drop` stands in for the parent-death guard.
 | Lane | Build | What it lacks | Verified by |
 | --- | --- | --- | --- |
 | default = `sandbox` + `lang-pack` | `cargo build -p magistr-workspace` | nothing | root `check`/`test`/`lint`, served suites, release smoke, bench |
-| `--no-default-features` | Tier-0/Tier-1 engine only | extension host, plugin tools, script verb, dynamic language packs; `doctor` reports the host as not compiled | `workspace-native` gate |
-| `--features sandbox` | Wasmtime 48 extension host | dynamic language registry | `workspace-native` gate |
-| `--features lang-pack` | tree-sitter `wasm` registry (Wasmtime 36) | extension host | `workspace-native` gate |
+| `--no-default-features` | Tier-0/Tier-1 engine only | extension host, plugin tools, script verb, dynamic language packs; `doctor` reports the host as not compiled | `workspace-native` check |
+| `--features sandbox` | Wasmtime 48 extension host | dynamic language registry | `workspace-native` check |
+| `--features lang-pack` | tree-sitter `wasm` registry (Wasmtime 36) | extension host | `workspace-native` check |
 
 ## Wasmtime majors
 
@@ -82,7 +82,7 @@ and recorded in the reference's `specs/002-wasm-lang-pack/research.md` R2.
 Dev-only: `wit-parser` 0.257.1. The host crate `magistr-cli` adds `rmcp` 3.1.4
 (server, transport-io; client for tests), `clap` 4.6.0 and dev-only
 `jsonschema` 0.49.9 for envelope validation. There is no N-API, Node or Bun
-edge anywhere in the production graph; the `workspace-source` gate proves it.
+edge anywhere in the production graph; the `workspace-source` check proves it.
 
 ## Regenerating
 
@@ -91,7 +91,7 @@ rustc --version --verbose
 sw_vers
 cargo tree -p magistr-workspace --depth 1 -e normal --prefix none --locked
 cargo tree -i wasmtime --locked
-./scripts/workspace-native-gate.sh
+./scripts/workspace-native-check.sh
 ./scripts/workspace-release-smoke.sh
 ./scripts/workspace-bench.sh
 ```

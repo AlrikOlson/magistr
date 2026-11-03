@@ -18,7 +18,7 @@ fn sample_config() -> ProjectConfig {
             linter: "clippy".into(),
             formatter: "rustfmt".into(),
         },
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: "cargo check".into(),
             test: "cargo test".into(),
             lint: "cargo clippy".into(),
@@ -38,7 +38,7 @@ fn sample_config() -> ProjectConfig {
         },
         reference_repos: vec![],
         state_prefix: "test-app".into(),
-        custom_gates: vec![],
+        custom_checks: vec![],
         guards: Default::default(),
         hints: vec![],
         lifecycle_hooks: vec![],

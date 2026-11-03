@@ -35,7 +35,7 @@ fn plan_exports_policy_survives_reinitialization_without_recreating_a_view() {
     let config = serde_json::json!({
     "project": {"name": "settings-test", "type": "cli"},
     "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
-    "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+    "checks": {"check": "true", "test": "true", "lint": "true"},
     "format": {"command": "", "extensions": []},
     "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
     "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false
@@ -774,7 +774,7 @@ fn current_settings_setup_refuses_invalid_declarations_before_any_write() {
         let mut config = serde_json::json!({
             "project": {"name": "settings-test", "type": "cli"},
             "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
-            "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+            "checks": {"check": "true", "test": "true", "lint": "true"},
             "format": {"command": "", "extensions": []},
             "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
             "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false
@@ -804,7 +804,7 @@ fn current_yaml_setup_preserves_settings_without_reconstructing_a_plan() {
     let mut config = serde_json::json!({
         "project": {"name": "settings-test", "type": "cli"},
         "stack": {"language": "unknown", "framework": "none", "package_manager": "unknown", "test_framework": "none", "linter": "none", "formatter": "none"},
-        "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+        "checks": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "", "extensions": []},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
         "reference_repos": [], "state_prefix": "settings-test", "plan_exports": false

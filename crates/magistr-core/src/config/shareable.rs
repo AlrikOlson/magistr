@@ -125,8 +125,8 @@ pub struct ShareablePreset {
     /// Stack configuration (language, framework, etc.).
     pub stack: ShareableStack,
 
-    /// Quality gate commands.
-    pub quality_gate: ShareableQualityGate,
+    /// Check commands.
+    pub checks: ShareableChecks,
 
     /// Formatter configuration.
     pub format: ShareableFormat,
@@ -146,9 +146,9 @@ pub struct ShareableStack {
     pub formatter: String,
 }
 
-/// Quality gate commands in a shareable preset.
+/// Check commands in a shareable preset.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ShareableQualityGate {
+pub struct ShareableChecks {
     pub check: String,
     pub test: String,
     pub lint: String,
@@ -183,8 +183,8 @@ impl From<&crate::types::StackConfig> for ShareableStack {
     }
 }
 
-impl From<&crate::types::QualityGate> for ShareableQualityGate {
-    fn from(qg: &crate::types::QualityGate) -> Self {
+impl From<&crate::types::StandardChecks> for ShareableChecks {
+    fn from(qg: &crate::types::StandardChecks) -> Self {
         Self {
             check: qg.check.clone(),
             test: qg.test.clone(),
@@ -213,8 +213,8 @@ impl From<&crate::types::TestingConfig> for ShareableTesting {
 
 // --- From impls: shareable → types (for import) ---
 
-impl From<&ShareableQualityGate> for crate::types::QualityGate {
-    fn from(sqg: &ShareableQualityGate) -> Self {
+impl From<&ShareableChecks> for crate::types::StandardChecks {
+    fn from(sqg: &ShareableChecks) -> Self {
         Self {
             check: sqg.check.clone(),
             test: sqg.test.clone(),
@@ -253,7 +253,7 @@ impl ShareablePreset {
                 Some(config.project.description.clone())
             },
             stack: ShareableStack::from(&config.stack),
-            quality_gate: ShareableQualityGate::from(&config.quality_gate),
+            checks: ShareableChecks::from(&config.checks),
             format: ShareableFormat::from(&config.format),
             testing: ShareableTesting::from(&config.testing),
         }
@@ -284,9 +284,9 @@ impl ShareablePreset {
         vars.insert("test_framework".into(), self.stack.test_framework.clone());
         vars.insert("linter".into(), self.stack.linter.clone());
         vars.insert("formatter".into(), self.stack.formatter.clone());
-        vars.insert("check_cmd".into(), self.quality_gate.check.clone());
-        vars.insert("test_cmd".into(), self.quality_gate.test.clone());
-        vars.insert("lint_cmd".into(), self.quality_gate.lint.clone());
+        vars.insert("check_cmd".into(), self.checks.check.clone());
+        vars.insert("test_cmd".into(), self.checks.test.clone());
+        vars.insert("lint_cmd".into(), self.checks.lint.clone());
         vars.insert("format_cmd".into(), self.format.command.clone());
         vars.insert("format_extensions".into(), format_extensions);
         vars.insert(
@@ -316,24 +316,24 @@ impl ShareablePreset {
             ));
         }
 
-        if self.quality_gate.check.trim().is_empty() {
+        if self.checks.check.trim().is_empty() {
             warnings.push(PresetWarning::warning(
-                "quality_gate.check",
-                "no check command — quality gate will skip type checking",
+                "checks.check",
+                "no check command — check will skip type checking",
             ));
         }
 
-        if self.quality_gate.test.trim().is_empty() {
+        if self.checks.test.trim().is_empty() {
             warnings.push(PresetWarning::warning(
-                "quality_gate.test",
-                "no test command — quality gate will skip tests",
+                "checks.test",
+                "no test command — check will skip tests",
             ));
         }
 
-        if self.quality_gate.lint.trim().is_empty() {
+        if self.checks.lint.trim().is_empty() {
             warnings.push(PresetWarning::warning(
-                "quality_gate.lint",
-                "no lint command — quality gate will skip linting",
+                "checks.lint",
+                "no lint command — check will skip linting",
             ));
         }
 

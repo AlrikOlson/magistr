@@ -12,7 +12,7 @@ fn legacy(settlement: bool) -> serde_json::Value {
             "step_instance": "older-step"
         },
         "attempt": 1,
-        "gate": "test",
+        "check": "test",
         "check_type": "test",
         "command": "cargo test",
         "required": true,

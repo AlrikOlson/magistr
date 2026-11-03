@@ -17,7 +17,7 @@ there before its engines open, and reading needs no admission.
 
 `arch-14f-native-application` reconciled this crate with the native workflow
 use cases that now exist: the contract-only `workflow`, `checks` and
-`projections` facades — start/complete a task, run a configured gate, read a
+`projections` facades — start/complete a task, run a configured check, read a
 run projection — had no adapter and duplicated what the first-party family
 use cases and `NativeEngines` already do under real admission, so they were
 deleted together with the `Capability` variants only they named.
@@ -140,19 +140,19 @@ still has no production adapter.
 `magistr::application` (`crates/magistr-cli/src/application`) is the one place
 where a native workflow use case and the workspace's source evidence are
 composed for a consumer. It lives in the entry-point crate because every real
-consumer of both capabilities is there, together with the pty gate runner,
-gate resolution and project configuration; a crate with one consumer would be a
-boundary with one side. The `native-write-path` gate (rule 7) keeps check
+consumer of both capabilities is there, together with the pty check runner,
+check resolution and project configuration; a crate with one consumer would be a
+boundary with one side. The `native-write-path` check (rule 7) keeps check
 admission and settlement inside this module and the writer itself.
 
 ### Consumers
 
 | Consumer | Workflow capability | Workspace capability | Through |
 | --- | --- | --- | --- |
-| `magistr_gate` in `magistr mcp` | `NativeEngines` (Service role, the same writer the MCP session serves) | `WorkspaceEvidence` attached in `MagistrService::new` | `AdmittedCheck::admit` before the pty run, `settle` with the run's `CheckExecution` after; the answer carries the receipt id, source revision and freshness |
-| Hosted loop driver gates | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set; the set is `required_gates()` of the same capability | the same capability on the host's config | `AdmittedCheck` per gate, refusing a superseded verification target |
+| `magistr_check` in `magistr mcp` | `NativeEngines` (Service role, the same writer the MCP session serves) | `WorkspaceEvidence` attached in `MagistrService::new` | `AdmittedCheck::admit` before the pty run, `settle` with the run's `CheckExecution` after; the answer carries the receipt id, source revision and freshness |
+| Hosted loop driver checks | `NativeEngines` (Host role via `writer_config`), one admitted verification task for the set; the set is `required_checks()` of the same capability | the same capability on the host's config | `AdmittedCheck` per check, refusing a superseded verification target |
 | Native `check_step` (agent) | `RunUseCases::admit_check` / `settle_check` inside the workflow crate | the workflow's composed `EvidencePort` | the workflow's own async runner; the stale reply carries the receipt |
-| `plan_complete_task` (MCP, owner command, cockpit Complete, loop judge) | `PlanUseCases` with the run family as completion authority | `required_gates()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding gate |
+| `plan_complete_task` (MCP, owner command, cockpit Complete, loop judge) | `PlanUseCases` with the run family as completion authority | `required_checks()` and a fresh observation at completion | `verify_completion` before the transition; refusals name every outstanding check |
 | Cockpit `start` and the cockpit loops | `NativeEngines` or an attached `OwnerClient` | the [`HostedWorkspace`](#the-hosted-workspace) this process admits for the run — the agent's bridge and the cockpit's port attach to it | engine port; `magistr workspace journal` for the journal model |
 | ACP `fs/write_text_file` | none | the host's `SourceRoute`: `WorkspaceSourceWriter` over the hosted workspace's `write` verb after session authorization, or a `SourceRefusal` | `LocalEffectPort` routes the authorized write through the pipeline (journal intent, `MutationReceipt`) and stamps the `fs_write` event `route: workspace`; with a refusal it advertises no write capability and refuses the call before authorization (`route: refused`) — there is no direct write |
 | ACP `fs/read_text_file`, `terminal/*` | none | direct host I/O after session authorization | `LocalEffectPort` |
@@ -195,14 +195,14 @@ revision remain three distinct facts.
 
 ### One process mechanism
 
-Every command Magistr runs for a caller — a quality gate on its pty, a
+Every command Magistr runs for a caller — a check on its pty, a
 workflow `check_step` command, a workspace declared command — is a
 `magistr_process::OwnedProcess`: its own session and process group, stdin
 closed, both streams under a bounded head+tail capture, a timeout and a
 cancel that end the whole group (gracefully with a `SIGTERM` grace, or at
 once), every task to a live sink, and a kill on drop so an abandoned future
 never leaves a running command behind. What is shared is the mechanism, not
-the admission: the gate runner passes the configured gate line and the
+the admission: the check runner passes the configured check line and the
 workflow passes the caller's own command string as `Launch::Shell`; only the
 workspace's `CommandAdmission` produces a `Launch::Argv`, and nothing turns
 one into the other.
@@ -227,12 +227,12 @@ separate job-object work.
 
 ### The check-admission and source-capability interface
 
-`AdmittedCheck::admit(engines, root, task, gate, command, required)` asks the
+`AdmittedCheck::admit(engines, root, task, check, command, required)` asks the
 workflow — the concrete task instance the check belongs to, refused before any
 byte is hashed when there is no task — which publishes the durable receipt and
 observes the workspace through the evidence capability the writer was admitted
-with; an unobservable workspace refuses the admission, so an unobservable gate
-is never recorded as evidence. Named gates run in the selected project root;
+with; an unobservable workspace refuses the admission, so an unobservable check
+is never recorded as evidence. Named checks run in the selected project root;
 server-executed `check_step` commands run in the workspace named by their
 admitted source observation, and relative report paths resolve there too.
 The process directory never selects a different tree for that receipt.
@@ -300,9 +300,9 @@ real `WorkspaceService` (real worker binary): a check admitted with source
 observes an edit made through the owner, lands on its task with a durable
 receipt on disk, agrees with the owner's own `MutationReceipt` on the
 generation while keeping the two revisions distinct, and is visible to an
-unadmitted reader of the same store; completion refuses that gate by name and
-accepts once every gate re-ran; completion refuses after an owner edit, a
-gate-configuration edit and an in-flight acceptance edit until the gates
+unadmitted reader of the same store; completion refuses that check by name and
+accepts once every check re-ran; completion refuses after an owner edit, a
+check-configuration edit and an in-flight acceptance edit until the checks
 re-run; a reused task name in a later run cannot collect the late result and
 has no evidence of its own; the cockpit's Complete action refuses in words and,
 with current evidence, completes naming `step:verify` while the finalize report
@@ -328,7 +328,7 @@ cargo nextest run -p magistr-cli -E 'test(/application::/) | binary(application_
 cargo test -p magistr-application --doc
 ```
 
-Formatting and every required gate in `.magistr/project.json` remain mandatory,
+Formatting and every required check in `.magistr/project.json` remain mandatory,
 including existing interface and architecture-index checks. This task changes
 no rendering, goldens, motion rules or plan export policy. The host supervisor
 now owns live headless and cockpit sessions. Native mutations run one
@@ -339,7 +339,7 @@ admission, full setup consolidation and further host migration remain subsequent
 tasks; Magistr's own source writes go through the workspace pipeline and the
 three process runners share one mechanism (`arch-14f2`, above); every
 client's capability, admission path and evidence, the ownership rules the
-`native-write-path` gate pins and the consistency model are the
+`native-write-path` check pins and the consistency model are the
 [client inventory](clients.md) (`arch-14f3`); rehoming the adopted source
 under Magistr names is `arch-14f4`. Shared permission decisions
 are now implemented by the [permission service](permissions.md); production adapters use

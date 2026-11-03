@@ -8,7 +8,7 @@
 
 use std::fmt::Write;
 
-use crate::utils::gate::GateRun;
+use crate::utils::check::CheckRun;
 use crate::validate::ProjectValidation;
 
 /// A single parsed annotation from compiler/linter output.
@@ -24,7 +24,7 @@ pub(crate) struct Annotation {
     pub col: Option<u32>,
     /// The diagnostic message.
     pub message: String,
-    /// Which gate produced this annotation.
+    /// Which check produced this annotation.
     pub title: String,
 }
 
@@ -83,7 +83,7 @@ fn escape_property(value: &str) -> String {
     escape_data(value).replace(':', "%3A").replace(',', "%2C")
 }
 
-/// Parse annotations from a gate result's output.
+/// Parse annotations from a check result's output.
 ///
 /// Recognizes common patterns:
 /// - Rust: `error[E0308]: ... --> src/main.rs:10:5`
@@ -93,11 +93,11 @@ fn escape_property(value: &str) -> String {
 /// - Python: `src/main.py:10: error: ...`
 /// - Go: `src/main.go:10:5: ...`
 #[must_use]
-pub(crate) fn parse_annotations(gate: &GateRun) -> Vec<Annotation> {
-    let title = &gate.name;
+pub(crate) fn parse_annotations(check: &CheckRun) -> Vec<Annotation> {
+    let title = &check.name;
     let mut annotations = Vec::new();
 
-    for line in gate.output.lines() {
+    for line in check.output.lines() {
         if let Some(ann) = try_parse_rust_arrow(line, title) {
             annotations.push(ann);
         } else if let Some(ann) = try_parse_ts_parens(line, title) {
@@ -112,27 +112,27 @@ pub(crate) fn parse_annotations(gate: &GateRun) -> Vec<Annotation> {
 
 /// Emit all annotations for a validation result as GitHub Actions workflow commands.
 ///
-/// Only emits annotations for failed gates. Returns the full output string.
+/// Only emits annotations for failed checks. Returns the full output string.
 #[must_use]
 pub(crate) fn format_annotations(result: &ProjectValidation) -> String {
     let mut output = String::new();
 
-    for gate_result in &result.results {
-        if gate_result.passed() {
+    for check_result in &result.results {
+        if check_result.passed() {
             continue;
         }
 
-        let annotations = parse_annotations(gate_result);
+        let annotations = parse_annotations(check_result);
 
         if annotations.is_empty() {
             // No parseable file:line patterns — emit a general error annotation.
             writeln!(
                 output,
                 "::error title={}::{}",
-                escape_property(&gate_result.name),
+                escape_property(&check_result.name),
                 escape_data(&format!(
-                    "{} gate failed: {}",
-                    gate_result.name, gate_result.command
+                    "{} check failed: {}",
+                    check_result.name, check_result.command
                 )),
             )
             .expect("write to String");
@@ -261,7 +261,7 @@ fn try_parse_colon_separated(line: &str, title: &str) -> Option<Annotation> {
     } else if rest.starts_with("warning") || rest.starts_with("W") {
         AnnotationLevel::Warning
     } else {
-        AnnotationLevel::Error // default to error for failed gates
+        AnnotationLevel::Error // default to error for failed checks
     };
 
     let message = if rest.is_empty() {

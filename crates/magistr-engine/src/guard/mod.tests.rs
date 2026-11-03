@@ -67,7 +67,7 @@ fn guards_config_default_all_enabled() {
     assert!(config.plan);
     assert!(config.spec);
     assert!(config.clean_tree);
-    assert!(config.quality_gate);
+    assert!(config.checks);
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn guards_config_roundtrip() {
         plan: true,
         spec: false,
         clean_tree: true,
-        quality_gate: true,
+        checks: true,
     };
     let json = serde_json::to_string(&config).unwrap();
     let parsed: GuardsConfig = serde_json::from_str(&json).unwrap();

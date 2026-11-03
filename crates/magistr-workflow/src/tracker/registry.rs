@@ -81,7 +81,7 @@ pub struct ProviderBuild<'a> {
 /// port it builds answers the same question through
 /// [`TrackerPort::provider`], and a registration whose two answers disagreed
 /// would write link records under a provider that cannot read them back. The
-/// truth gate for that lives in `tests/tracker_provider_registry.rs` and it
+/// truth check for that lives in `tests/tracker_provider_registry.rs` and it
 /// BUILDS each registration rather than comparing two lists.
 pub struct ProviderRegistration {
     /// The provider key, lowercase. See [`crate::infra::cross_ref::ProviderId`].
@@ -200,13 +200,13 @@ mod tests {
     /// omitted one that does. This binds the sentence to the table.
     ///
     /// It proves PRESENCE, not truth: a page reading "we do not support
-    /// `linear`" would satisfy it. Presence is what a text gate can honestly
+    /// `linear`" would satisfy it. Presence is what a text check can honestly
     /// check.
     #[test]
     fn the_module_front_page_names_every_registered_provider() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join(concat!("src/tracker/", "mod.rs"));
-        let source = crate::infra::source_gate::read_window(&path);
+        let source = crate::infra::source_check::read_window(&path);
 
         // The leading run of `//!` lines: the front page, not the whole file.
         // Without this window, a key mentioned in one of the `pub mod`
@@ -234,7 +234,7 @@ mod tests {
         // always returned true would pass every assertion above.
         assert!(
             !front_page.contains(concat!("nosuch", "provider")),
-            "the front page names a provider that does not exist, so this gate's \
+            "the front page names a provider that does not exist, so this check's \
              search proves nothing"
         );
     }

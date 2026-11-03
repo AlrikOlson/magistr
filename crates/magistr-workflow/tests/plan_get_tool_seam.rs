@@ -14,8 +14,8 @@
 //! # The table is foreign, and that is deliberate
 //!
 //! WATERWORKS is a municipal water utility's maintenance plan — not this
-//! project, not the telescope backlog the truncation gates use, not the
-//! greenhouse or the rail depot. A projection gate driven by production-shaped
+//! project, not the telescope backlog the truncation checks use, not the
+//! greenhouse or the rail depot. A projection check driven by production-shaped
 //! data can pass on an accident of production data; one driven by a table the
 //! code has never seen cannot.
 //!
@@ -234,7 +234,7 @@ async fn one_id_may_arrive_as_a_bare_string_rather_than_a_list() {
 
 /// `ids` IS A SET, AND THAT IS WHAT KEEPS THE CAP HONEST.
 ///
-/// This gate exists because a live probe against the real 570-task store
+/// This check exists because a live probe against the real 570-task store
 /// falsified the cap's own derivation. `GET_ID_CAP` was sized against the 20
 /// largest DISTINCT records (97,469 B); with duplicates answered twice, naming
 /// the single largest record 20 times returned 137,772 B — 41% past the bound
@@ -304,11 +304,11 @@ async fn repeating_one_id_past_the_cap_is_still_one_record() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn an_unknown_id_is_reported_by_name_while_the_known_one_still_answers() {
     let known = WATERWORKS[3].0;
-    let envelope = call_get(json!({ "ids": [known, "sluice-gate-that-does-not-exist"] })).await;
+    let envelope = call_get(json!({ "ids": [known, "sluice-check-that-does-not-exist"] })).await;
 
     assert_eq!(
         envelope["unknown"],
-        json!(["sluice-gate-that-does-not-exist"]),
+        json!(["sluice-check-that-does-not-exist"]),
         "the id that matched nothing must be named: {envelope}"
     );
     assert_eq!(envelope["returned"], json!(1), "{envelope}");

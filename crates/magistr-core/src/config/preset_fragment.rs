@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{MagistrError, Result};
 use crate::types::{
-    FormatConfigOverride, PresetLayerType, PresetOverride, QualityGateOverride,
+    FormatConfigOverride, PresetLayerType, PresetOverride, StandardChecksOverride,
     TestingConfigOverride,
 };
 
@@ -54,9 +54,9 @@ pub struct UserPresetFragment {
     #[serde(default)]
     pub merge_strategy: MergeStrategy,
 
-    /// Quality gate command overrides.
+    /// Check command overrides.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub quality_gate: Option<QualityGateOverride>,
+    pub checks: Option<StandardChecksOverride>,
 
     /// Formatter configuration overrides.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -157,7 +157,7 @@ impl UserPresetFragment {
     /// Convert to a `PresetOverride` for use in the composition pipeline.
     pub fn to_override(&self) -> PresetOverride {
         PresetOverride {
-            quality_gate: self.quality_gate.clone(),
+            checks: self.checks.clone(),
             format: self.format.clone(),
             testing: self.testing.clone(),
             extra_allowed_tools: self.extra_allowed_tools.clone(),
@@ -182,7 +182,7 @@ impl UserPresetFragment {
         }
 
         // Warn if fragment has no actual overrides
-        if self.quality_gate.is_none()
+        if self.checks.is_none()
             && self.format.is_none()
             && self.testing.is_none()
             && self.extra_allowed_tools.is_empty()
@@ -193,24 +193,24 @@ impl UserPresetFragment {
             ));
         }
 
-        // Validate gate commands are non-empty when present
-        if let Some(qg) = &self.quality_gate {
+        // Validate check commands are non-empty when present
+        if let Some(qg) = &self.checks {
             if qg.check.as_deref().is_some_and(|s| s.trim().is_empty()) {
                 warnings.push(FragmentWarning::warning(
-                    "quality_gate.check",
-                    "check command is empty string — will clear the gate",
+                    "checks.check",
+                    "check command is empty string — will clear the check",
                 ));
             }
             if qg.test.as_deref().is_some_and(|s| s.trim().is_empty()) {
                 warnings.push(FragmentWarning::warning(
-                    "quality_gate.test",
-                    "test command is empty string — will clear the gate",
+                    "checks.test",
+                    "test command is empty string — will clear the check",
                 ));
             }
             if qg.lint.as_deref().is_some_and(|s| s.trim().is_empty()) {
                 warnings.push(FragmentWarning::warning(
-                    "quality_gate.lint",
-                    "lint command is empty string — will clear the gate",
+                    "checks.lint",
+                    "lint command is empty string — will clear the check",
                 ));
             }
         }

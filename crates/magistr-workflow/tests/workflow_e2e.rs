@@ -18,7 +18,7 @@ use magistr_workflow::plan::{PlanEngine, PlanService};
 use magistr_workflow::request::{RequestEngine, RequestService};
 use magistr_workflow::run::RunService;
 use magistr_workflow::run::application::{
-    EvidencePort, GateContract, SourceFreshness, SourceObservation, SourceWitness,
+    CheckContract, EvidencePort, SourceFreshness, SourceObservation, SourceWitness,
 };
 use magistr_workflow::run::engine::RunEngine;
 use rmcp::{
@@ -34,7 +34,7 @@ struct TestClient;
 
 impl ClientHandler for TestClient {}
 
-/// A source that never moves and a project that configures no gates: the
+/// A source that never moves and a project that configures no checks: the
 /// evidence capability a host composes, at its simplest, so a check the
 /// server runs over the wire certifies a source and a task can complete.
 struct Fixed(String);
@@ -68,7 +68,7 @@ impl EvidencePort for Evidence {
             self.0.path().to_string_lossy().into_owned(),
         )))
     }
-    fn required_gates(&self) -> Result<Vec<GateContract>, String> {
+    fn required_checks(&self) -> Result<Vec<CheckContract>, String> {
         Ok(Vec::new())
     }
 }

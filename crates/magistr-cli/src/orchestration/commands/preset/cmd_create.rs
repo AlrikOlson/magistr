@@ -4,7 +4,7 @@ use std::io::{self, BufRead, Write};
 use std::path::Path;
 
 use crate::config::preset_fragment::{FragmentLayerType, MergeStrategy, UserPresetFragment};
-use crate::types::{FormatConfigOverride, Language, QualityGateOverride, TestingConfigOverride};
+use crate::types::{FormatConfigOverride, Language, StandardChecksOverride, TestingConfigOverride};
 use crate::utils::format as fmt;
 use color_eyre::eyre;
 
@@ -58,17 +58,14 @@ pub fn cmd_preset_create(dir: &Path, output: Option<&Path>) -> eyre::Result<()> 
         }
     };
 
-    // Quality gates
-    eprintln!(
-        "\n  {} Quality gate commands (Enter to skip):",
-        fmt::bold("→")
-    );
+    // Checks
+    eprintln!("\n  {} Check commands (Enter to skip):", fmt::bold("→"));
     let check = prompt_optional("    check: ", &mut lines)?;
     let test = prompt_optional("    test:  ", &mut lines)?;
     let lint = prompt_optional("    lint:  ", &mut lines)?;
 
-    let quality_gate = if check.is_some() || test.is_some() || lint.is_some() {
-        Some(QualityGateOverride { check, test, lint })
+    let checks = if check.is_some() || test.is_some() || lint.is_some() {
+        Some(StandardChecksOverride { check, test, lint })
     } else {
         None
     };
@@ -116,7 +113,7 @@ pub fn cmd_preset_create(dir: &Path, output: Option<&Path>) -> eyre::Result<()> 
         layer_type: FragmentLayerType::ProjectLocal,
         extends,
         merge_strategy: MergeStrategy::Replace,
-        quality_gate,
+        checks,
         format,
         testing,
         extra_allowed_tools: vec![],

@@ -1,8 +1,6 @@
 //! User + AI selections carried through the scaffold pipeline.
 
-use super::research::{
-    Recommendations, RecommendedFormat, RecommendedQualityGate, RecommendedTesting,
-};
+use super::research::{Recommendations, RecommendedChecks, RecommendedFormat, RecommendedTesting};
 
 /// The selections that drive scaffold generation.
 ///
@@ -25,8 +23,8 @@ pub struct ScaffoldSelections {
     pub conventions: Vec<String>,
     /// Practical tips for configuring AI agents with this stack.
     pub tips: Vec<String>,
-    /// AI-recommended quality gate commands (override static preset when present).
-    pub quality_gate: Option<RecommendedQualityGate>,
+    /// AI-recommended check commands (override static preset when present).
+    pub checks: Option<RecommendedChecks>,
     /// AI-recommended format configuration (override static preset when present).
     pub format: Option<RecommendedFormat>,
     /// AI-recommended testing configuration (override static preset when present).
@@ -47,19 +45,19 @@ impl ScaffoldSelections {
     /// Apply explicitly supplied setup choices to the resolved project configuration.
     pub(crate) fn apply_commands(
         &self,
-        gates: &mut crate::types::QualityGate,
+        checks: &mut crate::types::StandardChecks,
         format: &mut crate::types::FormatConfig,
         testing: &mut crate::types::TestingConfig,
     ) {
-        if let Some(choices) = &self.quality_gate {
+        if let Some(choices) = &self.checks {
             if let Some(value) = &choices.check {
-                gates.check.clone_from(value);
+                checks.check.clone_from(value);
             }
             if let Some(value) = &choices.test {
-                gates.test.clone_from(value);
+                checks.test.clone_from(value);
             }
             if let Some(value) = &choices.lint {
-                gates.lint.clone_from(value);
+                checks.lint.clone_from(value);
             }
         }
         if let Some(choices) = &self.format {
@@ -94,7 +92,7 @@ impl ScaffoldSelections {
         Self {
             conventions: recs.conventions,
             tips: recs.tips,
-            quality_gate: recs.quality_gate,
+            checks: recs.checks,
             format: recs.format,
             testing: recs.testing,
             reference_repos: recs.reference_repos,

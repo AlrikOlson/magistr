@@ -1,13 +1,13 @@
 use super::*;
 
 #[test]
-fn emit_gate_fail_produces_error_annotation() {
+fn emit_check_fail_produces_error_annotation() {
     let renderer = GhaRenderer::new();
     let mut buf = Vec::new();
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GateFail {
+            HeadlessEvent::CheckFail {
                 name: "test".into(),
                 duration_ms: 500,
                 output: Some("assertion failed".into()),
@@ -20,13 +20,13 @@ fn emit_gate_fail_produces_error_annotation() {
 }
 
 #[test]
-fn emit_gate_pass_produces_notice() {
+fn emit_check_pass_produces_notice() {
     let renderer = GhaRenderer::new();
     let mut buf = Vec::new();
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GatePass {
+            HeadlessEvent::CheckPass {
                 name: "check".into(),
                 duration_ms: 100,
             },
@@ -55,13 +55,13 @@ fn emit_error_produces_error_annotation() {
 }
 
 #[test]
-fn emit_gate_start_uses_group() {
+fn emit_check_start_uses_group() {
     let renderer = GhaRenderer::new();
     let mut buf = Vec::new();
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GateStart {
+            HeadlessEvent::CheckStart {
                 name: "lint".into(),
             },
         )

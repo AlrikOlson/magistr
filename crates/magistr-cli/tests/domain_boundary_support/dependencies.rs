@@ -227,8 +227,8 @@ fn check_development_closure(
 
 fn check_development_features(name: &str, features: &Value, errors: &mut Vec<String>) {
     // Audited collection helpers in the dev-only serde_json/indexmap closure:
-    // foldhash 0.2.0 gates clock access on std (src/seed.rs), and allocator-api2
-    // 0.2.21 gates std::io implementations on std. Keep both capabilities off
+    // foldhash 0.2.0 checks clock access on std (src/seed.rs), and allocator-api2
+    // 0.2.21 checks std::io implementations on std. Keep both capabilities off
     // even if another workspace package enables them through feature unification.
     let allowed: &[&str] = match name {
         "foldhash" => &[],

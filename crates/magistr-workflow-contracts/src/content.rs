@@ -138,7 +138,7 @@ impl StructuredContent {
 /// rejection that would cancel sibling calls. The arg stays a raw
 /// `serde_json::Value` at the schema layer deliberately — embedding the full
 /// shape in three tools' input schemas cost ~27 KB of every agent's context
-/// (the model-facing-budget gates), and the compact shape line in each field
+/// (the model-facing-budget checks), and the compact shape line in each field
 /// description steers just as well.
 ///
 /// A JSON-encoded *string* of the object is accepted too: a client whose

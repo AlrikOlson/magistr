@@ -6,13 +6,13 @@ use super::*;
 fn a_full_measure_prints_every_phase_and_the_tokens() {
     let metrics = IterationMetrics {
         turn: Duration::from_millis(12_340),
-        gates: Duration::from_secs(250),
+        checks: Duration::from_secs(250),
         judge: Some(Duration::from_millis(8_200)),
         tokens: Some(41_234),
     };
     assert_eq!(
         metrics.to_string(),
-        "turn 12.3s · gates 4m10s · judge 8.2s · 41.2k tokens in context"
+        "turn 12.3s · checks 4m10s · judge 8.2s · 41.2k tokens in context"
     );
 }
 
@@ -20,13 +20,13 @@ fn a_full_measure_prints_every_phase_and_the_tokens() {
 fn an_unasked_judge_and_unreported_usage_are_said_rather_than_zeroed() {
     let metrics = IterationMetrics {
         turn: Duration::from_millis(500),
-        gates: Duration::ZERO,
+        checks: Duration::ZERO,
         judge: None,
         tokens: None,
     };
     assert_eq!(
         metrics.to_string(),
-        "turn 0.5s · gates 0.0s · usage not reported"
+        "turn 0.5s · checks 0.0s · usage not reported"
     );
 }
 

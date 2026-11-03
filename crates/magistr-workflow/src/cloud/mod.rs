@@ -25,12 +25,12 @@ pub mod envelope;
 pub mod outbox;
 pub mod pull;
 
-/// STRUCTURAL gates over the cloud sync test family — see
-/// [`crate::infra::source_gate`] for why a structural gate exists at all and
+/// STRUCTURAL checks over the cloud sync test family — see
+/// [`crate::infra::source_check`] for why a structural check exists at all and
 /// what one is honestly worth.
 #[cfg(test)]
-mod sync_test_gates {
-    use crate::infra::source_gate::{count_live, fn_blocks, read_window};
+mod sync_test_checks {
+    use crate::infra::source_check::{count_live, fn_blocks, read_window};
 
     /// The four integration tests that prove a local mutation reaches the
     /// cloud. Every one wires an engine with `.with_cloud(..)` and then asserts
@@ -46,7 +46,7 @@ mod sync_test_gates {
     /// REACHABILITY, not behaviour: every cloud sync test that wires an engine
     /// to a backend must wait on the request ARRIVING, not on a duration.
     ///
-    /// This gate exists because deleting the wait at a CALL SITE is very nearly
+    /// This check exists because deleting the wait at a CALL SITE is very nearly
     /// invisible to the suite. The push is fire-and-forget on a detached task,
     /// so its absence does not produce a failure — it produces a *probability*
     /// of one. Measured with the wait removed: 18 failures in 120 runs, so
@@ -61,17 +61,17 @@ mod sync_test_gates {
     /// open. Blocks are split per function so a wait in a NEIGHBOURING test
     /// cannot vouch for the call site in this one.
     ///
-    /// This is a text gate, not a semantic one. It proves a wait is present,
+    /// This is a text check, not a semantic one. It proves a wait is present,
     /// not that it waits for the right thing.
     #[test]
     fn every_cloud_sync_test_waits_for_the_request_rather_than_a_duration() {
-        // Split so this gate's own source cannot satisfy its own needles.
+        // Split so this check's own source cannot satisfy its own needles.
         let wires_cloud = concat!(".with", "_cloud(");
         // Both named condition helpers from tests/support: the wiremock twins
         // wait on a recorded request, the live test waits on the cloud serving
         // the record back. Nothing else counts — in particular a bare deadline
         // loop written inline does not, because the next one would be written
-        // slightly differently and this gate would stop seeing it.
+        // slightly differently and this check would stop seeing it.
         let waiters = [concat!("wait_for", "_request("), concat!("wait", "_until(")];
         let mut total_sites = 0usize;
 
@@ -99,7 +99,7 @@ mod sync_test_gates {
         assert_eq!(
             total_sites, 5,
             "expected 5 cloud-wiring test sites across the cloud sync family; found \
-             {total_sites}. If a file moved or was renamed this gate stopped covering \
+             {total_sites}. If a file moved or was renamed this check stopped covering \
              it — fix the window, do not adjust the count to match.",
         );
     }
@@ -118,7 +118,7 @@ mod sync_test_gates {
     /// constant is guaranteed to be wrong eventually.
     #[test]
     fn no_cloud_sync_test_synchronises_with_a_bare_sleep() {
-        // Split so this gate's own source cannot satisfy its own needles.
+        // Split so this check's own source cannot satisfy its own needles.
         let tokio_sleep = concat!("tokio::time", "::sleep(");
         let thread_sleep = concat!("thread", "::sleep(");
 

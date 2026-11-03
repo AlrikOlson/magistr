@@ -1,7 +1,7 @@
 //! Workflow libraries never own a terminal presentation.
 //!
 //! Routine narration and capability negotiation use opt-in debug tracing.
-//! Findings, plans and gate results remain in native records and tool replies;
+//! Findings, plans and check results remain in native records and tool replies;
 //! terminal clients render them from their ordered session stream. Genuine
 //! effect failures still use warn tracing and reach the operational log lane.
 //! Protocol stdout stays reserved for protocol frames.
@@ -60,7 +60,7 @@ fn src(rel: &str) -> String {
 
 /// Lines that are genuinely a `macro!(` CALL, not a mention inside a string or
 /// a doc comment. Matching WITH the leading indentation is the whole point: a
-/// source-text gate that also matches prose fails open on the case it exists to
+/// source-text check that also matches prose fails open on the case it exists to
 /// catch.
 fn call_lines(text: &str, macro_name: &str) -> Vec<usize> {
     let call = format!("{macro_name}!");

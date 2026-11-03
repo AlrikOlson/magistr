@@ -1,26 +1,26 @@
 //! Workflow tracking state (domain-only).
 //!
-//! Core workflow phase tracking, gate results, and iteration history.
+//! Core workflow phase tracking, check results, and iteration history.
 //! No engine hook resolution, no socket IPC, no tip engine, no modals —
 //! those are frontend-specific concerns.
 
-use super::gate::{GATE_HISTORY_MAX, GateResult};
+use super::check::{CHECK_HISTORY_MAX, CheckReport};
 use super::loop_progress::LoopProgress;
 use super::workflow_phase::WorkflowPhase;
 
 /// Domain-only workflow state.
 ///
 /// Frontend implementations extend this with presentation-specific fields
-/// (lifecycle hooks, socket IPC, tip engine, gate detail modals, pause UI).
+/// (lifecycle hooks, socket IPC, tip engine, check detail modals, pause UI).
 #[derive(Debug, Clone, Default)]
 pub struct WorkflowState {
     /// Current workflow phase (Research/Plan/Execute/Verify).
     pub workflow_phase: Option<WorkflowPhase>,
-    /// Quality gate results (populated after agent turn in workflow mode).
-    pub gate_results: Vec<GateResult>,
-    /// Gate results history across iterations (last N runs) for sparkline display.
-    pub gate_results_history: Vec<Vec<GateResult>>,
-    /// Count of consecutive gate failures (reset on success).
+    /// Check results (populated after agent turn in workflow mode).
+    pub check_results: Vec<CheckReport>,
+    /// Check results history across iterations (last N runs) for sparkline display.
+    pub check_results_history: Vec<Vec<CheckReport>>,
+    /// Count of consecutive check failures (reset on success).
     pub consecutive_failures: u32,
     /// Loop progress state (active during next-loop).
     pub loop_progress: Option<LoopProgress>,
@@ -45,17 +45,17 @@ impl WorkflowState {
         }
     }
 
-    /// Snapshot the current gate results into history.
+    /// Snapshot the current check results into history.
     ///
-    /// Keeps at most [`GATE_HISTORY_MAX`] entries. Oldest entries are dropped.
-    pub fn push_gate_history(&mut self) {
-        if self.gate_results.is_empty() {
+    /// Keeps at most [`CHECK_HISTORY_MAX`] entries. Oldest entries are dropped.
+    pub fn push_check_history(&mut self) {
+        if self.check_results.is_empty() {
             return;
         }
-        if self.gate_results_history.len() >= GATE_HISTORY_MAX {
-            self.gate_results_history.remove(0);
+        if self.check_results_history.len() >= CHECK_HISTORY_MAX {
+            self.check_results_history.remove(0);
         }
-        self.gate_results_history.push(self.gate_results.clone());
+        self.check_results_history.push(self.check_results.clone());
     }
 }
 

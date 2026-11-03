@@ -18,8 +18,8 @@ def load(name):
     return module
 
 
-native = load("native-write-path-gate")
-nextest = load("nextest-config-gate")
+native = load("native-write-path-check")
+nextest = load("nextest-config-check")
 
 
 class OwnershipTests(unittest.TestCase):

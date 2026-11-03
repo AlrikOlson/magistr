@@ -201,7 +201,7 @@ async fn grouping_an_already_pushed_task_reaches_the_tracker() {
 /// The other half: abandoning EVERYTHING is not the same as finishing it.
 #[tokio::test]
 async fn an_all_retired_feature_is_not_reported_complete() {
-    let mut e = engine_with(&[("g-1", Some("Gate house"), TaskStatus::Idea)]);
+    let mut e = engine_with(&[("g-1", Some("Check house"), TaskStatus::Idea)]);
     e.set_status("g-1", TaskStatus::Retired).expect("obsolete");
     let t = FakeTracker::new(PROVIDER);
 
@@ -209,7 +209,7 @@ async fn an_all_retired_feature_is_not_reported_complete() {
 
     assert_eq!(
         t.features(),
-        vec![("Gate house".to_string(), FeatureState::NotStarted)],
+        vec![("Check house".to_string(), FeatureState::NotStarted)],
         "a feature whose every task was abandoned has not been completed"
     );
 }

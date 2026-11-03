@@ -41,7 +41,7 @@ use crate::config::inputs::ProjectInputs;
 pub struct SessionPermissionPolicy {
     profile: PermissionProfile,
     auto_rules: Vec<AutoAllowRule>,
-    gate_commands: Vec<String>,
+    check_commands: Vec<String>,
     protected_paths: Vec<PathBuf>,
     /// The session's working directory — what a relative path the agent
     /// names is relative to. `None` compares relative targets by their
@@ -90,7 +90,7 @@ impl SessionPermissionPolicy {
         Ok(Self::new(
             profile,
             config.rules,
-            crate::orchestration::commands::start::collect_gate_commands(project_dir),
+            crate::orchestration::commands::start::collect_check_commands(project_dir),
             crate::orchestration::commands::start::protected_paths_for_project(project_dir),
             workflow,
         )
@@ -111,14 +111,14 @@ impl SessionPermissionPolicy {
     pub fn new(
         profile: PermissionProfile,
         auto_rules: Vec<AutoAllowRule>,
-        gate_commands: Vec<String>,
+        check_commands: Vec<String>,
         protected_paths: Vec<PathBuf>,
         workflow: bool,
     ) -> Self {
         Self {
             profile,
             auto_rules,
-            gate_commands,
+            check_commands,
             protected_paths,
             root: None,
             mode: if workflow {
@@ -235,7 +235,7 @@ impl SessionPermissionPolicy {
             &request.tool_input,
             self.profile,
             &self.auto_rules,
-            &self.gate_commands,
+            &self.check_commands,
         );
         let context = PermissionContext {
             mode: self.mode,
@@ -328,7 +328,7 @@ impl SessionPermissionPolicy {
             "shared-permissions-v1",
             self.profile,
             &self.auto_rules,
-            &self.gate_commands,
+            &self.check_commands,
             protected,
             root,
             self.mode,
@@ -354,7 +354,7 @@ impl SessionPermissionPolicy {
             &act.paths,
             &act.model,
             &act.risk,
-            &act.gate,
+            &act.check,
             &request.tool_kind,
             &request.tool_input,
         ))

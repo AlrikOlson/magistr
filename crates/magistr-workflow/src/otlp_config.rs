@@ -140,7 +140,7 @@ pub fn resolve_endpoint(
 
 /// The configured traces endpoint, or `None` when the operator configured none.
 ///
-/// `None` is the enable gate for live emission: an unconfigured server makes no
+/// `None` is the enable check for live emission: an unconfigured server makes no
 /// network calls. There is deliberately no separate on/off switch, because a
 /// second switch for one decision only creates the state "endpoint set, nothing
 /// emitted", whose only achievable purpose is to confuse.
@@ -149,7 +149,7 @@ pub fn configured_endpoint() -> Option<String> {
     configured_signal_endpoint(TRACES)
 }
 
-/// The configured LOGS endpoint. Same enable gate, one signal over: an operator
+/// The configured LOGS endpoint. Same enable check, one signal over: an operator
 /// who set only `OTEL_EXPORTER_OTLP_ENDPOINT` gets `…/v1/logs` for free, and one
 /// who named a traces vendor explicitly does NOT accidentally get their logs
 /// POSTed to a traces intake.
@@ -411,7 +411,7 @@ mod tests {
         assert_eq!(LOGS.headers_env, LOGS_HEADERS_ENV);
     }
 
-    /// No configuration means no emission, which is the enable gate. If this
+    /// No configuration means no emission, which is the enable check. If this
     /// ever returns `Some` from an empty environment, an MCP server nobody
     /// configured starts making network calls.
     #[test]

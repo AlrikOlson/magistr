@@ -39,9 +39,9 @@ mod store_words_upgrade;
 mod workflow_upgrade;
 pub use store_words_upgrade::StoreWordsUpgrade;
 pub use workflow_upgrade::WorkflowUpgrade;
+pub mod check_bytes;
 pub mod feed_cursor;
 pub mod feed_status;
-pub mod gate_output;
 mod local_stream;
 pub mod magistr_frame;
 pub mod mcp_acceptor;
@@ -96,6 +96,7 @@ pub use attach_refusal::AttachRefusal;
 pub use broadcast_frame::NativeFrame;
 pub use build_identity::BuildIdentity;
 pub use caller_identity::CallerIdentity;
+pub use check_bytes::CheckBytes;
 pub use check_type_for::check_type_for;
 pub use decision_command::DecisionCommand;
 pub use decision_thread::DecisionThread;
@@ -104,7 +105,6 @@ pub use event_cursor::EventCursor;
 pub use execution_context::ExecutionContext;
 pub use feed_cursor::FeedCursor;
 pub use feed_status::FeedStatus;
-pub use gate_output::GateOutput;
 pub use local_stream::LocalStream;
 pub use magistr_frame::MagistrFrame;
 pub use magistr_workflow::decision::ConfigSource;
@@ -164,10 +164,10 @@ pub use magistr_workflow::plan::domain::{
 pub use magistr_workflow::request::broadcast::RequestFrame;
 pub use magistr_workflow::request::domain::{Enrichment, Request, RequestKind, RequestStatus};
 pub use magistr_workflow::run::application::{
-    CheckAdmission, CheckBudget, CheckExecution, CheckOptions, CheckOutcome, CheckRequest,
-    CheckSettlement, CompletionEvidence, CompletionRefusal, EvidencePort, ExecutionBinding,
-    GateContract, ObservationDrift, RunReport, SourceFreshness, SourceObservation, SourceWitness,
-    StepAdmission, TimeoutOrigin,
+    CheckAdmission, CheckBudget, CheckContract, CheckExecution, CheckOptions, CheckOutcome,
+    CheckRequest, CheckSettlement, CompletionEvidence, CompletionRefusal, EvidencePort,
+    ExecutionBinding, ObservationDrift, RunReport, SourceFreshness, SourceObservation,
+    SourceWitness, StepAdmission, TimeoutOrigin,
 };
 pub use magistr_workflow::run::broadcast::BroadcastFrame as RunFrame;
 pub use magistr_workflow::run::check_result_compaction::CheckResultCompaction;

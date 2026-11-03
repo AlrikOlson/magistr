@@ -309,7 +309,7 @@ impl Reconciled {
 /// `theirs` is `None` on a create — there is nothing to conflict with, so our
 /// item passes through whole and no divergence is possible.
 ///
-/// `remote_moved` gates REPORTING only, never merging. When the provider says
+/// `remote_moved` checks REPORTING only, never merging. When the provider says
 /// its record has not moved since our write, the item we fetched is our own
 /// last write, so a difference is our pending change rather than someone's
 /// edit and is not news. The values are merged either way — a contested field

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use super::*;
-use crate::types::{Archetype, FormatConfig, ProjectRole, QualityGate, TestingConfig};
+use crate::types::{Archetype, FormatConfig, ProjectRole, StandardChecks, TestingConfig};
 
 fn make_archetype(id: &str, language: &str) -> Archetype {
     Archetype {
@@ -11,7 +11,7 @@ fn make_archetype(id: &str, language: &str) -> Archetype {
         framework: None,
         root: PathBuf::from("."),
         role: ProjectRole::Backend,
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: String::new(),
             test: String::new(),
             lint: String::new(),

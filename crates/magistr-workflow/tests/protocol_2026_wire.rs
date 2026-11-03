@@ -7,7 +7,7 @@
 //! real client validating against the `2026-07-28` schema — where both are
 //! required — rejects the whole `tools/list` result instead, and a rejected
 //! list means every tool on the server vanishes. That failure was live while
-//! the rmcp-client test was green, so the gate has to read the bytes.
+//! the rmcp-client test was green, so the check has to read the bytes.
 //!
 //! Hence a hand-rolled JSON-RPC driver over the same newline-delimited
 //! transport the stdio deployment uses: no SDK types on the client side,

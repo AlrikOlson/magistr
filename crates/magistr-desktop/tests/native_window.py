@@ -53,7 +53,7 @@ def project(path, name):
         "project":{"name":name,"description":"","type":"cli"},
         "stack":{"language":"rust","framework":"none","package_manager":"cargo","test_framework":"cargo-test","linter":"clippy","formatter":"rustfmt"},
         "plan_backend":"native","plan_exports":False,
-        "quality_gate":{"check":"true","test":"true","lint":"true"},
+        "checks":{"check":"true","test":"true","lint":"true"},
         "format":{"command":"true","extensions":["rs"]},
         "testing":{"companion_pattern":"{name}.tests.{ext}","test_dir":"alongside"},
         "reference_repos":[],"state_prefix":name}))
@@ -98,7 +98,7 @@ def source_hashes():
         "crates/magistr-cli/src/application/retained_observation.rs",
         "crates/magistr-cli/src/application/retained_observation.tests.rs",
         "crates/magistr-application/src/sessions/tool_record.rs",
-        "scripts/desktop-visual-gate.py",
+        "scripts/desktop-visual-check.py",
         "crates/magistr-cli/src/application/session_registry.rs",
         "crates/magistr-cli/src/agent/session_supervisor/mod.rs",
         "crates/magistr-cli/src/agent/session_supervisor/owner.rs",

@@ -3,23 +3,23 @@ use super::*;
 #[test]
 fn parse_index_entry_from_json() {
     let json = r#"{
-        "name": "sonar-gate",
+        "name": "sonar-check",
         "version": "1.0.0",
-        "kind": "quality-gate",
-        "description": "SonarQube quality gate",
-        "download_url": "https://plugins.magistr.dev/sonar-gate-1.0.0.tar.gz",
+        "kind": "check",
+        "description": "SonarQube check",
+        "download_url": "https://plugins.magistr.dev/sonar-check-1.0.0.tar.gz",
         "signature": "base64signature==",
         "author": "magistr-team"
     }"#;
 
     let entry: IndexEntry = serde_json::from_str(json).expect("parse entry");
-    assert_eq!(entry.name, "sonar-gate");
+    assert_eq!(entry.name, "sonar-check");
     assert_eq!(entry.version, "1.0.0");
-    assert_eq!(entry.kind, PluginKind::QualityGate);
-    assert_eq!(entry.description, Some("SonarQube quality gate".into()));
+    assert_eq!(entry.kind, PluginKind::Check);
+    assert_eq!(entry.description, Some("SonarQube check".into()));
     assert_eq!(
         entry.download_url,
-        "https://plugins.magistr.dev/sonar-gate-1.0.0.tar.gz"
+        "https://plugins.magistr.dev/sonar-check-1.0.0.tar.gz"
     );
     assert_eq!(entry.signature, Some("base64signature==".into()));
     assert_eq!(entry.author, Some("magistr-team".into()));
@@ -46,8 +46,8 @@ fn serialize_index_entry_roundtrip() {
     let entry = IndexEntry {
         name: "test-plugin".into(),
         version: "2.0.0".into(),
-        kind: PluginKind::QualityGate,
-        description: Some("A test gate".into()),
+        kind: PluginKind::Check,
+        description: Some("A test check".into()),
         download_url: "https://example.com/test.tar.gz".into(),
         signature: None,
         author: None,
@@ -93,7 +93,7 @@ fn search_by_name_finds_plugin() {
             IndexEntry {
                 name: "openai".into(),
                 version: "1.0.0".into(),
-                kind: PluginKind::QualityGate,
+                kind: PluginKind::Check,
                 description: None,
                 download_url: "https://example.com/openai.tar.gz".into(),
                 signature: None,
@@ -102,7 +102,7 @@ fn search_by_name_finds_plugin() {
             IndexEntry {
                 name: "sonar".into(),
                 version: "2.0.0".into(),
-                kind: PluginKind::QualityGate,
+                kind: PluginKind::Check,
                 description: None,
                 download_url: "https://example.com/sonar.tar.gz".into(),
                 signature: None,

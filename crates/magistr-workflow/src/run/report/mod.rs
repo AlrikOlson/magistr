@@ -7,7 +7,7 @@
 //! exit code stays the single source of truth for `verified`. That one bit is
 //! honest but blind: an agent handed "failed" cannot see WHICH test failed
 //! without re-running the whole suite, a flaky test is indistinguishable from
-//! a solid one, and a red gate cannot be tied to a specific assertion.
+//! a solid one, and a red check cannot be tied to a specific assertion.
 //!
 //! This module adds the missing detail WITHOUT adding a way to lie. The caller
 //! asks the runner for a machine-readable report file (`report: {format,

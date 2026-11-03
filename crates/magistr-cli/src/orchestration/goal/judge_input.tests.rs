@@ -10,13 +10,13 @@ fn input() -> JudgeInput {
             "A token within 60s of expiry is refreshed on the next request".to_owned(),
             "A refresh failure surfaces as a re-login prompt, never a silent 401".to_owned(),
         ],
-        gates: vec![
-            GateEvidence {
+        checks: vec![
+            CheckEvidence {
                 name: "check".to_owned(),
                 passed: true,
                 duration: Duration::from_secs(3),
             },
-            GateEvidence {
+            CheckEvidence {
                 name: "test".to_owned(),
                 passed: false,
                 duration: Duration::from_secs(40),
@@ -41,7 +41,7 @@ fn the_prompt_carries_every_criterion_verbatim_and_numbered() {
 }
 
 #[test]
-fn the_prompt_carries_the_gates_as_structured_lines_beside_the_agents_claim() {
+fn the_prompt_carries_the_checks_as_structured_lines_beside_the_agents_claim() {
     let prompt = input().prompt();
     assert!(prompt.contains("- check: PASSED (3.0s)"));
     assert!(prompt.contains("- test: FAILED (40.0s)"));
@@ -59,10 +59,10 @@ fn the_prompt_says_insufficient_evidence_is_not_yet_and_names_the_schema() {
 }
 
 #[test]
-fn an_empty_acceptance_list_and_no_gates_are_said_rather_than_left_blank() {
+fn an_empty_acceptance_list_and_no_checks_are_said_rather_than_left_blank() {
     let prompt = JudgeInput::default().prompt();
     assert!(prompt.contains("lists none"));
-    assert!(prompt.contains("no gates are configured"));
+    assert!(prompt.contains("no checks are configured"));
 }
 
 #[test]

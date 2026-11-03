@@ -10,7 +10,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use super::*;
 use crate::error::MagistrError;
 
-/// A project the workflow configuration loads, with `true` for every gate.
+/// A project the workflow configuration loads, with `true` for every check.
 fn project() -> tempfile::TempDir {
     let dir = tempfile::TempDir::new().expect("a temp dir");
     let magistr = dir.path().join(".magistr");
@@ -21,7 +21,7 @@ fn project() -> tempfile::TempDir {
             "language": "rust", "framework": "none", "package_manager": "cargo",
             "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"
         },
-        "quality_gate": {"check": "true", "test": "true", "lint": "true"},
+        "checks": {"check": "true", "test": "true", "lint": "true"},
         "format": {"command": "true", "extensions": ["rs"]},
         "spec": {"file": "PLAN.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},

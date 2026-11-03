@@ -4,7 +4,7 @@
 the carrier guest's `grammar-wasm()` export and executed by the engine
 child's WasmStore lane (specs/002-wasm-lang-pack/research.md R2, R6).
 
-Built out of band — the repository's gates deliberately require no
+Built out of band — the repository's checks deliberately require no
 C-to-wasm toolchain (same precedent as the committed guest components):
 
 ```sh

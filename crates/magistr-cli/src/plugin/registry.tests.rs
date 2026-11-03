@@ -371,7 +371,7 @@ fn plugin_source_registry_display() {
 #[test]
 fn plugin_source_registry_serde_roundtrip() {
     let source = PluginSource::Registry {
-        name: "my-gate".into(),
+        name: "my-check".into(),
         version: "2.1.0".into(),
     };
     let json = serde_json::to_string(&source).unwrap();
@@ -395,13 +395,13 @@ fn org_config_default_is_unrestricted() {
 fn org_config_allowlist_enforcement() {
     let config = OrgPluginConfig {
         index_url: None,
-        allowlist: vec!["license-gate".to_string(), "sonarqube-gate".to_string()],
+        allowlist: vec!["license-check".to_string(), "sonarqube-check".to_string()],
         signing_key: None,
     };
 
     assert!(config.has_allowlist());
-    assert!(config.is_allowed("license-gate"));
-    assert!(config.is_allowed("sonarqube-gate"));
+    assert!(config.is_allowed("license-check"));
+    assert!(config.is_allowed("sonarqube-check"));
     assert!(!config.is_allowed("random-plugin"));
     assert!(!config.is_allowed("malicious-plugin"));
 }

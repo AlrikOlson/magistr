@@ -37,14 +37,14 @@ fn escape_gha(msg: &str) -> String {
 impl HeadlessRenderer for GhaRenderer {
     fn emit(&self, w: &mut dyn Write, event: HeadlessEvent) -> std::io::Result<()> {
         match event {
-            HeadlessEvent::GateStart { name } => {
-                writeln!(w, "::group::Gate: {name}")
+            HeadlessEvent::CheckStart { name } => {
+                writeln!(w, "::group::Check: {name}")
             }
-            HeadlessEvent::GatePass { name, duration_ms } => {
+            HeadlessEvent::CheckPass { name, duration_ms } => {
                 writeln!(w, "::endgroup::")?;
-                writeln!(w, "::notice::Gate '{name}' passed ({duration_ms}ms)")
+                writeln!(w, "::notice::Check '{name}' passed ({duration_ms}ms)")
             }
-            HeadlessEvent::GateFail {
+            HeadlessEvent::CheckFail {
                 name,
                 duration_ms,
                 output,
@@ -53,7 +53,7 @@ impl HeadlessRenderer for GhaRenderer {
                 let detail = output.as_deref().unwrap_or("no output");
                 writeln!(
                     w,
-                    "::error::Gate '{name}' failed ({duration_ms}ms): {detail}",
+                    "::error::Check '{name}' failed ({duration_ms}ms): {detail}",
                     detail = escape_gha(detail),
                 )
             }

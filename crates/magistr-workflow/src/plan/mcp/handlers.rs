@@ -641,7 +641,7 @@ impl PlanService {
 
     #[tool(
         name = "plan_complete_task",
-        description = "Mark a task done on the current run's evidence: the goal is scoped task:<id> and its verification task (step_ref step:<id>, else where the receipts landed) holds current passing verified receipts for every required gate.\n\nInputs: id (required), step_ref (optional).\n\nReturns: the completed task.\n\nPitfalls: a refusal names each outstanding gate; re-run and retry. Only InProgress tasks go done.",
+        description = "Mark a task done on the current run's evidence: the goal is scoped task:<id> and its verification task (step_ref step:<id>, else where the receipts landed) holds current passing verified receipts for every required check.\n\nInputs: id (required), step_ref (optional).\n\nReturns: the completed task.\n\nPitfalls: a refusal names each outstanding check; re-run and retry. Only InProgress tasks go done.",
         annotations(
             title = "Complete task",
             read_only_hint = false,

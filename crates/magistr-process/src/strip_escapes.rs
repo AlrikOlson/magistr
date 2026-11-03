@@ -1,5 +1,5 @@
 //! Plain text from process output, shared by command diagnostics, quality
-//! gates and agent terminals. Raw capture remains with each caller.
+//! checks and agent terminals. Raw capture remains with each caller.
 
 /// Where the stripper stands inside a control sequence between two
 /// chunks: a sequence split across reads must still vanish whole.

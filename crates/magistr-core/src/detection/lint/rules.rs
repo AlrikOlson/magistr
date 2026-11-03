@@ -13,7 +13,7 @@ pub fn run_all(content: &str) -> Vec<LintDiagnostic> {
     diagnostics.extend(check_vague_rules(content));
     diagnostics.extend(check_contradictions(content));
     diagnostics.extend(check_duplicate_sections(content));
-    diagnostics.extend(check_no_quality_gates(content));
+    diagnostics.extend(check_no_checks(content));
     diagnostics.extend(check_no_structure(content));
     diagnostics.extend(check_deprecated_patterns(content));
     diagnostics
@@ -205,8 +205,8 @@ fn check_duplicate_sections(content: &str) -> Vec<LintDiagnostic> {
     diagnostics
 }
 
-/// Quality gate keywords that indicate test/check/lint commands are defined.
-const GATE_KEYWORDS: &[&str] = &[
+/// Check keywords that indicate test/check/lint commands are defined.
+const CHECK_KEYWORDS: &[&str] = &[
     "cargo test",
     "cargo clippy",
     "npm test",
@@ -222,18 +222,18 @@ const GATE_KEYWORDS: &[&str] = &[
     "tsc --noEmit",
 ];
 
-/// Missing quality gates means Claude won't know how to verify its work.
-fn check_no_quality_gates(content: &str) -> Vec<LintDiagnostic> {
+/// Missing checks means Claude won't know how to verify its work.
+fn check_no_checks(content: &str) -> Vec<LintDiagnostic> {
     let lower = content.to_lowercase();
-    let has_gates = GATE_KEYWORDS.iter().any(|kw| lower.contains(kw));
+    let has_checks = CHECK_KEYWORDS.iter().any(|kw| lower.contains(kw));
 
-    if has_gates {
+    if has_checks {
         vec![]
     } else {
         vec![LintDiagnostic {
-            rule: "missing-gates",
+            rule: "missing-checks",
             severity: Severity::Warning,
-            message: "No quality gate commands found (test, lint, check)".into(),
+            message: "No check commands found (test, lint, check)".into(),
             line: None,
             fix: Some(
                 "Add a section with commands like `cargo test`, `npm test`, `pytest`, etc.".into(),
@@ -250,7 +250,7 @@ fn check_no_structure(content: &str) -> Vec<LintDiagnostic> {
             severity: Severity::Error,
             message: "CLAUDE.md is empty".into(),
             line: None,
-            fix: Some("Add project context, conventions, and quality gates.".into()),
+            fix: Some("Add project context, conventions, and checks.".into()),
         }];
     }
 

@@ -7,7 +7,7 @@ description: Advance the native Magistr plan by implementing one ready task. Use
 
 For implementation, follow the complete [next skill](../next/SKILL.md) in the
 current session. It owns selection, recovery, research, planning, execution,
-recorded gates, plan completion, and commit. Do one task and stop.
+recorded checks, plan completion, and commit. Do one task and stop.
 
 For a status-only request, read `plan_status` and relevant `plan_get`
 records from **magistr**, report them, and stop without starting a task.

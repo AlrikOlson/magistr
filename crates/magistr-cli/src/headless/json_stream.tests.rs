@@ -7,7 +7,7 @@ fn emit_produces_valid_ndjson_line() {
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GatePass {
+            HeadlessEvent::CheckPass {
                 name: "check".into(),
                 duration_ms: 1234,
             },
@@ -21,20 +21,20 @@ fn emit_produces_valid_ndjson_line() {
 
     // Must be valid JSON
     let parsed: serde_json::Value = serde_json::from_str(output.trim()).unwrap();
-    assert_eq!(parsed["event"], "gate_pass");
+    assert_eq!(parsed["event"], "check_pass");
     assert_eq!(parsed["data"]["name"], "check");
     assert_eq!(parsed["data"]["duration_ms"], 1234);
     assert!(parsed["timestamp"].is_string());
 }
 
 #[test]
-fn emit_gate_fail_includes_output() {
+fn emit_check_fail_includes_output() {
     let renderer = JsonStreamRenderer::new();
     let mut buf = Vec::new();
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GateFail {
+            HeadlessEvent::CheckFail {
                 name: "test".into(),
                 duration_ms: 500,
                 output: Some("assertion failed".into()),
@@ -43,7 +43,7 @@ fn emit_gate_fail_includes_output() {
         .unwrap();
     let output = String::from_utf8(buf).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(output.trim()).unwrap();
-    assert_eq!(parsed["event"], "gate_fail");
+    assert_eq!(parsed["event"], "check_fail");
     assert_eq!(parsed["data"]["output"], "assertion failed");
 }
 
@@ -72,7 +72,7 @@ fn multiple_events_produce_multiple_lines() {
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GateStart {
+            HeadlessEvent::CheckStart {
                 name: "check".into(),
             },
         )
@@ -80,7 +80,7 @@ fn multiple_events_produce_multiple_lines() {
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GatePass {
+            HeadlessEvent::CheckPass {
                 name: "check".into(),
                 duration_ms: 100,
             },

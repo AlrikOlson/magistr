@@ -12,7 +12,7 @@ use magistr_engine::{HookAction, HookDispatcher, HookError, HookOutput};
 /// Also directly executes `ShellCommand` hook actions.
 ///
 /// For MCP tool hooks, knows about well-known tools (`magistr_format`,
-/// `magistr_gate`) and delegates to the corresponding project commands.
+/// `magistr_check`) and delegates to the corresponding project commands.
 /// Unknown MCP tools produce a warning rather than a hard failure.
 ///
 /// For shell command hooks, runs the command directly with an optional timeout.
@@ -21,7 +21,7 @@ pub struct ProcessHookDispatcher {
     project_dir: PathBuf,
     /// Format command (e.g., "cargo fmt").
     format_command: Option<String>,
-    /// Quality gate commands.
+    /// Check commands.
     check_command: Option<String>,
     test_command: Option<String>,
     lint_command: Option<String>,
@@ -34,9 +34,9 @@ impl ProcessHookDispatcher {
         Self {
             project_dir: project_dir.to_owned(),
             format_command: Some(config.format.command.clone()),
-            check_command: Some(config.quality_gate.check.clone()),
-            test_command: Some(config.quality_gate.test.clone()),
-            lint_command: Some(config.quality_gate.lint.clone()),
+            check_command: Some(config.checks.check.clone()),
+            test_command: Some(config.checks.test.clone()),
+            lint_command: Some(config.checks.lint.clone()),
         }
     }
 
@@ -58,7 +58,6 @@ impl ProcessHookDispatcher {
         let bare = crate::tools::normalize::normalize_tool_name(tool);
         match bare.as_ref() {
             "magistr_format" => self.format_command.as_deref(),
-            "magistr_gate" => self.check_command.as_deref(),
             "magistr_check" => self.check_command.as_deref(),
             "magistr_test" => self.test_command.as_deref(),
             "magistr_lint" => self.lint_command.as_deref(),

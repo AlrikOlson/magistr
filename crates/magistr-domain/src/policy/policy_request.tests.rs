@@ -17,13 +17,13 @@ fn the_builder_fills_each_field() {
         .with_path("/etc/passwd")
         .with_model("claude-opus-5")
         .with_risk(RiskTier::High)
-        .with_gate("test");
+        .with_check("test");
     assert_eq!(request.tool.as_deref(), Some("Bash"));
     assert_eq!(request.command.as_deref(), Some("rm -rf /"));
     assert_eq!(request.paths, vec!["/etc/passwd".to_string()]);
     assert_eq!(request.model.as_deref(), Some("claude-opus-5"));
     assert_eq!(request.risk, Some(RiskTier::High));
-    assert_eq!(request.gate.as_deref(), Some("test"));
+    assert_eq!(request.check.as_deref(), Some("test"));
 }
 
 #[test]

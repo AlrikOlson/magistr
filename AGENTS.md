@@ -72,9 +72,9 @@ Match verification to the changed behavior, affected dependencies, and acceptanc
 criteria before committing, including during `$next`/`/next` plan tasks.
 Explicitly choose `verification: "focused"` for bounded changes, including code.
 Run formatting and the relevant crate, interface, architecture, and visual checks;
-record them through named `magistr_gate` calls or server-executed `check_step`.
-Use `verification: "full"` and `magistr_gate(gate: "all")` only for an explicit
-full-suite request or a concrete cross-cutting risk that requires every gate.
+record them through named `magistr_check` calls or server-executed `check_step`.
+Use `verification: "full"` and `magistr_check(check: "all")` only for an explicit
+full-suite request or a concrete cross-cutting risk that requires every check.
 State that reason before starting. A plan task does not by itself justify
 workspace-wide tests, reference comparison, or release packaging checks.
 Diagnose failures and rerun affected checks; do not repeat a failing suite without
@@ -95,7 +95,7 @@ states and supported light/dark and compact layouts; do not substitute old image
 a final-only gallery or test assertions for that iteration's screenshots.
 Never overwrite earlier iterations or label an unreviewed capture as reviewed.
 
-Visual review is a separate required gate, not a consequence of passing tests.
+Visual review is a separate required check, not a consequence of passing tests.
 For each capture, open the full frame and inspect readable detail; record its
 filename, the user's task, concrete observations and a pass/fail verdict in the
 iteration review. Judge layout, hierarchy, spacing, typography, contrast, control
@@ -148,7 +148,7 @@ this checkout and refresh it with `magistr repair`; never commit it.
 Launch Codex with `./.codex/run`. See [Codex setup](docs/reference/codex.md). Prefer this repository's skills when
 names overlap. `$next` implements one ready task; `$next-loop` respects the
 requested limit. Reviews and setup do not authorize plan implementation.
-Run required gates explicitly; client hooks are supplementary.
+Run required checks explicitly; client hooks are supplementary.
 <!-- magistr:codex -->
 ## Magistr in Codex
 
@@ -156,7 +156,7 @@ Launch with `magistr codex-launch --project-root . --` or `./.codex/run`. The na
 
 Use the configured `magistr` MCP server for workflow and workspace tools. Start with `context`; use `discover` to inspect advanced operation schemas and `execute` with `magistr.call(name, args)` to call them. Use direct search/read/edit/write for source. Composed changes stop on failure; inspect receipts before recovery. Do not start a second workflow or workspace server; follow .agents/skills/workspace-routing/SKILL.md. A held Workspace lock belongs to its existing connection: do not kill the owner or launch a competing probe.
 
-Use the nine project skills: $next, $next-loop, $validate, $plan, $roadmap-refresh, $signals, $craft, $init and $workspace-routing. $next runs one task in this Codex session. $next-loop is a bounded fresh-session handoff: finish one task, write the handoff, stop, and resume the bound only in a new Codex session. Read .magistr/project.json for commands and required custom gates and .magistr/conventions.md for shared project conventions. Claude hooks are additional enforcement only; Codex must explicitly run and record required gates.
+Use the nine project skills: $next, $next-loop, $validate, $plan, $roadmap-refresh, $signals, $craft, $init and $workspace-routing. $next runs one task in this Codex session. $next-loop is a bounded fresh-session handoff: finish one task, write the handoff, stop, and resume the bound only in a new Codex session. Read .magistr/project.json for commands and required custom checks and .magistr/conventions.md for shared project conventions. Claude hooks are additional enforcement only; Codex must explicitly run and record required checks.
 
 This project stores its plan only in native Magistr state. Never create or regenerate PLAN.md or PLAN.json, invoke plan_export, or redirect an export into the checkout. Preserve plan_exports=false and the project export-tool deny settings.
 

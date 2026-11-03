@@ -75,14 +75,14 @@ impl Provider for ControlledProvider {
                     .acknowledge_cancel
                     .acquire()
                     .await
-                    .expect("the cancellation acknowledgement gate")
+                    .expect("the cancellation acknowledgement check")
                     .forget();
                 turn.message("last update before acknowledgement")?;
                 return Ok(StopReason::Cancelled);
             }
             if text.starts_with("hold") {
                 tokio::select! {
-                    permit = observed.finish.acquire() => permit.expect("the finish gate").forget(),
+                    permit = observed.finish.acquire() => permit.expect("the finish check").forget(),
                     () = turn.cancelled() => return Ok(StopReason::Cancelled),
                 }
             }

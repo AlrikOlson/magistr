@@ -19,7 +19,7 @@ fn old_settings(root: &Path) -> String {
     settings.remove("plan_backend");
     settings.remove("plan_exports");
     doc["roadmap_backend"] = "think-and-ship".into();
-    doc["quality_gate"]["check"] = "my-custom-check".into();
+    doc["checks"]["check"] = "my-custom-check".into();
     doc["my_extension"] = serde_json::json!({"keep": [1,2,3]});
     let before = format!("{}\n", serde_json::to_string_pretty(&doc).unwrap());
     std::fs::write(path, &before).unwrap();
@@ -62,7 +62,7 @@ fn repair_previews_known_upgrades_then_preserves_custom_values_and_originals() {
             .unwrap();
     assert_eq!(doc["plan_backend"], "native");
     assert!(doc.get("roadmap_backend").is_none());
-    assert_eq!(doc["quality_gate"]["check"], "my-custom-check");
+    assert_eq!(doc["checks"]["check"], "my-custom-check");
     assert_eq!(doc["my_extension"], serde_json::json!({"keep":[1,2,3]}));
     let after: serde_json::Value =
         serde_json::from_slice(&std::fs::read(root.join(".mcp.json")).unwrap()).unwrap();

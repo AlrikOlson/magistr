@@ -4,7 +4,7 @@ fn test_config() -> WorkflowConfig {
     WorkflowConfig {
         project_dir: "/tmp/test".into(),
         spec_path: "PLAN.md".into(),
-        quality_gate: Some(QualityGateConfig {
+        checks: Some(StandardChecksConfig {
             check: "cargo check".into(),
             test: "cargo test".into(),
             lint: "cargo clippy".into(),
@@ -299,8 +299,8 @@ fn lifecycle_event_serde_roundtrip() {
         LifecycleEvent::OnExit(WorkflowPhase::Verifying),
         LifecycleEvent::OnIterationStart,
         LifecycleEvent::OnIterationEnd,
-        LifecycleEvent::OnGatePass,
-        LifecycleEvent::OnGateFail,
+        LifecycleEvent::OnCheckPass,
+        LifecycleEvent::OnCheckFail,
     ];
     for event in &events {
         let json = serde_json::to_string(event).unwrap();
@@ -312,7 +312,7 @@ fn lifecycle_event_serde_roundtrip() {
 #[test]
 fn lifecycle_hook_serde_roundtrip_minimal() {
     let hook = LifecycleHook {
-        event: LifecycleEvent::OnGatePass,
+        event: LifecycleEvent::OnCheckPass,
         action: HookAction::McpTool {
             tool: "brave_web_search".to_owned(),
             arguments: serde_json::Value::Null,
@@ -388,7 +388,7 @@ fn lifecycle_hooks_config_multiple_hooks() {
             on_failure: OnFailure::default(),
         },
         LifecycleHook {
-            event: LifecycleEvent::OnGatePass,
+            event: LifecycleEvent::OnCheckPass,
             action: HookAction::McpTool {
                 tool: "scope_search".to_owned(),
                 arguments: serde_json::Value::Null,
@@ -408,7 +408,7 @@ fn lifecycle_hooks_config_multiple_hooks() {
 fn lifecycle_hooks_config_rejects_duplicates() {
     let hooks = vec![
         LifecycleHook {
-            event: LifecycleEvent::OnGatePass,
+            event: LifecycleEvent::OnCheckPass,
             action: HookAction::McpTool {
                 tool: "my_tool".to_owned(),
                 arguments: serde_json::Value::Null,
@@ -417,7 +417,7 @@ fn lifecycle_hooks_config_rejects_duplicates() {
             on_failure: OnFailure::default(),
         },
         LifecycleHook {
-            event: LifecycleEvent::OnGatePass,
+            event: LifecycleEvent::OnCheckPass,
             action: HookAction::McpTool {
                 tool: "my_tool".to_owned(),
                 arguments: serde_json::json!({"different": true}),
@@ -435,7 +435,7 @@ fn lifecycle_hooks_config_rejects_duplicates() {
 fn lifecycle_hooks_config_allows_same_event_different_tools() {
     let hooks = vec![
         LifecycleHook {
-            event: LifecycleEvent::OnGatePass,
+            event: LifecycleEvent::OnCheckPass,
             action: HookAction::McpTool {
                 tool: "tool_a".to_owned(),
                 arguments: serde_json::Value::Null,
@@ -444,7 +444,7 @@ fn lifecycle_hooks_config_allows_same_event_different_tools() {
             on_failure: OnFailure::default(),
         },
         LifecycleHook {
-            event: LifecycleEvent::OnGatePass,
+            event: LifecycleEvent::OnCheckPass,
             action: HookAction::McpTool {
                 tool: "tool_b".to_owned(),
                 arguments: serde_json::Value::Null,
@@ -460,7 +460,7 @@ fn lifecycle_hooks_config_allows_same_event_different_tools() {
 fn lifecycle_hooks_config_allows_same_tool_different_events() {
     let hooks = vec![
         LifecycleHook {
-            event: LifecycleEvent::OnGatePass,
+            event: LifecycleEvent::OnCheckPass,
             action: HookAction::McpTool {
                 tool: "my_tool".to_owned(),
                 arguments: serde_json::Value::Null,
@@ -469,7 +469,7 @@ fn lifecycle_hooks_config_allows_same_tool_different_events() {
             on_failure: OnFailure::default(),
         },
         LifecycleHook {
-            event: LifecycleEvent::OnGateFail,
+            event: LifecycleEvent::OnCheckFail,
             action: HookAction::McpTool {
                 tool: "my_tool".to_owned(),
                 arguments: serde_json::Value::Null,
@@ -486,7 +486,7 @@ fn workflow_config_lifecycle_hooks_default_empty() {
     let json = r#"{
         "project_dir": "/tmp",
         "spec_path": "SPEC.md",
-        "quality_gate": null,
+        "checks": null,
         "max_iterations": 5
     }"#;
     let config: WorkflowConfig = serde_json::from_str(json).unwrap();
@@ -498,7 +498,7 @@ fn workflow_config_lifecycle_hooks_roundtrip() {
     let config = WorkflowConfig {
         project_dir: "/tmp".into(),
         spec_path: "SPEC.md".into(),
-        quality_gate: None,
+        checks: None,
         max_iterations: 5,
         lifecycle_hooks: vec![LifecycleHook {
             event: LifecycleEvent::OnIterationStart,
@@ -526,7 +526,7 @@ fn lifecycle_event_display() {
         LifecycleEvent::OnIterationStart.to_string(),
         "on_iteration_start"
     );
-    assert_eq!(LifecycleEvent::OnGateFail.to_string(), "on_gate_fail");
+    assert_eq!(LifecycleEvent::OnCheckFail.to_string(), "on_check_fail");
 }
 
 #[test]
@@ -534,9 +534,9 @@ fn lifecycle_event_unknown_json_field_graceful() {
     // Unknown fields in the event should be handled gracefully.
     // Since we use tagged enum, unknown variants will error — but unknown
     // fields within a known variant should be fine with default serde behavior.
-    let json = r#"{"type":"on_gate_pass"}"#;
+    let json = r#"{"type":"on_check_pass"}"#;
     let event: LifecycleEvent = serde_json::from_str(json).unwrap();
-    assert_eq!(event, LifecycleEvent::OnGatePass);
+    assert_eq!(event, LifecycleEvent::OnCheckPass);
 }
 
 // ── LifecycleHooksConfig add/remove tests ────────────────────────────
@@ -556,7 +556,7 @@ fn make_hook(event: LifecycleEvent, tool: &str) -> LifecycleHook {
 #[test]
 fn hooks_config_add_succeeds() {
     let mut config = LifecycleHooksConfig::empty();
-    let hook = make_hook(LifecycleEvent::OnGatePass, "my_tool");
+    let hook = make_hook(LifecycleEvent::OnCheckPass, "my_tool");
     assert!(config.add(hook).is_ok());
     assert_eq!(config.len(), 1);
 }
@@ -564,8 +564,8 @@ fn hooks_config_add_succeeds() {
 #[test]
 fn hooks_config_add_rejects_duplicate() {
     let mut config = LifecycleHooksConfig::empty();
-    let hook1 = make_hook(LifecycleEvent::OnGatePass, "my_tool");
-    let hook2 = make_hook(LifecycleEvent::OnGatePass, "my_tool");
+    let hook1 = make_hook(LifecycleEvent::OnCheckPass, "my_tool");
+    let hook2 = make_hook(LifecycleEvent::OnCheckPass, "my_tool");
     assert!(config.add(hook1).is_ok());
     let err = config.add(hook2).unwrap_err();
     assert!(err.message.contains("duplicate"));
@@ -577,12 +577,12 @@ fn hooks_config_add_allows_different_event_same_tool() {
     let mut config = LifecycleHooksConfig::empty();
     assert!(
         config
-            .add(make_hook(LifecycleEvent::OnGatePass, "my_tool"))
+            .add(make_hook(LifecycleEvent::OnCheckPass, "my_tool"))
             .is_ok()
     );
     assert!(
         config
-            .add(make_hook(LifecycleEvent::OnGateFail, "my_tool"))
+            .add(make_hook(LifecycleEvent::OnCheckFail, "my_tool"))
             .is_ok()
     );
     assert_eq!(config.len(), 2);
@@ -591,8 +591,8 @@ fn hooks_config_add_allows_different_event_same_tool() {
 #[test]
 fn hooks_config_remove_by_index() {
     let mut config = LifecycleHooksConfig::new(vec![
-        make_hook(LifecycleEvent::OnGatePass, "tool_a"),
-        make_hook(LifecycleEvent::OnGateFail, "tool_b"),
+        make_hook(LifecycleEvent::OnCheckPass, "tool_a"),
+        make_hook(LifecycleEvent::OnCheckFail, "tool_b"),
     ])
     .unwrap();
     let removed = config.remove_by_index(0).unwrap();
@@ -611,12 +611,12 @@ fn hooks_config_remove_by_index_out_of_bounds() {
 #[test]
 fn hooks_config_remove_by_event_and_name() {
     let mut config = LifecycleHooksConfig::new(vec![
-        make_hook(LifecycleEvent::OnGatePass, "tool_a"),
-        make_hook(LifecycleEvent::OnGateFail, "tool_b"),
+        make_hook(LifecycleEvent::OnCheckPass, "tool_a"),
+        make_hook(LifecycleEvent::OnCheckFail, "tool_b"),
     ])
     .unwrap();
     let removed = config
-        .remove_by_event_and_name(&LifecycleEvent::OnGateFail, "tool_b")
+        .remove_by_event_and_name(&LifecycleEvent::OnCheckFail, "tool_b")
         .unwrap();
     assert_eq!(removed.display_name(), "tool_b");
     assert_eq!(config.len(), 1);
@@ -626,7 +626,7 @@ fn hooks_config_remove_by_event_and_name() {
 fn hooks_config_remove_by_event_and_name_not_found() {
     let mut config = LifecycleHooksConfig::empty();
     let err = config
-        .remove_by_event_and_name(&LifecycleEvent::OnGatePass, "nonexistent")
+        .remove_by_event_and_name(&LifecycleEvent::OnCheckPass, "nonexistent")
         .unwrap_err();
     assert!(err.message.contains("no hook found"));
 }
@@ -665,7 +665,7 @@ fn shell_command_allows_safe_commands() {
 #[test]
 fn hooks_config_rejects_dangerous_shell_hook() {
     let hook = LifecycleHook {
-        event: LifecycleEvent::OnGatePass,
+        event: LifecycleEvent::OnCheckPass,
         action: HookAction::ShellCommand {
             command: "rm -rf /".to_owned(),
             timeout_secs: None,
@@ -682,7 +682,7 @@ fn hooks_config_rejects_dangerous_shell_hook() {
 fn hooks_config_add_rejects_dangerous_shell_hook() {
     let mut config = LifecycleHooksConfig::empty();
     let hook = LifecycleHook {
-        event: LifecycleEvent::OnGatePass,
+        event: LifecycleEvent::OnCheckPass,
         action: HookAction::ShellCommand {
             command: "cat ../../../etc/passwd".to_owned(),
             timeout_secs: None,

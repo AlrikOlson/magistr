@@ -4,7 +4,7 @@ use crate::config::inputs::ProjectInputs;
 use crate::permissions::{CharterStore, CockpitPolicy, PermissionProfile};
 
 /// The cockpit session's permission policy for a project: `profile`
-/// over the project's auto-allow rules, its quality-gate commands and
+/// over the project's auto-allow rules, its check commands and
 /// its protected paths — gathered exactly the way the legacy ACP
 /// permission handler was configured. `workflow` turns on the
 /// tool-kind auto-approval `magistr next`/`next-loop` run under.
@@ -39,7 +39,7 @@ pub fn cockpit_policy_for_project(
     CockpitPolicy::new(
         profile,
         config.rules,
-        super::collect_gate_commands(project_dir),
+        super::collect_check_commands(project_dir),
         super::protected_paths_for_project(project_dir),
         workflow,
     )

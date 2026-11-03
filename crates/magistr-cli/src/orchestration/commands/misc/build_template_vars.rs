@@ -12,15 +12,11 @@ pub fn build_template_vars(
     log_ai_fallback_status(selections, preset);
 
     let mut preset = preset.clone();
-    selections.apply_commands(
-        &mut preset.quality_gate,
-        &mut preset.format,
-        &mut preset.testing,
-    );
+    selections.apply_commands(&mut preset.checks, &mut preset.format, &mut preset.testing);
     let (check_cmd, test_cmd, lint_cmd) = (
-        preset.quality_gate.check.as_str(),
-        preset.quality_gate.test.as_str(),
-        preset.quality_gate.lint.as_str(),
+        preset.checks.check.as_str(),
+        preset.checks.test.as_str(),
+        preset.checks.lint.as_str(),
     );
     let format_cmd = preset.format.command.as_str();
     let format_extensions = format_quoted_list(&preset.format.extensions, ", ");
@@ -98,11 +94,8 @@ fn log_ai_fallback_status(selections: &ScaffoldSelections, preset: &types::Prese
     } else {
         tracing::debug!("AI provided {} conventions", selections.conventions.len());
     }
-    if selections.quality_gate.is_none() {
-        tracing::debug!(
-            "No AI quality gate — using preset: {}",
-            preset.quality_gate.check
-        );
+    if selections.checks.is_none() {
+        tracing::debug!("No AI check — using preset: {}", preset.checks.check);
     }
     if selections.tips.is_empty() {
         tracing::debug!("No AI tips — scaffold will omit tips section");

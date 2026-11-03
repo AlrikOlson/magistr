@@ -37,7 +37,7 @@ fn a_bare_mcp_tool_name_is_expanded_to_every_session_server() {
     s.allowed_tools = vec![
         "Bash".to_owned(),
         "plan_status".to_owned(),
-        "mcp__magistr__magistr_gate".to_owned(),
+        "mcp__magistr__magistr_check".to_owned(),
     ];
     let args = s.args();
     let at = args
@@ -46,7 +46,7 @@ fn a_bare_mcp_tool_name_is_expanded_to_every_session_server() {
         .expect("--allowedTools");
     assert_eq!(
         args[at + 1],
-        "Bash,plan_status,mcp__magistr__plan_status,mcp__external__plan_status,mcp__magistr__magistr_gate"
+        "Bash,plan_status,mcp__magistr__plan_status,mcp__external__plan_status,mcp__magistr__magistr_check"
     );
 }
 

@@ -156,7 +156,7 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
     // lands on, in words that name what is missing.
     let refused = engines
         .plan_complete_task("fixture", None)
-        .expect_err("no capability certifies the gates");
+        .expect_err("no capability certifies the checks");
     assert!(
         refused
             .to_string()
@@ -194,7 +194,7 @@ fn native_completion_refuses_without_evidence_while_phase_admission_and_finaliza
     assert!(!output.status.success(), "the fixture command must fail");
     let exit_code = output.status.code().expect("normal process exit");
     let check = engines
-        .run_record_gate(
+        .run_record_check(
             None,
             "test",
             format!("{binary} {argument}"),

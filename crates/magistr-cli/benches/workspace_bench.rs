@@ -1,5 +1,5 @@
 //! The native workspace perf harness (task arch-14c10b): the retained
-//! constitution gates measured natively — tier-0 usefulness within 5 s of
+//! constitution checks measured natively — tier-0 usefulness within 5 s of
 //! first start, 500k LOC to tier 1 in under 60 s, references p95 under
 //! 50 ms, worker round-trip p95 under 1 ms — over the retained synthetic
 //! corpora, against the shipping worker binary, judged as the reference
@@ -8,7 +8,7 @@
 //! runs read alike beside the reference's.
 //!
 //! The corpus is generated in a temp dir and removed at exit; nothing here
-//! measures this checkout. A failing gate is reported, not hidden.
+//! measures this checkout. A failing check is reported, not hidden.
 //!
 //! Usage: cargo bench -p magistr-cli --bench workspace_bench --
 //!          --profile index|refs|worker [--loc N] [--json <file>] [--report-only]
@@ -28,11 +28,11 @@ use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
 const BENCH_SCHEMA: &str = "workspace-bench/1";
-const TIER0_GATE_S: f64 = 5.0;
-const TIER1_GATE_S: f64 = 60.0;
-const TIER1_GATE_LOC: f64 = 500_000.0;
-const REFS_P95_GATE_MS: f64 = 50.0;
-const IPC_P95_GATE_MS: f64 = 1.0;
+const TIER0_CHECK_S: f64 = 5.0;
+const TIER1_CHECK_S: f64 = 60.0;
+const TIER1_CHECK_LOC: f64 = 500_000.0;
+const REFS_P95_CHECK_MS: f64 = 50.0;
+const IPC_P95_CHECK_MS: f64 = 1.0;
 const LINES_PER_FILE: usize = 250;
 const ITERATIONS_PER_QUERY: usize = 40;
 const WARMUP_PINGS: usize = 200;
@@ -370,34 +370,34 @@ fn round(value: f64, digits: i32) -> f64 {
     (value * factor).round() / factor
 }
 
-fn gate(name: &str, value: f64, limit: f64, unit: &str, note: Option<String>) -> Value {
-    let mut gate =
+fn check(name: &str, value: f64, limit: f64, unit: &str, note: Option<String>) -> Value {
+    let mut check =
         json!({"name": name, "value": value, "limit": limit, "unit": unit, "pass": value <= limit});
     if let Some(note) = note {
-        gate["note"] = Value::String(note);
+        check["note"] = Value::String(note);
     }
-    gate
+    check
 }
 
-fn describe_gate(gate: &Value) -> String {
-    let verdict = if gate["pass"] == true { "OK" } else { "FAIL" };
-    let note = gate["note"]
+fn describe_check(check: &Value) -> String {
+    let verdict = if check["pass"] == true { "OK" } else { "FAIL" };
+    let note = check["note"]
         .as_str()
         .map(|note| format!(" — {note}"))
         .unwrap_or_default();
     format!(
         "{verdict}: {} {}{} (limit {}{}){note}",
-        gate["name"].as_str().unwrap_or(""),
-        gate["value"],
-        gate["unit"].as_str().unwrap_or(""),
-        gate["limit"],
-        gate["unit"].as_str().unwrap_or("")
+        check["name"].as_str().unwrap_or(""),
+        check["value"],
+        check["unit"].as_str().unwrap_or(""),
+        check["limit"],
+        check["unit"].as_str().unwrap_or("")
     )
 }
 
 struct Run {
     measurements: serde_json::Map<String, Value>,
-    gates: Vec<Value>,
+    checks: Vec<Value>,
     corpus: Option<Value>,
     failures: Vec<String>,
 }
@@ -406,7 +406,7 @@ impl Run {
     fn new() -> Self {
         Self {
             measurements: serde_json::Map::new(),
-            gates: Vec::new(),
+            checks: Vec::new(),
             corpus: None,
             failures: Vec::new(),
         }
@@ -427,7 +427,7 @@ async fn bench_index(args: &Args, run: &mut Run) {
     println!("generating ~{} LOC corpus…", args.loc);
     let (dir, written) = make_index_corpus(args.loc);
     println!("corpus ready: {written} LOC at {}", dir.path().display());
-    let deadline_s = TIER1_GATE_S + 30.0;
+    let deadline_s = TIER1_CHECK_S + 30.0;
     // The clock starts at first start: spawn, self-test, the build kick and
     // the first lexical answer all count.
     let start = Instant::now();
@@ -527,33 +527,33 @@ async fn bench_index(args: &Args, run: &mut Run) {
     );
     run.corpus = Some(corpus);
 
-    run.gates
-        .push(gate("tier0", round(tier0_s, 3), TIER0_GATE_S, "s", None));
-    run.gates.push(if reached {
+    run.checks
+        .push(check("tier0", round(tier0_s, 3), TIER0_CHECK_S, "s", None));
+    run.checks.push(if reached {
         let normalized = if loc > 0.0 {
-            tier1_s * TIER1_GATE_LOC / loc
+            tier1_s * TIER1_CHECK_LOC / loc
         } else {
             tier1_s
         };
-        gate(
+        check(
             "tier1",
             round(normalized, 3),
-            TIER1_GATE_S,
+            TIER1_CHECK_S,
             "s",
             Some(format!(
-                "normalized per {TIER1_GATE_LOC} LOC; measured {}s over {loc} LOC",
+                "normalized per {TIER1_CHECK_LOC} LOC; measured {}s over {loc} LOC",
                 round(tier1_s, 2)
             )),
         )
     } else {
-        let mut gate = gate("tier1", round(tier1_s, 3), TIER1_GATE_S, "s", None);
-        gate["pass"] = Value::Bool(false);
-        gate["note"] = Value::String(format!(
+        let mut check = check("tier1", round(tier1_s, 3), TIER1_CHECK_S, "s", None);
+        check["pass"] = Value::Bool(false);
+        check["note"] = Value::String(format!(
             "tier 1 not reached within {}s ({indexed}/{} files)",
             round(tier1_s, 1),
             status.files
         ));
-        gate
+        check
     });
     service.shutdown().await.expect("clean shutdown");
 }
@@ -679,13 +679,13 @@ async fn bench_refs(args: &Args, run: &mut Run) {
     if per_query[0].1 == 0 {
         run.fail("no hot query returned edges — the measurement is vacuous");
     }
-    run.gates.push(gate(
+    run.checks.push(check(
         "references_p95",
         round(p95, 3),
-        REFS_P95_GATE_MS,
+        REFS_P95_CHECK_MS,
         "ms",
         Some(format!(
-            "constitution states the gate at 1M LOC; measured over {loc} LOC"
+            "constitution states the check at 1M LOC; measured over {loc} LOC"
         )),
     ));
     service.shutdown().await.expect("clean shutdown");
@@ -739,10 +739,10 @@ async fn bench_worker(run: &mut Run) {
     run.measure("p95Ms", round(p95, 4));
     run.measure("p99Ms", round(p99, 4));
     run.measure("maxMs", round(max, 4));
-    run.gates.push(gate(
+    run.checks.push(check(
         "ipc_p95",
         round(p95, 4),
-        IPC_P95_GATE_MS,
+        IPC_P95_CHECK_MS,
         "ms",
         Some(
             "the native Ping runs the parser self-test inside the worker, so this bounds the frame round-trip from above"
@@ -850,15 +850,15 @@ fn main() {
         }
     });
     if args.report_only {
-        println!("report-only: gates not applied");
-        for gate in &run.gates {
-            println!("  {}", describe_gate(gate));
+        println!("report-only: checks not applied");
+        for check in &run.checks {
+            println!("  {}", describe_check(check));
         }
     } else {
-        for gate in &run.gates {
-            let line = describe_gate(gate);
+        for check in &run.checks {
+            let line = describe_check(check);
             println!("{line}");
-            if gate["pass"] != true {
+            if check["pass"] != true {
                 run.failures.push(line);
             }
         }
@@ -876,7 +876,7 @@ fn main() {
             "recordedAt": recorded_at(),
             "machine": machine_facts(),
             "measurements": Value::Object(run.measurements.clone()),
-            "gates": run.gates,
+            "checks": run.checks,
             "failures": run.failures,
         });
         if let Some(corpus) = run.corpus.take() {

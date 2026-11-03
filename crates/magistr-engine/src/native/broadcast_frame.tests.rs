@@ -1,5 +1,5 @@
 use super::*;
-use crate::native::{DecisionFrame, GateOutput, MagistrFrame, PlanFrame, RequestFrame, RunFrame};
+use crate::native::{CheckBytes, DecisionFrame, MagistrFrame, PlanFrame, RequestFrame, RunFrame};
 use crate::native::{EventCursor, NativeEvent, OwnerGeneration};
 use crate::workflow::WorkflowPhase;
 #[cfg(unix)]
@@ -136,13 +136,13 @@ fn every_family_round_trips_through_the_wire_line() {
         ),
         (
             Family::Magistr,
-            serde_json::to_value(MagistrFrame::GateOutput(GateOutput {
-                gate: "test".to_owned(),
+            serde_json::to_value(MagistrFrame::CheckBytes(CheckBytes {
+                check: "test".to_owned(),
                 bytes: vec![0, 255, b'\n'],
             }))
             .unwrap(),
-            NativeEvent::Magistr(MagistrFrame::GateOutput(GateOutput {
-                gate: "test".to_owned(),
+            NativeEvent::Magistr(MagistrFrame::CheckBytes(CheckBytes {
+                check: "test".to_owned(),
                 bytes: vec![0, 255, b'\n'],
             })),
         ),
@@ -255,11 +255,11 @@ fn unknown_families_kinds_and_malformed_payloads_are_dropped_not_half_read() {
     for line in [
         // A family this build does not know.
         r#"{"family":"workspace","type":"journal","seq":1}"#,
-        // A kind the run family does not have (what gate output used to
+        // A kind the run family does not have (what check output used to
         // ride as).
-        r#"{"family":"run","type":"gate_output","gate":"check","bytes":[1]}"#,
+        r#"{"family":"run","type":"check_bytes","check":"check","bytes":[1]}"#,
         // The right kind with the wrong shape.
-        r#"{"family":"magistr","type":"gate_output","gate":"check","bytes":"not an array"}"#,
+        r#"{"family":"magistr","type":"check_bytes","check":"check","bytes":"not an array"}"#,
         r#"{"family":"magistr","type":"phase_set","phase":"nowhere"}"#,
         r#"{"family":"plan","type":"task_changed","task":{"id":"a"}}"#,
         // No kind at all.

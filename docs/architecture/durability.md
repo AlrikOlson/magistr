@@ -76,15 +76,15 @@ effect:
 | --- | --- | --- | --- |
 | Reserve | `Reservation` `attempt:<n>` | pre-iteration check | the checkpoint itself |
 | Launch | `ProviderDispatch` `dispatch` (or `dispatch:<delivery>` per delegated delivery) | `Accepted` before connect; `Running` with the runtime's handle `pid:<pgid>@<start>` the moment the transport has spawned, before the session is opened | the turn: ended → `Completed`, closed → `Cancelled`, failed → `Failed`; a session that cannot be opened → `Failed` |
-| Record | `CheckResult` `gate:<name>@step:<step>` | `Accepted` before the gate is admitted; `Running` with `check_result:<id>` — the durable check result's id — once admitted, before the gate runs | the ledger's settlement: applied → `Completed`, stale or refused → `Failed`; an admission that fails → `Failed` |
+| Record | `CheckResult` `check:<name>@step:<step>` | `Accepted` before the check is admitted; `Running` with `check_result:<id>` — the durable check result's id — once admitted, before the check runs | the ledger's settlement: applied → `Completed`, stale or refused → `Failed`; an admission that fails → `Failed` |
 | Mutate | `NativeMutation` `start_task:<id>`, `complete_task:<id>`, `set_waiting_on:<id>`, `set_status:<id>:<status>` | before the handler is called | the handler's answer |
 | Announce | `Publication` `frame:<kind>:<id>` | before the frame is posted | the post |
 
 An intent that cannot be written is not dispatched for a provider launch or a
-native mutation. A gate whose intent cannot be written is admitted and
+native mutation. A check whose intent cannot be written is admitted and
 recorded regardless, with a note: its evidence is worth more than the record
 of recording it, and recovery reads the ledger either way. An `Established`
-intent performs nothing: a dispatch established by recovery runs the gates and
+intent performs nothing: a dispatch established by recovery runs the checks and
 the judge over the recovered work instead of launching a second runtime; a
 receipt already applied for the attempt is not admitted again (a second,
 unsettled receipt in front of the applied one would refuse the completion);
@@ -136,7 +136,7 @@ effect. A dispatch's persisted launch phase also establishes whether the transpo
 | --- | --- | --- |
 | `Reservation` | the checkpoint carrying it | `Completed` |
 | `NativeMutation` | the task as the native store holds it now (`plan_task` after reload) | `Completed` when the verb's effect is visible (`start_task`: in progress or done; `complete_task`: done; `set_waiting_on`: a blocker; `set_status`: that status), else `Failed`; an unknown verb stays open |
-| `Receipt` | the durable receipt the record names (`run_check_result` by the `receipt:<id>` handle) | `Completed` when that receipt is settled and applied; `Failed` when it is unsettled, settled stale, absent from the ledger, or the record carries no id — nothing was applied, since application needs the live loop's settlement, which always follows the persisted `Running`; a receipt naming another gate or task than the record does stays open. No check of the same name on the task is consulted |
+| `Receipt` | the durable receipt the record names (`run_check_result` by the `receipt:<id>` handle) | `Completed` when that receipt is settled and applied; `Failed` when it is unsettled, settled stale, absent from the ledger, or the record carries no id — nothing was applied, since application needs the live loop's settlement, which always follows the persisted `Running`; a receipt naming another check or task than the record does stays open. No check of the same name on the task is consulted |
 | `Publication` | none needed | `Cancelled`: attached surfaces reseed from the store, where the announced mutation already is |
 | `ProviderDispatch` | the particular runtime the handle names (`is_live`: the id alive and holding the recorded start identity), then the attempt's Git baseline | `Failed` when its phase is `pending` and it has no handle; open without a handle when its phase is `started` or absent on an older checkpoint; open while the runtime is alive or the host cannot say; once it is gone — or its id is held by another process — `Completed` when HEAD advanced from the baseline (the baseline is an ancestor of HEAD, `git merge-base --is-ancestor`), else `Failed`. A reset, a rebase or a branch switch is movement, not an advance |
 
@@ -181,7 +181,7 @@ magistr resolve-dispatch . --loop run-… --command 0/dispatch --attempt 1 \
 
 `failed` and `cancelled` allow the next attempt of the same command.
 `completed` suppresses another dispatch for that command; it does not complete
-a plan item or manufacture gate evidence. The explanation is retained as
+a plan item or manufacture check evidence. The explanation is retained as
 `resolution` on that record. Other records, run limits, budget, terminal status,
 Git baseline and saved plan/task files are preserved.
 
@@ -201,7 +201,7 @@ No provider is killed and no workflow server is opened by this command.
 (`IterationState::read`: parsed and validated, never marked, reconciled or
 written back) and reports it as the `operations` section: for every record
 the project and run from the run key, the attempt's command and number, the
-kind, target and external handle, a receipt's gate, task and receipt id, a
+kind, target and external handle, a receipt's check, task and receipt id, a
 dispatch's runtime pid and start identity with whether that runtime is
 alive now, the workspace's canonical root and durable generation, and the
 loop process the run key names with whether it is alive (pid evidence only:
@@ -294,7 +294,7 @@ recovers untorn), native mutation (applied → `Completed` and deduplicated; los
 stays open), receipt (admitted and never settled → `Failed` even with a
 same-named applied check on the task; applied → `Completed`; settled stale
 after the goal rolled over → `Failed`; no id → `Failed`; a record naming
-another gate's receipt stays open), publication, and provider dispatch against
+another check's receipt stays open), publication, and provider dispatch against
 a real child process (open while alive, even after a commit; `Completed` once
 gone with HEAD advanced from the baseline, and then `Established` for the
 attempt; a launched runtime that died leaving no advance → `Failed` and
@@ -320,5 +320,5 @@ identity/liveness refusals, lock exclusion and saved-context preservation.
 
 Verification is focused on affected domain, core, ACP and CLI behavior,
 all-target compilation and Clippy, formatting and relevant architecture and
-custom gates. This change does not alter rendering, goldens, motion or plan
+custom checks. This change does not alter rendering, goldens, motion or plan
 export policy.

@@ -1,12 +1,12 @@
 # Recorded native perf runs
 
-The retained constitution names four perf gates: tier-0 usefulness within 5 s
+The retained constitution names four perf checks: tier-0 usefulness within 5 s
 of first start, 500k LOC to tier 1 in under 60 s, references p95 under 50 ms
 (stated at 1M LOC), worker round-trip p95 under 1 ms. The JSON files under
 `results/` are the native recordings, one per profile, written by
 [`crates/magistr-cli/benches/workspace_bench.rs`](../../../crates/magistr-cli/benches/workspace_bench.rs)
 through `./scripts/workspace-bench.sh` in the same `workbench-bench/1` shape
-the reference's `bench/results/` use, so the two read alike. A failing gate is
+the reference's `bench/results/` use, so the two read alike. A failing check is
 recorded, not hidden. Nothing here measures this checkout: the corpora are
 generated in a temp dir and removed at exit.
 
@@ -19,7 +19,7 @@ the runs; the numbers are upper bounds on an idle machine.
 
 ## Index (`--profile index`)
 
-| profile | corpus | tier-0 | tier-1 | tier-1 per 500k LOC | gates |
+| profile | corpus | tier-0 | tier-1 | tier-1 per 500k LOC | checks |
 | --- | --- | --- | --- | --- | --- |
 | synthetic-500k | 504,019 LOC / 2,013 source files (13 language markers + bulk TypeScript) | 0.051 s | 2.87 s (2,013/2,015 files) | 2.84 s | tier0 pass · tier1 pass |
 
@@ -30,7 +30,7 @@ construction); the plain-text needle matches in the docs and the lockfile.
 
 ## References (`--profile refs`)
 
-| profile | corpus | calls | p50 | p95 | max | hot query | gate |
+| profile | corpus | calls | p50 | p95 | max | hot query | check |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | synthetic-500k | 506,003 LOC / 2,001 files | 120 | 16.99 ms | 29.06 ms | 32.12 ms | shared_ref_target, 1,001 edges (capped; p95 30.9 ms) | pass |
 
@@ -41,7 +41,7 @@ reference's raw `index/references` frame did.
 
 ## Worker round-trip (`--profile worker`, 2,000 pings)
 
-| p50 | p95 | p99 | max | gate |
+| p50 | p95 | p99 | max | check |
 | --- | --- | --- | --- | --- |
 | 0.096 ms | 0.192 ms | 0.299 ms | 0.663 ms | pass |
 

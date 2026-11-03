@@ -12,9 +12,9 @@ pub struct GuardsConfig {
     /// Enable the clean tree guard (default: true).
     #[serde(default = "default_true")]
     pub clean_tree: bool,
-    /// Enable the quality gate guard (default: true).
+    /// Enable the check guard (default: true).
     #[serde(default = "default_true")]
-    pub quality_gate: bool,
+    pub checks: bool,
 }
 
 fn default_true() -> bool {
@@ -27,7 +27,7 @@ impl Default for GuardsConfig {
             plan: true,
             spec: true,
             clean_tree: true,
-            quality_gate: true,
+            checks: true,
         }
     }
 }

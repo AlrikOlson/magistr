@@ -64,12 +64,12 @@ fn show(policy: &GovernancePolicy, renderer: &dyn OutputRenderer) -> eyre::Resul
     if let Some(fallback) = &policy.fallback_model {
         eprintln!("  {} {fallback}", fmt::bold("Fallback model:"));
     }
-    if !policy.required_gates.is_empty() {
-        list("Required gates", &policy.required_gates);
+    if !policy.required_checks.is_empty() {
+        list("Required checks", &policy.required_checks);
         eprintln!(
             "  {} {}",
-            fmt::bold("Gate bypass:"),
-            if policy.allow_gate_bypass {
+            fmt::bold("Check bypass:"),
+            if policy.allow_check_bypass {
                 "permitted"
             } else {
                 "refused"

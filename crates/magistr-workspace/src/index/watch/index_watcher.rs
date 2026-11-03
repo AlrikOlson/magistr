@@ -13,7 +13,10 @@ use super::{WatchMode, WatchSnapshot};
 
 /// Native events or bounded content polling feeding one coalesced dirty epoch.
 /// Call `acknowledge` only after consuming the captured epoch. A concurrent
-/// event remains pending. Dropping the adapter stops and joins its own poller.
+/// event remains pending. Dropping the adapter stops and joins its own poller;
+/// the native watcher is released on a detached thread, because macOS creates
+/// FSEvents streams through one machine-wide daemon call that can stall for
+/// minutes under load, and a stop must never wait on it.
 pub struct IndexWatcher {
     state: Arc<ChangeState>,
     native: Option<RecommendedWatcher>,
@@ -109,7 +112,17 @@ impl IndexWatcher {
     pub fn shutdown(&mut self) {
         self.state.stop();
         self.stop.store(true, Ordering::Release);
-        self.native.take();
+        if let Some(native) = self.native.take() {
+            // notify's stop joins its run loop thread, which may still be
+            // inside the daemon call that creates the stream.
+            let released = thread::Builder::new()
+                .name("magistr-index-watch-release".into())
+                .spawn(move || drop(native));
+            if let Err(_no_thread) = released {
+                // No thread to detach onto: the state is already stopped,
+                // so the watcher's events go nowhere; leak rather than block.
+            }
+        }
         if let Some(wake) = self.wake.take() {
             let _ = wake.try_send(());
         }

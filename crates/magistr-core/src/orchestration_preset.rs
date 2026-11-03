@@ -12,7 +12,7 @@ pub enum OrchestrationPreset {
     ResearchThenImplement,
     /// Pair: coder writes code, reviewer critiques.
     ReviewPair,
-    /// Parallel with TDD: 3+ roles work concurrently with test gates.
+    /// Parallel with TDD: 3+ roles work concurrently with test checks.
     ParallelTdd,
 }
 

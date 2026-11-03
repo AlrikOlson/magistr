@@ -16,7 +16,7 @@
 "desktop-lint" = "cargo clippy --manifest-path crates/magistr-desktop/Cargo.toml --all-targets --locked -- -D warnings"
 "desktop-test" = "cargo nextest run --manifest-path crates/magistr-desktop/Cargo.toml --locked"
 "desktop-input" = "node --test crates/magistr-desktop/tests/*.mjs"
-"desktop-visual" = "./scripts/screenshot-gate.sh"
+"desktop-visual" = "./scripts/screenshot-check.sh"
 
 [edit]
 confirm_mode = "token"

@@ -52,7 +52,7 @@ fn build_hooks_list_tool(project_root: PathBuf) -> SdkMcpTool {
                     return Ok(ToolResult::text(
                         "No lifecycle hooks configured.\n\n\
                          Use magistr_hooks_add to add hooks that fire on workflow events \
-                         (e.g., on_enter(verify), on_gate_pass).",
+                         (e.g., on_enter(verify), on_check_pass).",
                     ));
                 }
 
@@ -77,7 +77,7 @@ fn build_hooks_add_tool(project_root: PathBuf) -> SdkMcpTool {
                     "description": "Lifecycle event to trigger on. One of: \
                         on_enter(research), on_enter(plan), on_enter(execute), on_enter(verify), on_enter(done), \
                         on_exit(research), on_exit(plan), on_exit(execute), on_exit(verify), on_exit(done), \
-                        on_iteration_start, on_iteration_end, on_gate_pass, on_gate_fail"
+                        on_iteration_start, on_iteration_end, on_check_pass, on_check_fail"
                 },
                 "tool": {
                     "type": "string",
@@ -148,7 +148,7 @@ fn build_hooks_add_tool(project_root: PathBuf) -> SdkMcpTool {
                             "Invalid event '{event_str}'. Valid events: \
                              on_enter(<phase>), on_exit(<phase>), \
                              on_iteration_start, on_iteration_end, \
-                             on_gate_pass, on_gate_fail. \
+                             on_check_pass, on_check_fail. \
                              Valid phases: research, plan, execute, verify, done."
                         )));
                     }
@@ -319,7 +319,7 @@ fn build_hooks_remove_tool(project_root: PathBuf) -> SdkMcpTool {
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-/// Parse an event string like `"on_enter(research)"` or `"on_gate_pass"` into a `LifecycleEvent`.
+/// Parse an event string like `"on_enter(research)"` or `"on_check_pass"` into a `LifecycleEvent`.
 pub(crate) fn parse_event(s: &str) -> Option<LifecycleEvent> {
     let s = s.trim();
 
@@ -340,8 +340,8 @@ pub(crate) fn parse_event(s: &str) -> Option<LifecycleEvent> {
     match s {
         "on_iteration_start" => Some(LifecycleEvent::OnIterationStart),
         "on_iteration_end" => Some(LifecycleEvent::OnIterationEnd),
-        "on_gate_pass" => Some(LifecycleEvent::OnGatePass),
-        "on_gate_fail" => Some(LifecycleEvent::OnGateFail),
+        "on_check_pass" => Some(LifecycleEvent::OnCheckPass),
+        "on_check_fail" => Some(LifecycleEvent::OnCheckFail),
         _ => None,
     }
 }

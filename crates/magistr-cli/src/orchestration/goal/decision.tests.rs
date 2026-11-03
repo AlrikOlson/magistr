@@ -2,8 +2,8 @@ use super::*;
 
 use std::time::Duration;
 
-fn gate(name: &str, passed: bool) -> GateEvidence {
-    GateEvidence {
+fn check(name: &str, passed: bool) -> CheckEvidence {
+    CheckEvidence {
         name: name.to_owned(),
         passed,
         duration: Duration::from_secs(1),
@@ -11,10 +11,14 @@ fn gate(name: &str, passed: bool) -> GateEvidence {
 }
 
 #[test]
-fn met_over_green_gates_completes() {
-    let gates = [gate("check", true), gate("test", true), gate("lint", true)];
+fn met_over_green_checks_completes() {
+    let checks = [
+        check("check", true),
+        check("test", true),
+        check("lint", true),
+    ];
     assert_eq!(
-        Decision::reconcile(&Verdict::met("all criteria hold"), &gates),
+        Decision::reconcile(&Verdict::met("all criteria hold"), &checks),
         Decision::Complete {
             reason: "all criteria hold".to_owned()
         }
@@ -22,17 +26,19 @@ fn met_over_green_gates_completes() {
 }
 
 #[test]
-fn a_red_gate_cannot_be_judged_green_whatever_the_agent_claimed() {
-    // The agent said the tests pass; the judge believed it; the gate
+fn a_red_check_cannot_be_judged_green_whatever_the_agent_claimed() {
+    // The agent said the tests pass; the judge believed it; the check
     // did not. The real exit code wins: this is a disagreement to
     // report, never a completion.
-    let gates = [
-        gate("check", true),
-        gate("test", false),
-        gate("lint", false),
+    let checks = [
+        check("check", true),
+        check("test", false),
+        check("lint", false),
     ];
-    let decision =
-        Decision::reconcile(&Verdict::met("the agent reports all tests passing"), &gates);
+    let decision = Decision::reconcile(
+        &Verdict::met("the agent reports all tests passing"),
+        &checks,
+    );
     assert_eq!(
         decision,
         Decision::Disagreement {
@@ -45,9 +51,9 @@ fn a_red_gate_cannot_be_judged_green_whatever_the_agent_claimed() {
 }
 
 #[test]
-fn not_yet_continues_with_the_reason_even_over_green_gates() {
-    let gates = [gate("check", true)];
-    let decision = Decision::reconcile(&Verdict::not_yet("criterion 2 has no test"), &gates);
+fn not_yet_continues_with_the_reason_even_over_green_checks() {
+    let checks = [check("check", true)];
+    let decision = Decision::reconcile(&Verdict::not_yet("criterion 2 has no test"), &checks);
     assert_eq!(
         decision,
         Decision::Continue {
@@ -58,9 +64,13 @@ fn not_yet_continues_with_the_reason_even_over_green_gates() {
 }
 
 #[test]
-fn impossible_stops_regardless_of_the_gates() {
-    for gates in [vec![], vec![gate("test", true)], vec![gate("test", false)]] {
-        let decision = Decision::reconcile(&Verdict::impossible("contradicts the spec"), &gates);
+fn impossible_stops_regardless_of_the_checks() {
+    for checks in [
+        vec![],
+        vec![check("test", true)],
+        vec![check("test", false)],
+    ] {
+        let decision = Decision::reconcile(&Verdict::impossible("contradicts the spec"), &checks);
         assert_eq!(
             decision,
             Decision::Stop {
@@ -72,7 +82,7 @@ fn impossible_stops_regardless_of_the_gates() {
 }
 
 #[test]
-fn met_with_no_gates_configured_completes() {
+fn met_with_no_checks_configured_completes() {
     assert!(matches!(
         Decision::reconcile(&Verdict::met("ok"), &[]),
         Decision::Complete { .. }
@@ -81,12 +91,12 @@ fn met_with_no_gates_configured_completes() {
 
 #[test]
 fn the_reason_is_readable_off_every_move() {
-    let gates = [gate("test", false)];
+    let checks = [check("test", false)];
     for verdict in [
         Verdict::met("a"),
         Verdict::not_yet("a"),
         Verdict::impossible("a"),
     ] {
-        assert_eq!(Decision::reconcile(&verdict, &gates).reason(), "a");
+        assert_eq!(Decision::reconcile(&verdict, &checks).reason(), "a");
     }
 }

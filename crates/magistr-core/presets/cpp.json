@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "cmake --build build --parallel",
     "test": "ctest --test-dir build --output-on-failure",
     "lint": "find src -name '*.cpp' -o -name '*.c' -o -name '*.cc' -o -name '*.h' -o -name '*.hpp' | xargs clang-tidy"

@@ -149,7 +149,7 @@ fn eligible(check_result: &CheckResult, admission: &CheckAdmission) -> bool {
     if !check_result.is_applied()
         || !check_result.passed()
         || !check_result.verified()
-        || check_result.gate != request.name
+        || check_result.check != request.name
         || check_result.check_type != request.check_type
         || check_result.command != request.command
         || !matches!(

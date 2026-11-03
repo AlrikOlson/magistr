@@ -122,7 +122,7 @@ pub(crate) fn operations_section(root: &Path, workspace_generation: Option<u64>)
                     "turn": "not persisted: see session",
                     "loop": "the loop key, above",
                     "attempt": "each row's command and attempt number",
-                    "check": "each receipt row's gate, task and receipt id",
+                    "check": "each receipt row's check, task and receipt id",
                     "source": "the workspace generation above; a source snapshot names the same counter",
                 },
                 "records": rows.iter().map(|row| row.detail.clone()).collect::<Vec<_>>(),
@@ -160,13 +160,13 @@ fn row(state: &IterationState, record: &OperationRecord, loop_alive: Option<bool
         _ => loop_alive.map(|alive| !alive),
     };
     let check = (record.kind == OperationKind::CheckResult).then(|| {
-        let (gate, step) = record
+        let (check, step) = record
             .target
-            .strip_prefix("gate:")
+            .strip_prefix("check:")
             .and_then(|rest| rest.split_once("@step:"))
             .unzip();
         json!({
-            "gate": gate,
+            "check": check,
             "step": step,
             "check_result": record.external.as_deref().and_then(|handle| handle.strip_prefix("check_result:")),
         })

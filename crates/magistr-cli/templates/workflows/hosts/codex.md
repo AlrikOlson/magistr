@@ -19,7 +19,7 @@ compaction as a substitute. Never launch `magistr next`, `magistr start`,
 `magistr next-loop`, `run-autonomous.sh`, or another coding-agent runtime as
 a substitute for these skills. Do not create Claude `/tmp/*-next-loop` markers
 or rely on Claude `PreToolUse`/`Stop` hooks. Execute explicit formatting,
-recorded gates, lifecycle checks, and commit verification yourself.
+recorded checks, lifecycle checks, and commit verification yourself.
 
 During init, preserve existing Claude settings and hooks, project identity,
 secrets, and user customization. Verify configuration syntax, project skill

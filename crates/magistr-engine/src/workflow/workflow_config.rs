@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::lifecycle_hook::LifecycleHook;
-use super::quality_gate_config::QualityGateConfig;
+use super::standard_checks_config::StandardChecksConfig;
 
 /// Configuration for a workflow iteration.
 ///
@@ -14,8 +14,8 @@ pub struct WorkflowConfig {
     pub project_dir: String,
     /// Spec file path relative to project dir.
     pub spec_path: String,
-    /// Quality gate commands (check, test, lint).
-    pub quality_gate: Option<QualityGateConfig>,
+    /// Check commands (check, test, lint).
+    pub checks: Option<StandardChecksConfig>,
     /// Maximum iterations for loop mode.
     pub max_iterations: u32,
     /// Lifecycle hooks triggered at workflow phase transitions and events.

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 /// name (`"decision"` / `"run"` / `"plan"` / `"request"` / `"magistr"`).
 ///
 /// `Magistr` is the host's own family: what the process serving the
-/// socket says about itself — a running gate's bytes, the phase the agent
+/// socket says about itself — a running check's bytes, the phase the agent
 /// announced — beside the four store families.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

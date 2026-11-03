@@ -37,7 +37,7 @@ pub struct TestResults {
     pub failures: Vec<TestFailure>,
 }
 
-// The addressable thing a red gate can finally point at.
+// The addressable thing a red check can finally point at.
 /// One failing test.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct TestFailure {

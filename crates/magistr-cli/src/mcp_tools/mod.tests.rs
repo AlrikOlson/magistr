@@ -1,5 +1,5 @@
+use super::check::run_check_command;
 use super::format::{build_find_format_command, resolve_format_command};
-use super::gate::run_gate_command;
 use super::*;
 use magistr_core::FormatConfig;
 use serde_json::json;
@@ -38,9 +38,9 @@ fn validate_executables_all_found() {
     assert!(missing.is_empty());
 }
 
-// ── magistr_gate tool tests ─────────────────────────────────────────────
+// ── magistr_check tool tests ─────────────────────────────────────────────
 
-fn setup_gate_project() -> (TempDir, PathBuf) {
+fn setup_check_project() -> (TempDir, PathBuf) {
     let tmp = TempDir::new().unwrap();
     let root = tmp.path().to_path_buf();
     let magistr_dir = root.join(".magistr");
@@ -57,7 +57,7 @@ fn setup_gate_project() -> (TempDir, PathBuf) {
                 "linter": "clippy",
                 "formatter": "rustfmt"
             },
-            "quality_gate": {
+            "checks": {
                 "check": "echo check-ok",
                 "test": "echo test-ok",
                 "lint": "echo lint-ok"
@@ -78,18 +78,18 @@ fn setup_gate_project() -> (TempDir, PathBuf) {
 }
 
 #[tokio::test]
-async fn gate_single_check_passes() {
-    let (_tmp, root) = setup_gate_project();
+async fn check_single_check_passes() {
+    let (_tmp, root) = setup_check_project();
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
-    let result = tool.invoke(json!({ "gate": "check" })).await.unwrap();
+    let result = tool.invoke(json!({ "check": "check" })).await.unwrap();
     let text = match &result.content[0] {
         magistr_mcp::ToolContent::Text { text } => text,
         _ => panic!("expected text content"),
     };
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap();
-    assert_eq!(parsed["gate"], "check");
+    assert_eq!(parsed["check"], "check");
     assert_eq!(parsed["passed"], true);
     assert!(parsed["output"].as_str().unwrap().contains("check-ok"));
     assert_eq!(parsed["exit_code"], 0);
@@ -97,43 +97,43 @@ async fn gate_single_check_passes() {
 }
 
 #[tokio::test]
-async fn gate_single_test_passes() {
-    let (_tmp, root) = setup_gate_project();
+async fn check_single_test_passes() {
+    let (_tmp, root) = setup_check_project();
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
-    let result = tool.invoke(json!({ "gate": "test" })).await.unwrap();
+    let result = tool.invoke(json!({ "check": "test" })).await.unwrap();
     let text = match &result.content[0] {
         magistr_mcp::ToolContent::Text { text } => text,
         _ => panic!("expected text content"),
     };
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap();
-    assert_eq!(parsed["gate"], "test");
+    assert_eq!(parsed["check"], "test");
     assert_eq!(parsed["passed"], true);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn gate_all_runs_all_three() {
-    let (_tmp, root) = setup_gate_project();
+async fn check_all_runs_all_three() {
+    let (_tmp, root) = setup_check_project();
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
-    let result = tool.invoke(json!({ "gate": "all" })).await.unwrap();
+    let result = tool.invoke(json!({ "check": "all" })).await.unwrap();
     let text = match &result.content[0] {
         magistr_mcp::ToolContent::Text { text } => text,
         _ => panic!("expected text content"),
     };
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap();
     assert_eq!(parsed["passed"], true);
-    let gates = parsed["gates"].as_array().unwrap();
-    assert_eq!(gates.len(), 3);
-    assert_eq!(gates[0]["gate"], "check");
-    assert_eq!(gates[1]["gate"], "test");
-    assert_eq!(gates[2]["gate"], "lint");
+    let checks = parsed["checks"].as_array().unwrap();
+    assert_eq!(checks.len(), 3);
+    assert_eq!(checks[0]["check"], "check");
+    assert_eq!(checks[1]["check"], "test");
+    assert_eq!(checks[2]["check"], "lint");
 }
 
 #[tokio::test]
-async fn gate_failing_command() {
+async fn check_failing_command() {
     let tmp = TempDir::new().unwrap();
     let root = tmp.path().to_path_buf();
     let magistr_dir = root.join(".magistr");
@@ -147,7 +147,7 @@ async fn gate_failing_command() {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": {
+            "checks": {
                 "check": "exit 1",
                 "test": "echo test-ok",
                 "lint": "echo lint-ok"
@@ -163,9 +163,9 @@ async fn gate_failing_command() {
     .unwrap();
 
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
-    let result = tool.invoke(json!({ "gate": "check" })).await.unwrap();
+    let result = tool.invoke(json!({ "check": "check" })).await.unwrap();
     let text = match &result.content[0] {
         magistr_mcp::ToolContent::Text { text } => text,
         _ => panic!("expected text content"),
@@ -176,17 +176,17 @@ async fn gate_failing_command() {
 }
 
 #[tokio::test]
-async fn gate_invalid_name_returns_error() {
-    let (_tmp, root) = setup_gate_project();
+async fn check_invalid_name_returns_error() {
+    let (_tmp, root) = setup_check_project();
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
-    let result = tool.invoke(json!({ "gate": "bogus" })).await.unwrap();
+    let result = tool.invoke(json!({ "check": "bogus" })).await.unwrap();
     assert!(result.is_error.unwrap_or(false));
 }
 
 #[tokio::test]
-async fn gate_timeout_expires() {
+async fn check_timeout_expires() {
     let tmp = TempDir::new().unwrap();
     let root = tmp.path().to_path_buf();
     let magistr_dir = root.join(".magistr");
@@ -200,7 +200,7 @@ async fn gate_timeout_expires() {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": {
+            "checks": {
                 "check": "sleep 10",
                 "test": "",
                 "lint": ""
@@ -216,10 +216,10 @@ async fn gate_timeout_expires() {
     .unwrap();
 
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
     let result = tool
-        .invoke(json!({ "gate": "check", "timeout_secs": 1 }))
+        .invoke(json!({ "check": "check", "timeout_secs": 1 }))
         .await
         .unwrap();
     let text = match &result.content[0] {
@@ -231,9 +231,9 @@ async fn gate_timeout_expires() {
     assert!(parsed["output"].as_str().unwrap().contains("timed out"));
 }
 
-// ── Custom gate tests ────────────────────────────────────────────────
+// ── Custom check tests ────────────────────────────────────────────────
 
-fn setup_custom_gate_project() -> (TempDir, PathBuf) {
+fn setup_custom_check_project() -> (TempDir, PathBuf) {
     let tmp = TempDir::new().unwrap();
     let root = tmp.path().to_path_buf();
     let magistr_dir = root.join(".magistr");
@@ -247,12 +247,12 @@ fn setup_custom_gate_project() -> (TempDir, PathBuf) {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": {
+            "checks": {
                 "check": "echo check-ok",
                 "test": "echo test-ok",
                 "lint": "echo lint-ok"
             },
-            "custom_gates": [
+            "custom_checks": [
                 { "name": "structure", "command": "echo structure-ok", "required": true },
                 { "name": "audit", "command": "echo audit-ok", "required": false }
             ],
@@ -269,46 +269,49 @@ fn setup_custom_gate_project() -> (TempDir, PathBuf) {
 }
 
 #[tokio::test]
-async fn gate_custom_by_name() {
-    let (_tmp, root) = setup_custom_gate_project();
+async fn check_custom_by_name() {
+    let (_tmp, root) = setup_custom_check_project();
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
-    let result = tool.invoke(json!({ "gate": "structure" })).await.unwrap();
+    let result = tool.invoke(json!({ "check": "structure" })).await.unwrap();
     let text = match &result.content[0] {
         magistr_mcp::ToolContent::Text { text } => text,
         _ => panic!("expected text content"),
     };
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap();
-    assert_eq!(parsed["gate"], "structure");
+    assert_eq!(parsed["check"], "structure");
     assert_eq!(parsed["passed"], true);
     assert!(parsed["output"].as_str().unwrap().contains("structure-ok"));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn gate_all_includes_required_custom_gates_and_leaves_the_rest_out() {
-    let (_tmp, root) = setup_custom_gate_project();
+async fn check_all_includes_required_custom_checks_and_leaves_the_rest_out() {
+    let (_tmp, root) = setup_custom_check_project();
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
-    let result = tool.invoke(json!({ "gate": "all" })).await.unwrap();
+    let result = tool.invoke(json!({ "check": "all" })).await.unwrap();
     let text = match &result.content[0] {
         magistr_mcp::ToolContent::Text { text } => text,
         _ => panic!("expected text content"),
     };
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap();
     assert_eq!(parsed["passed"], true);
-    let gates = parsed["gates"].as_array().unwrap();
+    let checks = parsed["checks"].as_array().unwrap();
     // check, test, lint + `structure` — and NOT `audit`, which is
     // registered `required: false`. This tool's own description says
-    // "'all' runs standard + required custom gates"; it used to run every
-    // custom gate, paying for a run whose red it then had to ignore.
-    let names: Vec<&str> = gates.iter().map(|g| g["gate"].as_str().unwrap()).collect();
+    // "'all' runs standard + required custom checks"; it used to run every
+    // custom check, paying for a run whose red it then had to ignore.
+    let names: Vec<&str> = checks
+        .iter()
+        .map(|g| g["check"].as_str().unwrap())
+        .collect();
     assert_eq!(names, ["check", "test", "lint", "structure"]);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn gate_all_does_not_pay_for_a_gate_it_would_have_to_ignore() {
+async fn check_all_does_not_pay_for_a_check_it_would_have_to_ignore() {
     let tmp = TempDir::new().unwrap();
     let root = tmp.path().to_path_buf();
     let magistr_dir = root.join(".magistr");
@@ -322,12 +325,12 @@ async fn gate_all_does_not_pay_for_a_gate_it_would_have_to_ignore() {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": {
+            "checks": {
                 "check": "echo ok",
                 "test": "echo ok",
                 "lint": "echo ok"
             },
-            "custom_gates": [
+            "custom_checks": [
                 { "name": "optional-check", "command": "exit 1", "required": false }
             ],
             "format": { "extensions": ["rs"], "command": "echo fmt" },
@@ -341,27 +344,30 @@ async fn gate_all_does_not_pay_for_a_gate_it_would_have_to_ignore() {
     .unwrap();
 
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
-    let result = tool.invoke(json!({ "gate": "all" })).await.unwrap();
+    let result = tool.invoke(json!({ "check": "all" })).await.unwrap();
     let text = match &result.content[0] {
         magistr_mcp::ToolContent::Text { text } => text,
         _ => panic!("expected text content"),
     };
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap();
     assert_eq!(parsed["passed"], true);
-    let gates = parsed["gates"].as_array().unwrap();
-    let names: Vec<&str> = gates.iter().map(|g| g["gate"].as_str().unwrap()).collect();
+    let checks = parsed["checks"].as_array().unwrap();
+    let names: Vec<&str> = checks
+        .iter()
+        .map(|g| g["check"].as_str().unwrap())
+        .collect();
     assert_eq!(
         names,
         ["check", "test", "lint"],
-        "a gate registered not-required is expected to fail; `all` neither \
+        "a check registered not-required is expected to fail; `all` neither \
          runs it nor prints a FAIL row that reads like a failed iteration"
     );
 
     // It is still reachable by its own name — that is how it is watched.
     let result = tool
-        .invoke(json!({ "gate": "optional-check" }))
+        .invoke(json!({ "check": "optional-check" }))
         .await
         .unwrap();
     let text = match &result.content[0] {
@@ -374,12 +380,12 @@ async fn gate_all_does_not_pay_for_a_gate_it_would_have_to_ignore() {
 }
 
 #[tokio::test]
-async fn gate_unknown_includes_custom_names() {
-    let (_tmp, root) = setup_custom_gate_project();
+async fn check_unknown_includes_custom_names() {
+    let (_tmp, root) = setup_custom_check_project();
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
-    let result = tool.invoke(json!({ "gate": "bogus" })).await.unwrap();
+    let result = tool.invoke(json!({ "check": "bogus" })).await.unwrap();
     assert!(result.is_error.unwrap_or(false));
     let text = match &result.content[0] {
         magistr_mcp::ToolContent::Text { text } => text,
@@ -387,37 +393,37 @@ async fn gate_unknown_includes_custom_names() {
     };
     assert!(
         text.contains("structure"),
-        "error should list custom gates: {text}"
+        "error should list custom checks: {text}"
     );
     assert!(
         text.contains("audit"),
-        "error should list custom gates: {text}"
+        "error should list custom checks: {text}"
     );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn gate_without_custom_gates() {
-    // Config without custom_gates field should work fine
-    let (_tmp, root) = setup_gate_project();
+async fn check_without_custom_checks() {
+    // Config without custom_checks field should work fine
+    let (_tmp, root) = setup_check_project();
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
-    let result = tool.invoke(json!({ "gate": "all" })).await.unwrap();
+    let result = tool.invoke(json!({ "check": "all" })).await.unwrap();
     let text = match &result.content[0] {
         magistr_mcp::ToolContent::Text { text } => text,
         _ => panic!("expected text content"),
     };
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap();
     assert_eq!(parsed["passed"], true);
-    let gates = parsed["gates"].as_array().unwrap();
-    assert_eq!(gates.len(), 3); // Only standard gates
+    let checks = parsed["checks"].as_array().unwrap();
+    assert_eq!(checks.len(), 3); // Only standard checks
 }
 
 // ── magistr_format tool tests ───────────────────────────────────────────
 
 #[tokio::test]
 async fn format_runs_command() {
-    let (_tmp, root) = setup_gate_project();
+    let (_tmp, root) = setup_check_project();
     let server = build_server(root);
     let tool = server.get_tool("magistr_format").unwrap();
 
@@ -434,7 +440,7 @@ async fn format_runs_command() {
 
 #[tokio::test]
 async fn format_with_files() {
-    let (_tmp, root) = setup_gate_project();
+    let (_tmp, root) = setup_check_project();
     let server = build_server(root);
     let tool = server.get_tool("magistr_format").unwrap();
 
@@ -467,7 +473,7 @@ async fn format_no_command_configured() {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": { "check": "", "test": "", "lint": "" },
+            "checks": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": [], "command": "" },
             "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
@@ -514,7 +520,7 @@ async fn format_shell_escapes_file_paths() {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": { "check": "", "test": "", "lint": "" },
+            "checks": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": ["rs"], "command": "echo" },
             "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
@@ -555,19 +561,21 @@ async fn format_shell_escapes_file_paths() {
 // ── Subprocess safety tests (BF1.3, BF1.7) ─────────────────────────────
 
 #[tokio::test]
-async fn gate_command_does_not_hang_on_stdin() {
+async fn check_command_does_not_hang_on_stdin() {
     // BF1.7: stdin must be null so commands that read stdin get immediate EOF
     let dir = std::env::current_dir().unwrap();
-    let result = run_gate_command("cat", &dir, 5, |_| {}).await.unwrap();
+    let result = run_check_command("cat", &dir, 5, |_| {}).await.unwrap();
     // cat with stdin null exits successfully with empty output
     assert_eq!(result["passed"], true);
 }
 
 #[tokio::test]
-async fn gate_command_timeout_kills_child() {
+async fn check_command_timeout_kills_child() {
     // BF1.3: verify the child process is actually killed on timeout
     let dir = std::env::current_dir().unwrap();
-    let result = run_gate_command("sleep 60", &dir, 1, |_| {}).await.unwrap();
+    let result = run_check_command("sleep 60", &dir, 1, |_| {})
+        .await
+        .unwrap();
     assert_eq!(result["passed"], false);
     assert!(result["output"].as_str().unwrap().contains("timed out"));
 }
@@ -575,18 +583,18 @@ async fn gate_command_timeout_kills_child() {
 // ── Output truncation tests (BF1.6) ─────────────────────────────────────
 
 #[tokio::test]
-async fn gate_command_truncates_large_output() {
+async fn check_command_truncates_large_output() {
     // BF1.6: large output gets truncated
     let dir = std::env::current_dir().unwrap();
-    // Generate output larger than crate::utils::gate::MAX_OUTPUT_BYTES
+    // Generate output larger than crate::utils::check::MAX_OUTPUT_BYTES
     let cmd = format!(
         "python3 -c \"print('x' * {})\"",
-        crate::utils::gate::MAX_OUTPUT_BYTES + 10_000
+        crate::utils::check::MAX_OUTPUT_BYTES + 10_000
     );
-    let result = run_gate_command(&cmd, &dir, 30, |_| {}).await.unwrap();
+    let result = run_check_command(&cmd, &dir, 30, |_| {}).await.unwrap();
     let output = result["output"].as_str().unwrap();
     assert!(
-        output.len() <= crate::utils::gate::MAX_OUTPUT_BYTES + 200, // allow for marker text
+        output.len() <= crate::utils::check::MAX_OUTPUT_BYTES + 200, // allow for marker text
         "output should be truncated: got {} bytes",
         output.len()
     );
@@ -639,12 +647,12 @@ fn build_find_format_command_multiple_extensions() {
     assert!(cmd.contains("-name '*.c'"), "{cmd}");
 }
 
-// ── Parallel gate execution tests (BF1.5) ────────────────────────────────
+// ── Parallel check execution tests (BF1.5) ────────────────────────────────
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn gate_all_runs_concurrently() {
-    // BF1.5: verify "all" gate runs concurrently by checking total time
-    // is closer to max(gate_time) than sum(gate_time)
+async fn check_all_runs_concurrently() {
+    // BF1.5: verify "all" check runs concurrently by checking total time
+    // is closer to max(check_time) than sum(check_time)
     let tmp = TempDir::new().unwrap();
     let root = tmp.path().to_path_buf();
     let magistr_dir = root.join(".magistr");
@@ -658,12 +666,12 @@ async fn gate_all_runs_concurrently() {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": {
+            "checks": {
                 "check": "sleep 0.5 && echo check-ok",
                 "test": "sleep 0.5 && echo test-ok",
                 "lint": "sleep 0.5 && echo lint-ok"
             },
-            "verification": {"max_parallel":3,"gates":{"check":{"resources":[]},"test":{"resources":[]},"lint":{"resources":[]}}},
+            "verification": {"max_parallel":3,"checks":{"check":{"resources":[]},"test":{"resources":[]},"lint":{"resources":[]}}},
             "format": { "extensions": ["rs"], "command": "echo formatted" },
             "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
@@ -675,10 +683,10 @@ async fn gate_all_runs_concurrently() {
     .unwrap();
 
     let server = build_server(root);
-    let tool = server.get_tool("magistr_gate").unwrap();
+    let tool = server.get_tool("magistr_check").unwrap();
 
     let start = std::time::Instant::now();
-    let result = tool.invoke(json!({ "gate": "all" })).await.unwrap();
+    let result = tool.invoke(json!({ "check": "all" })).await.unwrap();
     let elapsed = start.elapsed();
 
     let text = match &result.content[0] {
@@ -691,7 +699,7 @@ async fn gate_all_runs_concurrently() {
     // Sequential would take >= 1.5s (3 × 0.5s), parallel should be < 1.2s
     assert!(
         elapsed.as_secs_f64() < 1.2,
-        "gates should run in parallel: took {:.2}s (expected < 1.2s)",
+        "checks should run in parallel: took {:.2}s (expected < 1.2s)",
         elapsed.as_secs_f64()
     );
 }
@@ -700,7 +708,7 @@ async fn gate_all_runs_concurrently() {
 
 #[test]
 fn nextest_junit_report_path_follows_the_profile() {
-    use crate::utils::gate::nextest_junit_report_path;
+    use crate::utils::check::nextest_junit_report_path;
     assert_eq!(
         nextest_junit_report_path("cargo nextest run").as_deref(),
         Some("target/nextest/default/junit.xml")
@@ -811,7 +819,7 @@ async fn format_without_files_expands_a_placeholder_command_over_the_tree() {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": { "check": "", "test": "", "lint": "" },
+            "checks": { "check": "", "test": "", "lint": "" },
             "format": {
                 "extensions": ["txt"],
                 "command": "cp {file} {file}.formatted",
@@ -873,7 +881,7 @@ async fn format_with_files_substitutes_the_placeholder_per_file() {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": { "check": "", "test": "", "lint": "" },
+            "checks": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": ["txt"], "command": "cp {file} {file}.formatted" },
             "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
@@ -927,7 +935,7 @@ async fn a_project_command_copied_onto_every_archetype_runs_once_at_the_root() {
         json!({
             "id": id, "name": id, "language": "rust", "root": arch_root,
             "role": "unknown",
-            "quality_gate": {"check": "", "test": "", "lint": ""},
+            "checks": {"check": "", "test": "", "lint": ""},
             "format": {"command": command, "extensions": ["rs"], "exclusions": []},
             "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
             "source_patterns": [], "test_patterns": [], "config_patterns": []
@@ -942,7 +950,7 @@ async fn a_project_command_copied_onto_every_archetype_runs_once_at_the_root() {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": { "check": "", "test": "", "lint": "" },
+            "checks": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": ["rs"], "command": command },
             "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
@@ -995,7 +1003,7 @@ async fn a_failed_archetype_format_names_the_directory_it_ran_in() {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": { "check": "", "test": "", "lint": "" },
+            "checks": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": ["rs"], "command": "true" },
             "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
@@ -1004,7 +1012,7 @@ async fn a_failed_archetype_format_names_the_directory_it_ran_in() {
             "archetypes": [{
                 "id": "web", "name": "web", "language": "ts", "root": "web",
                 "role": "unknown",
-                "quality_gate": {"check": "", "test": "", "lint": ""},
+                "checks": {"check": "", "test": "", "lint": ""},
                 "format": {"command": "exit 7", "extensions": ["ts"], "exclusions": []},
                 "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
                 "source_patterns": [], "test_patterns": [], "config_patterns": []
@@ -1050,7 +1058,7 @@ async fn targeting_one_archetype_runs_where_the_whole_project_run_would() {
                 "package_manager": "cargo", "test_framework": "cargo-test",
                 "linter": "clippy", "formatter": "rustfmt"
             },
-            "quality_gate": { "check": "", "test": "", "lint": "" },
+            "checks": { "check": "", "test": "", "lint": "" },
             "format": { "extensions": ["rs"], "command": command },
             "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
             "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },
@@ -1059,7 +1067,7 @@ async fn targeting_one_archetype_runs_where_the_whole_project_run_would() {
             "archetypes": [{
                 "id": "shar", "name": "shar", "language": "rust", "root": "rust/apps/shar",
                 "role": "unknown",
-                "quality_gate": {"check": "", "test": "", "lint": ""},
+                "checks": {"check": "", "test": "", "lint": ""},
                 "format": {"command": command, "extensions": ["rs"], "exclusions": []},
                 "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
                 "source_patterns": [], "test_patterns": [], "config_patterns": []

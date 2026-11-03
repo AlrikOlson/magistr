@@ -31,7 +31,7 @@ impl Shutdown {
     pub const EXIT_CODE: i32 = 130;
 
     /// How long the graceful path gets before the emergency exit takes
-    /// over: above a gate's `SIGTERM` grace and a process group's
+    /// over: above a check's `SIGTERM` grace and a process group's
     /// settlement deadline, so a cooperating child is joined rather than
     /// abandoned.
     pub const SETTLE_DEADLINE: Duration = Duration::from_secs(8);

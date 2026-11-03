@@ -7,13 +7,13 @@ use std::path::PathBuf;
 
 use super::archetype::Archetype;
 use super::project_role::ProjectRole;
-use super::quality_gate::{FormatConfig, QualityGate, TestingConfig};
+use super::standard_checks::{FormatConfig, StandardChecks, TestingConfig};
 
 /// A registry entry keyed by language and optional framework.
 pub struct RegistryEntry {
     pub language: &'static str,
     pub framework: Option<&'static str>,
-    pub quality_gate: QualityGate,
+    pub checks: StandardChecks,
     pub format: FormatConfig,
     pub testing: TestingConfig,
     pub source_patterns: Vec<String>,
@@ -51,7 +51,7 @@ pub fn default_archetype(
         framework: entry.framework.map(Into::into),
         root: PathBuf::from(root),
         role,
-        quality_gate: entry.quality_gate,
+        checks: entry.checks,
         format: entry.format,
         testing: entry.testing,
         source_patterns: entry.source_patterns,
@@ -84,7 +84,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("rust", _) => Some(RegistryEntry {
             language: "rust",
             framework: None,
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "cargo check --workspace --all-targets".into(),
                 test: "cargo nextest run --workspace".into(),
                 lint: "cargo clippy --workspace --all-targets -- -D warnings".into(),
@@ -106,7 +106,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("typescript", Some("nextjs" | "next")) => Some(RegistryEntry {
             language: "typescript",
             framework: Some("nextjs"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "npx tsc --noEmit".into(),
                 test: "npm test".into(),
                 lint: "npm run lint".into(),
@@ -132,7 +132,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("typescript", Some("react")) => Some(RegistryEntry {
             language: "typescript",
             framework: Some("react"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "npx tsc --noEmit".into(),
                 test: "npm test".into(),
                 lint: "npx eslint .".into(),
@@ -154,7 +154,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("typescript" | "javascript", Some("vue" | "nuxt")) => Some(RegistryEntry {
             language: "typescript",
             framework: Some("vue"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "npx vue-tsc --noEmit".into(),
                 test: "npm test".into(),
                 lint: "npx eslint .".into(),
@@ -176,7 +176,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("typescript" | "javascript", Some("svelte" | "sveltekit")) => Some(RegistryEntry {
             language: "typescript",
             framework: Some("svelte"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "npx svelte-check".into(),
                 test: "npm test".into(),
                 lint: "npx eslint .".into(),
@@ -198,7 +198,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("typescript", Some("angular")) => Some(RegistryEntry {
             language: "typescript",
             framework: Some("angular"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "npx ng build --configuration production".into(),
                 test: "npx ng test --watch=false".into(),
                 lint: "npx ng lint".into(),
@@ -220,7 +220,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("typescript" | "javascript", Some("express")) => Some(RegistryEntry {
             language: "typescript",
             framework: Some("express"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "npx tsc --noEmit".into(),
                 test: "npm test".into(),
                 lint: "npx eslint .".into(),
@@ -242,7 +242,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("typescript", _) => Some(RegistryEntry {
             language: "typescript",
             framework: None,
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "npx tsc --noEmit".into(),
                 test: "npm test".into(),
                 lint: "npx eslint .".into(),
@@ -264,7 +264,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("python", Some("django")) => Some(RegistryEntry {
             language: "python",
             framework: Some("django"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "python manage.py check".into(),
                 test: "python manage.py test".into(),
                 lint: "ruff check .".into(),
@@ -286,7 +286,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("python", Some("flask")) => Some(RegistryEntry {
             language: "python",
             framework: Some("flask"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "python -m py_compile app.py".into(),
                 test: "pytest".into(),
                 lint: "ruff check .".into(),
@@ -308,7 +308,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("python", _) => Some(RegistryEntry {
             language: "python",
             framework: None,
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "python -m py_compile .".into(),
                 test: "pytest".into(),
                 lint: "ruff check .".into(),
@@ -330,7 +330,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("go", _) => Some(RegistryEntry {
             language: "go",
             framework: None,
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "go build ./...".into(),
                 test: "go test ./...".into(),
                 lint: "golangci-lint run".into(),
@@ -352,7 +352,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("ruby", Some("rails")) => Some(RegistryEntry {
             language: "ruby",
             framework: Some("rails"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "bundle exec rails runner 'puts :ok'".into(),
                 test: "bundle exec rspec".into(),
                 lint: "bundle exec rubocop".into(),
@@ -374,7 +374,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("ruby", _) => Some(RegistryEntry {
             language: "ruby",
             framework: None,
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "ruby -c lib/**/*.rb".into(),
                 test: "bundle exec rspec".into(),
                 lint: "bundle exec rubocop".into(),
@@ -396,7 +396,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("java", Some("spring" | "spring-boot" | "springboot")) => Some(RegistryEntry {
             language: "java",
             framework: Some("spring"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "./mvnw compile".into(),
                 test: "./mvnw test".into(),
                 lint: "./mvnw checkstyle:check".into(),
@@ -418,7 +418,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("java", _) => Some(RegistryEntry {
             language: "java",
             framework: None,
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "./mvnw compile".into(),
                 test: "./mvnw test".into(),
                 lint: "./mvnw checkstyle:check".into(),
@@ -440,7 +440,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("csharp", Some("aspnet" | "asp.net")) => Some(RegistryEntry {
             language: "csharp",
             framework: Some("aspnet"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "dotnet build".into(),
                 test: "dotnet test".into(),
                 lint: "dotnet format --verify-no-changes".into(),
@@ -462,7 +462,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("csharp", _) => Some(RegistryEntry {
             language: "csharp",
             framework: None,
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "dotnet build".into(),
                 test: "dotnet test".into(),
                 lint: "dotnet format --verify-no-changes".into(),
@@ -484,7 +484,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("php", Some("laravel")) => Some(RegistryEntry {
             language: "php",
             framework: Some("laravel"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "php artisan --version".into(),
                 test: "php artisan test".into(),
                 lint: "./vendor/bin/phpstan analyse".into(),
@@ -506,7 +506,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("php", _) => Some(RegistryEntry {
             language: "php",
             framework: None,
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "php -l src/".into(),
                 test: "./vendor/bin/phpunit".into(),
                 lint: "./vendor/bin/phpstan analyse".into(),
@@ -528,7 +528,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("elixir", Some("phoenix")) => Some(RegistryEntry {
             language: "elixir",
             framework: Some("phoenix"),
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "mix compile --warnings-as-errors".into(),
                 test: "mix test".into(),
                 lint: "mix credo --strict".into(),
@@ -550,7 +550,7 @@ fn lookup_entry(language: &str, framework: Option<&str>) -> Option<RegistryEntry
         ("elixir", _) => Some(RegistryEntry {
             language: "elixir",
             framework: None,
-            quality_gate: QualityGate {
+            checks: StandardChecks {
                 check: "mix compile --warnings-as-errors".into(),
                 test: "mix test".into(),
                 lint: "mix credo --strict".into(),

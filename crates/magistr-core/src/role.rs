@@ -213,7 +213,7 @@ impl SpecializedRole {
         }
     }
 
-    /// Tester: test-writing focus, runs quality gates.
+    /// Tester: test-writing focus, runs checks.
     #[must_use]
     pub fn tester() -> Self {
         Self {
@@ -223,7 +223,7 @@ impl SpecializedRole {
                 "You are a test specialist. Focus on writing comprehensive tests.\n",
                 "Write unit tests in {name}.tests.rs files alongside the module.\n",
                 "Test error paths, not just happy paths. Use assert_eq!, assert_ne!, assert!.\n",
-                "Run quality gates after writing tests to verify they pass.\n",
+                "Run checks after writing tests to verify they pass.\n",
                 "Navigate and edit with the magistr tools (search, read, edit, run); ",
                 "follow .claude/skills/workspace-routing/SKILL.md.\n\n",
                 "Task: {task}",

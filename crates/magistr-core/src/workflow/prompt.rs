@@ -16,9 +16,9 @@ pub use magistr_engine::prompt::PromptConfig;
 pub fn build_next_prompt(config: &ProjectConfig, spec_summary: &SpecSummary) -> String {
     let prompt_config = PromptConfig {
         spec_file: config.spec.as_ref().map(|spec| spec.file.clone()),
-        check_command: config.quality_gate.check.clone(),
-        test_command: config.quality_gate.test.clone(),
-        lint_command: config.quality_gate.lint.clone(),
+        check_command: config.checks.check.clone(),
+        test_command: config.checks.test.clone(),
+        lint_command: config.checks.lint.clone(),
         format_command: config.format.command.clone(),
     };
     prompt_config.build_next_prompt(spec_summary)

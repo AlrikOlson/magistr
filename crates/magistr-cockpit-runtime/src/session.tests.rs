@@ -421,7 +421,7 @@ impl WorkspacePort for BlockingWorkspace {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .recv()
-            .map_err(|_| "the gate went away".to_owned())?;
+            .map_err(|_| "the check went away".to_owned())?;
         Ok(vec![format!("hit for {query}")])
     }
     fn map(&mut self) -> Result<Vec<String>, String> {
@@ -440,11 +440,11 @@ fn blocking() -> (
     std::sync::mpsc::Sender<()>,
     Arc<std::sync::atomic::AtomicUsize>,
 ) {
-    let (release, gate) = std::sync::mpsc::channel();
+    let (release, check) = std::sync::mpsc::channel();
     let searches = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     (
         BlockingWorkspace {
-            release: std::sync::Mutex::new(gate),
+            release: std::sync::Mutex::new(check),
             searches: Arc::clone(&searches),
         },
         release,
@@ -471,7 +471,7 @@ async fn a_slow_workspace_call_never_blocks_provider_observation_or_cancellation
             query: "slow".to_owned(),
         }))
         .expect("command sent");
-    // The search is running on its own thread, held at the gate …
+    // The search is running on its own thread, held at the check …
     tokio::time::timeout(Duration::from_secs(2), async {
         while searches.load(std::sync::atomic::Ordering::SeqCst) == 0 {
             tokio::time::sleep(Duration::from_millis(5)).await;
@@ -489,7 +489,7 @@ async fn a_slow_workspace_call_never_blocks_provider_observation_or_cancellation
         Msg::Agent(AgentEvent::Text(text)) if text == "still streaming"
     ));
     assert_eq!(next(&mut calls).await, "cancel");
-    release.send(()).expect("the gate opens");
+    release.send(()).expect("the check opens");
     assert!(matches!(
         next(&mut messages).await,
         Msg::Workspace(WorkspaceEvent::Found { query, hits }) if query == "slow" && hits == ["hit for slow"]
@@ -574,7 +574,7 @@ async fn jobs_past_the_capacity_are_refused_and_a_late_answer_is_fenced() {
     })
     .await
     .expect("the first search started");
-    // The runtime ends while the jobs are still held at the gate: the
+    // The runtime ends while the jobs are still held at the check: the
     // relay fences them, waits its grace, then terminates the session.
     drop(commands_tx);
     let ended = tokio::time::timeout(SessionJobs::JOIN_GRACE * 2, task)
@@ -589,7 +589,7 @@ async fn jobs_past_the_capacity_are_refused_and_a_late_answer_is_fenced() {
         next(&mut messages).await,
         Msg::Agent(AgentEvent::Error(error)) if error.contains("still running when the session ended")
     ));
-    // The gate opens after the session ended: every held search now
+    // The check opens after the session ended: every held search now
     // answers on its thread, and none of the answers reaches the inbox.
     for _ in 0..SessionJobs::CAPACITY {
         let _ = release.send(());

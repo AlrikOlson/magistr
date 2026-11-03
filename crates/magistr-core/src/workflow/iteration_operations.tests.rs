@@ -252,7 +252,7 @@ fn every_native_mutation_verb_is_read_back_from_the_task() {
 }
 
 /// Engines with a goal and an active `verify` step — the shape the
-/// loop's gates are recorded into.
+/// loop's checks are recorded into.
 fn engines_with_verify_step(dir: &tempfile::TempDir) -> NativeEngines {
     let engines = native_engines(dir);
     add_native_task(&engines, "c1", 100, &[]);
@@ -272,15 +272,15 @@ fn engines_with_verify_step(dir: &tempfile::TempDir) -> NativeEngines {
 fn admit_check_result(
     il: &mut IterationLoop,
     engines: &NativeEngines,
-    gate: &str,
+    check: &str,
 ) -> (AttemptId, magistr_engine::native::CheckAdmission) {
-    let target = format!("gate:{gate}@step:verify");
+    let target = format!("check:{check}@step:verify");
     let attempt = il
         .begin_operation(OperationKind::CheckResult, &target, &target)
         .unwrap()
         .unwrap();
     let admission = engines
-        .run_admit_gate(Some("verify"), gate, "true".into(), true)
+        .run_admit_configured_check(Some("verify"), check, "true".into(), true)
         .unwrap()
         .value;
     il.start_operation(
@@ -318,7 +318,7 @@ fn compaction_keeps_a_check_result_for_recovery_and_its_saved_goal() {
     il.persist().unwrap();
     let id = admission.check_result_id.clone();
     engines
-        .run_settle_gate(
+        .run_settle_check(
             admission,
             CheckExecution::Exited { code: 0 },
             String::new(),
@@ -369,10 +369,10 @@ fn a_check_result_is_reconciled_against_its_own_check_result_never_a_same_named_
     use magistr_engine::native::CheckExecution;
     let (dir, spec) = setup_project("- [ ] item\n");
     let engines = engines_with_verify_step(&dir);
-    // The agent's own gate run on the same step, before the loop's set: a
+    // The agent's own check run on the same step, before the loop's set: a
     // same-named check that is not the loop's check_result.
     engines
-        .run_record_gate(
+        .run_record_check(
             Some("verify"),
             "test",
             "true".into(),
@@ -387,7 +387,7 @@ fn a_check_result_is_reconciled_against_its_own_check_result_never_a_same_named_
     let (landed, landed_admission) = admit_check_result(&mut il, &engines, "lint");
     il.persist().unwrap();
     engines
-        .run_settle_gate(
+        .run_settle_check(
             landed_admission,
             CheckExecution::Exited { code: 0 },
             "ok".into(),
@@ -416,8 +416,8 @@ fn a_check_result_settled_stale_or_never_admitted_is_failed_and_a_foreign_one_st
     let foreign = il
         .begin_operation(
             OperationKind::CheckResult,
-            "gate:lint@step:verify",
-            "gate:lint@step:verify",
+            "check:lint@step:verify",
+            "check:lint@step:verify",
         )
         .unwrap()
         .unwrap();
@@ -429,8 +429,8 @@ fn a_check_result_settled_stale_or_never_admitted_is_failed_and_a_foreign_one_st
     let unadmitted = il
         .begin_operation(
             OperationKind::CheckResult,
-            "gate:check@step:verify",
-            "gate:check@step:verify",
+            "check:check@step:verify",
+            "check:check@step:verify",
         )
         .unwrap()
         .unwrap();
@@ -442,7 +442,7 @@ fn a_check_result_settled_stale_or_never_admitted_is_failed_and_a_foreign_one_st
         .run_open("next".into(), vec![], vec![], "task:c1".into())
         .unwrap();
     let settled = engines
-        .run_settle_gate(
+        .run_settle_check(
             stale_admission,
             CheckExecution::Exited { code: 0 },
             "late".into(),
@@ -829,7 +829,7 @@ fn check_result_recovery_uses_its_ledger_when_the_execution_summary_is_unreadabl
     run.persist().unwrap();
     let check_result_id = admission.check_result_id.clone();
     engines
-        .run_settle_gate(
+        .run_settle_check(
             admission,
             CheckExecution::Exited { code: 0 },
             "Passed".into(),

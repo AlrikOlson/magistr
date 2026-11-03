@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "npx next lint && npx tsc --noEmit",
     "test": "npx vitest run"
   },

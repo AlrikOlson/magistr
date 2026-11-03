@@ -6,6 +6,7 @@
 
 // ── Core foundation (types, paths, env, error, detection) ───────────────────
 
+pub mod checks;
 pub mod child_guard;
 pub mod confidence;
 pub mod config;
@@ -14,7 +15,6 @@ pub mod durable_write;
 pub mod env;
 pub mod error;
 pub mod evidence;
-pub mod gates;
 pub mod paths;
 pub mod types;
 
@@ -43,13 +43,13 @@ pub mod agent_message;
 pub mod agent_types;
 pub mod backend;
 pub mod budget_state;
+pub mod check;
+pub mod check_rows;
 pub mod completed_tool;
 pub mod content_block;
 pub mod domain;
 pub mod file_entry;
 pub mod file_status;
-pub mod gate;
-pub mod gate_rows;
 pub mod log;
 pub mod loop_progress;
 pub mod phase;
@@ -72,13 +72,13 @@ pub use agent_types::{
 };
 pub use backend::{Backend, BackendCapabilities};
 pub use budget_state::BudgetState;
+pub use check::{CHECK_HISTORY_MAX, CheckBrief, CheckReport, IterationOutcome, IterationPhase};
+pub use check_rows::{CheckFailureRow, CheckRowSeverity, junit_failure_rows, parse_check_rows};
 pub use completed_tool::{CompletedTool, MAX_COMPLETED_TOOLS};
 pub use content_block::{AssistantContent, ContentBlock, UserBody, UserContent};
 pub use domain::DomainState;
 pub use file_entry::FileEntry;
 pub use file_status::FileStatus;
-pub use gate::{GATE_HISTORY_MAX, GateResult, GateSummary, IterationOutcome, IterationPhase};
-pub use gate_rows::{GateFailureRow, GateRowSeverity, junit_failure_rows, parse_gate_rows};
 pub use log::{LogLevel, LogMessage};
 pub use loop_progress::LoopProgress;
 pub use phase::Phase;
@@ -104,8 +104,9 @@ pub use env::MagistrEnv;
 pub use error::{MagistrError, MapMagistrErr};
 pub use paths::ProjectPaths;
 pub use types::{
-    CiProvider, CustomGate, FormatConfig, FormatConfigOverride, Formatter, Framework, Language,
+    CiProvider, CustomCheck, FormatConfig, FormatConfigOverride, Formatter, Framework, Language,
     Linter, PackageManager, PluginDetection, Preset, PresetLayer, PresetLayerType, PresetOverride,
-    PresetPipeline, ProjectConfig, ProjectMeta, QualityGate, QualityGateOverride, SmartStack,
-    SpecConfig, Stack, StackConfig, TestFramework, TestingConfig, TestingConfigOverride, Workspace,
+    PresetPipeline, ProjectConfig, ProjectMeta, SmartStack, SpecConfig, Stack, StackConfig,
+    StandardChecks, StandardChecksOverride, TestFramework, TestingConfig, TestingConfigOverride,
+    Workspace,
 };

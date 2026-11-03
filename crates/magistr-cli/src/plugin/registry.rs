@@ -30,7 +30,7 @@ pub struct OrgPluginConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub index_url: Option<String>,
     /// Plugin allowlist. If non-empty, only plugins in this list can be installed.
-    /// Each entry is a plugin name (e.g., "license-gate", "sonarqube-gate").
+    /// Each entry is a plugin name (e.g., "license-check", "sonarqube-check").
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub allowlist: Vec<String>,
     /// Ed25519 public key for verifying plugin signatures.

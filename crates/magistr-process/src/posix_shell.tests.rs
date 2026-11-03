@@ -77,7 +77,7 @@ fn only_bare_shell_names_are_shells() {
 
 #[test]
 fn a_line_is_led_by_its_first_word() {
-    assert!(line_starts_with_posix_shell("bash ./scripts/gate.sh"));
+    assert!(line_starts_with_posix_shell("bash ./scripts/check.sh"));
     assert!(line_starts_with_posix_shell("  sh -c 'echo hi'"));
     assert!(!line_starts_with_posix_shell("cargo test"));
     assert!(!line_starts_with_posix_shell(""));

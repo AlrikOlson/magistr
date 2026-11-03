@@ -28,7 +28,7 @@ remain with the host supervisor.
 The decision order is:
 
 1. A mutation of a protected target is denied, including edit, delete and move.
-2. The selected profile, explicit auto-allow rules, configured gate commands and
+2. The selected profile, explicit auto-allow rules, configured check commands and
    workflow allowances determine the local result.
 3. Remembered choices and written constraints apply to that local result.
    A refusal still applies when a workflow shortcut would otherwise allow.
@@ -45,7 +45,7 @@ precedence; the supervisor forwards the exact requested input when asking.
 Workflow is explicit context. The existing development-tool and project-MCP
 allowances remain available in workflow mode and are capped by protected paths,
 remembered constraints and governance. They are not inferred from headless mode.
-Project rules, gates, protected paths, charter and governance resolve from the
+Project rules, checks, protected paths, charter and governance resolve from the
 selected project directory.
 
 Scope and policy version identify what was evaluated. They are diagnostic
@@ -125,5 +125,5 @@ decision does not prove that durable evidence was written.
 
 Run the formatter and focused permission, supervisor, host-effect and architecture
 checks covering the changed behavior and its dependencies. Follow the project's
-[verification policy](../../AGENTS.md#verification) when selecting gates. No golden
+[verification policy](../../AGENTS.md#verification) when selecting checks. No golden
 regeneration or live-provider opt-in is required for classification changes.

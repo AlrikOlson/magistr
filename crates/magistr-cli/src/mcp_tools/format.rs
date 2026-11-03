@@ -7,8 +7,8 @@ use magistr_mcp::{SdkMcpTool, ToolResult};
 use serde_json::{Value, json};
 use tracing::debug;
 
+use super::check::run_check_command;
 use super::format_runs::FormatRuns;
-use super::gate::run_gate_command;
 
 /// The per-file placeholder a format command may carry.
 const FILE_PLACEHOLDER: &str = "{file}";
@@ -147,7 +147,7 @@ async fn run_archetype_format(
         }
     };
     // The formatter has no pane to stream to; its result is what matters.
-    let result = run_gate_command(&command, dir, timeout_secs, |_| {}).await?;
+    let result = run_check_command(&command, dir, timeout_secs, |_| {}).await?;
     let passed = result["passed"].as_bool().unwrap_or(false);
     Ok(json!({
         "archetype": archetype_id,
@@ -359,7 +359,7 @@ pub(super) fn build_format_tool(project_root: PathBuf) -> SdkMcpTool {
                     }
                 };
 
-                let result = run_gate_command(&command, &root, timeout_secs, |_| {}).await?;
+                let result = run_check_command(&command, &root, timeout_secs, |_| {}).await?;
                 let passed = result["passed"].as_bool().unwrap_or(false);
 
                 // Re-wrap as format-specific response

@@ -263,28 +263,28 @@ fn evaluate_auto_allow_rule_overrides_profile() {
 }
 
 #[test]
-fn evaluate_gate_command_auto_approves() {
-    let gates = vec!["cargo test --workspace".to_string()];
+fn evaluate_check_command_auto_approves() {
+    let checks = vec!["cargo test --workspace".to_string()];
     let decision = evaluate(
         "Bash",
         &serde_json::json!({"command": "cargo test --workspace"}),
         PermissionProfile::Cautious,
         &[],
-        &gates,
+        &checks,
     );
     assert_eq!(decision.action, ProfileAction::Allow);
     assert!(matches!(decision.reason, DecisionReason::BatchApproval(_)));
 }
 
 #[test]
-fn evaluate_gate_command_no_match() {
-    let gates = vec!["cargo test --workspace".to_string()];
+fn evaluate_check_command_no_match() {
+    let checks = vec!["cargo test --workspace".to_string()];
     let decision = evaluate(
         "Bash",
         &serde_json::json!({"command": "rm -rf /"}),
         PermissionProfile::Cautious,
         &[],
-        &gates,
+        &checks,
     );
     assert_eq!(decision.action, ProfileAction::Ask);
 }

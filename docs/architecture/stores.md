@@ -68,5 +68,5 @@ workflow server is not opened by any current code.
 The Bun reference under `subsystems/workspace/reference` carries its own
 SQLite through `bun:sqlite` and is pinned by
 [provenance](../../subsystems/workspace/PROVENANCE.md). This baseline changes
-nothing there; the reference gate still decodes native journals with the
+nothing there; the reference check still decodes native journals with the
 pinned reference reader.

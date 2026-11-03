@@ -1,7 +1,7 @@
 //! The `<!-- archetypes -->` section a polyglot init keeps in `CLAUDE.md`.
 //!
 //! `CLAUDE.md` stays the user's file; only the marked block listing each
-//! archetype's language, root and gate commands is magistr's, spliced
+//! archetype's language, root and check commands is magistr's, spliced
 //! between its markers when they exist and appended when they don't.
 
 use magistr_core::types::{Archetype, Topology};
@@ -51,9 +51,9 @@ fn build_archetype_section(archetypes: &[Archetype], topology: Topology) -> Stri
             arch.language,
             fw,
             arch.root.display(),
-            arch.quality_gate.check,
-            arch.quality_gate.test,
-            arch.quality_gate.lint,
+            arch.checks.check,
+            arch.checks.test,
+            arch.checks.lint,
         ));
     }
     s

@@ -187,7 +187,7 @@ apply → format → journal → atomic swap. A batch that would break syntax ro
   and script batches on the first call. The caller does not need to echo its own confirmation
   token. Parse verification, path protection, staleness checks, journaling and undo still apply.
 - Human confirmation mode (`edit.confirm_mode = "elicit"`, opt-in only) and
-  `edit.force_confirm = true` gate multi-file changes, rewrites, renames, moves, overwriting
+  `edit.force_confirm = true` check multi-file changes, rewrites, renames, moves, overwriting
   copies, script batches and single-file writes over 200 changed lines. Review the returned
   diff and re-issue the identical call with `confirm` set to `confirmToken`; elicitation-capable
   clients can approve in-call. Token mode never opens an elicitation dialog.

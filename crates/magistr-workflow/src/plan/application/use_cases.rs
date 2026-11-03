@@ -117,7 +117,7 @@ impl PlanUseCases {
     /// must be scoped to this task and its verification task — the `step:`
     /// reference when given, else the task holding the run's receipts —
     /// must carry current, passing, verified receipts for every required
-    /// gate; the refusal names what is missing. The stored reference is the
+    /// check; the refusal names what is missing. The stored reference is the
     /// caller's, or the resolved task when none was given, so a completion
     /// always names its task.
     pub fn complete_task(

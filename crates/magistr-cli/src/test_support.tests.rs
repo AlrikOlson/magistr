@@ -72,50 +72,50 @@ fn builder_with_files() {
     assert!(project.file_exists("Cargo.toml"));
 }
 
-// ── MockGatePlugin tests ────────────────────────────────────────────────────
+// ── MockCheckPlugin tests ────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn mock_gate_passing() {
-    let mut gate = MockGatePlugin::passing("test-gate");
-    let config = GateConfig {
-        gate_name: "test-gate".to_string(),
+async fn mock_check_passing() {
+    let mut check = MockCheckPlugin::passing("test-check");
+    let config = CheckPluginConfig {
+        check_name: "test-check".to_string(),
         project_dir: "/unused".to_string(),
         config: None,
     };
-    let outcome = gate.run_gate(config).await.unwrap();
+    let outcome = check.run_check(config).await.unwrap();
     assert!(outcome.passed);
-    assert_eq!(gate.calls.len(), 1);
-    assert_eq!(gate.calls[0].0, "test-gate");
+    assert_eq!(check.calls.len(), 1);
+    assert_eq!(check.calls[0].0, "test-check");
 }
 
 #[tokio::test]
-async fn mock_gate_failing() {
-    use crate::plugin::gate_trait::GateSeverity;
+async fn mock_check_failing() {
+    use crate::plugin::check_trait::CheckSeverity;
 
-    let finding = GateFinding {
+    let finding = CheckFinding {
         file: Some("src/main.rs".to_string()),
         line: Some(10),
         message: "unused variable".to_string(),
-        severity: GateSeverity::Error,
+        severity: CheckSeverity::Error,
         rule_id: Some("E001".to_string()),
     };
-    let mut gate = MockGatePlugin::failing("lint", vec![finding]);
-    let config = GateConfig {
-        gate_name: "lint".to_string(),
+    let mut check = MockCheckPlugin::failing("lint", vec![finding]);
+    let config = CheckPluginConfig {
+        check_name: "lint".to_string(),
         project_dir: "/unused".to_string(),
         config: None,
     };
-    let outcome = gate.run_gate(config).await.unwrap();
+    let outcome = check.run_check(config).await.unwrap();
     assert!(!outcome.passed);
     assert_eq!(outcome.error_count(), 1);
 }
 
 #[test]
-fn mock_gate_name_and_supported_gates() {
-    let gate = MockGatePlugin::passing("sonar")
-        .with_gates(vec!["sonarqube".to_string(), "security".to_string()]);
-    assert_eq!(gate.name(), "sonar");
-    assert_eq!(gate.supported_gates().len(), 2);
+fn mock_check_name_and_supported_checks() {
+    let check = MockCheckPlugin::passing("sonar")
+        .with_checks(vec!["sonarqube".to_string(), "security".to_string()]);
+    assert_eq!(check.name(), "sonar");
+    assert_eq!(check.supported_checks().len(), 2);
 }
 
 // ── MockOutputRenderer tests ────────────────────────────────────────────────
@@ -163,7 +163,7 @@ fn mock_headless_renderer_captures_events() {
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GateStart {
+            HeadlessEvent::CheckStart {
                 name: "check".into(),
             },
         )
@@ -171,7 +171,7 @@ fn mock_headless_renderer_captures_events() {
     renderer
         .emit(
             &mut buf,
-            HeadlessEvent::GatePass {
+            HeadlessEvent::CheckPass {
                 name: "check".into(),
                 duration_ms: 42,
             },

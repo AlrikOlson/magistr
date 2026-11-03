@@ -158,9 +158,9 @@ fn cmd_config_show(dir: &std::path::Path, inputs: &ProjectInputs) -> eyre::Resul
             "  stack:         {} / {} / {}",
             pc.stack.language, pc.stack.framework, pc.stack.package_manager
         );
-        eprintln!("  check:         {}", pc.quality_gate.check);
-        eprintln!("  test:          {}", pc.quality_gate.test);
-        eprintln!("  lint:          {}", pc.quality_gate.lint);
+        eprintln!("  check:         {}", pc.checks.check);
+        eprintln!("  test:          {}", pc.checks.test);
+        eprintln!("  lint:          {}", pc.checks.lint);
         eprintln!("  format:        {}", pc.format.command);
         match &pc.spec {
             Some(spec) => eprintln!("  spec_file:     {}", spec.file),

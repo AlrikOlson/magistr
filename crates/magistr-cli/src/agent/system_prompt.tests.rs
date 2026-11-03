@@ -1,6 +1,6 @@
 use super::*;
 use crate::types::{
-    FormatConfig, ProjectMeta, QualityGate, SpecConfig, StackConfig, TestingConfig,
+    FormatConfig, ProjectMeta, SpecConfig, StackConfig, StandardChecks, TestingConfig,
 };
 
 fn sample_config() -> ProjectConfig {
@@ -20,7 +20,7 @@ fn sample_config() -> ProjectConfig {
             linter: "clippy".into(),
             formatter: "rustfmt".into(),
         },
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: "cargo check --all-targets".into(),
             test: "cargo test".into(),
             lint: "cargo clippy -- -D warnings".into(),
@@ -40,7 +40,7 @@ fn sample_config() -> ProjectConfig {
         },
         reference_repos: vec![],
         state_prefix: "my-app".into(),
-        custom_gates: vec![],
+        custom_checks: vec![],
         guards: Default::default(),
         hints: vec![],
         lifecycle_hooks: vec![],
@@ -90,7 +90,7 @@ fn format_prompt_includes_framework_when_set() {
 }
 
 #[test]
-fn format_prompt_includes_quality_gates() {
+fn format_prompt_includes_checks() {
     let config = sample_config();
     let prompt = format_prompt(&config);
 

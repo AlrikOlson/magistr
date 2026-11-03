@@ -369,7 +369,7 @@ impl ToolRegistry {
             "magistr_recommend",
             "Submit structured project recommendations. Call this tool with your \
              findings instead of outputting JSON. Include ALL project configuration: \
-             quality gates, testing, format, conventions, MCP servers, agents, and description.",
+             checks, testing, format, conventions, MCP servers, agents, and description.",
             json!({
                 "type": "object",
                 "properties": {
@@ -420,9 +420,9 @@ impl ToolRegistry {
                         "description": "Project type: cli, web-app, api, library, monorepo, or other",
                         "enum": ["cli", "web-app", "api", "library", "monorepo", "other"]
                     },
-                    "quality_gate": {
+                    "checks": {
                         "type": "object",
-                        "description": "Quality gate commands discovered from the codebase (CI, Makefile, scripts, etc.)",
+                        "description": "Check commands discovered from the codebase (CI, Makefile, scripts, etc.)",
                         "properties": {
                             "check": { "type": "string", "description": "Build/check command (e.g. 'cargo check --all-targets')" },
                             "test": { "type": "string", "description": "Test command (e.g. 'cargo test')" },
@@ -468,7 +468,7 @@ impl ToolRegistry {
                         "items": {
                             "type": "object",
                             "properties": {
-                                "event": { "type": "string", "description": "Lifecycle event (e.g. 'on_enter(verify)', 'on_gate_pass', 'on_iteration_start')" },
+                                "event": { "type": "string", "description": "Lifecycle event (e.g. 'on_enter(verify)', 'on_check_pass', 'on_iteration_start')" },
                                 "tool": { "type": "string", "description": "MCP tool name (mutually exclusive with 'command')" },
                                 "command": { "type": "string", "description": "Shell command to run (mutually exclusive with 'tool')" },
                                 "timeout_secs": { "type": "integer", "description": "Timeout for shell commands (seconds)" },
@@ -484,7 +484,7 @@ impl ToolRegistry {
                         "properties": {
                             "overall": { "type": "string", "enum": ["high", "medium", "low"], "description": "Overall confidence level. High = grounded in encyclopedia + verified by research. Medium = mostly grounded. Low = research-only." },
                             "rationale": { "type": "string", "description": "Brief explanation of the confidence assessment" },
-                            "encyclopedia_backed": { "type": "array", "items": { "type": "string" }, "description": "Which recommendations are backed by magistr's built-in encyclopedia (e.g. 'quality_gate', 'conventions', 'testing')" },
+                            "encyclopedia_backed": { "type": "array", "items": { "type": "string" }, "description": "Which recommendations are backed by magistr's built-in encyclopedia (e.g. 'checks', 'conventions', 'testing')" },
                             "research_backed": { "type": "array", "items": { "type": "string" }, "description": "Which recommendations were discovered through web research (e.g. 'mcp_servers', 'reference_repos')" }
                         }
                     }

@@ -3,7 +3,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-python3 scripts/desktop-visual-gate.py
+python3 scripts/desktop-visual-check.py
 python3 - <<'PY'
 import datetime, hashlib, json, pathlib, shutil, struct
 root=pathlib.Path.cwd()

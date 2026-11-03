@@ -9,7 +9,7 @@ fn config(language: &str, framework: &str) -> ProjectConfig {
             "package_manager": "cargo", "test_framework": "cargo-test",
             "linter": "clippy", "formatter": "rustfmt"
         },
-        "quality_gate": { "check": "", "test": "", "lint": "" },
+        "checks": { "check": "", "test": "", "lint": "" },
         "format": { "extensions": ["rs"], "command": "cargo fmt" },
         "spec": { "file": "PLAN.md", "unchecked_pattern": "" },
         "testing": { "companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside" },

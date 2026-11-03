@@ -146,7 +146,7 @@ pub enum SemanticRole {
     Surface,
     /// On-surface — text that sits on surface-colored backgrounds.
     OnSurface,
-    /// Error — failures, destructive actions, gate failures.
+    /// Error — failures, destructive actions, check failures.
     Error,
     /// Warning — attention needed, budget alerts, pending review.
     Warning,

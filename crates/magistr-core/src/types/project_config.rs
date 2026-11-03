@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::archetype::{Archetype, ArchetypeRelationship};
 use super::project_tree::Topology;
-use super::{CustomGate, FormatConfig, QualityGate, TestingConfig};
+use super::{CustomCheck, FormatConfig, StandardChecks, TestingConfig};
 
 /// Full project configuration (written to .magistr/project.json).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -16,8 +16,8 @@ pub struct ProjectConfig {
     pub project: ProjectMeta,
     /// Detected or configured technology stack.
     pub stack: StackConfig,
-    /// Commands for check, test, and lint gates.
-    pub quality_gate: QualityGate,
+    /// Commands for check, test, and lint checks.
+    pub checks: StandardChecks,
     /// Code formatter configuration.
     pub format: FormatConfig,
     /// Specification file tracking (plan).
@@ -32,9 +32,9 @@ pub struct ProjectConfig {
     pub reference_repos: Vec<String>,
     /// Prefix for state files (e.g., `"my-project"` → `.magistr/my-project-*`).
     pub state_prefix: String,
-    /// Custom quality gates beyond the standard check/test/lint triple.
+    /// Custom checks beyond the standard check/test/lint triple.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub custom_gates: Vec<CustomGate>,
+    pub custom_checks: Vec<CustomCheck>,
     /// Workflow guard enable/disable configuration.
     #[serde(default, skip_serializing_if = "is_default_guards")]
     pub guards: GuardsConfig,
@@ -47,7 +47,7 @@ pub struct ProjectConfig {
     /// Lifecycle hooks triggered at workflow phase transitions and events.
     ///
     /// Each hook binds a lifecycle event (e.g., entering a phase, iteration
-    /// start/end, gate pass/fail) to an MCP tool invocation.
+    /// start/end, check pass/fail) to an MCP tool invocation.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lifecycle_hooks: Vec<magistr_engine::LifecycleHook>,
     /// Which store backs the plan: `native` (the native in-process
@@ -61,7 +61,7 @@ pub struct ProjectConfig {
     /// Per-sub-project archetypes with their own commands, patterns, and conventions.
     ///
     /// When absent or empty, the project is treated as a single-archetype project
-    /// and a synthetic archetype is derived from the top-level `stack`/`quality_gate`/
+    /// and a synthetic archetype is derived from the top-level `stack`/`checks`/
     /// `format`/`testing` fields via [`ProjectConfig::effective_archetypes`].
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub archetypes: Vec<Archetype>,
@@ -77,7 +77,7 @@ impl ProjectConfig {
     /// Return the effective archetype list.
     ///
     /// If `archetypes` is non-empty, returns it directly. Otherwise synthesizes
-    /// a single archetype from the flat fields (`stack`, `quality_gate`,
+    /// a single archetype from the flat fields (`stack`, `checks`,
     /// `format`, `testing`). This describes the current resolver, not a requirement
     /// to retain older configuration formats.
     #[must_use]
@@ -96,7 +96,7 @@ impl ProjectConfig {
             },
             root: std::path::PathBuf::from("."),
             role: super::ProjectRole::Unknown,
-            quality_gate: self.quality_gate.clone(),
+            checks: self.checks.clone(),
             format: self.format.clone(),
             testing: self.testing.clone(),
             source_patterns: vec![],

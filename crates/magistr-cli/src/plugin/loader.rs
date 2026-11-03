@@ -110,7 +110,7 @@ pub fn validate_plugin(dir: &Path) -> Result<Vec<String>, PluginError> {
                 }
             }
         }
-        PluginKind::WorkflowStep | PluginKind::QualityGate => {
+        PluginKind::WorkflowStep | PluginKind::Check => {
             // Executable plugins: verify entrypoint file exists
             if let Some(ref entrypoint) = manifest.entrypoint {
                 let ep_path = dir.join(entrypoint);

@@ -144,7 +144,7 @@
         },
         "summary": { "type": "string", "minLength": 1, "maxLength": 8192 },
         "confidence": {
-          "description": "Agent confidence in this enrichment, 0..1. The raising gate (Phase 29e) only raises researched requests above a threshold.",
+          "description": "Agent confidence in this enrichment, 0..1. The raising check (Phase 29e) only raises researched requests above a threshold.",
           "type": "number",
           "minimum": 0,
           "maximum": 1

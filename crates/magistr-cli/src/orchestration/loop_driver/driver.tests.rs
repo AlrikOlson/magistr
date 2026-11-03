@@ -1,5 +1,5 @@
 //! The loop driver end to end: a scripted terminal, an in-process ACP
-//! agent behind the connector, a temp yaml project whose gates are `sh`
+//! agent behind the connector, a temp yaml project whose checks are `sh`
 //! one-liners — the loop's decisions read off the model, the report and
 //! what the agent saw.
 
@@ -153,13 +153,13 @@ fn engines_with_work(dir: &Path) -> NativeEngines {
 
 /// The store [`engines_with_work`] opens — on the writer config production
 /// admits the loop on, carrying the fixture's evidence capability, so a
-/// gate the loop or the agent records certifies the tree and a judged
+/// check the loop or the agent records certifies the tree and a judged
 /// completion has check_results to stand on.
 fn work_config(dir: &Path) -> NativeConfig {
     magistr_core::evidence::writer_config(dir, |_| None).with_data_dir(dir.join("workflow-data"))
 }
 
-/// Prepare unfinished full-verification work for the loop's actual gates.
+/// Prepare unfinished full-verification work for the loop's actual checks.
 fn agent_starts_work(agent_side: &NativeEngines) {
     agent_side.plan_start_task("work").expect("start");
     agent_side
@@ -183,14 +183,14 @@ fn agent_starts_work(agent_side: &NativeEngines) {
 }
 
 /// Complete work on admitted check_results before returning control to the loop.
-fn agent_completes_work(agent_side: &NativeEngines, root: &Path, gates: [(&str, &str); 3]) {
+fn agent_completes_work(agent_side: &NativeEngines, root: &Path, checks: [(&str, &str); 3]) {
     agent_starts_work(agent_side);
-    for (gate, command) in gates {
+    for (check, command) in checks {
         crate::application::AdmittedCheck::admit(
             agent_side,
             root,
             Some("verify"),
-            gate,
+            check,
             command.into(),
             true,
         )
@@ -438,7 +438,7 @@ async fn conversation_messages_during_checks_are_rejected_with_the_original_draf
     .auto_pause(false)
     .spawn();
     next_matching(&mut events, |event| {
-        matches!(event, Msg::Loop(LoopEvent::Stage(LoopStage::Gates)))
+        matches!(event, Msg::Loop(LoopEvent::Stage(LoopStage::Checks)))
     })
     .await;
     commands
@@ -498,7 +498,7 @@ async fn plan_requests_wait_for_work_verification_and_can_be_cancelled_while_que
             .await;
         } else {
             next_matching(&mut events, |event| {
-                matches!(event, Msg::Loop(LoopEvent::Stage(LoopStage::Gates)))
+                matches!(event, Msg::Loop(LoopEvent::Stage(LoopStage::Checks)))
             })
             .await;
             next_matching(&mut events, |event| {
@@ -671,7 +671,7 @@ async fn local_project_controls_work_before_any_agent_is_connected() {
 
 const MS: fn(u64) -> Duration = Duration::from_millis;
 
-/// A yaml project with one open spec item and the given gate commands.
+/// A yaml project with one open spec item and the given check commands.
 fn project(check: &str, test: &str, lint: &str) -> tempfile::TempDir {
     let dir = tempfile::TempDir::new().expect("a temp dir");
     let magistr = dir.path().join(".magistr");
@@ -682,7 +682,7 @@ fn project(check: &str, test: &str, lint: &str) -> tempfile::TempDir {
             "language": "rust", "framework": "none", "package_manager": "cargo",
             "test_framework": "cargo-test", "linter": "clippy", "formatter": "rustfmt"
         },
-        "quality_gate": {"check": check, "test": test, "lint": lint},
+        "checks": {"check": check, "test": test, "lint": lint},
         "format": {"command": "true", "extensions": ["rs"]},
         "spec": {"file": "PLAN.md", "unchecked_pattern": "^\\s*- \\[ \\]"},
         "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"},
@@ -704,7 +704,7 @@ fn project(check: &str, test: &str, lint: &str) -> tempfile::TempDir {
 /// that passes only in its own directory (`test -f <marker>` against a
 /// marker that exists there and nowhere else), both naming the project's
 /// own `check` and `lint` (one run each, not one per archetype), a
-/// required custom gate `smoke` and an optional custom gate `never` that
+/// required custom check `smoke` and an optional custom check `never` that
 /// `all` does not run. The top-level `test` is green on purpose: a loop
 /// resolving only the top level would never see `web_test` fail.
 fn polyglot_project(web_test: &str, smoke: &str) -> tempfile::TempDir {
@@ -717,7 +717,7 @@ fn polyglot_project(web_test: &str, smoke: &str) -> tempfile::TempDir {
     let archetype = |id: &str, language: &str, role: &str, test: &str| {
         serde_json::json!({
             "id": id, "name": id, "language": language, "root": id, "role": role,
-            "quality_gate": {"check": "true", "test": test, "lint": "true"},
+            "checks": {"check": "true", "test": test, "lint": "true"},
             "format": {"command": "true", "extensions": []},
             "testing": {"companion_pattern": "{name}.tests.{ext}", "test_dir": "alongside"}
         })
@@ -729,7 +729,7 @@ fn polyglot_project(web_test: &str, smoke: &str) -> tempfile::TempDir {
         archetype("api", "rust", "backend", "test -f api.marker"),
         archetype("web", "typescript", "frontend", web_test),
     ]);
-    config["custom_gates"] = serde_json::json!([
+    config["custom_checks"] = serde_json::json!([
         {"name": "smoke", "command": smoke, "required": true},
         {"name": "never", "command": "exit 99", "required": false},
     ]);
@@ -1055,7 +1055,7 @@ async fn cancelled_and_incomplete_turns_cannot_start_verification() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn one_iteration_runs_the_prompt_the_turn_and_the_gates_then_ends_on_the_budget() {
+async fn one_iteration_runs_the_prompt_the_turn_and_the_checks_then_ends_on_the_budget() {
     let dir = project("true", "sh -c 'exit 0'", "false");
     let script = Actions::new().command(MS(2_500), Cmd::Quit);
     let (model, report, prompts) = run(
@@ -1088,7 +1088,7 @@ async fn one_iteration_runs_the_prompt_the_turn_and_the_gates_then_ends_on_the_b
         "{notes:?}"
     );
     assert!(
-        notes.contains(&"error: quality gates failed: lint failed".to_owned()),
+        notes.contains(&"error: checks failed: lint failed".to_owned()),
         "{notes:?}"
     );
     assert_eq!(
@@ -1106,7 +1106,7 @@ async fn one_iteration_runs_the_prompt_the_turn_and_the_gates_then_ends_on_the_b
 }
 
 /// Every iteration boundary is a state on the spine: the driver posts
-/// the boundary once the gates are in, the cockpit mints `cp-N · iter N`
+/// the boundary once the checks are in, the cockpit mints `cp-N · iter N`
 /// wearing the verdicts, and the driver's own port takes it — verified,
 /// because the tree is clean — before the next iteration begins, so the
 /// answer is on the inbox ahead of the loop's report.
@@ -1171,7 +1171,7 @@ async fn the_report_measures_each_iteration_and_the_tokens_the_agent_put_in_cont
         "the level the agent reported is what the turn put in context"
     );
     assert!(metrics.turn > Duration::ZERO, "{metrics}");
-    assert!(metrics.gates >= MS(200), "the gates' own time: {metrics}");
+    assert!(metrics.checks >= MS(200), "the checks' own time: {metrics}");
     assert!(
         metrics.judge.is_none(),
         "no judge in the plain loop: {metrics}"
@@ -1221,7 +1221,7 @@ async fn a_pause_holds_the_boundary_and_x_skips_the_next_iteration() {
     assert!(notes(&model).contains(&"skipped iteration 2".to_owned()));
 }
 
-/// A yaml project inside a fresh git repository whose `check` gate is an
+/// A yaml project inside a fresh git repository whose `check` check is an
 /// empty commit: every iteration is a committed one, so the no-commit
 /// rule (two in a row end the loop) cannot end a loop a test wants to
 /// watch reach its next boundary.
@@ -1274,7 +1274,7 @@ async fn s_while_paused_steps_one_iteration_then_pauses_again() {
     let notes = notes(&model);
     assert!(
         notes.iter().any(|n| n.starts_with("committed ")),
-        "the fixture's gate commits, so the no-commit rule stays out of it: {notes:?}"
+        "the fixture's check commits, so the no-commit rule stays out of it: {notes:?}"
     );
     assert_eq!(
         model
@@ -1308,15 +1308,15 @@ async fn esc_while_paused_aborts_the_loop() {
     ));
 }
 
-/// Quitting the cockpit mid-gates ends the gate's process: the sleeping
-/// test gate writes its own pid (the process-group leader under
+/// Quitting the cockpit mid-checks ends the check's process: the sleeping
+/// test check writes its own pid (the process-group leader under
 /// `setsid`) and would outlive the whole test at 30s — after ctrl-D the
-/// driver joins the gate job before publishing completion.
+/// driver joins the check job before publishing completion.
 #[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn quitting_mid_gates_ends_the_gates_child_process() {
+async fn quitting_mid_checks_ends_the_checks_child_process() {
     let pids = tempfile::TempDir::new().expect("a temp dir");
-    let pid_path = pids.path().join("gate.pid");
+    let pid_path = pids.path().join("check.pid");
     let sleeper = format!("echo $$ > '{}' && sleep 30", pid_path.display());
     let dir = project("true", &sleeper, "true");
     let script = Actions::new().command(MS(2_000), Cmd::Quit);
@@ -1331,7 +1331,7 @@ async fn quitting_mid_gates_ends_the_gates_child_process() {
     assert_eq!(prompts.len(), 1);
     assert_eq!(report.end(), &LoopEnd::CockpitClosed);
     let pid: i32 = std::fs::read_to_string(&pid_path)
-        .expect("the sleeping gate had started and wrote its pid")
+        .expect("the sleeping check had started and wrote its pid")
         .trim()
         .parse()
         .expect("a pid");
@@ -1339,27 +1339,27 @@ async fn quitting_mid_gates_ends_the_gates_child_process() {
     assert_ne!(
         unsafe { libc::kill(pid, 0) },
         0,
-        "completion must not precede the gate child's exit"
+        "completion must not precede the check child's exit"
     );
 }
 
 /// The driver reaches no process and no file itself: the agent comes
-/// through the connector, the gates run through `Jobs::spawn_job`.
+/// through the connector, the checks run through `Jobs::spawn_job`.
 #[test]
-fn the_driver_runs_gates_only_through_jobs_and_spawns_nothing_itself() {
+fn the_driver_runs_checks_only_through_jobs_and_spawns_nothing_itself() {
     let driver = include_str!("driver.rs");
-    let gate = include_str!("gate_job.rs");
+    let check = include_str!("check_job.rs");
     let connector = include_str!("connector.rs");
     for (name, source) in [
         ("driver.rs", driver),
-        ("gate_job.rs", gate),
+        ("check_job.rs", check),
         ("connector.rs", connector),
     ] {
         for forbidden in [
             "std::process",
             "Command::new",
             "tokio::process",
-            "run_gates(",
+            "run_checks(",
             "std::fs::",
         ] {
             assert!(!source.contains(forbidden), "{name} reaches {forbidden}");
@@ -1367,15 +1367,15 @@ fn the_driver_runs_gates_only_through_jobs_and_spawns_nothing_itself() {
     }
     assert!(
         driver.contains(".spawn_owned_job("),
-        "the gates go through Jobs"
+        "the checks go through Jobs"
     );
     assert!(
         !driver.contains("run_command"),
         "the driver never runs a command on its own thread"
     );
     assert!(
-        gate.contains("Handle::current().block_on("),
-        "the gate job drives the shared subprocess helper from the blocking thread"
+        check.contains("Handle::current().block_on("),
+        "the check job drives the shared subprocess helper from the blocking thread"
     );
 }
 
@@ -1457,7 +1457,7 @@ async fn off_mode_runs_no_judge_and_the_stage_says_which_mode_drives() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_not_yet_verdict_continues_the_loop_with_its_reason_on_the_stage() {
     // Two iterations need a commit each, or the no-commit budget ends
-    // the loop first: the test gate makes one, as an agent would.
+    // the loop first: the test check makes one, as an agent would.
     let dir = project(
         "true",
         "git -c user.name=t -c user.email=t@t commit -q --allow-empty -m iteration",
@@ -1492,7 +1492,7 @@ async fn a_not_yet_verdict_continues_the_loop_with_its_reason_on_the_stage() {
     assert_eq!(prompts.len(), 2);
 
     // What the judge was asked: the task, its whole acceptance list,
-    // the real gates, the agent's words.
+    // the real checks, the agent's words.
     let asked = judge.asked();
     assert_eq!(asked.len(), 2);
     assert_eq!(asked[0].task, "work");
@@ -1500,14 +1500,14 @@ async fn a_not_yet_verdict_continues_the_loop_with_its_reason_on_the_stage() {
     assert_eq!(asked[0].acceptance, ["it works", "it is tested"]);
     assert_eq!(asked[0].iteration, (1, 2));
     assert_eq!(asked[1].iteration, (2, 2));
-    // The gates in the order their jobs returned — sorted to compare.
-    let mut gates: Vec<(&str, bool)> = asked[0]
-        .gates
+    // The checks in the order their jobs returned — sorted to compare.
+    let mut checks: Vec<(&str, bool)> = asked[0]
+        .checks
         .iter()
         .map(|g| (g.name.as_str(), g.passed))
         .collect();
-    gates.sort_unstable();
-    assert_eq!(gates, [("check", true), ("lint", true), ("test", true)]);
+    checks.sort_unstable();
+    assert_eq!(checks, [("check", true), ("lint", true), ("test", true)]);
     assert!(
         asked[0].transcript_tail.contains("did the thing"),
         "the agent's words reach the judge: {:?}",
@@ -1516,7 +1516,7 @@ async fn a_not_yet_verdict_continues_the_loop_with_its_reason_on_the_stage() {
 
     let stage = stage_text(&model);
     assert!(
-        stage.contains("goal loop: native — magistr's own judge decides after the gates"),
+        stage.contains("goal loop: native — magistr's own judge decides after the checks"),
         "{stage}"
     );
     assert!(
@@ -1605,7 +1605,7 @@ async fn a_target_the_agent_blocked_is_not_sent_to_the_judge() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_ok_verdict_over_green_gates_completes_the_task_through_the_engines() {
+async fn an_ok_verdict_over_green_checks_completes_the_task_through_the_engines() {
     let dir = project("true", "true", "true");
     // The goal and its step are the agent's to set; the task itself
     // is never started by anyone but the driver.
@@ -1648,19 +1648,19 @@ async fn an_ok_verdict_over_green_gates_completes_the_task_through_the_engines()
     // The completion frame reached the cockpit's plan view.
 
     // A completion always names the step its evidence sits on: the one
-    // the loop's gates were recorded on.
+    // the loop's checks were recorded on.
     assert_eq!(
         engines.plan_task("work").unwrap().expect("the task").refs,
         vec!["step:impl".to_owned()]
     );
 }
 
-/// With a step active in the trace, the loop's gates are recorded on that
+/// With a step active in the trace, the loop's checks are recorded on that
 /// step by name, and the judged completion names the same step as its
 /// proof-of-run reference — the evidence and the completion point at
 /// each other.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_judged_completion_names_the_step_its_gates_were_recorded_on() {
+async fn a_judged_completion_names_the_step_its_checks_were_recorded_on() {
     let dir = project("true", "true", "true");
     let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("both criteria hold")]);
@@ -1686,7 +1686,7 @@ async fn a_judged_completion_names_the_step_its_gates_were_recorded_on() {
             .iter()
             .find(|t| t.id == "impl")
             .is_some_and(|t| t.checks.len() == 3),
-        "every gate landed on the named step"
+        "every check landed on the named step"
     );
     let done = engines.plan_task("work").unwrap().expect("the task");
     assert_eq!(done.status, TaskStatus::Done);
@@ -1696,7 +1696,7 @@ async fn a_judged_completion_names_the_step_its_gates_were_recorded_on() {
 /// On a polyglot project the loop runs the set completion verifies: one
 /// spec per archetype command in the archetype's directory, the project's
 /// own command once however many archetypes name it, and the required
-/// custom gates — under the names and commands the contracts carry, so
+/// custom checks — under the names and commands the contracts carry, so
 /// the judged completion stands on the loop's own check_results.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_two_archetype_project_completes_through_the_loops_own_check_results() {
@@ -1721,7 +1721,7 @@ async fn a_two_archetype_project_completes_through_the_loops_own_check_results()
     assert_eq!(
         names,
         ["check", "test:api", "test:web", "lint", "smoke"],
-        "the contracts, in their order, deduplicated, without the optional gate: {names:?}"
+        "the contracts, in their order, deduplicated, without the optional check: {names:?}"
     );
     for check in &checks {
         assert!(check.passed, "{} passed: {}", check.name, check.details);
@@ -1750,10 +1750,10 @@ async fn a_two_archetype_project_completes_through_the_loops_own_check_results()
     );
 }
 
-/// A required custom gate is part of the loop's set: red, it is a
+/// A required custom check is part of the loop's set: red, it is a
 /// disagreement with the judge and the task stays where it is.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_red_required_custom_gate_refuses_the_judged_completion() {
+async fn a_red_required_custom_check_refuses_the_judged_completion() {
     let dir = polyglot_project("test -f web.marker", "exit 3");
     let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("looks done to me")]);
@@ -1772,26 +1772,26 @@ async fn a_red_required_custom_gate_refuses_the_judged_completion() {
     assert_ne!(
         engines.plan_task("work").unwrap().expect("the task").status,
         TaskStatus::Done,
-        "a red required custom gate cannot be judged green"
+        "a red required custom check cannot be judged green"
     );
     let stage = stage_text(&model);
     assert!(
-        stage.contains("but the gates disagree: smoke failed — the task stays in progress"),
+        stage.contains("but the checks disagree: smoke failed — the task stays in progress"),
         "{stage}"
     );
 
     let smoke = recorded(&engines)
         .into_iter()
         .find(|c| c.name == "smoke")
-        .expect("the custom gate is on the record");
+        .expect("the custom check is on the record");
     assert!(!smoke.passed);
     assert_eq!(smoke.exit_code, Some(3));
     assert_eq!(smoke.command.as_deref(), Some("exit 3"));
 }
 
-/// A gate configuration that cannot be resolved when the set is due —
+/// A check configuration that cannot be resolved when the set is due —
 /// the agent's turn broke project.json — is a failed iteration, not a
-/// green one with "no quality gates configured": completion would refuse
+/// green one with "no checks configured": completion would refuse
 /// the same configuration, so the loop says so and pauses on it.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_set_that_cannot_be_resolved_fails_the_iteration_instead_of_passing_empty() {
@@ -1820,20 +1820,20 @@ async fn a_set_that_cannot_be_resolved_fails_the_iteration_instead_of_passing_em
 
     let stage = stage_text(&model);
     assert!(
-        stage.contains("quality gates not resolved — nothing ran: parse gate configuration"),
+        stage.contains("checks not resolved — nothing ran: parse check configuration"),
         "{stage}"
     );
     assert!(
-        !stage.contains("no quality gates configured") && !stage.contains("gates passed"),
+        !stage.contains("no checks configured") && !stage.contains("checks passed"),
         "never read as green or unconfigured: {stage}"
     );
 }
 
-/// A required archetype gate cannot disappear behind a green top-level
+/// A required archetype check cannot disappear behind a green top-level
 /// command: the top-level `test` is `true`, the web archetype's is red,
 /// and the loop runs the archetype's.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_required_archetype_gate_cannot_disappear_behind_a_green_top_level_command() {
+async fn a_required_archetype_check_cannot_disappear_behind_a_green_top_level_command() {
     let dir = polyglot_project("exit 5", "true");
     let engines = engines_with_active_step(dir.path());
     let judge = Scripted::new([Verdict::met("looks done to me")]);
@@ -1852,19 +1852,19 @@ async fn a_required_archetype_gate_cannot_disappear_behind_a_green_top_level_com
     let web = recorded(&engines)
         .into_iter()
         .find(|c| c.name == "test:web")
-        .expect("the archetype's gate is on the record under the contract's name");
+        .expect("the archetype's check is on the record under the contract's name");
     assert!(!web.passed);
     assert_eq!(web.exit_code, Some(5));
     assert_eq!(web.command.as_deref(), Some("cd web && exit 5"));
     assert!(
-        stage_text(&model).contains("the gates disagree: test:web failed"),
+        stage_text(&model).contains("the checks disagree: test:web failed"),
         "{}",
         stage_text(&model)
     );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_ok_verdict_over_a_red_gate_is_a_disagreement_and_the_task_stays() {
+async fn an_ok_verdict_over_a_red_check_is_a_disagreement_and_the_task_stays() {
     let dir = project("true", "true", "false");
     let engines = engines_with_work(dir.path());
     let judge = Scripted::new([Verdict::met("looks done to me")]);
@@ -1883,12 +1883,12 @@ async fn an_ok_verdict_over_a_red_gate_is_a_disagreement_and_the_task_stays() {
     assert_ne!(
         engines.plan_task("work").unwrap().expect("the task").status,
         TaskStatus::Done,
-        "a red gate cannot be judged green"
+        "a red check cannot be judged green"
     );
     let stage = stage_text(&model);
     assert!(
         stage.contains(
-            "error: the judge says work is met (looks done to me) but the gates disagree: lint failed — the task stays in progress"
+            "error: the judge says work is met (looks done to me) but the checks disagree: lint failed — the task stays in progress"
         ),
         "{stage}"
     );
@@ -2206,24 +2206,24 @@ fn the_driver_relies_on_nothing_beyond_the_optimistic_echo() {
 
 /// The three cargos contend for one build lock on one target directory,
 /// so racing them buys no wall clock and costs the ability to say which
-/// gate spent which second. Each gate here writes an `s` when it starts
+/// check spent which second. Each check here writes an `s` when it starts
 /// and an `e` when it ends: serialized that is `sesese`, and any overlap
 /// shows up as two `s` in a row.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn the_gates_run_one_at_a_time_not_three_at_once() {
-    let mark = "printf s >> gates.log; sleep 0.15; printf e >> gates.log";
+async fn the_checks_run_one_at_a_time_not_three_at_once() {
+    let mark = "printf s >> checks.log; sleep 0.15; printf e >> checks.log";
     let dir = project(mark, mark, mark);
     let script = Actions::new().command(MS(4_000), Cmd::Quit);
     let (_, report, _) = run(dir.path(), 1, script, FakeAcpAgent::new(), false).await;
 
     assert_eq!(report.end(), &LoopEnd::MaxIterations(1));
-    let log = std::fs::read_to_string(dir.path().join("gates.log")).expect("the gates ran");
-    assert_eq!(log, "sesese", "the gates overlapped: {log}");
+    let log = std::fs::read_to_string(dir.path().join("checks.log")).expect("the checks ran");
+    assert_eq!(log, "sesese", "the checks overlapped: {log}");
 }
 
-/// A failed gate is recorded once and returned for diagnosis.
+/// A failed check is recorded once and returned for diagnosis.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_red_required_gate_is_not_repeated_without_a_correction() {
+async fn a_red_required_check_is_not_repeated_without_a_correction() {
     let dir = project("true", "true", "printf x >> attempts.log; exit 3");
     let script = Actions::new().command(MS(3_000), Cmd::Quit);
     let (model, _, _) = run(dir.path(), 1, script, FakeAcpAgent::new(), true).await;
@@ -2234,7 +2234,7 @@ async fn a_red_required_gate_is_not_repeated_without_a_correction() {
         "a failing command is not retried speculatively: {notes:?}"
     );
     assert!(
-        notes.contains(&"error: quality gates failed: lint failed".to_owned()),
+        notes.contains(&"error: checks failed: lint failed".to_owned()),
         "the first failure is preserved: {notes:?}"
     );
     assert_eq!(
@@ -2258,36 +2258,36 @@ async fn a_transient_failure_stays_failed_until_an_explicit_rerun() {
         "no speculative retry: {notes:?}"
     );
     assert!(
-        notes.iter().any(|n| n.contains("quality gates failed")),
+        notes.iter().any(|n| n.contains("checks failed")),
         "{notes:?}"
     );
 }
 
-/// The loop's gates are the contracts native completion verifies,
+/// The loop's checks are the contracts native completion verifies,
 /// resolved through the same evidence capability completion asks —
-/// never the top-level `quality_gate` alone, and never a second
+/// never the top-level `checks` alone, and never a second
 /// resolution beside the capability's.
 #[test]
-fn the_loop_resolves_its_gates_through_the_evidence_capability() {
+fn the_loop_resolves_its_checks_through_the_evidence_capability() {
     let driver = include_str!("driver.rs");
     assert!(
         driver.contains(".config().evidence())")
-            && driver.contains(".required_gates()")
-            && driver.contains("WorkspaceEvidence::gate_contracts("),
-        "the loop asks the admitted writer's evidence capability for the project's required gates, and the one resolver behind it without a writer"
+            && driver.contains(".required_checks()")
+            && driver.contains("WorkspaceEvidence::check_contracts("),
+        "the loop asks the admitted writer's evidence capability for the project's required checks, and the one resolver behind it without a writer"
     );
     assert!(
-        !driver.contains("gate_command("),
-        "the loop does not read the top-level quality_gate on its own"
+        !driver.contains("check_command("),
+        "the loop does not read the top-level checks on its own"
     );
     assert!(
-        !driver.contains("resolve_gates("),
-        "the loop does not resolve gates beside the capability"
+        !driver.contains("resolve_checks("),
+        "the loop does not resolve checks beside the capability"
     );
 }
 
 /// A run trace with one active step, the way the agent's own
-/// `magistr mcp` leaves one behind for the loop's gates to record
+/// `magistr mcp` leaves one behind for the loop's checks to record
 /// into.
 fn engines_with_active_step(dir: &Path) -> NativeEngines {
     let engines = engines_with_work(dir);
@@ -2321,12 +2321,12 @@ fn recorded(engines: &NativeEngines) -> Vec<magistr_workflow::run::domain::check
         .collect()
 }
 
-/// The gates the loop runs between iterations used to write nothing at
-/// all, while the agent's own `magistr_gate` wrote verified records
+/// The checks the loop runs between iterations used to write nothing at
+/// all, while the agent's own `magistr_check` wrote verified records
 /// beside them. Each one is now a verified check with its real exit code,
 /// its command and its output.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn every_gate_the_loop_runs_reaches_the_trace_as_a_verified_check() {
+async fn every_check_the_loop_runs_reaches_the_trace_as_a_verified_check() {
     let dir = project("true", "echo ran-the-tests", "exit 4");
     let engines = engines_with_active_step(dir.path());
     let script = Actions::new();
@@ -2368,7 +2368,7 @@ async fn every_gate_the_loop_runs_reaches_the_trace_as_a_verified_check() {
 
 /// Preserve the first execution and leave subsequent checks unexecuted.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn the_original_failed_execution_is_recorded_and_later_gates_do_not_run() {
+async fn the_original_failed_execution_is_recorded_and_later_checks_do_not_run() {
     let flake = "if [ -e flake.marker ]; then exit 0; else touch flake.marker; exit 9; fi";
     let dir = project("true", flake, "true");
     let engines = engines_with_active_step(dir.path());
@@ -2402,9 +2402,9 @@ async fn the_original_failed_execution_is_recorded_and_later_gates_do_not_run() 
 
 /// A green `cargo nextest` on a large workspace emits hundreds of KB of
 /// PASS lines, and the store is re-read and merge-written whole on every
-/// mutation. A passing gate keeps its tail; a red one keeps everything.
+/// mutation. A passing check keeps its tail; a red one keeps everything.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_passing_gate_does_not_persist_its_whole_output_and_a_red_one_does() {
+async fn a_passing_check_does_not_persist_its_whole_output_and_a_red_one_does() {
     let noisy = "for i in $(seq 1 4000); do echo 'PASS some::test::name'; done";
     let dir = project(
         "true",
@@ -2429,7 +2429,7 @@ async fn a_passing_gate_does_not_persist_its_whole_output_and_a_red_one_does() {
     let red = checks.iter().find(|c| c.name == "lint").expect("lint");
     assert!(
         green.details.len() < 4_000,
-        "a green gate keeps its tail, not 4000 PASS lines: {} bytes",
+        "a green check keeps its tail, not 4000 PASS lines: {} bytes",
         green.details.len()
     );
     assert!(
@@ -2439,16 +2439,16 @@ async fn a_passing_gate_does_not_persist_its_whole_output_and_a_red_one_does() {
     );
     assert!(
         red.details.len() > 50_000,
-        "a red gate keeps everything: {} bytes",
+        "a red check keeps everything: {} bytes",
         red.details.len()
     );
 }
 
 /// A loop with no magistr engines cannot record, and says so once
 /// rather than silently recording nothing — the same honesty
-/// `magistr_gate`'s own `recorded: false` note carries.
+/// `magistr_check`'s own `recorded: false` note carries.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_loop_without_the_engines_says_the_gates_were_not_recorded() {
+async fn a_loop_without_the_engines_says_the_checks_were_not_recorded() {
     let dir = project("true", "true", "true");
     let script = Actions::new().command(MS(3_000), Cmd::Quit);
     let (model, _, _) = run(dir.path(), 1, script, FakeAcpAgent::new(), false).await;
@@ -2456,12 +2456,12 @@ async fn a_loop_without_the_engines_says_the_gates_were_not_recorded() {
     let notes = notes(&model);
     let said: Vec<&String> = notes
         .iter()
-        .filter(|n| n.contains("gates not recorded"))
+        .filter(|n| n.contains("checks not recorded"))
         .collect();
     assert_eq!(
         said.len(),
         1,
-        "once for the set, not once per gate: {said:?}"
+        "once for the set, not once per check: {said:?}"
     );
     assert!(
         said[0].contains("no workflow engines"),
@@ -2472,7 +2472,7 @@ async fn a_loop_without_the_engines_says_the_gates_were_not_recorded() {
 /// The engines are there but nobody opened a step to record against: the
 /// refusal reaches the stage instead of being swallowed.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_store_with_no_active_step_says_why_the_gates_were_not_recorded() {
+async fn a_store_with_no_active_step_says_why_the_checks_were_not_recorded() {
     let dir = project("true", "true", "true");
     let engines = engines_with_work(dir.path());
     let script = Actions::new().command(MS(3_000), Cmd::Quit);
@@ -2491,7 +2491,7 @@ async fn a_store_with_no_active_step_says_why_the_gates_were_not_recorded() {
     let notes = notes(&model);
     let said: Vec<&String> = notes
         .iter()
-        .filter(|n| n.contains("gates not recorded"))
+        .filter(|n| n.contains("checks not recorded"))
         .collect();
     assert_eq!(said.len(), 1, "once for the set: {said:?}");
     assert!(
@@ -2502,7 +2502,7 @@ async fn a_store_with_no_active_step_says_why_the_gates_were_not_recorded() {
 
 /// A failed required check leaves unfinished work in progress.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_red_gate_keeps_the_task_in_progress() {
+async fn a_red_check_keeps_the_task_in_progress() {
     let dir = project("true", "true", "exit 3");
     let engines = engines_with_work(dir.path());
     let agent_side = agent_side(&engines);
@@ -2533,18 +2533,18 @@ async fn a_red_gate_keeps_the_task_in_progress() {
     );
     let notes = notes(&model);
     assert!(
-        notes.iter().any(|n| n.contains("quality gates failed")),
+        notes.iter().any(|n| n.contains("checks failed")),
         "the stage names the failed verification: {notes:?}"
     );
     assert!(
         notes.iter().any(|n| n.contains("lint")),
-        "and the gate that caused it: {notes:?}"
+        "and the check that caused it: {notes:?}"
     );
 }
 
-/// Green gates leave a self-completed task exactly as the agent left it.
+/// Green checks leave a self-completed task exactly as the agent left it.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn green_gates_leave_a_self_completed_task_done() {
+async fn green_checks_leave_a_self_completed_task_done() {
     let dir = project("true", "true", "true");
     let engines = engines_with_work(dir.path());
     let agent_side = agent_side(&engines);
@@ -2585,7 +2585,7 @@ async fn green_gates_leave_a_self_completed_task_done() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn recorded_verification_survives_finalization_without_running_unrelated_gates() {
+async fn recorded_verification_survives_finalization_without_running_unrelated_checks() {
     use magistr_workflow::run::domain::goal::VerificationMode;
     use magistr_workflow::run::domain::step::StepType;
 
@@ -2607,7 +2607,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
         let command = if full {
             "true"
         } else {
-            "echo unexpected > unexpected-gate; exit 9"
+            "echo unexpected > unexpected-check; exit 9"
         };
         let dir = project(command, command, command);
         std::fs::write(dir.path().join("work.txt"), "verified work").unwrap();
@@ -2698,8 +2698,8 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
         .await;
         let stage = stage_text(&model);
 
-        assert!(!dir.path().join("unexpected-gate").exists(), "{case}");
-        assert!(!stage.contains("gates not recorded"), "{case}: {stage}");
+        assert!(!dir.path().join("unexpected-check").exists(), "{case}");
+        assert!(!stage.contains("checks not recorded"), "{case}: {stage}");
 
         if valid {
             assert!(
@@ -2716,10 +2716,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                 }),
                 "{case}: {stage}"
             );
-            assert!(
-                !stage.contains("no quality gates configured"),
-                "{case}: {stage}"
-            );
+            assert!(!stage.contains("no checks configured"), "{case}: {stage}");
             assert_eq!(
                 engines.plan_task("work").unwrap().unwrap().status,
                 TaskStatus::Done,
@@ -2736,7 +2733,7 @@ async fn recorded_verification_survives_finalization_without_running_unrelated_g
                 assert_eq!(asked.len(), 1);
                 assert_eq!(asked[0].recorded_checks, ["document links"]);
                 assert!(asked[0].prompt().contains("recorded check; current source"));
-                assert!(!asked[0].prompt().contains("no gates are configured"));
+                assert!(!asked[0].prompt().contains("no checks are configured"));
             } else {
                 assert!(
                     judge.asked().is_empty(),
@@ -2788,7 +2785,7 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
     use magistr_workflow::run::domain::goal::VerificationMode;
     use magistr_workflow::run::domain::step::StepType;
 
-    let unexpected = "echo unexpected > unexpected-gate; exit 9";
+    let unexpected = "echo unexpected > unexpected-check; exit 9";
     let dir = project(unexpected, unexpected, unexpected);
     let engines = engines_with_work(dir.path());
     let agent_side = agent_side(&engines);
@@ -2869,7 +2866,7 @@ async fn an_item_the_agent_split_is_verified_by_the_part_it_completed() {
         "{stage}"
     );
     assert!(!stage.contains("belong to different work"), "{stage}");
-    assert!(!dir.path().join("unexpected-gate").exists());
+    assert!(!dir.path().join("unexpected-check").exists());
 
     assert_eq!(
         engines.plan_task("work-part").unwrap().unwrap().status,
@@ -2948,11 +2945,11 @@ async fn completed_evidence_is_not_rerun_to_reopen_a_task() {
     );
 }
 
-/// The next iteration's prompt carries the failure rows the gate named,
-/// not a sentence about them — which is only possible because the gates
+/// The next iteration's prompt carries the failure rows the check named,
+/// not a sentence about them — which is only possible because the checks
 /// keep their output now.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn the_next_iterations_prompt_carries_the_rows_the_red_gate_named() {
+async fn the_next_iterations_prompt_carries_the_rows_the_red_check_named() {
     let lint = "echo 'error[E0308]: mismatched types'; echo '  --> src/late.rs:7:3'; exit 1";
     let dir = project("true", "true", lint);
     let script = Actions::new().command(MS(8_000), Cmd::Quit);
@@ -2961,12 +2958,12 @@ async fn the_next_iterations_prompt_carries_the_rows_the_red_gate_named() {
     assert_eq!(report.iterations(), 2);
     assert_eq!(prompts.len(), 2, "two turns");
     assert!(
-        !prompts[0].contains("quality gates failed"),
+        !prompts[0].contains("checks failed"),
         "the first iteration carries nothing"
     );
     let carried = &prompts[1];
     assert!(
-        carried.contains("The last iteration's quality gates failed"),
+        carried.contains("The last iteration's checks failed"),
         "{carried}"
     );
     assert!(
@@ -2997,7 +2994,7 @@ async fn the_carry_is_appended_once_and_never_accumulated() {
     assert_eq!(report.iterations(), 2);
     assert_eq!(
         prompts[1]
-            .matches("The last iteration's quality gates failed")
+            .matches("The last iteration's checks failed")
             .count(),
         1,
         "one brief, taken not read: {}",
@@ -3007,7 +3004,7 @@ async fn the_carry_is_appended_once_and_never_accumulated() {
 
 /// The judge cannot complete unfinished work over a failed required check.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_red_gate_overrules_the_judges_completion_claim() {
+async fn a_red_check_overrules_the_judges_completion_claim() {
     let dir = project("true", "true", "exit 3");
     let engines = engines_with_work(dir.path());
     let agent_side = agent_side(&engines);
@@ -3039,8 +3036,8 @@ async fn a_red_gate_overrules_the_judges_completion_claim() {
     );
     let notes = notes(&model);
     assert!(
-        notes.iter().any(|n| n.contains("the gates disagree")),
-        "met over a red gate is a disagreement, never a completion: {notes:?}"
+        notes.iter().any(|n| n.contains("the checks disagree")),
+        "met over a red check is a disagreement, never a completion: {notes:?}"
     );
 
     assert_eq!(
@@ -3060,7 +3057,7 @@ fn checkpoint(dir: &Path) -> crate::workflow::iteration::IterationState {
 }
 
 /// Every operation the iteration dispatched — the attempt's reservation,
-/// the provider dispatch, one check_result per gate, the two native mutations
+/// the provider dispatch, one check_result per check, the two native mutations
 /// the judged completion needs and the frame that announced it — is in
 /// the checkpoint with a settled outcome, scoped to one run, so a crash
 /// at any point between them would have left recovery a record to ask
@@ -3093,9 +3090,9 @@ async fn a_judged_iteration_leaves_every_operation_settled_in_the_checkpoint() {
         .collect();
     seen.sort_by(|a, b| (a.0.as_str(), &a.1).cmp(&(b.0.as_str(), &b.1)));
     let expected = [
-        (OperationKind::CheckResult, "gate:check@step:impl"),
-        (OperationKind::CheckResult, "gate:lint@step:impl"),
-        (OperationKind::CheckResult, "gate:test@step:impl"),
+        (OperationKind::CheckResult, "check:check@step:impl"),
+        (OperationKind::CheckResult, "check:lint@step:impl"),
+        (OperationKind::CheckResult, "check:test@step:impl"),
         (OperationKind::NativeMutation, "complete_task:work"),
         (OperationKind::NativeMutation, "start_task:work"),
         (OperationKind::ProviderDispatch, "dispatch"),
@@ -3124,7 +3121,7 @@ async fn a_judged_iteration_leaves_every_operation_settled_in_the_checkpoint() {
                 .expect("the ledger reads")
                 .unwrap_or_else(|| panic!("check_result {id} for {target} is in the ledger"));
             assert_eq!(check_result.target.step_id, "impl");
-            assert!(target.starts_with(&format!("gate:{}@", check_result.gate)));
+            assert!(target.starts_with(&format!("check:{}@", check_result.check)));
             assert!(
                 check_result.is_applied(),
                 "{target}: {:?}",

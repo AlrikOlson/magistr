@@ -9,7 +9,7 @@ use magistr_workflow::run::domain::step::Step;
 /// this value.
 ///
 /// A goal must be set and at least one step planned before the
-/// first source edit (`execute`), and at least one quality gate must be
+/// first source edit (`execute`), and at least one check must be
 /// recorded before the iteration is declared `done`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct RunGuardState {
@@ -17,7 +17,7 @@ pub struct RunGuardState {
     pub goal_set: bool,
     /// Steps in the current plan (`arrange_steps` adds).
     pub steps_planned: usize,
-    /// Quality gates recorded on the current plan's steps (`check_step`).
+    /// Checks recorded on the current plan's steps (`check_step`).
     pub checks_recorded: usize,
 }
 
@@ -46,7 +46,7 @@ impl RunGuardState {
         self.goal_set && self.steps_planned > 0
     }
 
-    /// At least one quality gate has been recorded on the current plan.
+    /// At least one check has been recorded on the current plan.
     #[must_use]
     pub fn has_check(&self) -> bool {
         self.checks_recorded > 0
@@ -67,8 +67,8 @@ impl RunGuardState {
                 self.goal_set, self.steps_planned
             )),
             "done" if !self.has_check() => Some(
-                "No quality gate recorded on this plan. Run the gates through \
-                 magistr_gate (recorded via check_step) or check_step(command:) before \
+                "No check recorded on this plan. Run the checks through \
+                 magistr_check (recorded via check_step) or check_step(command:) before \
                  declaring the iteration done."
                     .to_owned(),
             ),

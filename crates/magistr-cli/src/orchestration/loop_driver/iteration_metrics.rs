@@ -19,8 +19,8 @@ use std::time::Duration;
 pub struct IterationMetrics {
     /// The agent's turn, connection included.
     pub turn: Duration,
-    /// The quality gates, all of them, as they ran.
-    pub gates: Duration,
+    /// The checks, all of them, as they ran.
+    pub checks: Duration,
     /// The judge's verdict, connection included, when one was asked.
     pub judge: Option<Duration>,
     /// Tokens in the agent's context at the end of the turn.
@@ -29,7 +29,12 @@ pub struct IterationMetrics {
 
 impl fmt::Display for IterationMetrics {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "turn {} · gates {}", clock(self.turn), clock(self.gates))?;
+        write!(
+            f,
+            "turn {} · checks {}",
+            clock(self.turn),
+            clock(self.checks)
+        )?;
         if let Some(judge) = self.judge {
             write!(f, " · judge {}", clock(judge))?;
         }

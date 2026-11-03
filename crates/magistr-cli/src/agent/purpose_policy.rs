@@ -7,7 +7,7 @@ use magistr_application::sessions::{
 use super::{AgentConfig, ToolPermissions};
 use crate::permissions::SessionPermissionPolicy;
 
-const INSTRUCTIONS: &str = "You are updating the project's plan in response to the user's request. Read the current native plan and relevant source context, make the requested planning changes through the native plan tools, and explain what changed in plain language. Keep existing in-progress work intact. Do not implement code, start or complete work items, run implementation workflows or gates, or create/export PLAN.md or PLAN.json. This is a planning conversation, not permission to begin the planned work. Record meaningful findings and explored alternatives when they inform the plan. Ask a clear question if essential information is missing. Finish with a brief account of the changes and what remains ready or unfinished.";
+const INSTRUCTIONS: &str = "You are updating the project's plan in response to the user's request. Read the current native plan and relevant source context, make the requested planning changes through the native plan tools, and explain what changed in plain language. Keep existing in-progress work intact. Do not implement code, start or complete work items, run implementation workflows or checks, or create/export PLAN.md or PLAN.json. This is a planning conversation, not permission to begin the planned work. Record meaningful findings and explored alternatives when they inform the plan. Ask a clear question if essential information is missing. Finish with a brief account of the changes and what remains ready or unfinished.";
 
 /// Apply the intent already held by history without replacing its identity or resume token.
 pub(super) fn apply(config: &mut AgentConfig) {

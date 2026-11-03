@@ -2,8 +2,12 @@ use super::*;
 
 fn declare(root: &Path, id: &str) {
     std::fs::create_dir_all(root.join(PROJECT_DIR)).unwrap();
-    std::fs::write(root.join(PROJECT_DIR).join(PROJECT_FILE),
-        serde_json::json!({"project":{"id":id,"name":"Example"},"quality_gate":{"test":"cargo test"}}).to_string()).unwrap();
+    std::fs::write(
+        root.join(PROJECT_DIR).join(PROJECT_FILE),
+        serde_json::json!({"project":{"id":id,"name":"Example"},"checks":{"test":"cargo test"}})
+            .to_string(),
+    )
+    .unwrap();
 }
 
 #[test]

@@ -157,7 +157,7 @@ impl AgentGoal {
     /// The condition a delegated iteration hands the agent, compiled
     /// for its evaluator: it names the task, points at the project's
     /// own `/next` workflow, and — because the evaluator reads the
-    /// transcript only — tells the agent to run the gates and print
+    /// transcript only — tells the agent to run the checks and print
     /// their verdict. Canonicalised (whitespace collapsed) and held
     /// under [`Self::OBJECTIVE_CAP`] by trimming the title first, so the
     /// agent never refuses it as too long. `task` is `(id, title)`, or
@@ -172,7 +172,7 @@ impl AgentGoal {
         let title = task.map(|(_, title)| canonical(title)).unwrap_or_default();
         let tail = " — run the /next workflow for it until every acceptance criterion \
                     plan_get lists is met, run `magistr validate` and print its verdict \
-                    line in the transcript, every gate passes, and the work is committed.";
+                    line in the transcript, every check passes, and the work is committed.";
         let room = Self::OBJECTIVE_CAP.saturating_sub(out.chars().count() + tail.chars().count());
         if !title.is_empty() && room > 8 {
             let title = if title.chars().count() > room - 4 {

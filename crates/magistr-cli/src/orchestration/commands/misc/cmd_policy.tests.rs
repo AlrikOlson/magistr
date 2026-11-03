@@ -16,7 +16,7 @@ fn governed_project() -> tempfile::TempDir {
     config.policy = GovernancePolicy {
         tool_denylist: vec!["WebFetch".into()],
         protected_paths: vec!["*.env".into()],
-        required_gates: vec!["test".into()],
+        required_checks: vec!["test".into()],
         approved_models: vec!["claude-*".into()],
         max_model_tier: Some(ModelTier::Standard),
         ..GovernancePolicy::default()

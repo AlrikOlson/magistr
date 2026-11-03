@@ -1,5 +1,5 @@
 use super::*;
-use magistr_core::types::{FormatConfig, ProjectRole, QualityGate, TestingConfig};
+use magistr_core::types::{FormatConfig, ProjectRole, StandardChecks, TestingConfig};
 
 fn archetype(id: &str, root: &str) -> Archetype {
     Archetype {
@@ -9,7 +9,7 @@ fn archetype(id: &str, root: &str) -> Archetype {
         framework: None,
         root: root.into(),
         role: ProjectRole::Backend,
-        quality_gate: QualityGate {
+        checks: StandardChecks {
             check: "cargo check".to_owned(),
             test: "cargo test".to_owned(),
             lint: "cargo clippy".to_owned(),

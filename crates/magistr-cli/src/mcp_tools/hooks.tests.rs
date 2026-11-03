@@ -20,7 +20,7 @@ fn setup_hooks_project() -> (TempDir, std::path::PathBuf) {
                 "linter": "clippy",
                 "formatter": "rustfmt"
             },
-            "quality_gate": {
+            "checks": {
                 "check": "echo check",
                 "test": "echo test",
                 "lint": "echo lint"
@@ -82,12 +82,12 @@ fn parse_event_simple_events() {
         Some(LifecycleEvent::OnIterationEnd)
     );
     assert_eq!(
-        parse_event("on_gate_pass"),
-        Some(LifecycleEvent::OnGatePass)
+        parse_event("on_check_pass"),
+        Some(LifecycleEvent::OnCheckPass)
     );
     assert_eq!(
-        parse_event("on_gate_fail"),
-        Some(LifecycleEvent::OnGateFail)
+        parse_event("on_check_fail"),
+        Some(LifecycleEvent::OnCheckFail)
     );
 }
 
@@ -102,8 +102,8 @@ fn parse_event_invalid() {
 #[test]
 fn parse_event_with_whitespace() {
     assert_eq!(
-        parse_event("  on_gate_pass  "),
-        Some(LifecycleEvent::OnGatePass)
+        parse_event("  on_check_pass  "),
+        Some(LifecycleEvent::OnCheckPass)
     );
 }
 
@@ -157,7 +157,7 @@ async fn hooks_add_duplicate_rejected() {
     // First add succeeds
     let result = add_tool
         .invoke(serde_json::json!({
-            "event": "on_gate_pass",
+            "event": "on_check_pass",
             "tool": "my_tool"
         }))
         .await
@@ -167,7 +167,7 @@ async fn hooks_add_duplicate_rejected() {
     // Duplicate is rejected
     let result = add_tool
         .invoke(serde_json::json!({
-            "event": "on_gate_pass",
+            "event": "on_check_pass",
             "tool": "my_tool"
         }))
         .await
@@ -202,11 +202,11 @@ async fn hooks_remove_by_index() {
 
     // Add two hooks
     add_tool
-        .invoke(serde_json::json!({ "event": "on_gate_pass", "tool": "tool_a" }))
+        .invoke(serde_json::json!({ "event": "on_check_pass", "tool": "tool_a" }))
         .await
         .unwrap();
     add_tool
-        .invoke(serde_json::json!({ "event": "on_gate_fail", "tool": "tool_b" }))
+        .invoke(serde_json::json!({ "event": "on_check_fail", "tool": "tool_b" }))
         .await
         .unwrap();
 
@@ -229,12 +229,12 @@ async fn hooks_remove_by_event_and_name() {
     let remove_tool = server.get_tool("magistr_hooks_remove").unwrap();
 
     add_tool
-        .invoke(serde_json::json!({ "event": "on_gate_pass", "tool": "tool_a" }))
+        .invoke(serde_json::json!({ "event": "on_check_pass", "tool": "tool_a" }))
         .await
         .unwrap();
 
     let result = remove_tool
-        .invoke(serde_json::json!({ "event": "on_gate_pass", "name": "tool_a" }))
+        .invoke(serde_json::json!({ "event": "on_check_pass", "name": "tool_a" }))
         .await
         .unwrap();
     let text = extract_text(&result);
@@ -249,7 +249,7 @@ async fn hooks_remove_not_found() {
     let remove_tool = server.get_tool("magistr_hooks_remove").unwrap();
 
     let result = remove_tool
-        .invoke(serde_json::json!({ "event": "on_gate_pass", "name": "nonexistent" }))
+        .invoke(serde_json::json!({ "event": "on_check_pass", "name": "nonexistent" }))
         .await
         .unwrap();
     let text = extract_text(&result);

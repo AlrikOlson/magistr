@@ -24,8 +24,8 @@ fn junit_failures_become_rows_once() {
         ]}
     }))
     .expect("a check record");
-    let mut rows = vec![magistr_core::GateFailureRow {
-        severity: magistr_core::GateRowSeverity::TestFailure,
+    let mut rows = vec![magistr_core::CheckFailureRow {
+        severity: magistr_core::CheckRowSeverity::TestFailure,
         code: None,
         message: "test a::seen ... FAILED".to_owned(),
         file: None,

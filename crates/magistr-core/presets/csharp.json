@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "dotnet build --no-restore",
     "test": "dotnet test --no-build",
     "lint": "dotnet format --verify-no-changes"

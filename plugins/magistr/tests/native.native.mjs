@@ -140,7 +140,7 @@ test(
             linter: 'clippy',
             formatter: 'rustfmt',
           },
-          quality_gate: { check: 'echo checked', test: '', lint: '' },
+          checks: { check: 'echo checked', test: '', lint: '' },
           format: { command: 'echo formatted', extensions: ['rs'] },
           testing: {
             companion_pattern: '{name}.tests.rs',
@@ -282,11 +282,11 @@ test(
       assert.equal(phase(context, current), 'Checking')
       assert.equal(context.step.record.title, 'Verify the connection')
       await assert.rejects(() => call('context', { step_id: 'missing' }))
-      const gate = await call('magistr_gate', {
-        gate: 'check',
+      const check = await call('magistr_check', {
+        check: 'check',
         timeout_secs: 10,
       })
-      const result = decode(gate)
+      const result = decode(check)
       assert.equal(result.passed, true)
       assert.equal(result.recorded, true)
       const check_result = validate(

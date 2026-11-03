@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "dotnet build --warnaserror --no-restore",
     "test": "dotnet test --no-build"
   },

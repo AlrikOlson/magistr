@@ -22,7 +22,7 @@ fn language_preset_without_framework_keeps_rust_commands() {
         &LayerOptions::default(),
     )
     .unwrap();
-    assert!(preset.quality_gate.check.contains("cargo check"));
+    assert!(preset.checks.check.contains("cargo check"));
 }
 
 #[test]
@@ -34,7 +34,7 @@ fn framework_layer_replaces_the_language_commands() {
         &LayerOptions::default(),
     )
     .unwrap();
-    assert!(preset.quality_gate.check.contains("next lint"));
+    assert!(preset.checks.check.contains("next lint"));
 }
 
 #[test]
@@ -46,7 +46,7 @@ fn package_manager_layer_replaces_the_language_commands() {
         &LayerOptions::default(),
     )
     .unwrap();
-    assert!(preset.quality_gate.check.contains("gradlew"));
+    assert!(preset.checks.check.contains("gradlew"));
 }
 
 // ── Extended layered pipeline ───────────────────────────────────
@@ -118,7 +118,7 @@ fn layered_all_layers_combined() {
     .unwrap();
 
     // Framework applied
-    assert!(preset.quality_gate.check.contains("--all-targets"));
+    assert!(preset.checks.check.contains("--all-targets"));
     // Database tools added
     assert!(preset.allowed_tools.iter().any(|t| t.contains("sqlx")));
     // CI tools added
@@ -141,7 +141,7 @@ fn layered_unknown_database_slug_skipped() {
     .unwrap();
 
     // Should still work — unknown slug is gracefully skipped
-    assert!(preset.quality_gate.check.contains("cargo check"));
+    assert!(preset.checks.check.contains("cargo check"));
 }
 
 #[test]
@@ -180,7 +180,7 @@ fn the_supplied_user_override_is_the_final_layer() {
     std::fs::write(
         dir.path().join("rust.json"),
         r#"{
-            "quality_gate": { "check": "user-specific check" },
+            "checks": { "check": "user-specific check" },
             "extra_allowed_tools": ["Bash(user-tool:*)"]
         }"#,
     )
@@ -196,7 +196,7 @@ fn the_supplied_user_override_is_the_final_layer() {
     )
     .unwrap();
 
-    assert_eq!(preset.quality_gate.check, "user-specific check");
+    assert_eq!(preset.checks.check, "user-specific check");
     assert!(
         preset
             .allowed_tools

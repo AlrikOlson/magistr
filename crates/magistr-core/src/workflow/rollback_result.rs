@@ -12,7 +12,7 @@ pub enum RollbackResult {
         /// Description of what failed.
         failure_reason: String,
     },
-    /// No rollback needed — gates still passing or were already failing.
+    /// No rollback needed — checks still passing or were already failing.
     NotNeeded,
     /// Rollback was needed but failed (e.g., git error).
     Failed(String),

@@ -12,7 +12,7 @@ use super::verdict::Verdict;
 ///
 /// A judge is *asked*, never trusted: whatever it answers goes through
 /// [`Decision::reconcile`](super::Decision::reconcile) against the real
-/// gates before the loop acts. It cannot fail — a transport that cannot
+/// checks before the loop acts. It cannot fail — a transport that cannot
 /// reach its model answers [`Verdict::not_yet`] with the reason, so the
 /// loop iterates rather than wedges.
 pub trait Judge: Send + Sync {

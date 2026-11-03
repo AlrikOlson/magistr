@@ -202,7 +202,7 @@ impl ProjectAuthority {
     /// Open the native engines under this admission for an MCP transport:
     /// the [`UnifiedService`] that serves the four families on the wire,
     /// and the writer over the very same services, so a mutation the
-    /// transport makes for itself (a gate it ran, a phase it recorded) is
+    /// transport makes for itself (a check it ran, a phase it recorded) is
     /// the same handler on the same engines as a tool call from the agent.
     #[must_use]
     pub fn serve(self) -> (UnifiedService, NativeEngines) {

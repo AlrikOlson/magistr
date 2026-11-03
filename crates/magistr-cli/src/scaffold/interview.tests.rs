@@ -58,7 +58,7 @@ fn default_selects_codex_and_claude() {
     let result = InterviewResult::default();
     assert_eq!(result.selected_agents, vec!["codex", "claude"]);
     assert!(result.include_hooks);
-    assert!(result.quality_gate.is_none());
+    assert!(result.checks.is_none());
     assert_eq!(result.project_type, "cli");
 }
 
@@ -94,7 +94,7 @@ fn to_selections_carries_user_choices() {
         description: "My API".into(),
         selected_agents: vec!["cursor".into(), "copilot".into()],
         selected_mcp_servers: vec!["context7".into()],
-        quality_gate: Some(RecommendedQualityGate {
+        checks: Some(RecommendedChecks {
             check: Some("cargo check".into()),
             test: None,
             lint: None,
@@ -107,7 +107,7 @@ fn to_selections_carries_user_choices() {
     assert_eq!(sel.selected_agents, vec!["cursor", "copilot"]);
     assert_eq!(sel.selected_mcp_servers, vec!["context7"]);
     assert_eq!(
-        sel.quality_gate.as_ref().and_then(|g| g.check.as_deref()),
+        sel.checks.as_ref().and_then(|g| g.check.as_deref()),
         Some("cargo check")
     );
     // AI-only fields stay at their defaults.
@@ -151,7 +151,7 @@ fn declining_the_stack_cancels() {
 #[test]
 fn custom_answers_flow_into_the_result() {
     // stack yes, project type 3 (api), description, agents +copilot (toggle 2),
-    // mcp defaults, hooks no, customize gates yes, keep check, override test,
+    // mcp defaults, hooks no, customize checks yes, keep check, override test,
     // keep lint, confirm.
     let script = "\n3\nMy API\n5\n\nn\ny\n\ncargo nextest run\n\n\n";
     let mut reader = Cursor::new(script.as_bytes().to_vec());
@@ -163,12 +163,12 @@ fn custom_answers_flow_into_the_result() {
     assert!(result.selected_agents.contains(&"codex".to_string()));
     assert!(result.selected_agents.contains(&"copilot".to_string()));
     assert!(!result.include_hooks);
-    let gate = result.quality_gate.expect("customized gate");
+    let check = result.checks.expect("customized check");
     assert_eq!(
-        gate.check.as_deref(),
-        Some(sample_preset().quality_gate.check.as_str())
+        check.check.as_deref(),
+        Some(sample_preset().checks.check.as_str())
     );
-    assert_eq!(gate.test.as_deref(), Some("cargo nextest run"));
+    assert_eq!(check.test.as_deref(), Some("cargo nextest run"));
 }
 
 // ── Polyglot tree confirmation ─────────────────────────────────────────
@@ -220,7 +220,7 @@ fn build_extra_mcp_entries_resolves_known_servers() {
 // every prompt answered by Enter must write the same .magistr/project.json
 // and file list as the non-interactive defaults path (`magistr init --yes`),
 // which in turn carries the old wizard's default selections (cursor agent,
-// default-enabled MCP servers, preset hooks and gates).
+// default-enabled MCP servers, preset hooks and checks).
 
 fn write_fixture(root: &std::path::Path, files: &[(&str, &str)]) {
     for (name, content) in files {

@@ -461,7 +461,7 @@ fn wire_cannot_settle_workers_and_restoration_never_reissues_a_permit() {
             AuthorityAction::AcceptWorker {
                 peer: contract().peers[0].clone(),
                 id: "job".into(),
-                receipt: "host verified artifacts, gates and termination".into(),
+                receipt: "host verified artifacts, checks and termination".into(),
             },
         )
         .unwrap();

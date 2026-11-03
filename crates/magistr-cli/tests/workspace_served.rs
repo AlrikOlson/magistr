@@ -698,7 +698,7 @@ async fn red_team_the_allowlist_cannot_be_self_amended_or_shelled_over_the_wire(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn write_creates_a_file_with_content_and_replaces_one_behind_the_same_gate() {
+async fn write_creates_a_file_with_content_and_replaces_one_behind_the_same_check() {
     let big: String = (0..300)
         .map(|i| {
             format!(
@@ -808,7 +808,7 @@ fn rewrite_workspace() -> tempfile::TempDir {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn the_token_flow_gates_a_multi_file_rewrite_and_the_identical_call_with_confirm_applies() {
+async fn the_token_flow_checks_a_multi_file_rewrite_and_the_identical_call_with_confirm_applies() {
     let dir = rewrite_workspace();
     let service = open(dir.path(), &[("edit.confirm_mode", json!("elicit"))]).await;
     let (client, server) = serve(&service, TestClient::plain()).await;
@@ -884,7 +884,7 @@ async fn mrtr_elicitation_applies_on_accept_keeps_the_token_on_decline_and_obeys
     assert!(handler.questions().is_empty(), "the default never elicits");
     close(client, server, service).await;
 
-    // Unattended mode applies once; force_confirm restores the token gate
+    // Unattended mode applies once; force_confirm restores the token check
     // without eliciting a human, even from a client that supports dialogs.
     for forced in [false, true] {
         let dir = rewrite_workspace();

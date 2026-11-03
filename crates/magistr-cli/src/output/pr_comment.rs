@@ -4,7 +4,7 @@
 //! for posting as a GitHub PR comment via `gh pr comment`.
 //!
 //! The summary includes:
-//! - Quality gate results table (gate, status, duration)
+//! - Check results table (check, status, duration)
 //! - Spec progress bar (if iteration context is available)
 //! - Total duration and cost (if available)
 
@@ -60,18 +60,18 @@ pub(crate) fn generate_pr_comment(
         writeln!(md).expect("write to String");
     }
 
-    // Gate results table
-    writeln!(md, "| Gate | Status | Duration |").expect("write to String");
+    // Check results table
+    writeln!(md, "| Check | Status | Duration |").expect("write to String");
     writeln!(md, "|------|--------|----------|").expect("write to String");
 
-    for gate_result in &result.results {
-        let status = if gate_result.passed { "PASS" } else { "FAIL" };
-        let icon = if gate_result.passed { "✅" } else { "❌" };
-        let duration = format!("{:.1}s", gate_result.duration.as_secs_f64());
+    for check_result in &result.results {
+        let status = if check_result.passed { "PASS" } else { "FAIL" };
+        let icon = if check_result.passed { "✅" } else { "❌" };
+        let duration = format!("{:.1}s", check_result.duration.as_secs_f64());
         writeln!(
             md,
             "| {} | {icon} {status} | {duration} |",
-            gate_result.gate.label(),
+            check_result.check.label(),
         )
         .expect("write to String");
     }
@@ -83,14 +83,14 @@ pub(crate) fn generate_pr_comment(
     if result.all_passed() {
         writeln!(
             md,
-            "**All gates passed** in {:.1}s",
+            "**All checks passed** in {:.1}s",
             total_duration.as_secs_f64()
         )
         .expect("write to String");
     } else {
         writeln!(
             md,
-            "**{} gate(s) failed** ({} passed) in {:.1}s",
+            "**{} check(s) failed** ({} passed) in {:.1}s",
             result.failed_count(),
             result.passed_count(),
             total_duration.as_secs_f64(),

@@ -1,5 +1,5 @@
 {
-  "quality_gate": {
+  "checks": {
     "check": "dart analyze --fatal-infos",
     "test": "dart test",
     "lint": "dart analyze --fatal-infos --fatal-warnings"

@@ -24,7 +24,7 @@ implementation of unrelated plan items.
 
 Choose focused verification for bounded changes, including code. Run formatting
 and checks for the affected behavior, dependencies and acceptance criteria.
-Record actual results through named Magistr gates or server-executed
+Record actual results through named Magistr checks or server-executed
 `check_step`. Use the full configured suite only for an explicit request or
 a concrete cross-cutting risk; state the reason first.
 

@@ -59,7 +59,7 @@ pub use tool_permissions::ToolPermissions;
 /// - **Claude Code** (the in-binary `claude` provider): PascalCase names (`Bash`, `Read`, `Write`)
 /// - **Copilot CLI**: lowercase with patterns (`shell(*)`, `read`, `write`)
 ///
-/// MCP tool names (like `plan_*` or `magistr_gate`) are passed through as-is since MCP
+/// MCP tool names (like `plan_*` or `magistr_check`) are passed through as-is since MCP
 /// naming is consistent across backends.
 pub fn translate_tools_for_runtime(tools: &[String], auth: &AuthMethod) -> Vec<String> {
     match auth {

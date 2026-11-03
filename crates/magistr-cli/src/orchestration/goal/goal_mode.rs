@@ -10,7 +10,7 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum GoalMode {
     /// magistr's own judge over the full acceptance list and the real
-    /// gate evidence.
+    /// check evidence.
     #[default]
     Native,
     /// The agent's `_session/goal` extension.

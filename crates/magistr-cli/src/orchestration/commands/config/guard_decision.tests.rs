@@ -1,7 +1,7 @@
 use super::*;
 
 fn check(required: bool, passed: bool, verified: bool) -> CheckSummary {
-    named("gate", required, passed, verified)
+    named("check", required, passed, verified)
 }
 
 fn named(name: &str, required: bool, passed: bool, verified: bool) -> CheckSummary {
@@ -136,7 +136,7 @@ fn commit_ignores_bash_commands_that_are_not_git_commit() {
 }
 
 #[test]
-fn commit_without_an_goal_is_not_gated() {
+fn commit_without_an_goal_is_not_checkd() {
     let input = GuardInput {
         command: Some("git commit -m x".into()),
         ..GuardInput::default()
@@ -177,7 +177,7 @@ fn commit_blocks_when_no_verified_check_exists_for_a_planned_goal() {
 fn commit_allows_after_a_verified_passing_required_check() {
     let input = GuardInput {
         command: Some("git commit -m 'feat: x'".into()),
-        // an optional gate's failure does not gate the commit
+        // an optional check's failure does not check the commit
         checks: vec![
             named("nextest", true, true, true),
             named("svelte-check", false, false, true),
@@ -214,7 +214,7 @@ fn with_workspace(command: &str) -> GuardInput {
 }
 
 #[test]
-fn a_workspace_grep_is_routed_to_workspace_whatever_the_gates_say() {
+fn a_workspace_grep_is_routed_to_workspace_whatever_the_checks_say() {
     let input = GuardInput {
         checks: vec![check(true, false, true)],
         ..with_workspace("grep -rn foo src")
@@ -253,7 +253,7 @@ fn nothing_is_routed_without_workspace_or_a_project_root() {
 }
 
 #[test]
-fn a_git_commit_is_gated_and_not_routed() {
+fn a_git_commit_is_checkd_and_not_routed() {
     let input = with_workspace("git commit -m x");
     match evaluate(GuardEvent::Commit, &input) {
         GuardVerdict::Block(reason) => assert!(reason.contains("verified"), "{reason}"),
@@ -278,7 +278,7 @@ fn is_git_commit_recognises_the_usual_shapes() {
     assert!(!is_git_commit(""));
 }
 
-// ── Commit: latest result per gate, shipped goals ──────────────
+// ── Commit: latest result per check, shipped goals ──────────────
 
 fn commit_input(status: &str, checks: Vec<CheckSummary>) -> GuardInput {
     GuardInput {
@@ -291,7 +291,7 @@ fn commit_input(status: &str, checks: Vec<CheckSummary>) -> GuardInput {
 }
 
 #[test]
-fn commit_allowed_when_a_failed_gate_was_re_run_green() {
+fn commit_allowed_when_a_failed_check_was_re_run_green() {
     let input = commit_input(
         "active",
         vec![
@@ -306,7 +306,7 @@ fn commit_allowed_when_a_failed_gate_was_re_run_green() {
 }
 
 #[test]
-fn commit_blocked_when_the_latest_run_of_a_gate_is_red() {
+fn commit_blocked_when_the_latest_run_of_a_check_is_red() {
     let input = commit_input(
         "active",
         vec![
@@ -321,7 +321,7 @@ fn commit_blocked_when_the_latest_run_of_a_gate_is_red() {
 }
 
 #[test]
-fn commit_blocked_when_another_gate_is_still_red() {
+fn commit_blocked_when_another_check_is_still_red() {
     let input = commit_input(
         "active",
         vec![
@@ -336,7 +336,7 @@ fn commit_blocked_when_another_gate_is_still_red() {
 }
 
 #[test]
-fn commit_is_not_gated_once_the_run_is_finished() {
+fn commit_is_not_checkd_once_the_run_is_finished() {
     let input = commit_input("finished", vec![named("clippy", true, false, true)]);
     assert!(matches!(
         evaluate(GuardEvent::Commit, &input),
@@ -366,7 +366,7 @@ fn write_input(path: &str, status: Option<&str>, scope: Option<&str>) -> GuardIn
 }
 
 #[test]
-fn write_is_not_gated_without_a_frozen_declaration() {
+fn write_is_not_checkd_without_a_frozen_declaration() {
     let input = GuardInput {
         frozen: None,
         ..write_input(
@@ -382,7 +382,7 @@ fn write_is_not_gated_without_a_frozen_declaration() {
 }
 
 #[test]
-fn write_is_not_gated_without_a_file_path() {
+fn write_is_not_checkd_without_a_file_path() {
     let input = GuardInput {
         write_path: None,
         ..write_input("", Some("active"), Some("task:unrelated"))

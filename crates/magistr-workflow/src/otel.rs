@@ -8,7 +8,7 @@
 //! Mapping (one deterministic trace per project):
 //! - root span `workspace <project>`;
 //! - the run cycle nests `goal → step → progress/check` (a failed check
-//!   sets span status ERROR — the gate failed, not the step);
+//!   sets span status ERROR — the check failed, not the step);
 //! - decision notes become reasoning spans parented to the step named by their
 //!   `run_ref` (`step:<id>`) when present, else to the root.
 //!
@@ -457,7 +457,7 @@ mod tests {
         assert_eq!(check["parentSpanId"], step_span["spanId"]);
         // run_ref step:implement parents the reasoning span to the step.
         assert_eq!(reasoning["parentSpanId"], step_span["spanId"]);
-        // Failed gate → ERROR status on the check span only.
+        // Failed check → ERROR status on the check span only.
         assert_eq!(check["status"]["code"], 2);
         assert_eq!(step_span["status"]["code"], 0);
     }

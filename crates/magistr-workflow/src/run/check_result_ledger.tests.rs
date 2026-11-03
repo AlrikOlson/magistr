@@ -298,7 +298,7 @@ fn check_results_from_before_the_staged_model_read_as_settled_history() {
             "step_instance": "older-step"
         },
         "attempt": 1,
-        "gate": "test",
+        "check": "test",
         "check_type": "test",
         "command": "cargo test",
         "required": true,

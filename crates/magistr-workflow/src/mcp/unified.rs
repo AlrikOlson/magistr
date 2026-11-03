@@ -14,7 +14,7 @@
 //! the namespaces they claim, and everything that describes or dispatches the
 //! surface derives from them rather than restating them — routing, the
 //! operator-typed family selection, the `initialize` block, and the crate's own
-//! front page, each held to it by a gate below.
+//! front page, each held to it by a check below.
 
 use std::sync::{Arc, Mutex};
 
@@ -187,7 +187,7 @@ impl UnifiedService {
     /// Dispatch a tool call to its family. **The only implementation.**
     ///
     /// The inline path awaits this directly and the task path awaits this
-    /// inside a spawned future — so "a gate run as a task and the same gate run
+    /// inside a spawned future — so "a check run as a task and the same check run
     /// inline produce the same envelope" is not a property to be reviewed for,
     /// it is the absence of a second implementation. `verified`, `exit_code`
     /// and the recorded check all come from the one `check_step` handler either
@@ -401,7 +401,7 @@ impl Family {
     ///
     /// This is the single table the whole prefix story is read from — routing,
     /// operator-typed family tokens, the refusal that lists known families, and
-    /// the gate on the `initialize` block. A prefix that appears anywhere on the
+    /// the check on the `initialize` block. A prefix that appears anywhere on the
     /// surface and not here is the defect those callers exist to catch.
     ///
     /// # Why a family may claim more than one
@@ -859,7 +859,7 @@ impl ServerHandler for UnifiedService {
         // families.
         self.adopt_trace_context(&context.meta);
         // Liveness progress rides the SAME seam as the trace context above:
-        // one place covers every tool in every family, so `check_step`'s gate,
+        // one place covers every tool in every family, so `check_step`'s check,
         // a tracker push and a sync back-fill all report without any of them
         // knowing this exists. The handle is held only for the duration of the
         // inner call and aborts on drop, so a call that finishes inside
@@ -944,8 +944,8 @@ mod tests {
 
     /// Every `<stem>_*` token a block of prose advertises as a tool namespace.
     ///
-    /// Takes the text as a PARAMETER so the gate below can be driven against a
-    /// block this server does not serve. A gate that can only ever read the one
+    /// Takes the text as a PARAMETER so the check below can be driven against a
+    /// block this server does not serve. A check that can only ever read the one
     /// real string proves the string, never the check.
     fn advertised_prefixes(text: &str) -> Vec<&str> {
         text.split_whitespace()
@@ -1121,7 +1121,7 @@ mod tests {
         assert!(
             advertised.len() >= Family::ALL.len(),
             "only {} namespaces were extracted from the block, fewer than the {} \
-             families that exist — the gate is reading nothing: {advertised:?}",
+             families that exist — the check is reading nothing: {advertised:?}",
             advertised.len(),
             Family::ALL.len()
         );
@@ -1142,7 +1142,7 @@ mod tests {
         );
     }
 
-    /// The gate above, driven against a block this server has never served.
+    /// The check above, driven against a block this server has never served.
     ///
     /// Without this, `the_initialize_block_advertises_no_prefix_no_family_claims`
     /// could be passing because the check is inert rather than because the block
@@ -1158,7 +1158,7 @@ mod tests {
         assert_eq!(
             unclaimed,
             vec!["audit"],
-            "the gate must catch an advertised namespace no Family claims, and must \
+            "the check must catch an advertised namespace no Family claims, and must \
              not accuse one that is claimed"
         );
     }
@@ -1204,7 +1204,7 @@ mod tests {
     /// that describe the surface should iterate it "so adding a fifth can't
     /// leave a doc behind". The front page simply was not one of those callers.
     /// It is now, and this test lives beside the table it derives from rather
-    /// than beside the file it reads, so a new family and its gate are in the
+    /// than beside the file it reads, so a new family and its check are in the
     /// same field of view.
     ///
     /// # What this proves, and what it does not
@@ -1212,11 +1212,11 @@ mod tests {
     /// It proves each family's prefix is PRESENT in the front page. It does not
     /// prove the surrounding sentence is true, or even grammatical — a page
     /// reading "we do not support `request_*`" would satisfy it. Presence is
-    /// what a text gate can honestly check; meaning needs a reader.
+    /// what a text check can honestly check; meaning needs a reader.
     #[test]
     fn the_crate_front_page_names_every_family_the_server_serves() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(concat!("src/", "lib.rs"));
-        let source = crate::infra::source_gate::read_window(&path);
+        let source = crate::infra::source_check::read_window(&path);
 
         // The window is the leading run of `//!` lines: the front page itself,
         // not the whole file. Without this, a prefix mentioned anywhere in
@@ -1244,12 +1244,12 @@ mod tests {
         }
 
         // Non-vacuity: the search can fail. Without this, a `contains` that
-        // always returned true would pass every assertion above and the gate
+        // always returned true would pass every assertion above and the check
         // would be decorative.
         let absent = concat!("nosuchfamily", "_");
         assert!(
             !front_page.contains(absent),
-            "the front page names a family that does not exist, so this gate's \
+            "the front page names a family that does not exist, so this check's \
              search proves nothing"
         );
     }

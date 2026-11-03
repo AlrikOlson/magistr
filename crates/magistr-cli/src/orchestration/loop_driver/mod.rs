@@ -5,7 +5,7 @@
 //! [`IterationLoop`](crate::workflow::iteration::IterationLoop) and, per
 //! iteration, builds the prompt, connects an agent through a
 //! [`Connector`], runs the session producer over a tapped inbox (so it
-//! sees the turn end exactly as the cockpit does), runs the quality gates
+//! sees the turn end exactly as the cockpit does), runs the checks
 //! as jobs on the blocking pool — never on the loop thread — and reports
 //! every step as a [`LoopEvent`](magistr_cockpit::cockpit::LoopEvent) for the
 //! status strip. The keys the cockpit turns into
@@ -16,20 +16,18 @@
 //! `update` and `view` never see any of this: they fold messages. The
 //! driver owns every effect.
 
+mod check_job;
 mod checkpoint_detach;
 mod connector;
 mod control;
 mod driver;
 mod failure_brief;
-mod gate_job;
-mod gate_outcome;
 mod iteration_metrics;
 mod loop_end;
 mod loop_report;
 
 pub use connector::Connector;
 pub use driver::LoopDriver;
-pub(crate) use gate_outcome::GateOutcome;
 pub use iteration_metrics::IterationMetrics;
 pub use loop_end::LoopEnd;
 pub use loop_report::LoopReport;

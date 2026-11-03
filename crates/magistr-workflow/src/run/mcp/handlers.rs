@@ -208,11 +208,11 @@ pub struct ApprovalOpenArgs {
     /// Array of {key, label} choices. Omitted = yes/no.
     #[serde(default)]
     pub options: serde_json::Value,
-    /// The safe answer an unanswered gate resolves to at expiry. REQUIRED.
+    /// The safe answer an unanswered check resolves to at expiry. REQUIRED.
     #[serde(default, rename = "default")]
     #[schemars(required, !default)]
     pub default_key: Option<String>,
-    /// Seconds until the gate answers itself with the default (default 3600).
+    /// Seconds until the check answers itself with the default (default 3600).
     #[serde(default)]
     pub timeout_secs: Option<i64>,
 }
@@ -241,7 +241,7 @@ use crate::run::application::command_runner::{CHECK_OUTPUT_TAIL, run_check_comma
 impl RunService {
     #[tool(
         name = "run_open",
-        description = "Open a run with its goal before arranging steps. Choose focused verification for bounded changes, including code: all recorded acceptance checks must pass, while unrelated project gates are omitted. Focused is the default. Use full only for an explicit full-suite request or concrete cross-cutting risk. Updating the same scope preserves its steps. Choosing a different scope saves the unfinished goal and plan; returning to a saved scope restores its goal details, verification mode, steps and checks unchanged. Supplied details seed a new scope; read run_status after selecting a scope. An unrelated unfinished goal is not a blocker and must not be reset or finalized to make room. Replacing a completed or abandoned goal retains its full records in work history and starts a new run, reporting retained_steps. Criteria and constraints accept arrays or a single string.",
+        description = "Open a run with its goal before arranging steps. Choose focused verification for bounded changes, including code: all recorded acceptance checks must pass, while unrelated project checks are omitted. Focused is the default. Use full only for an explicit full-suite request or concrete cross-cutting risk. Updating the same scope preserves its steps. Choosing a different scope saves the unfinished goal and plan; returning to a saved scope restores its goal details, verification mode, steps and checks unchanged. Supplied details seed a new scope; read run_status after selecting a scope. An unrelated unfinished goal is not a blocker and must not be reset or finalized to make room. Replacing a completed or abandoned goal retains its full records in work history and starts a new run, reporting retained_steps. Criteria and constraints accept arrays or a single string.",
         annotations(
             title = "Set goal",
             read_only_hint = false,
@@ -454,9 +454,9 @@ impl RunService {
 
     #[tool(
         name = "approval_open",
-        description = "Ask a person for approval: pause-worthy work that needs a human yes, answered from the workspace webapp. Creates a run/approval record in the cloud workspace and returns immediately with the approval id — then poll approval_wait. HEADLESS-SAFE BY CONSTRUCTION: `default` is required, the approval answers itself with that default at `timeout_secs`, and with no cloud workspace connected the call resolves to the default at once instead of opening anything.\n\nInputs: question (required — one plain sentence), body (plain-prose context), options (array of {key,label}; omitted = yes/no), default (required — the option key an unanswered gate resolves to), timeout_secs (default 3600, clamped 30..604800).\n\nReturns: {opened:true, approval_id, expires_at, ...} or {opened:false, resolved:<default>, reason} when no workspace could carry the gate.\n\nPitfalls: pick the SAFE default (usually 'no'/'hold') — it is what headless expiry applies.",
+        description = "Ask a person for approval: pause-worthy work that needs a human yes, answered from the workspace webapp. Creates a run/approval record in the cloud workspace and returns immediately with the approval id — then poll approval_wait. HEADLESS-SAFE BY CONSTRUCTION: `default` is required, the approval answers itself with that default at `timeout_secs`, and with no cloud workspace connected the call resolves to the default at once instead of opening anything.\n\nInputs: question (required — one plain sentence), body (plain-prose context), options (array of {key,label}; omitted = yes/no), default (required — the option key an unanswered check resolves to), timeout_secs (default 3600, clamped 30..604800).\n\nReturns: {opened:true, approval_id, expires_at, ...} or {opened:false, resolved:<default>, reason} when no workspace could carry the check.\n\nPitfalls: pick the SAFE default (usually 'no'/'hold') — it is what headless expiry applies.",
         annotations(
-            title = "Open approval gate",
+            title = "Open approval",
             read_only_hint = false,
             destructive_hint = false,
             idempotent_hint = false,
@@ -498,7 +498,7 @@ impl RunService {
         name = "approval_wait",
         description = "Check (and briefly wait on) an open approval. Polls the cloud workspace; returns as soon as the approval is answered or expired, else after wait_secs with state 'pending' — loop on pending to keep waiting. The wait is BOUNDED (max 55s per call, under any MCP client timeout); an unanswered approval deterministically resolves to its declared default once expires_at passes, so a headless session always completes.\n\nInputs: approval_id (required — from approval_open), wait_secs (default 25, clamped 0..55).\n\nReturns: {state:'answered', choice, decided_by, decided_at, note?} | {state:'expired', choice:<default>} | {state:'pending', seconds_left}.\n\nPitfalls: if the workspace is unreachable, this returns a soft error — apply your declared default yourself once expires_at passes.",
         annotations(
-            title = "Wait on approval gate",
+            title = "Wait on approval",
             read_only_hint = true,
             destructive_hint = false,
             idempotent_hint = true,

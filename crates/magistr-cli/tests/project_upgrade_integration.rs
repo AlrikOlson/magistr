@@ -25,7 +25,7 @@ fn fixture() -> tempfile::TempDir {
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
     config.as_object_mut().unwrap().remove("plan_backend");
     config["roadmap_backend"] = "think-and-ship".into();
-    config["quality_gate"]["test"] = "my-project-test".into();
+    config["checks"]["test"] = "my-project-test".into();
     std::fs::write(path, serde_json::to_string_pretty(&config).unwrap()).unwrap();
     std::fs::write(root.join(".mcp.json"), r#"{"mcpServers":{"magistr":{"command":"magistr","args":["mcp-launch","magistr","."],"type":"stdio"},"custom":{"command":"custom"}}}"#).unwrap();
     std::fs::create_dir(root.join(".workbench")).unwrap();
@@ -111,7 +111,7 @@ fn saved_launch_command_upgrades_configuration_and_history_before_serving() {
             .unwrap();
     assert_eq!(config["plan_backend"], "native");
     assert!(config.get("roadmap_backend").is_none());
-    assert_eq!(config["quality_gate"]["test"], "my-project-test");
+    assert_eq!(config["checks"]["test"], "my-project-test");
     let mcp: serde_json::Value =
         serde_json::from_slice(&std::fs::read(root.join(".mcp.json")).unwrap()).unwrap();
     assert_eq!(

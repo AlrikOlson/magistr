@@ -109,7 +109,7 @@ pub fn from_run_step(
     )
 }
 
-/// Build the cloud envelope for a quality-gate check. Checks have no id of
+/// Build the cloud envelope for a check result. Checks have no id of
 /// their own — identity is the append-only index within the owning step
 /// (`<cycle>.<step_id>.check-<seq>`), stable across re-pushes; `created` is
 /// the check's own timestamp.
@@ -137,18 +137,18 @@ pub fn from_check(
     )
 }
 
-/// Build the cloud envelope for an approval gate (webapp-approval-gates).
-/// Unlike the other run kinds, a gate's id is its own UUID rather than a
-/// cycle-scoped key: the gate is born ON the cloud (it exists to be answered
+/// Build the cloud envelope for an approval (webapp-approval-gates).
+/// Unlike the other run kinds, a check's id is its own UUID rather than a
+/// cycle-scoped key: the check is born ON the cloud (it exists to be answered
 /// from a browser) and its id must survive `run_reset` and cycle turnover
 /// while an agent is still waiting on it.
 #[must_use]
 pub fn from_approval(
     tenant: &str,
-    gate: &crate::run::approval::Approval,
+    check: &crate::run::approval::Approval,
     step_id: Option<&str>,
 ) -> UnifiedRecordEnvelope {
-    let record = serde_json::to_value(gate).unwrap_or(serde_json::Value::Null);
+    let record = serde_json::to_value(check).unwrap_or(serde_json::Value::Null);
     let edges = step_id
         .map(|tid| {
             vec![Edge {
@@ -161,8 +161,8 @@ pub fn from_approval(
         tenant,
         Family::Run,
         Kind::Approval,
-        gate.id.clone(),
-        gate.opened_at.clone(),
+        check.id.clone(),
+        check.opened_at.clone(),
         record,
         edges,
     )

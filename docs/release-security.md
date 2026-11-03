@@ -28,7 +28,7 @@ https://status.npmjs.org is clear, because an unanswered audit is not a clean on
 A clean scan also requires complete Git history. The hosted checkout uses
 `fetch-depth: 0`.
 
-The gate checks:
+The check checks:
 
 - RustSec advisories and all maintenance/soundness warnings, intersected with
   the enabled CLI normal and build dependencies for `aarch64-apple-darwin`.
@@ -42,7 +42,7 @@ The gate checks:
   composite actions; complete Rust, Node.js and Python toolchain versions.
 
 A scanner error, unavailable registry, incomplete history, changed input or
-expired receipt fails the gate. A failed rescan invalidates an earlier green
+expired receipt fails the check. A failed rescan invalidates an earlier green
 receipt. Advisory database commits, input hashes, scan times and tool versions
 are saved in `security-verification.json`. The receipt is build evidence, not a
 cryptographic signature or a claim that scanners detect every vulnerability.

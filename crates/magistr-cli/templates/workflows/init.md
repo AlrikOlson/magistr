@@ -12,12 +12,12 @@ Summarize existing setup, then ask only missing project-specific questions.
 Honor previous answers; do not restart the interview on a repeated invocation.
 
 Useful questions concern project purpose, references, unusual conventions,
-required quality gates, and explicit exclusions. Use the host's available
+required checks, and explicit exclusions. Use the host's available
 question mechanism. Research current primary documentation where external
 tooling choices affect the configuration.
 
 Update only instructions and configuration needed for the requested setup.
-Keep `.magistr/project.json` authoritative for gates and plan policy.
+Keep `.magistr/project.json` authoritative for checks and plan policy.
 Preserve the `.magistr/project.json` identity, the **magistr** state
 endpoint, unrelated host settings, and user customization. Keep project entry
 instructions concise and link shared conventions. Never copy secrets into

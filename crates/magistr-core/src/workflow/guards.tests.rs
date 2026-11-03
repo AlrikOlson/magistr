@@ -20,7 +20,7 @@ fn temp_project_with(run: RunGuardState) -> (tempfile::TempDir, GuardContext) {
     (dir, ctx)
 }
 
-/// Goal set, one step planned, no gate recorded yet.
+/// Goal set, one step planned, no check recorded yet.
 fn planned() -> RunGuardState {
     RunGuardState {
         goal_set: true,
@@ -360,7 +360,7 @@ fn guards_config_default_all_enabled() {
     assert!(config.plan);
     assert!(config.spec);
     assert!(config.clean_tree);
-    assert!(config.quality_gate);
+    assert!(config.checks);
 }
 
 #[test]
@@ -387,7 +387,7 @@ fn guards_config_roundtrip() {
         plan: true,
         spec: false,
         clean_tree: true,
-        quality_gate: true,
+        checks: true,
     };
     let json = serde_json::to_string(&config).unwrap();
     let parsed: GuardsConfig = serde_json::from_str(&json).unwrap();
@@ -410,7 +410,7 @@ fn runner_from_config_none_enabled() {
         plan: false,
         spec: false,
         clean_tree: false,
-        quality_gate: false,
+        checks: false,
     };
     let runner = GuardRunner::from_config(&config);
     assert_eq!(runner.len(), 0);
@@ -423,7 +423,7 @@ fn runner_from_config_partial() {
         plan: true,
         spec: false,
         clean_tree: true,
-        quality_gate: false,
+        checks: false,
     };
     let runner = GuardRunner::from_config(&config);
     assert_eq!(runner.len(), 2);
@@ -456,7 +456,7 @@ fn runner_disabled_guards_are_skipped() {
         plan: false,
         spec: false,
         clean_tree: false,
-        quality_gate: false,
+        checks: false,
     };
     let runner = GuardRunner::from_config(&config);
     let results = runner.run_pre_session(&ctx);
