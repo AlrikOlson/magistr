@@ -4,9 +4,9 @@
 experimental = ["setup-scripts"]
 
 # Every test process reads and writes a fresh workflow store for the run,
-# never the developer's own saved work (scripts/nextest-isolated-store.sh).
+# never the developer's own saved work (scripts/nextest-isolated-store.mjs).
 [scripts.setup.isolated-store]
-command = "scripts/nextest-isolated-store.sh"
+command = ["node", "scripts/nextest-isolated-store.mjs"]
 
 [[profile.default.scripts]]
 filter = "all()"

@@ -14,10 +14,10 @@
 //! refuse while one is unfinished.
 
 use super::NativeConfig;
+use magistr_workflow::infra::AtomicFile;
 use magistr_workflow_contracts::{ReadError, ReadErrorKind};
 use std::{
-    fs,
-    io::{self, Write},
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -265,13 +265,15 @@ fn project_documents(root: &Path, project_id: &str) -> Vec<(PathBuf, Family)> {
     documents
 }
 
-/// Convert one family store into a staging directory, then move each
-/// converted record into its new directory and keep the original as a
-/// backup. The new directory may already hold lock files (the caller's own
-/// owner lease lives there), never records: a record already present must be
-/// the byte-identical copy an interrupted earlier attempt published, so a
-/// retry finishes the move and never imports twice. An interrupted move
-/// leaves the old directory untouched, and readers refuse until it is gone.
+/// Convert one family store into a staging directory, publish the staged
+/// store under its new name, and keep the original as a backup. Staging is
+/// where the time goes, so its records convert on several threads; a staged
+/// store whose new directory does not exist yet is published by one rename.
+/// The new directory may already hold lock files, never records: a record
+/// already present must be the byte-identical copy an interrupted earlier
+/// attempt published, so a retry finishes the move and never imports twice.
+/// An interrupted move leaves the old directory untouched, and readers
+/// refuse until it is gone.
 fn move_store(root: &Path, step: Move) -> io::Result<()> {
     let old = root.join(step.old);
     if !old.exists() {
@@ -283,7 +285,7 @@ fn move_store(root: &Path, step: Move) -> io::Result<()> {
     if live.is_empty() && !holds_records(&old) {
         // Opening a store creates its directories; with no records in them
         // there is nothing to move or keep.
-        return fs::remove_dir_all(&old);
+        return fs::remove_dir_all(&old).map_err(|error| invalid(&old, error));
     }
     if !live.is_empty() {
         return Err(io::Error::new(
@@ -294,46 +296,22 @@ fn move_store(root: &Path, step: Move) -> io::Result<()> {
             ),
         ));
     }
-    // Staged records are written whole and the conversion is deterministic,
-    // so an interrupted attempt's staged records are kept and the next
-    // attempt writes only what is missing or different: a store of tens of
-    // thousands of records finishes even when a client gives up waiting.
+    let store = StoreSurvey::of(&old, step.codec)?;
     let staging = root.join(format!("{}.upgrading", step.new));
-    convert_tree(&old, &staging, Path::new(""), step.codec)?;
+    store.stage(&old, &staging)?;
     let current = root.join(step.new);
-    let staged = files(&staging)?;
-    for relative in &staged {
-        let target = current.join(relative);
-        if let Ok(existing) = fs::read(&target)
-            && existing != fs::read(staging.join(relative))?
-        {
-            return Err(io::Error::other(format!(
-                "Saved records exist in both {} and {}. Both are intact; keep the copy you want in {} and retry.",
-                old.display(),
-                current.display(),
-                old.display()
-            )));
-        }
+    // A directory another program is reading refuses the rename; the staged
+    // records then move one by one, as they do into an existing directory.
+    if current.exists() || AtomicFile::rename(&staging, &current).is_err() {
+        store.merge(&old, &staging, &current)?;
+        fs::remove_dir_all(&staging).map_err(|error| invalid(&staging, error))?;
     }
-    for relative in &staged {
-        let target = current.join(relative);
-        if !target.exists() {
-            let parent = target
-                .parent()
-                .ok_or_else(|| io::Error::other("A saved record has no directory."))?;
-            fs::create_dir_all(parent)?;
-            fs::rename(staging.join(relative), &target)?;
-            sync_directory(parent)?;
-        }
-    }
-    fs::remove_dir_all(&staging)?;
+    sync_directory(root)?;
     let backups = root.join("backups");
     fs::create_dir_all(&backups)?;
     let stamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ");
-    fs::rename(
-        &old,
-        backups.join(format!("{}-before-{}-{stamp}", step.old, step.words)),
-    )?;
+    let backup = backups.join(format!("{}-before-{}-{stamp}", step.old, step.words));
+    AtomicFile::rename(&old, &backup).map_err(|error| invalid(&old, error))?;
     sync_directory(root)?;
     sync_directory(&backups)
 }
@@ -371,104 +349,320 @@ fn live_owners(root: &Path) -> io::Result<Vec<String>> {
     Ok(live.into_iter().collect())
 }
 
-/// Copy `source` into `target`, converting each family's documents through
-/// its own codec and leaving lock files behind. The run store also renames
-/// its `receipts/` directories to `check_results/`.
-fn convert_tree(source: &Path, target: &Path, relative: &Path, codec: Codec) -> io::Result<()> {
-    fs::create_dir_all(target)?;
-    for entry in fs::read_dir(source)? {
-        let entry = entry?;
-        let kind = entry.file_type()?;
-        let name = entry.file_name();
-        let path = entry.path();
-        if kind.is_symlink() {
-            return Err(io::Error::other(format!(
-                "{} must not be a symbolic link during upgrade",
-                path.display()
-            )));
-        }
-        if kind.is_dir() {
-            let renamed = match codec {
-                Codec::Run if name == "receipts" => "check_results".into(),
-                _ => name.clone(),
-            };
-            convert_tree(&path, &target.join(&renamed), &relative.join(&name), codec)?;
-            continue;
-        }
-        let name = name.to_string_lossy();
-        // Locks and owner endpoint sockets belong to running owners, not to
-        // the saved work; current owners recreate their own.
-        if name.ends_with(".lock") || !kind.is_file() {
-            continue;
-        }
-        let staged = target.join(name.as_ref());
-        let bytes = fs::read(&path)?;
-        let converted = if !name.ends_with(".json") {
-            bytes
-        } else {
-            let project_id = name.trim_end_matches(".json");
-            let in_sessions = relative.ends_with("sessions");
-            match codec {
-                Codec::Run
-                    if relative
-                        .components()
-                        .any(|part| part.as_os_str() == "receipts") =>
-                {
-                    magistr_workflow::run::persistence::Persistence::upgrade_check_result(&bytes)
-                        .map_err(|error| invalid(&path, error))?
-                }
-                Codec::Run if in_sessions => {
-                    magistr_workflow::run::persistence::Persistence::upgrade_document(
-                        &bytes, project_id,
-                    )
-                    .map_err(|error| invalid(&path, error))?
-                }
-                Codec::Plan if in_sessions => {
-                    magistr_workflow::plan::PlanEngine::upgrade_document(&bytes, project_id)
-                        .map_err(|error| invalid(&path, error))?
-                }
-                // A project's consolidated document; older per-log files
-                // (`<project>__<log>.json`) are the older-store import's.
-                Codec::Decision if in_sessions && !project_id.contains("__") => {
-                    magistr_workflow::decision::persistence::Persistence::upgrade_document(
-                        &bytes, project_id,
-                    )
-                    .map_err(|error| invalid(&path, error))?
-                }
-                Codec::Request if in_sessions => {
-                    magistr_workflow::request::RequestEngine::upgrade_document(&bytes, project_id)
-                        .map_err(|error| invalid(&path, error))?
-                }
-                _ => bytes,
+/// How one saved file changes on its way to the store's new name.
+enum Conversion {
+    /// Carried over byte for byte.
+    Unchanged,
+    CheckResult,
+    /// A project's document, through its family's codec.
+    Document(Codec, String),
+}
+
+/// One saved file of a family store: where it is in the old store, where it
+/// goes in the new one, and how its content changes.
+struct Record {
+    source: PathBuf,
+    target: PathBuf,
+    conversion: Conversion,
+    /// Whether the old store's directory listing says the file holds nothing.
+    empty: bool,
+}
+
+impl Record {
+    /// An empty file carried over as it is: more than half of a run store
+    /// is empty index markers.
+    fn carries_nothing(&self) -> bool {
+        self.empty && matches!(self.conversion, Conversion::Unchanged)
+    }
+
+    fn converted(&self, bytes: Vec<u8>, path: &Path) -> io::Result<Vec<u8>> {
+        use magistr_workflow::{decision, plan::PlanEngine, request::RequestEngine, run};
+        match &self.conversion {
+            Conversion::Unchanged => Ok(bytes),
+            Conversion::CheckResult => run::persistence::Persistence::upgrade_check_result(&bytes)
+                .map_err(|error| invalid(path, error)),
+            Conversion::Document(Codec::Run, project) => {
+                run::persistence::Persistence::upgrade_document(&bytes, project)
+                    .map_err(|error| invalid(path, error))
             }
-        };
-        // An earlier attempt's record stays when it is exactly this
-        // conversion; anything else is replaced. The directory is made
-        // durable once, below, before anything is published from it.
-        if fs::read(&staged).ok().as_deref() != Some(converted.as_slice()) {
-            stage(&staged, &converted)?;
+            Conversion::Document(Codec::Plan, project) => {
+                PlanEngine::upgrade_document(&bytes, project).map_err(|error| invalid(path, error))
+            }
+            Conversion::Document(Codec::Decision, project) => {
+                decision::persistence::Persistence::upgrade_document(&bytes, project)
+                    .map_err(|error| invalid(path, error))
+            }
+            Conversion::Document(Codec::Request, project) => {
+                RequestEngine::upgrade_document(&bytes, project)
+                    .map_err(|error| invalid(path, error))
+            }
         }
     }
-    sync_directory(target)
 }
 
-/// Write one converted record into staging: whole or not at all.
-fn stage(path: &Path, bytes: &[u8]) -> io::Result<()> {
-    let parent = path
-        .parent()
-        .ok_or_else(|| io::Error::other("A saved record has no directory."))?;
-    let mut staged = tempfile::Builder::new()
-        .prefix(STAGING_PREFIX)
-        .tempfile_in(parent)?;
-    staged.write_all(bytes)?;
-    staged.as_file().sync_all()?;
-    staged.persist(path).map_err(|e| e.error)?;
-    Ok(())
+/// Everything one family store holds, read once before anything is written:
+/// its directories and its records, each with its place in the new store.
+/// Lock files and owner endpoint sockets belong to running owners, not to
+/// the saved work, and are left behind; current owners recreate their own.
+/// The run store's `receipts/` directories become `check_results/`.
+struct StoreSurvey {
+    directories: Vec<PathBuf>,
+    records: Vec<Record>,
 }
 
-/// Names a staged record has while it is written; an interrupted write
-/// leaves one behind, and it is never published.
-const STAGING_PREFIX: &str = ".staging-";
+impl StoreSurvey {
+    fn of(old: &Path, codec: Codec) -> io::Result<Self> {
+        let mut store = Self {
+            directories: Vec::new(),
+            records: Vec::new(),
+        };
+        store.visit(old, Path::new(""), Path::new(""), codec)?;
+        Ok(store)
+    }
+
+    fn visit(&mut self, old: &Path, source: &Path, target: &Path, codec: Codec) -> io::Result<()> {
+        self.directories.push(target.to_path_buf());
+        let directory = old.join(source);
+        let in_sessions = source.ends_with("sessions");
+        let in_receipts = source
+            .components()
+            .any(|part| part.as_os_str() == "receipts");
+        for entry in fs::read_dir(&directory).map_err(|error| invalid(&directory, error))? {
+            let entry = entry.map_err(|error| invalid(&directory, error))?;
+            let path = entry.path();
+            let kind = entry.file_type().map_err(|error| invalid(&path, error))?;
+            let name = entry.file_name();
+            if kind.is_symlink() {
+                return Err(io::Error::other(format!(
+                    "{} must not be a symbolic link during upgrade",
+                    path.display()
+                )));
+            }
+            if kind.is_dir() {
+                let renamed = match codec {
+                    Codec::Run if name == "receipts" => "check_results".into(),
+                    _ => name.clone(),
+                };
+                self.visit(old, &source.join(&name), &target.join(renamed), codec)?;
+                continue;
+            }
+            let text = name.to_string_lossy();
+            if text.ends_with(".lock") || !kind.is_file() {
+                continue;
+            }
+            let project = text.trim_end_matches(".json");
+            let conversion = if !text.ends_with(".json") {
+                Conversion::Unchanged
+            } else {
+                match codec {
+                    Codec::Run if in_receipts => Conversion::CheckResult,
+                    // A project's consolidated decision document; older
+                    // per-log files (`<project>__<log>.json`) are the
+                    // older-store import's.
+                    Codec::Decision if in_sessions && project.contains("__") => {
+                        Conversion::Unchanged
+                    }
+                    _ if in_sessions => Conversion::Document(codec, project.to_owned()),
+                    _ => Conversion::Unchanged,
+                }
+            };
+            let empty = entry
+                .metadata()
+                .map_err(|error| invalid(&path, error))?
+                .len()
+                == 0;
+            self.records.push(Record {
+                source: source.join(&name),
+                target: target.join(&name),
+                conversion,
+                empty,
+            });
+        }
+        Ok(())
+    }
+
+    /// Fill `staging` with exactly this store, converted. The time goes to
+    /// creating files and to waiting for the disk, so each record costs as
+    /// few file operations as its safety allows, and the waits are made
+    /// together at the end, where they overlap. Nothing reads a staged
+    /// record until the whole staged store is published, so each is written
+    /// in place; every one is confirmed by the disk before this returns.
+    /// The conversion is deterministic, so a resumed attempt keeps the
+    /// staged records that already match and writes only what is missing or
+    /// different. Anything else an earlier attempt left there is removed
+    /// first, so the staged store never holds more than the old one does.
+    fn stage(&self, old: &Path, staging: &Path) -> io::Result<()> {
+        let resumed = staging.exists();
+        if resumed {
+            self.prune(staging)?;
+        }
+        for directory in &self.directories {
+            let directory = staging.join(directory);
+            fs::create_dir_all(&directory).map_err(|error| invalid(&directory, error))?;
+        }
+        let writers = std::thread::available_parallelism()
+            .map_or(1, usize::from)
+            .min(WRITE_THREADS);
+        on_every(&self.records, writers, |record| {
+            let staged = staging.join(&record.target);
+            if record.carries_nothing() {
+                // An empty file cannot be half-written: it needs no read of
+                // its source and no wait for the disk.
+                return stage_empty(&staged).map_err(|error| invalid(&staged, error));
+            }
+            let source = old.join(&record.source);
+            let bytes = fs::read(&source).map_err(|error| invalid(&source, error))?;
+            let converted = record.converted(bytes, &source)?;
+            if resumed && fs::read(&staged).ok().as_deref() == Some(converted.as_slice()) {
+                return Ok(());
+            }
+            AtomicFile::write_in_place(&staged, &converted).map_err(|error| invalid(&staged, error))
+        })?;
+        // A record an interrupted attempt wrote may never have reached the
+        // disk, so every record with content is confirmed, not only the ones
+        // written just now.
+        let written: Vec<&Record> = self
+            .records
+            .iter()
+            .filter(|record| !record.carries_nothing())
+            .collect();
+        on_every(&written, CONFIRM_THREADS, |record| {
+            let staged = staging.join(&record.target);
+            AtomicFile::confirm(&staged).map_err(|error| invalid(&staged, error))
+        })?;
+        for directory in &self.directories {
+            sync_directory(&staging.join(directory))?;
+        }
+        Ok(())
+    }
+
+    /// Remove what `staging` holds beyond this store's own records.
+    fn prune(&self, staging: &Path) -> io::Result<()> {
+        let directories: std::collections::HashSet<&Path> =
+            self.directories.iter().map(PathBuf::as_path).collect();
+        let records: std::collections::HashSet<&Path> = self
+            .records
+            .iter()
+            .map(|record| record.target.as_path())
+            .collect();
+        let mut pending = vec![PathBuf::new()];
+        while let Some(relative) = pending.pop() {
+            let directory = staging.join(&relative);
+            for entry in fs::read_dir(&directory).map_err(|error| invalid(&directory, error))? {
+                let entry = entry.map_err(|error| invalid(&directory, error))?;
+                let child = relative.join(entry.file_name());
+                let path = entry.path();
+                let kind = entry.file_type().map_err(|error| invalid(&path, error))?;
+                if kind.is_dir() && directories.contains(child.as_path()) {
+                    pending.push(child);
+                } else if kind.is_dir() {
+                    fs::remove_dir_all(&path).map_err(|error| invalid(&path, error))?;
+                } else if !records.contains(child.as_path()) {
+                    fs::remove_file(&path).map_err(|error| invalid(&path, error))?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Move the staged records into a new directory that already exists.
+    /// Every destination is checked before the first record moves.
+    fn merge(&self, old: &Path, staging: &Path, current: &Path) -> io::Result<()> {
+        for record in &self.records {
+            let target = current.join(&record.target);
+            let staged = staging.join(&record.target);
+            if let Ok(existing) = fs::read(&target)
+                && existing != fs::read(&staged).map_err(|error| invalid(&staged, error))?
+            {
+                return Err(io::Error::other(format!(
+                    "Saved records exist in both {} and {}. Both are intact; keep the copy you want in {} and retry.",
+                    old.display(),
+                    current.display(),
+                    old.display()
+                )));
+            }
+        }
+        for record in &self.records {
+            let target = current.join(&record.target);
+            if !target.exists() {
+                let parent = target
+                    .parent()
+                    .ok_or_else(|| io::Error::other("A saved record has no directory."))?;
+                fs::create_dir_all(parent).map_err(|error| invalid(parent, error))?;
+                AtomicFile::rename(&staging.join(&record.target), &target)
+                    .map_err(|error| invalid(&target, error))?;
+                sync_directory(parent)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Leave an empty file at `staged`: one file operation when nothing is
+/// there yet.
+fn stage_empty(staged: &Path) -> io::Result<()> {
+    match fs::File::options()
+        .write(true)
+        .create_new(true)
+        .open(staged)
+    {
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+            if fs::metadata(staged)?.len() == 0 {
+                Ok(())
+            } else {
+                fs::write(staged, b"")
+            }
+        }
+        Err(error) => Err(error),
+    }
+}
+
+/// Run `work` on every item from `threads` threads. The first failure stops
+/// the others and is the result.
+fn on_every<T: Sync>(
+    items: &[T],
+    threads: usize,
+    work: impl Fn(&T) -> io::Result<()> + Sync,
+) -> io::Result<()> {
+    use std::sync::{
+        Mutex, PoisonError,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+    };
+    let next = AtomicUsize::new(0);
+    let stopped = AtomicBool::new(false);
+    let failure = Mutex::new(None);
+    std::thread::scope(|scope| {
+        for _ in 0..threads.clamp(1, items.len().max(1)) {
+            scope.spawn(|| {
+                while !stopped.load(Ordering::Relaxed) {
+                    let Some(item) = items.get(next.fetch_add(1, Ordering::Relaxed)) else {
+                        break;
+                    };
+                    if let Err(error) = work(item) {
+                        stopped.store(true, Ordering::Relaxed);
+                        failure
+                            .lock()
+                            .unwrap_or_else(PoisonError::into_inner)
+                            .get_or_insert(error);
+                    }
+                }
+            });
+        }
+    });
+    failure
+        .into_inner()
+        .unwrap_or_else(PoisonError::into_inner)
+        .map_or(Ok(()), Err)
+}
+
+/// Converting and creating records is bounded by the processors and by the
+/// file system, which takes one new file at a time.
+const WRITE_THREADS: usize = 8;
+/// A confirmation only waits for the disk, and one answer from the disk
+/// settles every wait in flight: measured on 15,000 records, 64 waits at a
+/// time finish in a quarter of the time 8 take.
+const CONFIRM_THREADS: usize = 64;
 
 /// Whether `directory` holds a saved record: any regular file other than a
 /// lock. Opening a store creates empty directories, lock files and owner
@@ -485,30 +679,6 @@ fn holds_records(directory: &Path) -> bool {
             Err(_) => true,
         }
     })
-}
-
-/// Every regular file under `directory`, relative to it.
-fn files(directory: &Path) -> io::Result<Vec<PathBuf>> {
-    fn visit(root: &Path, relative: &Path, found: &mut Vec<PathBuf>) -> io::Result<()> {
-        for entry in fs::read_dir(root.join(relative))? {
-            let entry = entry?;
-            let child = relative.join(entry.file_name());
-            if entry.file_type()?.is_dir() {
-                visit(root, &child, found)?;
-            } else if !entry
-                .file_name()
-                .to_string_lossy()
-                .starts_with(STAGING_PREFIX)
-            {
-                found.push(child);
-            }
-        }
-        Ok(())
-    }
-    let mut found = Vec::new();
-    visit(directory, Path::new(""), &mut found)?;
-    found.sort();
-    Ok(found)
 }
 
 /// Rewrite this project's plan, decision, request and run documents through their
@@ -634,15 +804,13 @@ fn publish(path: &Path, bytes: &[u8], replace: bool) -> io::Result<()> {
     let parent = path
         .parent()
         .ok_or_else(|| io::Error::other("A saved record has no directory."))?;
-    fs::create_dir_all(parent)?;
-    let mut staged = tempfile::NamedTempFile::new_in(parent)?;
-    staged.write_all(bytes)?;
-    staged.as_file().sync_all()?;
+    fs::create_dir_all(parent).map_err(|error| invalid(parent, error))?;
     if replace {
-        staged.persist(path).map_err(|e| e.error)?;
+        AtomicFile::replace(path, bytes)
     } else {
-        staged.persist_noclobber(path).map_err(|e| e.error)?;
+        AtomicFile::create(path, bytes)
     }
+    .map_err(|error| invalid(path, error))?;
     sync_directory(parent)
 }
 

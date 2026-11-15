@@ -3,7 +3,7 @@
 ///
 /// The one setting it never drops is where saved work lives: every fixture
 /// process reads and writes an isolated data home, never the developer's own.
-/// Under nextest that is the run's store from `scripts/nextest-isolated-store.sh`;
+/// Under nextest that is the run's store from `scripts/nextest-isolated-store.mjs`;
 /// otherwise this test binary creates one temporary directory and shares it.
 /// It is set as `XDG_DATA_HOME`, so a test that names its own data home or
 /// `MAGISTR_WORKFLOW_DATA_DIR` still wins.

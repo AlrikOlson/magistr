@@ -5,8 +5,7 @@ use super::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
-    fs,
-    io::{self, Write},
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -386,13 +385,10 @@ fn checked_path(root: &Path, relative: &Path) -> io::Result<PathBuf> {
 fn publish(path: &Path, bytes: &[u8], replace: bool) -> io::Result<()> {
     let parent = path.parent().expect("workflow directory");
     fs::create_dir_all(parent)?;
-    let mut staged = tempfile::NamedTempFile::new_in(parent)?;
-    staged.write_all(bytes)?;
-    staged.as_file().sync_all()?;
     if replace {
-        staged.persist(path).map_err(|e| e.error)?;
+        magistr_workflow::infra::AtomicFile::replace(path, bytes)?;
     } else {
-        staged.persist_noclobber(path).map_err(|e| e.error)?;
+        magistr_workflow::infra::AtomicFile::create(path, bytes)?;
     }
     sync_directory(parent)
 }

@@ -139,13 +139,10 @@ impl SbomGenerator {
     }
 }
 
-/// Check if a command is available on PATH.
+/// Check if a command is available on PATH, the way the operating system
+/// would launch it.
 fn which(cmd: &str) -> bool {
-    Command::new("which")
-        .arg(cmd)
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
+    which::which(cmd).is_ok()
 }
 
 /// Native SBOM check plugin.

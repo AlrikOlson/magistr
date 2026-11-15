@@ -132,7 +132,12 @@ fn tool_calls_and_results_replay_with_their_identity_and_payload() {
 #[test]
 fn the_default_config_dir_is_under_home_unless_overridden() {
     let home = std::ffi::OsStr::new("/fixture/home");
-    if !in_env::in_env(&[("HOME", Some(home)), ("CLAUDE_CONFIG_DIR", None)]) {
+    // Each platform names the home directory through its own variable.
+    if !in_env::in_env(&[
+        ("HOME", Some(home)),
+        ("USERPROFILE", Some(home)),
+        ("CLAUDE_CONFIG_DIR", None),
+    ]) {
         return;
     }
     assert_eq!(default_config_dir(), Path::new(home).join(".claude"));

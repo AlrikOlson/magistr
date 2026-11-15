@@ -29,13 +29,11 @@ pub fn validate_stack(stack: &Stack) -> Vec<ValidationWarning> {
     warnings
 }
 
+/// Looked up the way the operating system would launch it, so a tool that
+/// is a `.cmd` or `.exe` on Windows counts as installed and no `which`
+/// program is needed.
 fn command_exists(cmd: &str) -> bool {
-    std::process::Command::new("which")
-        .arg(cmd)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success())
+    which::which(cmd).is_ok()
 }
 
 fn package_manager_check(pm: PackageManager) -> Option<(&'static str, &'static str)> {

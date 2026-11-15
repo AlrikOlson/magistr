@@ -1,6 +1,7 @@
 //! Shared infrastructure used by both tool families: project identity,
 //! sessions, persistence, broadcast, typed cross-references.
 
+mod atomic_file;
 pub mod broadcast;
 pub mod checked_tool_result;
 pub mod coerce;
@@ -24,6 +25,7 @@ pub mod tool_result;
 pub mod transaction;
 mod versioned_document;
 
+pub use atomic_file::AtomicFile;
 pub use broadcast::{Broadcaster, EmitError, Family};
 pub use cross_ref::{
     CheckName, CrossRef, ExternalId, ParseError, ProgressId, ProviderId, StepId, StepNumber,

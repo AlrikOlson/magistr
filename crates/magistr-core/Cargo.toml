@@ -11,6 +11,7 @@ license = "MIT"
 magistr-domain = { workspace = true }
 magistr-process = { workspace = true }
 glob = "0.3"
+which = "8.0"
 ignore = "0.4"
 magistr-engine = { workspace = true }
 # The workspace's source-snapshot capability: the host's verification

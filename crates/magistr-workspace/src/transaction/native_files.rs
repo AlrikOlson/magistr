@@ -128,19 +128,19 @@ impl NativeFiles {
         #[cfg(not(unix))]
         {
             if let Some(content) = content {
-                let mut temporary = tempfile::NamedTempFile::new_in(parent).map_err(io)?;
-                temporary.write_all(content.as_bytes()).map_err(io)?;
+                let mut staged = StagedFile::beside(parent).map_err(io)?;
+                staged.file.write_all(content.as_bytes()).map_err(io)?;
                 if let Some(permissions) = permissions {
-                    temporary
-                        .as_file()
+                    staged
+                        .file
                         .set_permissions(permissions.clone())
                         .map_err(io)?;
                 }
-                temporary.as_file().sync_all().map_err(io)?;
+                staged.file.sync_all().map_err(io)?;
                 if self.resolve(policy, path)? != admitted {
                     return Err(TransactionError::StaleAnchor(path.into()));
                 }
-                temporary.persist(admitted).map_err(|e| io(e.error))?;
+                staged.publish(admitted).map_err(io)?;
             } else {
                 let trash = super::trash::directory(&self.root).map_err(io)?;
                 let trashed = trash.join(super::trash::entry_name(admitted).map_err(io)?);
@@ -150,6 +150,68 @@ impl NativeFiles {
         }
     }
 }
+/// A sibling of the file being replaced, renamed over it once its content
+/// is durable and removed if that never happens. Every step goes through the
+/// standard library, which accepts a source file at any depth; a rename made
+/// through the operating system's own interface refuses a Windows path
+/// longer than 260 characters.
+#[cfg(not(unix))]
+struct StagedFile {
+    path: PathBuf,
+    file: fs::File,
+    published: bool,
+}
+
+#[cfg(not(unix))]
+impl StagedFile {
+    fn beside(parent: &Path) -> std::io::Result<Self> {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static NEXT: AtomicU64 = AtomicU64::new(0);
+        loop {
+            let path = parent.join(format!(
+                ".tmp-{}-{}",
+                std::process::id(),
+                NEXT.fetch_add(1, Ordering::Relaxed)
+            ));
+            match fs::File::options()
+                .read(true)
+                .write(true)
+                .create_new(true)
+                .open(&path)
+            {
+                Ok(file) => {
+                    return Ok(Self {
+                        path,
+                        file,
+                        published: false,
+                    });
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(error) => return Err(error),
+            }
+        }
+    }
+
+    fn publish(mut self, target: &Path) -> std::io::Result<()> {
+        fs::rename(&self.path, target)?;
+        self.published = true;
+        Ok(())
+    }
+}
+
+#[cfg(not(unix))]
+impl Drop for StagedFile {
+    fn drop(&mut self) {
+        if !self.published {
+            let _ = fs::remove_file(&self.path);
+        }
+    }
+}
+
 fn io(error: std::io::Error) -> TransactionError {
     TransactionError::Io(error.to_string())
 }
+
+#[cfg(test)]
+#[path = "native_files.tests.rs"]
+mod tests;

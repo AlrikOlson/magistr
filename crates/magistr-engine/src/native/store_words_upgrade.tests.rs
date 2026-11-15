@@ -570,6 +570,95 @@ fn an_interrupted_move_keeps_exact_staged_records_and_rebuilds_the_rest() {
 }
 
 #[test]
+fn a_staged_store_is_published_whole_without_an_earlier_attempts_leftovers() {
+    let (_dir, config) = store();
+    let data = config.data_dir().to_path_buf();
+    // An earlier attempt staged a record the old store no longer holds, a
+    // directory it no longer has, and an unfinished write.
+    let staging = data.join("run.upgrading");
+    fs::create_dir_all(staging.join("sessions")).unwrap();
+    fs::create_dir_all(staging.join("gone/deeper")).unwrap();
+    fs::write(staging.join("sessions/removed-project.json"), b"stale").unwrap();
+    fs::write(staging.join("gone/deeper/record.json"), b"stale").unwrap();
+    fs::write(staging.join("sessions/.tmp-1-0"), b"partial").unwrap();
+
+    StoreWordsUpgrade::apply(&config, PROJECT).unwrap();
+    assert!(!staging.exists());
+    assert!(!data.join("ship").exists());
+    let mut published: Vec<String> = fs::read_dir(data.join("run/sessions"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|name| !name.ends_with(".lock"))
+        .collect();
+    published.sort();
+    assert_eq!(published, [format!("{PROJECT}.json")]);
+    assert!(!data.join("run/gone").exists());
+}
+
+#[test]
+fn records_deeper_than_the_windows_path_limit_move_with_the_store() {
+    // The depth a saved check index reaches in a real store: an execution
+    // key and a reuse key of 64 characters each, under a store that already
+    // sits a few directories down.
+    let (_dir, config) = store();
+    let data = config.data_dir().to_path_buf();
+    let execution = "e".repeat(64);
+    let bucket = "b".repeat(64);
+    let id = json(CHECK_RESULT)["id"].as_str().unwrap().to_owned();
+    let index = format!("{PROJECT}/checks-v2/{bucket}/{id}.ref");
+    let old = data.join(format!("ship/executions/{execution}/receipts/{index}"));
+    fs::create_dir_all(old.parent().unwrap()).unwrap();
+    fs::write(&old, b"").unwrap();
+    let check_result = data.join(format!(
+        "ship/executions/{execution}/receipts/{PROJECT}/{id}.json"
+    ));
+    fs::write(&check_result, CHECK_RESULT).unwrap();
+    let moved = data.join(format!("run/executions/{execution}/check_results/{index}"));
+    // Pad the fixture, not the assertion, if a short temporary directory
+    // ever brings this under the limit.
+    assert!(
+        moved.as_os_str().len() > 260,
+        "the fixture no longer reaches the limit: {}",
+        moved.display()
+    );
+
+    StoreWordsUpgrade::apply(&config, PROJECT).unwrap();
+    assert!(moved.is_file());
+    assert_eq!(
+        read(moved.with_file_name("..").join(format!("../{id}.json")))["target"]["step_id"],
+        json(CHECK_RESULT)["target"]["task_id"]
+    );
+    assert!(!data.join("ship").exists());
+    assert!(
+        backup_of(&data, "ship-before-run-words-")
+            .join(format!("executions/{execution}/receipts/{index}"))
+            .is_file(),
+        "the original keeps its place in the backup"
+    );
+}
+
+#[test]
+fn a_record_that_cannot_convert_is_named_and_nothing_moves() {
+    let (_dir, config) = store();
+    let data = config.data_dir().to_path_buf();
+    let broken = data.join(format!(
+        "ship/executions/{EXECUTION}/receipts/{PROJECT}/broken.json"
+    ));
+    fs::write(&broken, b"not a saved check result").unwrap();
+
+    let refused = StoreWordsUpgrade::apply(&config, PROJECT).unwrap_err();
+    assert!(
+        refused.to_string().contains("broken.json"),
+        "the message names the record: {refused}"
+    );
+    assert!(data.join("ship").exists() && !data.join("run").exists());
+    assert_eq!(
+        fs::read(data.join(format!("ship/sessions/{PROJECT}.json"))).unwrap(),
+        RUN
+    );
+}
+
+#[test]
 fn records_already_in_the_new_store_are_never_overwritten() {
     let (_dir, config) = store();
     let data = config.data_dir().to_path_buf();

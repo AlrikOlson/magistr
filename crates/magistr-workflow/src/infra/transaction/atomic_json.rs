@@ -5,7 +5,7 @@ use std::{fs, io::Write, path::Path};
 use magistr_workflow_contracts::{StoreStamp, WriteError};
 use serde::Serialize;
 
-use crate::infra::store_stamp;
+use crate::infra::{AtomicFile, store_stamp};
 
 /// Write while the caller holds the canonical owner's stable advisory lock.
 /// The lock file must never be removed; deleting it permits competing owners.
@@ -22,19 +22,20 @@ fn replace<T: Serialize>(
         .parent()
         .filter(|path| !path.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
-    let prepare = || -> std::io::Result<(tempfile::NamedTempFile, StoreStamp)> {
+    // The stamp is read from the synchronized temporary, so it names exactly
+    // the bytes the rename makes visible.
+    let publish = || -> std::io::Result<StoreStamp> {
         fs::create_dir_all(parent)?;
-        let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
-        serde_json::to_writer(&mut temporary, value).map_err(std::io::Error::other)?;
-        temporary.flush()?;
-        temporary.as_file().sync_all()?;
-        let stamp = store_stamp::from_metadata(&temporary.as_file().metadata()?)?;
-        Ok((temporary, stamp))
+        AtomicFile::replace_with(path, |file| {
+            let mut buffered = std::io::BufWriter::new(&mut *file);
+            serde_json::to_writer(&mut buffered, value).map_err(std::io::Error::other)?;
+            buffered.flush()?;
+            drop(buffered);
+            file.sync_all()?;
+            store_stamp::from_metadata(&file.metadata()?)
+        })
     };
-    let (temporary, stamp) = prepare().map_err(|error| before_commit(path, error))?;
-    temporary
-        .persist(path)
-        .map_err(|error| before_commit(path, error.error))?;
+    let stamp = publish().map_err(|error| before_commit(path, error))?;
     synchronize(parent).map_err(|error| {
         tracing::warn!(path = %path.display(), %error, "Workflow replacement is visible but durability is uncertain");
         WriteError::uncertain("Saving could not be confirmed. Read the saved work before retrying.")

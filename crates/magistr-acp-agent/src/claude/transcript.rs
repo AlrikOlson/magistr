@@ -23,10 +23,9 @@ pub(crate) fn default_config_dir() -> PathBuf {
     if let Some(dir) = std::env::var_os("CLAUDE_CONFIG_DIR").filter(|d| !d.is_empty()) {
         return PathBuf::from(dir);
     }
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_default();
-    home.join(".claude")
+    // The home directory as each platform names it, which is where Claude
+    // Code itself looks.
+    std::env::home_dir().unwrap_or_default().join(".claude")
 }
 
 /// The transcript's path for a session opened in `cwd`.

@@ -232,14 +232,20 @@ fn no_record_lock_outlives_the_upgrade_that_took_it() {
     request(&current);
     let owner = ProjectAuthority::admit(&current, WriterRole::Host).unwrap();
     for relative in &paths {
-        let renamed = relative
-            .to_string_lossy()
-            .replacen("ship/", "run/", 1)
-            .replacen("roadmap/", "plan/", 1)
-            .replace("/receipts/", "/check_results/");
+        // Renamed part by part: a path's separator differs by platform.
+        let renamed: PathBuf = relative
+            .iter()
+            .enumerate()
+            .map(|(index, part)| match part.to_str() {
+                Some("ship") if index == 0 => "run".into(),
+                Some("roadmap") if index == 0 => "plan".into(),
+                Some("receipts") => "check_results".into(),
+                _ => part.to_owned(),
+            })
+            .collect();
         for (store, relative) in [
             (old.data_dir(), relative.clone()),
-            (current.data_dir(), PathBuf::from(renamed)),
+            (current.data_dir(), renamed),
         ] {
             let lock = File::options()
                 .read(true)
