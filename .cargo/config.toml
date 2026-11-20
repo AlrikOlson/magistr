@@ -1,0 +1,12 @@
+# Build settings every checkout shares. Keep machine-specific settings in the Cargo
+# configuration of your own home directory.
+
+[env]
+# tree-sitter's C code is compiled against wasmtime's C headers, which declare every function
+# as imported from a DLL on Windows unless LIBWASM_STATIC is defined. wasmtime is linked
+# statically here, so without it the MSVC linker prints one LNK4217 warning per symbol at every
+# link. tree-sitter's own build script defines it on its main branch (not yet in 0.27.2, the
+# newest release on 2026-11-20); delete these entries once the workspace is on a release that
+# has it.
+CFLAGS_x86_64_pc_windows_msvc = "-DLIBWASM_STATIC"
+CFLAGS_aarch64_pc_windows_msvc = "-DLIBWASM_STATIC"
