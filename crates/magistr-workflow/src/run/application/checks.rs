@@ -132,6 +132,9 @@ impl RunUseCases {
                 ) {
                     Ok(now) => match before.drift_to(&now.observation()) {
                         None => SourceFreshness::Unchanged,
+                        Some(ObservationDrift::Execution { .. }) => SourceFreshness::Reconfigured {
+                            layers: vec!["toolchain or environment".into()],
+                        },
                         Some(ObservationDrift::Configuration { .. }) => {
                             SourceFreshness::Reconfigured { layers: Vec::new() }
                         }

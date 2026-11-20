@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 /// Which distinguished identity a later observation disagrees with an
 /// earlier one on. Each variant is one identity, never a blend: the
 /// workspace, the hashing scheme, the selection policy, the selected
-/// source bytes or the applicable external configuration — and `Unbound`
+/// source bytes, the command's tools and the environment they read, or the
+/// applicable external configuration — and `Unbound`
 /// for a check_result recorded before an identity was bound to check_results at
 /// all. The owner generation, the workflow store stamp and a mutation
 /// check_result's revision are not observation identities and never appear
@@ -21,6 +22,9 @@ pub enum ObservationDrift {
     SelectionPolicy { before: String, after: String },
     /// The selected bytes changed.
     Source { before: String, after: String },
+    /// The command's tools, their settings or the environment variables
+    /// they read changed with the bytes unchanged.
+    Execution { before: String, after: String },
     /// An external configuration layer changed with the bytes unchanged.
     Configuration { before: String, after: String },
     /// The earlier observation predates this identity's binding.
@@ -51,6 +55,12 @@ impl fmt::Display for ObservationDrift {
             Self::Source { before, after } => write!(
                 f,
                 "the source changed since the check ran (check_result {}…, now {}…)",
+                short(before),
+                short(after)
+            ),
+            Self::Execution { before, after } => write!(
+                f,
+                "the tools the check uses, or the environment variables they read, changed since the check ran (check_result {}…, now {}…)",
                 short(before),
                 short(after)
             ),

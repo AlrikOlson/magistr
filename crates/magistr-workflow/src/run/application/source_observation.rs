@@ -42,8 +42,8 @@ impl SourceObservation {
     /// The first distinguished identity on which a later observation of
     /// the same capability disagrees with this one, or `None` when the
     /// evidence this observation was taken for still applies. Judged in
-    /// order: workspace, scheme, selection policy, source bytes, external
-    /// configuration. The owner generation is carried, not judged: a new
+    /// order: workspace, scheme, selection policy, source bytes, tools and
+    /// environment, external configuration. The owner generation is carried, not judged: a new
     /// owner of the same bytes is not a change of source.
     #[must_use]
     pub fn drift_to(&self, later: &Self) -> Option<ObservationDrift> {
@@ -82,7 +82,7 @@ impl SourceObservation {
             });
         }
         if self.execution_digest != later.execution_digest {
-            return Some(ObservationDrift::Configuration {
+            return Some(ObservationDrift::Execution {
                 before: self.execution_digest.clone(),
                 after: later.execution_digest.clone(),
             });

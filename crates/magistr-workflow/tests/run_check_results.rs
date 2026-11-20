@@ -936,6 +936,19 @@ fn completion_names_the_identity_that_drifted_after_the_check_and_ignores_the_ow
     world.set_config("c1");
     assert!(cases.verify_completion("task:c1", None).is_ok());
 
+    // The tools or the environment they read changed: named as that, never
+    // as a configuration layer.
+    world.seen.lock().unwrap().execution = "toolchain-env-2".into();
+    let refusal = cases.verify_completion("task:c1", None).unwrap_err();
+    assert!(
+        refusal.to_string().contains(
+            "the tools the check uses, or the environment variables they read, changed since the check ran"
+        ),
+        "{refusal}"
+    );
+    world.seen.lock().unwrap().execution = "toolchain-env-1".into();
+    assert!(cases.verify_completion("task:c1", None).is_ok());
+
     // The selection policy changed: named as such, never as a source change.
     world.set_policy("p2");
     let refusal = cases.verify_completion("task:c1", None).unwrap_err();
