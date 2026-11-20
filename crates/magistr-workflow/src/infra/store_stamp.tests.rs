@@ -17,7 +17,5 @@ fn a_missing_file_has_no_stamp_and_a_rename_moves_it() {
     fs::write(&tmp_path, "{}").unwrap();
     fs::rename(&tmp_path, &path).unwrap();
     let second = of(&path).unwrap().expect("a file");
-    if cfg!(unix) {
-        assert_ne!(first, second);
-    }
+    assert_ne!(first, second);
 }

@@ -295,9 +295,13 @@ fn admit_check_result(
 fn compaction_keeps_a_check_result_for_recovery_and_its_saved_goal() {
     use magistr_engine::native::{CheckExecution, NativeConfig, ProjectAuthority, WriterRole};
     let (dir, spec) = setup_project("- [ ] item\n");
+    // The store stands beside the project, as a host keeps it: inside the
+    // project it would be source the evidence reads, and Windows refuses to
+    // read the lock file its live owner holds.
+    let store = tempfile::tempdir().unwrap();
     let inputs = crate::config::inputs::ProjectInputs::from_lookup(dir.path(), |_| None);
     let config = NativeConfig::from_lookup(dir.path(), |_| None)
-        .with_data_dir(dir.path().join("store"))
+        .with_data_dir(store.path().join("store"))
         .with_evidence(std::sync::Arc::new(
             crate::evidence::WorkspaceEvidence::from_inputs(&inputs),
         ));

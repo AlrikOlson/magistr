@@ -32,7 +32,7 @@ fn replace<T: Serialize>(
             buffered.flush()?;
             drop(buffered);
             file.sync_all()?;
-            store_stamp::from_metadata(&file.metadata()?)
+            store_stamp::of_open(file)
         })
     };
     let stamp = publish().map_err(|error| before_commit(path, error))?;

@@ -54,7 +54,7 @@ fn read_open_json<T: DeserializeOwned>(
             "The saved work could not be understood.",
         )
     })?;
-    let stamp = store_stamp::from_metadata(&after).map_err(metadata_error)?;
+    let stamp = store_stamp::identified(file, &after).map_err(metadata_error)?;
     Ok(Observed {
         value: Some(value),
         source: ReadSource::File(stamp),

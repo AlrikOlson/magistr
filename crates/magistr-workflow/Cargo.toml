@@ -55,6 +55,11 @@ tempfile = "3"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+[target.'cfg(windows)'.dependencies]
+# A saved file's identity on its volume (infra/store_stamp.rs); the standard
+# library's own accessor is not stable.
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
 [dev-dependencies]
 pretty_assertions = "1"
 # Validates Rust-built cloud envelopes against the canonical
