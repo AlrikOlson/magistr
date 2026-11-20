@@ -160,7 +160,7 @@ impl EvidencePort for WorkspaceEvidence {
                 self.root.display()
             ));
         }
-        let (_, policy) = self.check_policy(name, command)?;
+        let (verification, policy) = self.check_policy(name, command)?;
         let declared = policy.as_ref().map(|policy| &policy.inputs);
         let mut sources = inputs.to_vec();
         if let Some(declared) = declared {
@@ -182,7 +182,7 @@ impl EvidencePort for WorkspaceEvidence {
         let configuration = ConfigDigest::observe(&layers).map_err(|error| error.to_string())?;
         Ok(Box::new(
             SnapshotWitness::new(self.root.clone(), snapshot, layers, configuration)
-                .with_execution(command)?,
+                .with_execution(command, &verification.env)?,
         ))
     }
 

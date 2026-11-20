@@ -86,6 +86,7 @@ complete project configuration. It assumes the npm scripts named here exist:
   "verification": {
     "timeout_secs": 900,
     "max_parallel": 4,
+    "env": ["DOCS_BASE_URL", "SITE_*"],
     "checks": {
       "docs": {
         "inputs": ["docs", "scripts", "package.json", "package-lock.json"],
@@ -106,6 +107,14 @@ Include every source and dependency needed by a bounded check in `inputs`.
 Omit the list when that boundary is unknown. `resources: []` declares an
 independent command; shared tools such as Cargo must not race over one target
 directory. Reuse is appropriate only when the inputs fully describe the result.
+
+A saved result stays valid while the tools that produced it are the same and
+the environment variables they read keep their values: `PATH` and, by the tools
+a command uses, the variables of Cargo and Rust, Node and npm, Python, and Git.
+Other variables do not count, so a new terminal or agent session keeps your
+results. If your checks read variables of their own, list them in `env`; a
+trailing `*` covers every variable that starts with that name. A result is then
+run again when one of them changes.
 
 Timeout precedence is a check's explicit override, a named check override,
 the project setting, then the 900-second default. The accepted timeout range

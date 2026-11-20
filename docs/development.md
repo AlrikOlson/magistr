@@ -70,8 +70,14 @@ original receipt and has no new exit code. Use `reuse: false` to rerun deliberat
 Builds and human reviews require fresh results. Network-dependent custom checks
 should keep reuse disabled.
 
+The environment a result is bound to is the variables that choose and steer the
+command's tools (`PATH`, and the Cargo, Rust, Node, npm, Python and Git
+variables by the tools the command uses), plus the names in `verification.env`
+(a trailing `*` is a prefix). A host's own session variables are not part of
+it, so a result recorded in one session stands in the next.
+
 The `verification` object in `.magistr/project.json` sets `timeout_secs`
-(default 900), `max_parallel` (default 4), and per-name `checks` overrides for
+(default 900), `max_parallel` (default 4), `env`, and per-name `checks` overrides for
 `inputs`, `reuse`, `timeout_secs` and `resources`. Deadlines include resource
 queue time. Cargo checks sharing a target directory serialize; `resources: []`
 allows an independent custom check to overlap. Undeclared custom commands run

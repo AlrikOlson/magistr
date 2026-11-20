@@ -12,6 +12,11 @@ pub struct VerificationConfig {
     pub max_parallel: usize,
     /// Overrides keyed by configured check name.
     pub checks: BTreeMap<String, CheckPolicy>,
+    /// Environment variables the project's checks read, beyond the ones that
+    /// choose and steer their tools. A result is reused only while these keep
+    /// their values. A trailing `*` names every variable with that prefix.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub env: Vec<String>,
 }
 impl Default for VerificationConfig {
     fn default() -> Self {
@@ -19,6 +24,7 @@ impl Default for VerificationConfig {
             timeout_secs: None,
             max_parallel: 4,
             checks: BTreeMap::new(),
+            env: Vec::new(),
         }
     }
 }

@@ -1,4 +1,5 @@
-//! Bind receipts to the environment and the actual tools, without exposing values.
+//! Bind receipts to the actual tools and to the environment that steers them
+//! ([`super::execution_environment`]), without exposing values.
 use magistr_process::{Launch, ProcessSpec, Termination, run_blocking};
 use magistr_workspace::file_content::FileContent;
 use std::collections::HashMap;
@@ -10,6 +11,7 @@ use std::time::Duration;
 pub(super) struct ExecutionFingerprint {
     command: String,
     files: Vec<String>,
+    declared: Vec<String>,
     pub digest: String,
 }
 
@@ -22,17 +24,18 @@ struct Cached {
 }
 
 impl ExecutionFingerprint {
-    pub fn observe(root: &Path, command: Option<&str>, files: &[String]) -> Result<Self, String> {
+    /// `declared` is the project's `verification.env`: the variables its own
+    /// checks read, bound beside the ones the command's tools read.
+    pub fn observe(
+        root: &Path,
+        command: Option<&str>,
+        files: &[String],
+        declared: &[String],
+    ) -> Result<Self, String> {
         let command = command.unwrap_or_default().to_owned();
-        let mut environment: Vec<_> = std::env::vars_os()
-            .map(|(key, value)| {
-                (
-                    key.as_encoded_bytes().to_vec(),
-                    value.as_encoded_bytes().to_vec(),
-                )
-            })
-            .collect();
-        environment.sort();
+        let profile = tool_profile(&command, files);
+        let environment =
+            super::execution_environment::bound(std::env::vars_os(), &profile, declared);
         let mut configuration = Vec::new();
         for path in [
             "rust-toolchain",
@@ -48,7 +51,6 @@ impl ExecutionFingerprint {
         {
             configuration.push(read_optional(&directory.join("settings.toml"))?);
         }
-        let profile = tool_profile(&command, files);
         for file in files.iter().filter(|file| file.ends_with("package.json")) {
             let directory = root.join(file).parent().unwrap_or(root).to_owned();
             for marker in [
@@ -98,6 +100,7 @@ impl ExecutionFingerprint {
             return Ok(Self {
                 command,
                 files: files.to_vec(),
+                declared: declared.to_vec(),
                 digest: hit.digest,
             });
         }
@@ -159,12 +162,16 @@ impl ExecutionFingerprint {
         Ok(Self {
             command,
             files: files.to_vec(),
+            declared: declared.to_vec(),
             digest,
         })
     }
 
     pub fn unchanged(&self, root: &Path) -> Result<bool, String> {
-        Ok(Self::observe(root, Some(&self.command), &self.files)?.digest == self.digest)
+        Ok(
+            Self::observe(root, Some(&self.command), &self.files, &self.declared)?.digest
+                == self.digest,
+        )
     }
 }
 

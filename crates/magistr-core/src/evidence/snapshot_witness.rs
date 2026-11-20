@@ -34,7 +34,13 @@ impl SnapshotWitness {
         }
     }
 
-    pub(super) fn with_execution(mut self, command: Option<&str>) -> Result<Self, String> {
+    /// Binds the witness to the command's tools and to the environment that
+    /// steers them; `declared` is the project's `verification.env`.
+    pub(super) fn with_execution(
+        mut self,
+        command: Option<&str>,
+        declared: &[String],
+    ) -> Result<Self, String> {
         self.execution = Some(super::execution_fingerprint::ExecutionFingerprint::observe(
             &self.root,
             command,
@@ -45,6 +51,7 @@ impl SnapshotWitness {
                 .keys()
                 .cloned()
                 .collect::<Vec<_>>(),
+            declared,
         )?);
         Ok(self)
     }

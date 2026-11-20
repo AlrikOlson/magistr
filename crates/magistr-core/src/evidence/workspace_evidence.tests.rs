@@ -330,6 +330,27 @@ fn a_check_scope_ignores_unrelated_edits_but_tracks_new_inputs_and_toolchain_set
 }
 
 #[test]
+fn the_variables_a_project_declares_bind_its_check_results() {
+    let (_dir, root, evidence) = rig();
+    let digest = || {
+        evidence
+            .observe_check("focused", Some("true"), &[])
+            .unwrap()
+            .observation()
+            .execution_digest
+    };
+    let undeclared = digest();
+    assert_eq!(undeclared, digest());
+    let path = root.join(".magistr/project.json");
+    let mut config: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    // Every variable of this test's own process, which holds more than the
+    // few a command with no known tool is bound to.
+    config["verification"] = serde_json::json!({ "env": ["*"] });
+    fs::write(&path, config.to_string()).unwrap();
+    assert_ne!(undeclared, digest());
+}
+
+#[test]
 fn deadline_precedence_and_origin_are_shared_by_live_and_native_checks() {
     use magistr_engine::native::TimeoutOrigin;
     let (_dir, root, evidence) = rig();
